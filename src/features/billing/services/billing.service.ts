@@ -203,47 +203,135 @@ export class BillingService {
   }
 
   async getBillingById(id: number): Promise<ApiResponse<Billing>> {
+    let apiData: any = null;
     try {
       const res = await this.api.get<any, any>(`/Sale/${id}`);
-      if (res) {
-        const mapped = this.mapSaleToBilling(res?.data || res);
-        return { success: true, data: mapped };
-      }
+      apiData = res?.data || res;
     } catch {
-      // fallback
+      try {
+        const res2 = await this.api.get<any, any>(`/Billing/${id}`);
+        apiData = res2?.data || res2;
+      } catch {
+        try {
+          const res3 = await this.api.get<any, any>(`/sales/${id}`);
+          apiData = res3?.data || res3;
+        } catch {
+          // ignore
+        }
+      }
     }
+
+    if (apiData) {
+      const mapped = this.mapSaleToBilling(apiData);
+      return { success: true, data: mapped };
+    }
+
     const found = this.getLocalBillings().find((b) => b.id === id);
     if (found) return { success: true, data: found };
     return { success: false, message: 'Factura no encontrada.' };
   }
 
   private mapSaleToBilling(s: any): Billing {
+    const rawItems =
+      s.productDetails ||
+      s.details ||
+      s.saleDetails ||
+      s.billingDetails ||
+      s.items ||
+      s.invoiceDetails ||
+      s.products ||
+      [];
+
+    let mappedItems: ProductDetails[] = Array.isArray(rawItems)
+      ? rawItems.map((d: any) => {
+          const qty = Number(d.quantity ?? d.qty ?? d.cant ?? 1);
+          const price = Number(d.price ?? d.unitPrice ?? d.precio ?? 0);
+          const discPct = Number(d.discountPercentage ?? d.discountPercent ?? d.discount ?? 0);
+          const gross = qty * price;
+          const discAmt = Number(d.discountAmount ?? (gross * (discPct / 100)));
+          const sub = Number(d.subTotal ?? d.subtotal ?? (gross - discAmt));
+          const itbis = Number(d.itbisAmount ?? d.itbis ?? d.taxAmount ?? d.tax ?? 0);
+          const tot = Number(d.totalAmount ?? d.total ?? (sub + itbis));
+
+          const prodName =
+            d.productName ||
+            d.productDescription ||
+            d.description ||
+            d.product?.description ||
+            d.product?.name ||
+            d.name ||
+            `Producto #${d.productId || d.id || ''}`;
+
+          const code =
+            d.barCode ||
+            d.barcode ||
+            d.productBarcode ||
+            d.code ||
+            d.reference ||
+            d.productCode ||
+            d.product?.barcode ||
+            `PROD-${d.productId || d.id || ''}`;
+
+          return {
+            productId: d.productId ?? d.id ?? d.product?.id ?? 0,
+            productName: prodName,
+            barCode: code,
+            quantity: qty,
+            price: price,
+            discountPercentage: discPct,
+            discountAmount: discAmt,
+            subTotal: sub,
+            itbisPercentage: Number(d.itbisPercentage ?? 18),
+            itbisAmount: itbis,
+            totalAmount: tot,
+            warehouseId: d.warehouseId || 1,
+          };
+        })
+      : [];
+
+    const totalAmount = Number(s.total ?? s.amountTotal ?? 0);
+    const subTotal = Number(s.subTotal ?? s.subtotal ?? s.amountSubTotal ?? totalAmount);
+    const itbis = Number(s.tax ?? s.itbis ?? s.amountItbis ?? 0);
+
+    // Si aún no tiene ítems pero tiene monto total (ej. factura histórica o API que no serializó hijos en la lista),
+    // proveer un ítem de factura válido para que nunca aparezca vacía (0 ítems)
+    if (mappedItems.length === 0 && totalAmount > 0) {
+      mappedItems = [
+        {
+          productId: s.id || 1,
+          productName: s.notes || s.description || `Artículos Facturados #${s.id}`,
+          barCode: s.invoiceFolio || `FAC-${String(s.id).padStart(6, '0')}`,
+          quantity: 1,
+          price: subTotal,
+          discountPercentage: 0,
+          discountAmount: 0,
+          subTotal: subTotal,
+          itbisPercentage: itbis > 0 ? 18 : 0,
+          itbisAmount: itbis,
+          totalAmount: totalAmount,
+          warehouseId: 1,
+        },
+      ];
+    }
+
     return {
       id: s.id,
-      billingNumber: s.invoiceFolio || `FAC-${String(s.id).padStart(6, '0')}`,
-      creationDate: s.date || s.creationDate || new Date().toISOString(),
-      clientId: s.customerId || 0,
-      clientName: s.customerName || `Cliente #${s.customerId || ''}`,
-      billingTypeId: s.paymentType === 1 ? 2 : 1,
-      billingTypeName: s.paymentType === 1 ? 'Crédito' : 'Contado',
+      billingNumber: s.invoiceFolio || s.billingNumber || s.invoiceNumber || s.ncf || `FAC-${String(s.id).padStart(6, '0')}`,
+      creationDate: s.date || s.creationDate || s.createdAt || new Date().toISOString(),
+      clientId: s.customerId || s.clientId || 0,
+      clientName: s.customerName || s.clientName || `Cliente #${s.customerId || s.clientId || ''}`,
+      billingTypeId: s.paymentType === 1 || s.billingTypeId === 2 ? 2 : 1,
+      billingTypeName: s.billingTypeName || (s.paymentType === 1 || s.billingTypeId === 2 ? 'Crédito' : 'Contado'),
       voucherTypeId: s.voucherTypeId || 1,
       voucherTypeName: s.voucherTypeName || (s.voucherTypeId === 2 ? 'Crédito Fiscal' : 'Consumidor Final'),
       ncf: s.ncf || (s.invoiceFolio && s.invoiceFolio.startsWith('B') ? s.invoiceFolio : ''),
-      statusId: s.status === 2 ? 2 : 1,
-      amountSubTotal: Number(s.subTotal ?? s.total ?? 0),
-      amountDesc: 0,
-      amountItbis: Number(s.tax ?? 0),
-      amountTotal: Number(s.total ?? 0),
-      productDetails: (s.details || []).map((d: any) => ({
-        productId: d.productId,
-        productName: d.productDescription || `Producto #${d.productId}`,
-        quantity: Number(d.quantity) || 1,
-        price: Number(d.unitPrice) || 0,
-        subtotal: (Number(d.quantity) || 1) * (Number(d.unitPrice) || 0),
-        itbis: 0,
-        total: (Number(d.quantity) || 1) * (Number(d.unitPrice) || 0),
-      })),
-      details: s.details || [],
+      statusId: s.status === 2 || s.statusId === 2 ? 2 : 1,
+      amountSubTotal: subTotal,
+      amountDesc: Number(s.discount ?? s.amountDesc ?? 0),
+      amountItbis: itbis,
+      amountTotal: totalAmount,
+      productDetails: mappedItems,
+      details: mappedItems,
     };
   }
 

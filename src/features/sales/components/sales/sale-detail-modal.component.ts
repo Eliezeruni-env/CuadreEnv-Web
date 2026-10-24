@@ -30,6 +30,7 @@ import {
   RowComponent,
   SpinnerComponent,
 } from '@coreui/angular';
+import { IconDirective } from '@coreui/icons-angular';
 import { TableComponent } from '../../../cuadreEnv/components/table/table.component';
 
 export interface SaleDetailItemView {
@@ -50,10 +51,8 @@ export interface SaleDetailItemView {
     ButtonDirective,
     FormControlDirective,
     FormDirective,
-    RowComponent,
-    ColComponent,
     SpinnerComponent,
-    TableComponent,
+    IconDirective,
   ],
   templateUrl: './sale-detail-modal.component.html',
 })
@@ -233,5 +232,34 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
   getProductName(productId: number): string {
     const p = this.products().find((item) => item.id === productId);
     return p ? p.description || p.barcode || 'Producto' : `Producto #${productId}`;
+  }
+
+  isServiceSale(): boolean {
+    if (!this.sale) return false;
+    const s: any = this.sale;
+    if (s.originChannel === 'SERVICIO' || s.originChannel === 'SERVICE' || s.originChannel === 3) return true;
+    if (typeof s.notes === 'string') {
+      const upper = s.notes.toUpperCase();
+      if (
+        upper.includes('[SERVICIO]') ||
+        upper.includes('VENTA DE SERVICIO') ||
+        upper.includes('SERVICIOS #') ||
+        upper.includes('MANO DE OBRA')
+      ) {
+        return true;
+      }
+    }
+    if (typeof s.invoiceNumber === 'string' && s.invoiceNumber.toUpperCase().includes('SERV')) return true;
+    const items = this.itemsList();
+    if (items && items.length > 0) {
+      return items.some((it: any) => {
+        if (it.isService === true || it.productTypeId === 2) return true;
+        const code = String(it.productCode || it.code || '').toUpperCase();
+        if (code.startsWith('SERV') || code.startsWith('SRV')) return true;
+        const name = String(it.productName || it.description || '').toLowerCase();
+        return name.includes('servicio') || name.includes('mano de obra') || name.includes('mantenimiento');
+      });
+    }
+    return false;
   }
 }

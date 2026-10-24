@@ -42,11 +42,8 @@ export const AppRoutes: Routes = [
       },
       {
         path: 'inventory',
-        loadComponent: () =>
-          import(
-            '../features/inventory/components/inventory/inventory.component'
-          ).then((m) => m.InventoryComponent),
-        data: { breadcrumb: 'Almacenes & Stock' },
+        redirectTo: 'inventory/stock',
+        pathMatch: 'full',
       },
       {
         path: 'inventory/warehouses',
@@ -160,6 +157,30 @@ export const AppRoutes: Routes = [
             '../features/sales/components/sales/sales.component'
           ).then((m) => m.SalesComponent),
         data: { breadcrumb: 'Ventas y Facturación' },
+      },
+      {
+        path: 'sales/corporate',
+        loadComponent: () =>
+          import(
+            '../features/sales/components/corporate-sales/corporate-sales.component'
+          ).then((m) => m.CorporateSalesComponent),
+        data: { breadcrumb: 'Ventas Corporativas' },
+      },
+      {
+        path: 'sales/distribution',
+        loadComponent: () =>
+          import(
+            '../features/sales/components/distribution-routes/distribution-routes.component'
+          ).then((m) => m.DistributionRoutesComponent),
+        data: { breadcrumb: 'Rutas & Surtidores' },
+      },
+      {
+        path: 'products/detail-sales',
+        loadComponent: () =>
+          import(
+            '../features/products/components/products/products.component'
+          ).then((m) => m.ProductsComponent),
+        data: { breadcrumb: 'Venta Fraccionada / Menudeo' },
       },
       {
         path: 'receivables',

@@ -111,7 +111,7 @@
                     {{ e.createDate | date:'dd/MM/yyyy HH:mm' }}
                   </td>
                   <td class="text-center font-monospace fw-bold text-dark fs-6">
-                    {{ e.totalQuantity }} uds
+                    +{{ (e.totalQuantity || 0) | number:'1.0-2' }} uds
                   </td>
                   <td class="text-end font-monospace fw-bold text-success">
                     RD$ {{ (e.totalCost || 0) | number:'1.2-2' }}
@@ -148,7 +148,7 @@
                             Detalle de Productos Ingresados ({{ (e.productDetails.length || 0) }} ítems)
                           </span>
                           <div class="small font-monospace">
-                            <span class="text-muted me-3">Total Unidades: <strong>{{ e.totalQuantity }} uds</strong></span>
+                            <span class="text-muted me-3">Total Unidades: <strong>+{{ (e.totalQuantity || 0) | number:'1.0-2' }} uds</strong></span>
                             <span class="text-success fw-bold">Costo Total: RD$ {{ (e.totalCost || 0) | number:'1.2-2' }}</span>
                           </div>
                         </div>
@@ -202,71 +202,161 @@
 <!-- Modal Detail Voucher -->
 @if (selectedEntry) {
   <div class="custom-modal-backdrop" (click)="selectedEntry = null">
-    <div class="custom-modal-content" (click)="$event.stopPropagation()" style="max-width: 650px;">
-      <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light d-print-none">
-        <h6 class="fw-bold mb-0 text-dark">Comprobante de Entrada de Almacén</h6>
-        <button type="button" class="btn-close" (click)="selectedEntry = null"></button>
-      </div>
-      <div class="p-4" id="entryVoucherPrint">
-        <div class="d-flex justify-content-between border-bottom pb-3 mb-3">
-          <div>
-            <h5 class="fw-bold mb-0 font-monospace text-success">{{ selectedEntry.movementNumber }}</h5>
-            <div class="text-secondary small">Fecha: {{ selectedEntry.createDate | date:'dd/MM/yyyy hh:mm a' }}</div>
+    <div class="custom-modal-content modal-lg shadow-lg border-0 rounded-4 overflow-hidden" (click)="$event.stopPropagation()" style="max-width: 760px;">
+      <!-- Header Moderno -->
+      <div class="p-4 bg-white border-bottom d-flex justify-content-between align-items-center d-print-none">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-2.5 d-flex align-items-center justify-content-center" style="background: rgba(22, 163, 74, 0.1); color: #16a34a; width: 44px; height: 44px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 5v14M5 12l7 7 7-7"/>
+            </svg>
           </div>
-          <div class="text-end">
-            <span class="badge bg-success-subtle text-success border border-success-subtle">
-              {{ selectedEntry.conceptName }}
-            </span>
-            <div class="text-dark fw-bold small mt-1">{{ selectedEntry.warehouseName }}</div>
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <h5 class="fw-bold text-dark mb-0">Comprobante de Entrada de Almacén</h5>
+              <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1" style="font-size: 0.75rem;">
+                {{ selectedEntry.statusName || 'Entrada Aplicada' }}
+              </span>
+            </div>
+            <div class="text-muted small mt-0.5">
+              Movimiento: <span class="fw-semibold text-success font-monospace">{{ selectedEntry.movementNumber }}</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-close shadow-none" (click)="selectedEntry = null"></button>
+      </div>
+
+      <div class="p-4 bg-light-subtle" id="entryVoucherPrint">
+        <!-- 4 Metadatos Cards -->
+        <div class="row g-3 mb-4">
+          <div class="col-sm-6 col-md-3">
+            <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white h-100">
+              <div class="text-muted small mb-1" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Comprobante</div>
+              <div class="fw-bold text-success font-monospace" style="font-size: 0.88rem;">{{ selectedEntry.movementNumber }}</div>
+              <div class="text-secondary small" style="font-size: 0.75rem;">Ingreso Físico</div>
+            </div>
+          </div>
+
+          <div class="col-sm-6 col-md-3">
+            <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white h-100">
+              <div class="text-muted small mb-1" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Almacén Destino</div>
+              <div class="fw-bold text-dark text-truncate" style="font-size: 0.88rem;" [title]="selectedEntry.warehouseName">
+                {{ selectedEntry.warehouseName }}
+              </div>
+              <div class="text-secondary small" style="font-size: 0.75rem;">Bodega Central</div>
+            </div>
+          </div>
+
+          <div class="col-sm-6 col-md-3">
+            <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white h-100">
+              <div class="text-muted small mb-1" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Concepto / Motivo</div>
+              <div class="fw-bold text-primary text-truncate" style="font-size: 0.88rem;">
+                {{ selectedEntry.conceptName || 'Entrada de Almacén' }}
+              </div>
+              <div class="text-secondary small" style="font-size: 0.75rem;">Recepción de Stock</div>
+            </div>
+          </div>
+
+          <div class="col-sm-6 col-md-3">
+            <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white h-100">
+              <div class="text-muted small mb-1" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Fecha y Hora</div>
+              <div class="fw-bold text-dark" style="font-size: 0.88rem;">{{ selectedEntry.createDate | date:'dd/MM/yyyy' }}</div>
+              <div class="text-secondary small" style="font-size: 0.75rem;">{{ selectedEntry.createDate | date:'hh:mm a' }}</div>
+            </div>
           </div>
         </div>
 
         @if (selectedEntry.commentary) {
-          <div class="p-2 bg-light rounded-2 border mb-3 small">
-            <strong>Observaciones:</strong> {{ selectedEntry.commentary }}
+          <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white mb-3">
+            <div class="d-flex align-items-center gap-2 text-muted small mb-1" style="font-size: 0.75rem; font-weight: 600;">
+              <span>OBSERVACIONES / COMENTARIOS</span>
+            </div>
+            <div class="text-dark small mb-0">{{ selectedEntry.commentary }}</div>
           </div>
         }
 
-        <div class="table-responsive border rounded-2 mb-3">
-          <table class="table table-sm align-middle mb-0 small">
-            <thead class="table-light">
-              <tr>
-                <th class="ps-3">Producto</th>
-                <th>Código</th>
-                <th class="text-center">Cant</th>
-                <th class="text-end">Costo Unit.</th>
-                <th class="text-end pe-3">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of (selectedEntry.productDetails || []); track $index) {
+        <!-- Tabla de Artículos Ingresados -->
+        <div class="card border-0 shadow-2xs rounded-3 overflow-hidden bg-white mb-2">
+          <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white">
+            <h6 class="fw-bold text-dark mb-0" style="font-size: 0.88rem;">
+              Artículos y Productos Ingresados ({{ (selectedEntry.productDetails || []).length }})
+            </h6>
+            <span class="badge bg-light text-secondary border font-monospace" style="font-size: 0.72rem;">
+              Recepción Confirmada
+            </span>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.84rem;">
+              <thead class="table-light text-secondary" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
                 <tr>
-                  <td class="ps-3 fw-semibold">{{ item.productName }}</td>
-                  <td class="font-monospace text-secondary">{{ item.barCode || '-' }}</td>
-                  <td class="text-center font-monospace fw-bold">{{ item.quantity }}</td>
-                  <td class="text-end font-monospace">RD$ {{ (item.cost || 0) | number:'1.2-2' }}</td>
-                  <td class="text-end pe-3 font-monospace fw-bold text-dark">
-                    RD$ {{ (item.quantity * (item.cost || 0)) | number:'1.2-2' }}
-                  </td>
+                  <th class="ps-3 py-2.5">Producto / Descripción</th>
+                  <th class="py-2.5">Cód. Barra</th>
+                  <th class="text-center py-2.5" style="width: 110px;">Cant.</th>
+                  <th class="text-end py-2.5" style="width: 140px;">Costo Unit.</th>
+                  <th class="text-end pe-3 py-2.5" style="width: 150px;">Importe Total</th>
                 </tr>
-              }
-            </tbody>
-            <tfoot class="table-light">
-              <tr>
-                <td colspan="2" class="ps-3 fw-bold">Totales:</td>
-                <td class="text-center font-monospace fw-bold">{{ selectedEntry.totalQuantity }} uds</td>
-                <td></td>
-                <td class="text-end pe-3 font-monospace fw-bold text-success fs-6">
-                  RD$ {{ selectedEntry.totalCost | number:'1.2-2' }}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody>
+                @for (item of (selectedEntry.productDetails || []); track $index) {
+                  <tr>
+                    <td class="ps-3 py-3">
+                      <div class="fw-bold text-dark">{{ item.productName }}</div>
+                      <div class="text-muted small font-monospace" style="font-size: 0.72rem;">ID: #{{ item.productId }}</div>
+                    </td>
+                    <td class="py-3 font-monospace text-secondary">{{ item.barCode || '—' }}</td>
+                    <td class="text-center py-3">
+                      <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill font-monospace fw-bold">
+                        +{{ item.quantity }} ud.
+                      </span>
+                    </td>
+                    <td class="text-end py-3 font-monospace text-secondary">
+                      RD$ {{ (item.cost || 0) | number:'1.2-2' }}
+                    </td>
+                    <td class="text-end pe-3 py-3 font-monospace fw-bold text-dark">
+                      RD$ {{ (item.quantity * (item.cost || 0)) | number:'1.2-2' }}
+                    </td>
+                  </tr>
+                }
+                @if ((selectedEntry.productDetails || []).length === 0) {
+                  <tr>
+                    <td colspan="5" class="text-center py-4 text-muted">
+                      No hay artículos especificados en este movimiento.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Total Resumen Card -->
+          <div class="p-3 bg-light border-top d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-muted small fw-semibold">Total Unidades:</span>
+              <span class="badge bg-dark text-white font-monospace px-2.5 py-1 rounded-pill">
+                +{{ selectedEntry.totalQuantity }} uds
+              </span>
+            </div>
+            <div class="text-end">
+              <div class="text-muted small" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600;">Costo Total Entrada</div>
+              <div class="fs-4 fw-bold text-success font-monospace mb-0">
+                RD$ {{ selectedEntry.totalCost | number:'1.2-2' }}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="p-3 border-top bg-light d-flex justify-content-end gap-2 d-print-none">
-        <button type="button" class="btn btn-light border" (click)="selectedEntry = null">Cerrar</button>
-        <button type="button" class="btn btn-primary fw-semibold" (click)="printVoucher()">Imprimir Comprobante</button>
+
+      <div class="p-3 bg-white border-top d-flex justify-content-end gap-2 d-print-none">
+        <button type="button" class="btn btn-light border rounded-pill px-4 py-1.5 fw-semibold" style="font-size: 0.84rem;" (click)="selectedEntry = null">Cerrar</button>
+        <button type="button" class="btn btn-primary rounded-pill px-4 py-1.5 fw-semibold" style="font-size: 0.84rem;" (click)="printVoucher()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          Imprimir Comprobante
+        </button>
       </div>
     </div>
   </div>

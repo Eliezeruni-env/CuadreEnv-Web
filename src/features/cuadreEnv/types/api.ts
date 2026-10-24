@@ -6,6 +6,24 @@ export interface ApiResponse<T = any> {
   errors?: string[];
 }
 
+/**
+ * Auditoría estándar expuesta por el backend para todas las entidades
+ */
+export interface AuditableEntity {
+  creationDate?: string | null;
+  modificationDate?: string | null;
+  createBy?: string | number | null;
+  modifiedBy?: string | number | null;
+  active?: boolean;
+  isDeleted?: boolean;
+}
+
+/**
+ * Distinción de estados operativos en formularios del sistema
+ */
+export type FormOperationMode = 'creation' | 'edition' | 'logical_deletion' | 'reactivation';
+
+
 // PagedResult<T> canónico de CuadreEnv
 export interface PagedResult<T> {
   items: T[];
@@ -70,12 +88,29 @@ export interface LoginRequestDto {
   email: string;
   password: string;
   deviceId?: string | null;
+  rememberMe?: boolean;
+}
+
+export interface UserCompanyDto {
+  id: number;
+  name: string;
+  commercialName?: string | null;
+  rnc?: string | null;
+  role?: string | null;
+  plan?: string | null;
+  isDefault?: boolean;
 }
 
 export interface TokenResponseDto {
   accessToken: string;
   refreshToken: string;
+  companyId?: number;
+  userCompanies?: UserCompanyDto[];
   user?: {
+    id?: number;
+    email?: string;
+    companyId?: number;
+    userCompanies?: UserCompanyDto[];
     allowedModules?: string[];
   };
 }
@@ -101,6 +136,17 @@ export interface CreateCompanyRequest {
   phone?: string | null;
 }
 
+export interface CompanyBankAccountDto {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  accountType?: string;
+  currency?: string;
+  holderName?: string;
+  holderRnc?: string;
+  isDefault?: boolean;
+}
+
 export interface CompanySettingsDto {
   id?: number;
   companyId?: number;
@@ -118,6 +164,13 @@ export interface CompanySettingsDto {
   invoiceNumberFormat?: string;
   defaultStockAlertThreshold?: number;
   defaultTaxPercentage?: number;
+  ticketInstagram?: string | null;
+  ticketWhatsapp?: string | null;
+  ticketShowQr?: boolean;
+  ticketPaperSize?: string;
+  allowNegativeStock?: boolean;
+  cashToleranceAmount?: number;
+  bankAccounts?: CompanyBankAccountDto[];
 }
 
 export interface Company {
@@ -252,12 +305,21 @@ export interface ProductDto {
   reference?: string | null;
   maximumQuantity?: number;
   minimumQuantity?: number;
+  minimumStock?: number;
+  minStock?: number;
   productTypeId?: number;
   categoryId?: number;
+  categoryName?: string | null;
+  CategoryName?: string | null;
+  category?: { id?: number; name?: string; description?: string } | null;
   unitOfMeasurementId?: number;
   invoiceWithoutStock?: boolean;
   expirationDate?: string | null;
   isOrganic?: boolean;
+  imageUrl?: string | null;
+  photoUrl?: string | null;
+  allowFractional?: boolean;
+  profitMargin?: number;
 }
 
 // Warehouse / Inventory
@@ -300,6 +362,8 @@ export interface SaleDetailDto {
   quantity: number;
   unitPrice: number;
 }
+export type SaleOriginChannel = 'POS_PRESENCIAL' | 'CREDITO' | 'ADMINISTRATIVO' | 'SERVICIO' | 'ONLINE';
+
 export interface SaleRequestDto {
   customerId?: number | null;
   total: number;
@@ -307,21 +371,38 @@ export interface SaleRequestDto {
   cashRegisterId?: number | null;
   dueDate?: string | null;
   details: SaleDetailDto[];
+  originChannel?: SaleOriginChannel;
+  paymentMethod?: string;
+  notes?: string;
 }
 
 export interface SaleResponseDto {
   id: number;
   customerId?: number | null;
+  customerName?: string;
   total: number;
   paidAmount: number;
   cashRegisterId?: number | null;
+  cashRegisterName?: string;
   dueDate?: string | null;
   isCancelled: boolean;
+  cancellationReason?: string;
+  cancelledAt?: string;
   creationDate: string;
+  createdAt?: string;
+  originChannel?: SaleOriginChannel;
+  paymentMethod?: string;
+  invoiceNumber?: string;
+  notes?: string;
   details: {
     productId: number;
     quantity: number;
     unitPrice: number;
+    productName?: string;
+    productCode?: string;
+    productTypeId?: number;
+    isService?: boolean;
+    total?: number;
   }[];
 }
 
@@ -332,6 +413,9 @@ export interface CustomerDto {
   email?: string | null;
   phone?: string | null;
   identification?: string | null;
+  rnc?: string | null;
+  contactName?: string | null;
+  creditLimit?: number;
   active?: boolean;
 }
 
@@ -445,6 +529,7 @@ export interface RoleDto {
   assignedUsersCount?: number;
   permissions?: PermissionDto[];
   permissionIds?: number[];
+  allowedModules?: string[];
   createdAt?: string;
 }
 
@@ -452,12 +537,14 @@ export interface CreateRoleRequest {
   name: string;
   description?: string;
   permissionIds?: number[];
+  allowedModules?: string[];
 }
 
 export interface UpdateRoleRequest {
   name?: string;
   description?: string;
   permissionIds?: number[];
+  allowedModules?: string[];
 }
 
 export interface DeletionApprovalDto {

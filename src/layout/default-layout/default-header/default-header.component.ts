@@ -1,11 +1,12 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ThemeService } from '../../../features/cuadreEnv/services/theme.service';
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, computed, inject, input, signal, ViewChild, OnInit } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../features/cuadreEnv/services/auth.service';
 import { TranslationService } from '../../../features/cuadreEnv/services/translation.service';
 import { CashRegisterService } from '../../../features/cash-register/services/cash-register.service';
 import { PermissionService } from '../../../features/roles/services/permission.service';
+import { CommandPaletteComponent } from '../command-palette/command-palette.component';
 
 import {
   AvatarComponent,
@@ -28,6 +29,7 @@ import {
 
 import { IconDirective } from '@coreui/icons-angular';
 import { HasModuleDirective } from '../../../app/shared/directives/has-module.directive';
+import { CompanyService } from '../../../features/companies/services/company.service';
 
 @Component({
   selector: 'app-default-header',
@@ -47,26 +49,55 @@ import { HasModuleDirective } from '../../../app/shared/directives/has-module.di
     BreadcrumbRouterComponent,
     DropdownComponent,
     DropdownToggleDirective,
-    AvatarComponent,
     DropdownMenuDirective,
     DropdownItemDirective,
     DropdownDividerDirective,
     HasModuleDirective,
+    CommandPaletteComponent,
   ],
 })
-export class DefaultHeaderComponent extends HeaderComponent {
+export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
   readonly #colorModeService = inject(ColorModeService);
   readonly colorMode = this.#colorModeService.colorMode;
   public authService = inject(AuthService);
   public translationService = inject(TranslationService);
   public themeService = inject(ThemeService);
+  public companyService = inject(CompanyService);
   private readonly permissionService = inject(PermissionService);
   private cashRegisterService = inject(CashRegisterService);
   private router = inject(Router);
 
+  @ViewChild('commandPalette') commandPalette?: CommandPaletteComponent;
+
+  openCommandPalette(): void {
+    this.commandPalette?.open();
+  }
+
   isLogoutModalVisible = signal<boolean>(false);
   hasOpenCashRegister = signal<boolean>(false);
   openCashRegisterName = signal<string>('');
+
+  readonly companyLogo = computed(() => {
+    const settings = this.companyService.currentSettings();
+    return settings.logoUrl?.trim() || null;
+  });
+
+  readonly companyDisplayName = computed(() => {
+    const settings = this.companyService.currentSettings();
+    return settings.commercialName?.trim() || settings.companyName?.trim() || 'CuadreEnv';
+  });
+
+  /**
+   * Computes the first and last letter of the company name.
+   * e.g., "CuadreEnv" -> "CV", "Acme" -> "AE", "Farmacia" -> "FA"
+   */
+  readonly companyInitials = computed(() => {
+    const name = this.companyDisplayName().trim();
+    if (!name) return 'CE';
+    const first = name.charAt(0);
+    const last = name.charAt(name.length - 1);
+    return `${first}${last}`.toUpperCase();
+  });
 
   readonly colorModes: { name: 'light' | 'dark' | 'auto'; text: string; icon: string }[] = [
     { name: 'light', text: 'Light', icon: 'cilSun' },
@@ -87,8 +118,40 @@ export class DefaultHeaderComponent extends HeaderComponent {
     { code: 'en' as const, label: 'English' },
   ];
 
+  readonly activeCompany = computed(() => this.authService.activeCompany());
+  readonly userCompanies = computed(() => this.authService.userCompanies());
+  readonly hasMultipleCompanies = computed(() => this.userCompanies().length > 1);
+
+  readonly currentPlanName = computed(() => {
+    const comp = this.authService.activeCompany();
+    if (comp?.plan) return comp.plan;
+    return 'Plan Pro';
+  });
+
+  readonly companyPlanBadgeClass = computed(() => {
+    const plan = this.currentPlanName().toLowerCase();
+    if (plan.includes('enterprise') || plan.includes('corporativo')) {
+      return 'bg-purple-subtle text-purple border-purple-subtle';
+    }
+    if (plan.includes('pro') || plan.includes('business')) {
+      return 'bg-primary-subtle text-primary border-primary-subtle';
+    }
+    return 'bg-success-subtle text-success border-success-subtle';
+  });
+
   constructor() {
     super();
+  }
+
+  ngOnInit(): void {
+    this.companyService.getCompanySettings().catch(() => {});
+    if (this.authService.isAuthenticated() && this.authService.userCompanies().length === 0) {
+      this.authService.loadUserCompanies().catch(() => {});
+    }
+  }
+
+  async onSelectCompany(companyId: number): Promise<void> {
+    await this.authService.switchCompany(companyId);
   }
 
   setTheme(theme: 'light' | 'dark' | 'auto'): void {
@@ -122,8 +185,21 @@ export class DefaultHeaderComponent extends HeaderComponent {
     this.isLogoutModalVisible.set(false);
   }
 
-  confirmLogout() {
+  async confirmLogout() {
     this.isLogoutModalVisible.set(false);
+    if (this.hasOpenCashRegister()) {
+      try {
+        const sessionRes = await this.cashRegisterService.getActiveSession();
+        if (sessionRes?.success && sessionRes.data && sessionRes.data.isOpen) {
+          await this.cashRegisterService.closeSession({
+            closingAmount: sessionRes.data.currentBalance ?? sessionRes.data.initialAmount ?? 0,
+            notes: 'Cierre automático por cierre de sesión del usuario',
+          });
+        }
+      } catch (err) {
+        console.warn('Auto-close cash register on logout notice:', err);
+      }
+    }
     this.authService.logout();
   }
 
@@ -140,116 +216,20 @@ export class DefaultHeaderComponent extends HeaderComponent {
     this.translationService.setLanguage(language);
   }
 
-  public newMessages = [
-    {
-      id: 0,
-      from: 'Jessica Williams',
-      avatar: '7.jpg',
-      status: 'success',
-      title: 'Urgent: System Maintenance Tonight',
-      time: 'Just now',
-      link: 'apps/email/inbox/message',
-      message:
-        "Attention team, we'll be conducting critical system maintenance tonight from 10 PM to 2 AM. Plan accordingly...",
-    },
-    {
-      id: 1,
-      from: 'Richard Johnson',
-      avatar: '6.jpg',
-      status: 'warning',
-      title: 'Project Update: Milestone Achieved',
-      time: '5 minutes ago',
-      link: 'apps/email/inbox/message',
-      message:
-        "Kudos on hitting sales targets last quarter! Let's keep the momentum. New goals, new victories ahead...",
-    },
-    {
-      id: 2,
-      from: 'Angela Rodriguez',
-      avatar: '5.jpg',
-      status: 'danger',
-      title: 'Social Media Campaign Launch',
-      time: '1:52 PM',
-      link: 'apps/email/inbox/message',
-      message:
-        'Exciting news! Our new social media campaign goes live tomorrow. Brace yourselves for engagement...',
-    },
-    {
-      id: 3,
-      from: 'Jane Lewis',
-      avatar: '4.jpg',
-      status: 'info',
-      title: 'Inventory Checkpoint',
-      time: '4:03 AM',
-      link: 'apps/email/inbox/message',
-      message:
-        "Team, it's time for our monthly inventory check. Accurate counts ensure smooth operations. Let's nail it...",
-    },
-    {
-      id: 4,
-      from: 'Ryan Miller',
-      avatar: '3.jpg',
-      status: 'info',
-      title: 'Customer Feedback Results',
-      time: '3 days ago',
-      link: 'apps/email/inbox/message',
-      message:
-        "Our latest customer feedback is in. Let's analyze and discuss improvements for an even better service...",
-    },
-  ];
-
-  public newNotifications = [
-    {
-      id: 0,
-      title: 'New user registered',
-      icon: 'cilUserFollow',
-      color: 'success',
-    },
-    { id: 1, title: 'User deleted', icon: 'cilUserUnfollow', color: 'danger' },
-    {
-      id: 2,
-      title: 'Sales report is ready',
-      icon: 'cilChartPie',
-      color: 'info',
-    },
-    { id: 3, title: 'New client', icon: 'cilBasket', color: 'primary' },
-    {
-      id: 4,
-      title: 'Server overloaded',
-      icon: 'cilSpeedometer',
-      color: 'warning',
-    },
-  ];
-
-  public newStatus = [
-    {
-      id: 0,
-      title: 'CPU Usage',
-      value: 25,
-      color: 'info',
-      details: '348 Processes. 1/4 Cores.',
-    },
-    {
-      id: 1,
-      title: 'Memory Usage',
-      value: 70,
-      color: 'warning',
-      details: '11444GB/16384MB',
-    },
-    {
-      id: 2,
-      title: 'SSD 1 Usage',
-      value: 90,
-      color: 'danger',
-      details: '243GB/256GB',
-    },
-  ];
-
-  public newTasks = [
-    { id: 0, title: 'Upgrade NPM', value: 0, color: 'info' },
-    { id: 1, title: 'ReactJS Version', value: 25, color: 'danger' },
-    { id: 2, title: 'VueJS Version', value: 50, color: 'warning' },
-    { id: 3, title: 'Add new layouts', value: 75, color: 'info' },
-    { id: 4, title: 'Angular Version', value: 100, color: 'success' },
-  ];
+  exitImpersonation(): void {
+    const returnUrl =
+      typeof localStorage !== 'undefined'
+        ? localStorage.getItem('cuadre_impersonation_return_url')
+        : null;
+    const fallbackUrl =
+      typeof window !== 'undefined' && window.location.hostname === 'localhost'
+        ? 'http://localhost:5173'
+        : 'https://usm.cuadreenv.com';
+    const targetUrl = returnUrl || fallbackUrl;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('cuadre_impersonation_return_url');
+    }
+    this.authService.clearSession();
+    window.location.href = targetUrl;
+  }
 }

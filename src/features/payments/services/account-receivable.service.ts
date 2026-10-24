@@ -19,11 +19,13 @@ export class AccountReceivableService {
       const now = new Date();
       
       const overdueItems = items.filter((item: any) => {
-        if (!item) return false;
+        if (!item || item.active === false || item.isDeleted) return false;
+        const pendingAmount = item.pendingAmount !== undefined ? Number(item.pendingAmount) : (Number(item.totalAmount || 0) - Number(item.paidAmount || 0));
+        if (pendingAmount <= 0) return false;
+        if (item.status === 'Paid' || item.status === 'Pagado') return false;
         if (item.status === 'Overdue' || item.status === 'Vencido') return true;
         const dueDate = item.dueDate ? new Date(item.dueDate) : null;
-        const pendingAmount = item.pendingAmount !== undefined ? item.pendingAmount : (item.totalAmount - (item.paidAmount || 0));
-        return dueDate !== null && dueDate < now && pendingAmount > 0;
+        return dueDate !== null && dueDate < now;
       });
 
       return { success: true, data: overdueItems };
@@ -52,10 +54,12 @@ export class AccountReceivableService {
         limitDate.setDate(now.getDate() + days);
 
         const dueSoon = items.filter((item: any) => {
-          if (!item || !item.dueDate) return false;
+          if (!item || item.active === false || item.isDeleted || !item.dueDate) return false;
+          const pending = item.pendingAmount !== undefined ? Number(item.pendingAmount) : (Number(item.totalAmount || 0) - Number(item.paidAmount || 0));
+          if (pending <= 0) return false;
+          if (item.status === 'Paid' || item.status === 'Pagado') return false;
           const due = new Date(item.dueDate);
-          const pending = item.pendingAmount !== undefined ? item.pendingAmount : (item.totalAmount - (item.paidAmount || 0));
-          return due >= now && due <= limitDate && pending > 0;
+          return due >= now && due <= limitDate;
         });
 
         return { success: true, data: dueSoon };

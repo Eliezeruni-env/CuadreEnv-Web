@@ -1,6 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
+import { HttpClient, HttpBackend, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, from, of } from 'rxjs';
+import { Observable, from, of, firstValueFrom } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import {
   ApiClientService,
@@ -12,13 +13,21 @@ import {
   setAccessToken,
   setRefreshToken,
   setCompanyId,
+  isRememberMe,
+  setRememberMe,
   purgeTenantStorage,
+  resolveApiUrl,
+  generateCorrelationId,
+  unwrap,
+  doForgotPassword,
+  doResetPassword,
 } from './apiClient';
 import type {
   LoginRequestDto,
   RegisterRequestDto,
   TokenResponseDto,
   UserResponseDto,
+  UserCompanyDto,
   ApiResponse,
 } from '../types/api';
 import { API_CONSTANTS } from '../../../app/constants';
@@ -39,14 +48,18 @@ interface DecodedToken {
   'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'?: string;
   role?: string;
   roles?: string[] | string;
-  'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'?: string | string[];
+  'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'?:
+    | string
+    | string[];
   companyId?: string | number;
   CompanyId?: string | number;
   company_id?: string | number;
   tenantId?: string | number;
   TenantId?: string | number;
   tenant_id?: string | number;
-  'http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid'?: string | number;
+  'http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid'?:
+    | string
+    | number;
   'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/sid'?: string | number;
   isSuperUser?: boolean | string;
   IsSuperUser?: boolean | string;
@@ -57,10 +70,17 @@ interface DecodedToken {
   permission?: string[] | string;
   modules?: string[] | string;
   Modules?: string[] | string;
+  module?: string[] | string;
+  Module?: string[] | string;
   allowed_modules?: string[] | string;
   allowedModules?: string[] | string;
+  AllowedModules?: string[] | string;
   AllowedModulesJson?: string[] | string;
   allowedModulesJson?: string[] | string;
+  userCompanies?: UserCompanyDto[] | string;
+  companies?: UserCompanyDto[] | string;
+  isImpersonated?: boolean;
+  impersonatedBy?: any;
   [key: string]: any;
 }
 
@@ -78,6 +98,12 @@ interface LoginResponseUser extends Record<string, unknown> {
   AllowedModulesJson?: unknown;
   modules?: unknown;
   Modules?: unknown;
+  module?: unknown;
+  Module?: unknown;
+  companyId?: unknown;
+  CompanyId?: unknown;
+  userCompanies?: unknown;
+  companies?: unknown;
 }
 
 @Injectable({
@@ -89,6 +115,10 @@ export class AuthService {
   private readonly notificationService = inject(NotificationService);
   private readonly sessionInvalidation = inject(SessionInvalidationService);
   public readonly moduleAccessService = inject(ModuleAccessService);
+  private readonly httpBackend = inject(HttpBackend, { optional: true });
+  private readonly directHttp = this.httpBackend
+    ? new HttpClient(this.httpBackend)
+    : null;
   private moduleEntitlementRefresh: Promise<boolean> | null = null;
   private moduleRefreshInterval: number | null = null;
   private entitlementErrorNotified = false;
@@ -99,21 +129,75 @@ export class AuthService {
     const r = this.currentRole();
     return r ? [r] : [];
   });
-  companyId = signal<number | null>(null);
+  companyId = signal<number | null>(this.getInitialCompanyId());
+  currentCompanyId = computed<number | null>(() => this.companyId());
+  userCompanies = signal<UserCompanyDto[]>(this.getStoredUserCompanies());
+  activeCompany = computed<UserCompanyDto | null>(() => {
+    const id = this.companyId();
+    if (!id) return null;
+    return this.userCompanies().find((c) => c.id === id) || null;
+  });
   userPermissions = signal<string[]>([]);
   allowedModules = signal<string[]>([]);
   licensedModules = signal<string[] | null>(null);
   hasAllModules = computed(() => this.allowedModules().includes('*'));
   hasExplicitModuleClaims = signal(false);
   isPlatformSuperUser = signal(false);
+  isSuperAdmin = computed<boolean>(() => this.isPlatformSuperUser());
+  isImpersonated = signal<boolean>(false);
+  impersonatedBy = signal<{ id?: any; email?: string; name?: string } | null>(
+    null,
+  );
   isAuthenticated = signal<boolean>(false);
   isInitializing = signal<boolean>(true);
+
+  private getInitialCompanyId(): number | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored =
+        window.sessionStorage?.getItem('currentCompanyId') ||
+        window.sessionStorage?.getItem('auth_company_id') ||
+        window.sessionStorage?.getItem('companyId') ||
+        (isRememberMe()
+          ? window.localStorage?.getItem('currentCompanyId') ||
+            window.localStorage?.getItem('auth_company_id') ||
+            window.localStorage?.getItem('companyId')
+          : null);
+      if (
+        stored &&
+        stored !== 'null' &&
+        stored !== 'undefined' &&
+        stored !== '0'
+      ) {
+        const parsed = parseInt(stored, 10);
+        return !isNaN(parsed) && parsed > 0 ? parsed : null;
+      }
+    } catch {}
+    return null;
+  }
+
+  private getStoredUserCompanies(): UserCompanyDto[] {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw =
+        window.sessionStorage?.getItem('userCompanies') ||
+        (isRememberMe() ? window.localStorage?.getItem('userCompanies') : null);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  }
 
   constructor() {
     this.sessionInvalidation.invalidated$.subscribe(() => this.clearSession());
     if (typeof window !== 'undefined') {
       window.addEventListener('focus', this.refreshModulesWhenActive);
-      document.addEventListener('visibilitychange', this.refreshModulesWhenActive);
+      document.addEventListener(
+        'visibilitychange',
+        this.refreshModulesWhenActive,
+      );
       this.moduleRefreshInterval = window.setInterval(
         this.refreshModulesInBackground,
         30_000,
@@ -125,7 +209,8 @@ export class AuthService {
   private readonly refreshModulesWhenActive = () => {
     if (
       this.isAuthenticated() &&
-      (document.visibilityState === 'visible' || document.visibilityState === undefined)
+      (document.visibilityState === 'visible' ||
+        document.visibilityState === undefined)
     ) {
       void this.refreshModuleEntitlements(true);
     }
@@ -138,19 +223,47 @@ export class AuthService {
   };
 
   private async initializeSession() {
+    if (typeof window !== 'undefined' && window.location?.search) {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const impersonateToken = urlParams.get('impersonate_token');
+        if (impersonateToken) {
+          const returnUrl =
+            urlParams.get('return_url') ||
+            (window.location.hostname === 'localhost'
+              ? 'http://localhost:5173'
+              : 'https://usm.cuadreenv.com');
+          localStorage.setItem('cuadre_impersonation_return_url', returnUrl);
+          setAccessToken(impersonateToken);
+          urlParams.delete('impersonate_token');
+          urlParams.delete('return_url');
+          const cleanSearch = urlParams.toString();
+          const cleanUrl =
+            window.location.pathname +
+            (cleanSearch ? '?' + cleanSearch : '') +
+            window.location.hash;
+          window.history.replaceState({}, '', cleanUrl);
+          this.notificationService.info(
+            'Sesión de soporte e impersonación activada.',
+          );
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     const at = getAccessToken();
     let hasValidAccessToken = false;
+    let decodedPayload: DecodedToken | null = null;
+
     if (at) {
-      const decoded = this.decodeJwt(at);
-      if (decoded && (!decoded.exp || decoded.exp * 1000 > Date.now())) {
-        this.applyDecodedToken(decoded);
-        hasValidAccessToken = this.isAuthenticated();
-        if (this.allowedModules().length === 0 && !getRefreshToken()) {
-          this.clearSession();
-          hasValidAccessToken = false;
-        }
-      } else {
-        this.clearSession();
+      decodedPayload = this.decodeJwt(at);
+      if (decodedPayload) {
+        // Aplicar datos del token decodificado para mantener estado inmediato
+        this.applyDecodedToken(decodedPayload);
+        const isNotExpired =
+          !decodedPayload.exp || decodedPayload.exp * 1000 > Date.now();
+        hasValidAccessToken = isNotExpired && this.isAuthenticated();
       }
     }
 
@@ -160,28 +273,44 @@ export class AuthService {
         const tokens = await doRefresh(this.api);
         if (tokens?.accessToken) {
           this.handleTokenResponse(tokens, false);
-        } else {
-          throw new Error('La API no devolvió un token de acceso renovado.');
+          hasValidAccessToken = true;
         }
-      } catch (error) {
-        if (hasValidAccessToken && this.isAuthenticated()) {
-          console.warn('[AuthService] Falló la renovación; se conserva la sesión mientras el token de acceso siga vigente.', error);
-        } else {
-          console.error('[AuthService] No se pudieron actualizar los permisos de la sesión.', error);
-          this.notificationService.error(
-            'La sesión expiró y no se pudo renovar. Inicia sesión nuevamente.',
+      } catch (error: any) {
+        const status = error?.status ?? error?.statusCode ?? 0;
+        const isNetworkOrOffline =
+          (typeof navigator !== 'undefined' && !navigator.onLine) ||
+          status === 0 ||
+          error?.message?.includes('Network') ||
+          error?.message?.includes('Failed to fetch');
+
+        // Si es falla de red / offline o el token aún es válido, NUNCA cerrar sesión automáticamente
+        if (
+          isNetworkOrOffline ||
+          (hasValidAccessToken && this.isAuthenticated())
+        ) {
+          console.warn(
+            '[AuthService] No se pudo renovar con el servidor (sin conexión o error transitorio); conservando sesión local persistente.',
+            error,
+          );
+        } else if (status === 401 || status === 403) {
+          // El servidor revocó explícitamente el refresh token
+          console.warn(
+            '[AuthService] El token de renovación fue revocado o expiró en el servidor.',
           );
           this.clearSession();
         }
       }
+    } else if (!hasValidAccessToken) {
+      // Solo limpiar si no hay refreshToken y el accessToken ya venció o no existe
+      this.clearSession();
     }
 
     if (this.isAuthenticated()) {
+      if (this.userCompanies().length === 0) {
+        await this.loadUserCompanies();
+      }
       await this.refreshModuleEntitlements();
     }
-
-    // El tenant debe provenir exclusivamente del claim firmado del JWT emitido por el backend.
-    // No se utiliza localStorage como fuente de autoridad si no existe un token válido.
 
     this.isInitializing.set(false);
   }
@@ -205,35 +334,89 @@ export class AuthService {
     }
   }
 
-  private applyDecodedToken(decoded: DecodedToken, responseUser?: Record<string, unknown>) {
+  private applyDecodedToken(
+    decoded: DecodedToken,
+    responseUser?: Record<string, unknown>,
+    rawTokensResponse?: any,
+    preservePreviousModules = false,
+  ) {
     const email =
       decoded.email ||
       decoded.Email ||
-      decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
+      decoded[
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'
+      ] ||
       decoded.sub ||
       '';
     const rawId =
       decoded.sub ||
       decoded.id ||
       decoded.userId ||
-      decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] ||
+      decoded[
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'
+      ] ||
       '0';
     const id = parseInt(rawId.toString(), 10) || 0;
     const fullName =
       decoded.name ||
       decoded.fullName ||
       decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'];
-    
+
     let rawRole =
       decoded.role ||
       decoded.roles ||
       decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
-      null;
+      'User';
 
     if (Array.isArray(rawRole)) {
-      rawRole = rawRole[0] || null;
+      rawRole = rawRole[0] || 'User';
     }
 
+    // 1. Extraer userCompanies vinculadas al usuario
+    const rawUserCompanies =
+      rawTokensResponse?.userCompanies ||
+      rawTokensResponse?.companies ||
+      rawTokensResponse?.data?.userCompanies ||
+      responseUser?.['userCompanies'] ||
+      responseUser?.['companies'] ||
+      decoded?.userCompanies ||
+      decoded?.companies;
+
+    if (Array.isArray(rawUserCompanies) && rawUserCompanies.length > 0) {
+      const parsedCompanies: UserCompanyDto[] = rawUserCompanies
+        .map((c: any) => ({
+          id: Number(c.id ?? c.companyId ?? c.CompanyId ?? 0),
+          name: String(c.name ?? c.companyName ?? c.CompanyName ?? ''),
+          commercialName: c.commercialName ?? c.CommercialName ?? undefined,
+          rnc: c.rnc ?? c.Rnc ?? undefined,
+          role: c.role ?? c.Role ?? undefined,
+          plan: c.plan ?? c.Plan ?? undefined,
+          isDefault: Boolean(c.isDefault ?? c.IsDefault ?? false),
+        }))
+        .filter((c) => c.id > 0);
+
+      if (parsedCompanies.length > 0) {
+        this.userCompanies.set(parsedCompanies);
+        if (typeof window !== 'undefined') {
+          try {
+            window.sessionStorage?.setItem(
+              'userCompanies',
+              JSON.stringify(parsedCompanies),
+            );
+            if (isRememberMe()) {
+              window.localStorage?.setItem(
+                'userCompanies',
+                JSON.stringify(parsedCompanies),
+              );
+            } else {
+              window.localStorage?.removeItem('userCompanies');
+            }
+          } catch {}
+        }
+      }
+    }
+
+    // 2. Extraer y determinar claim companyId asegurando que nunca opere con null o 0
     const rawCompanyId =
       decoded.companyId ??
       decoded.CompanyId ??
@@ -241,41 +424,97 @@ export class AuthService {
       decoded.tenantId ??
       decoded.TenantId ??
       decoded.tenant_id ??
-      decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid'] ??
+      rawTokensResponse?.companyId ??
+      rawTokensResponse?.CompanyId ??
+      rawTokensResponse?.data?.companyId ??
+      decoded[
+        'http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid'
+      ] ??
       decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/sid'];
-      
+
     let compId: number | null = null;
     if (rawCompanyId !== undefined && rawCompanyId !== null) {
       const parsed = parseInt(rawCompanyId.toString(), 10);
-      compId = !isNaN(parsed) && parsed > 0 ? parsed : (rawCompanyId as any);
+      compId = !isNaN(parsed) && parsed > 0 ? parsed : null;
+    }
+
+    // Si no vino claim válido en token, consultar almacenamiento local o sesión previa activa
+    if (compId === null || compId <= 0) {
+      const storedCompId = this.getInitialCompanyId();
+      if (storedCompId && storedCompId > 0) {
+        compId = storedCompId;
+      }
+    }
+
+    // Si sigue sin definirse pero hay empresas vinculadas, asignar la empresa por defecto o la primera
+    if ((compId === null || compId <= 0) && this.userCompanies().length > 0) {
+      const defaultCompany =
+        this.userCompanies().find((c) => c.isDefault) ||
+        this.userCompanies()[0];
+      if (defaultCompany?.id) {
+        compId = defaultCompany.id;
+      }
+    }
+
+    const previousCompId = this.companyId();
+    if (
+      (compId === null || compId <= 0) &&
+      previousCompId &&
+      previousCompId > 0 &&
+      this.isAuthenticated()
+    ) {
+      compId = previousCompId;
     }
 
     const responseModuleKey = responseUser
-      ? [
+      ? ([
           'allowedModules',
+          'allowed_modules',
+          'modules',
+          'module',
           'AllowedModules',
+          'Modules',
+          'Module',
           'allowedModulesJson',
           'AllowedModulesJson',
-          'modules',
-          'Modules',
-        ]
-          .find((key) => Object.prototype.hasOwnProperty.call(responseUser, key)) ?? null
+        ].find((key) =>
+          Object.prototype.hasOwnProperty.call(responseUser, key),
+        ) ?? null)
       : null;
     const responseHasAllowedModules = responseModuleKey !== null;
-    const rawResponseModules = responseModuleKey ? responseUser?.[responseModuleKey] : undefined;
+    const rawResponseModules = responseModuleKey
+      ? responseUser?.[responseModuleKey]
+      : undefined;
     const parsedResponseModules = this.parseStringList(rawResponseModules);
 
     this.currentRole.set(rawRole);
     this.companyId.set(compId);
+    if (compId && compId > 0) {
+      setCompanyId(compId);
+    }
     this.hasExplicitModuleClaims.set(
       responseHasAllowedModules ||
-      ['modules', 'Modules', 'allowed_modules', 'allowedModules', 'AllowedModulesJson', 'allowedModulesJson'].some(
-        (claim) => Object.prototype.hasOwnProperty.call(decoded, claim) && decoded[claim] !== null,
-      ),
+        [
+          'modules',
+          'Modules',
+          'module',
+          'Module',
+          'allowed_modules',
+          'allowedModules',
+          'AllowedModulesJson',
+          'allowedModulesJson',
+        ].some(
+          (claim) =>
+            Object.prototype.hasOwnProperty.call(decoded, claim) &&
+            decoded[claim] !== null,
+        ),
     );
-    const rawSuperUser = decoded.isSuperUser ?? decoded.IsSuperUser ?? decoded.is_superuser;
+    const rawSuperUser =
+      decoded.isSuperUser ?? decoded.IsSuperUser ?? decoded.is_superuser;
     this.isPlatformSuperUser.set(
-      rawSuperUser === true || (typeof rawSuperUser === 'string' && rawSuperUser.toLowerCase() === 'true'),
+      rawSuperUser === true ||
+        (typeof rawSuperUser === 'string' &&
+          rawSuperUser.toLowerCase() === 'true'),
     );
 
     // Extraer permisos asignados desde el JWT emitido por USM/Backend
@@ -283,48 +522,122 @@ export class AuthService {
       decoded.permissions ??
       decoded.Permissions ??
       decoded.permission ??
-      decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/userdata'] ??
+      decoded[
+        'http://schemas.microsoft.com/ws/2008/06/identity/claims/userdata'
+      ] ??
       [];
     const parsedPermissions = this.parseStringList(rawPermissions);
 
-    // Extraer módulos permitidos definidos para este rol en USM
+    // Extraer módulos permitidos definidos para este rol en USM conservando valores literales
     const rawModules =
+      decoded.allowedModules ??
+      decoded.allowed_modules ??
+      decoded.modules ??
+      decoded.module ??
+      decoded['AllowedModules'] ??
+      decoded.Modules ??
+      decoded.Module ??
       decoded.AllowedModulesJson ??
       decoded.allowedModulesJson ??
-      decoded.modules ??
-      decoded.Modules ??
-      decoded.allowed_modules ??
-      decoded.allowedModules ??
       [];
     const parsedModules = responseHasAllowedModules
       ? parsedResponseModules
       : this.parseStringList(rawModules);
-    const normalizedModules = this.normalizeModuleList(parsedModules);
+    let literalModules = [
+      ...new Set(parsedModules.map((m) => String(m).trim()).filter(Boolean)),
+    ];
+
+    if (literalModules.length === 0) {
+      if (preservePreviousModules && this.allowedModules().length > 0) {
+        literalModules = this.allowedModules();
+      } else {
+        this.clearSession();
+        return;
+      }
+    }
 
     this.userPermissions.set(parsedPermissions);
-    this.allowedModules.set(normalizedModules);
-    this.currentUser.set({ email, id, fullName, allowedModules: normalizedModules });
+    this.allowedModules.set(literalModules);
+    this.currentUser.set({
+      email,
+      id,
+      fullName,
+      allowedModules: literalModules,
+    });
+    const isImpersonated = Boolean(
+      decoded.isImpersonated || (rawTokensResponse as any)?.['isImpersonated'],
+    );
+    this.isImpersonated.set(isImpersonated);
+    const impBy =
+      decoded.impersonatedBy || (rawTokensResponse as any)?.['impersonatedBy'] || null;
+    this.impersonatedBy.set(impBy);
     this.isAuthenticated.set(true);
-    if (typeof window !== 'undefined' && window.sessionStorage) {
-      sessionStorage.setItem('allowedModules', JSON.stringify(normalizedModules));
-      sessionStorage.setItem('hasAllModules', JSON.stringify(this.hasAllModules()));
-    }
-    this.moduleAccessService.init(normalizedModules);
 
-    if (typeof window !== 'undefined' && window.localStorage) {
-      if (compId) {
-        localStorage.setItem(API_CONSTANTS.COMPANY_ID_KEY, String(compId));
-        localStorage.setItem('companyId', String(compId));
-        localStorage.setItem('auth_company_id', String(compId));
+    if (typeof window !== 'undefined') {
+      if (window.sessionStorage) {
+        sessionStorage.setItem(
+          'allowedModules',
+          JSON.stringify(literalModules),
+        );
+        sessionStorage.setItem(
+          'hasAllModules',
+          JSON.stringify(this.hasAllModules()),
+        );
+      }
+      if (window.localStorage) {
+        if (isRememberMe()) {
+          localStorage.setItem('allowed_modules', JSON.stringify(literalModules));
+          localStorage.setItem(
+            'hasAllModules',
+            JSON.stringify(this.hasAllModules()),
+          );
+        } else {
+          localStorage.removeItem('allowed_modules');
+          localStorage.removeItem('allowedModules');
+          localStorage.removeItem('hasAllModules');
+        }
+      }
+    }
+
+    this.moduleAccessService.init(literalModules, rawRole);
+
+    if (typeof window !== 'undefined') {
+      if (compId && compId > 0) {
+        window.sessionStorage?.setItem('companyId', String(compId));
+        window.sessionStorage?.setItem('currentCompanyId', String(compId));
+        window.sessionStorage?.setItem('auth_company_id', String(compId));
+        if (isRememberMe()) {
+          window.localStorage?.setItem(
+            API_CONSTANTS.COMPANY_ID_KEY,
+            String(compId),
+          );
+          window.localStorage?.setItem('companyId', String(compId));
+          window.localStorage?.setItem('currentCompanyId', String(compId));
+          window.localStorage?.setItem('auth_company_id', String(compId));
+        } else {
+          window.localStorage?.removeItem(API_CONSTANTS.COMPANY_ID_KEY);
+          window.localStorage?.removeItem('companyId');
+          window.localStorage?.removeItem('currentCompanyId');
+          window.localStorage?.removeItem('auth_company_id');
+        }
       } else {
-        localStorage.removeItem(API_CONSTANTS.COMPANY_ID_KEY);
+        window.localStorage?.removeItem(API_CONSTANTS.COMPANY_ID_KEY);
+        window.localStorage?.removeItem('companyId');
+        window.localStorage?.removeItem('currentCompanyId');
+        window.localStorage?.removeItem('auth_company_id');
+        window.sessionStorage?.removeItem('companyId');
+        window.sessionStorage?.removeItem('currentCompanyId');
+        window.sessionStorage?.removeItem('auth_company_id');
       }
     }
   }
 
   private parseStringList(value: unknown): string[] {
     if (Array.isArray(value)) {
-      return value.map(String).map((item) => item.trim()).filter(Boolean);
+      return value
+        .map(String)
+        .map((item) => item.trim())
+        .filter(Boolean);
     }
     if (typeof value !== 'string' || !value.trim()) {
       return [];
@@ -333,16 +646,28 @@ export class AuthService {
     try {
       const parsed: unknown = JSON.parse(value);
       if (Array.isArray(parsed)) {
-        return parsed.map(String).map((item) => item.trim()).filter(Boolean);
+        return parsed
+          .map(String)
+          .map((item) => item.trim())
+          .filter(Boolean);
       }
     } catch {
       // Claims are also emitted as comma-separated strings by the API.
     }
-    return value.split(',').map((item) => item.trim()).filter(Boolean);
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
 
   private normalizeModuleList(modules: readonly string[]): string[] {
-    return [...new Set(modules.map((module) => this.normalizeModuleCode(module)).filter(Boolean))];
+    return [
+      ...new Set(
+        modules
+          .map((module) => this.normalizeModuleCode(module))
+          .filter(Boolean),
+      ),
+    ];
   }
 
   private normalizeModuleCode(moduleCode: string): string {
@@ -361,14 +686,61 @@ export class AuthService {
       cashregister: 'cashregister',
       cashregisters: 'cashregister',
       caja: 'cashregister',
+
+      // Submódulos granulares de inventario (NO colapsar a 'inventory')
+      inventorystock: 'inventory-stock',
+      stock: 'inventory-stock',
+      inventoryentries: 'inventory-entries',
+      entries: 'inventory-entries',
+      inventoryoutlets: 'inventory-outlets',
+      outlets: 'inventory-outlets',
+      inventorytransfers: 'inventory-transfers',
+      transfers: 'inventory-transfers',
+      inventorywarehouses: 'inventory-warehouses',
+      warehouses: 'inventory-warehouses',
+      warehouse: 'inventory-warehouses',
+      inventorymanagerequests: 'inventory-manage-requests',
+      managerequests: 'inventory-manage-requests',
+      // Módulo padre general de inventario
       inventory: 'inventory',
-      inventorystock: 'inventory',
-      inventoryentries: 'inventory',
-      inventorytransfers: 'inventory',
-      stock: 'inventory',
       inventario: 'inventory',
-      warehouse: 'inventory',
-      warehouses: 'inventory',
+
+      // Submódulos granulares de compras (NO colapsar a 'purchases')
+      purchasesorders: 'purchases-orders',
+      orders: 'purchases-orders',
+      ordenesdecompra: 'purchases-orders',
+      purchasesreceipts: 'purchases-receipts',
+      receipts: 'purchases-receipts',
+      recepciones: 'purchases-receipts',
+      recepcion: 'purchases-receipts',
+      purchasessuppliers: 'purchases-suppliers',
+      suppliers: 'purchases-suppliers',
+      proveedor: 'purchases-suppliers',
+      proveedores: 'purchases-suppliers',
+      // Módulo padre general de compras
+      purchases: 'purchases',
+      purchase: 'purchases',
+      compras: 'purchases',
+      compra: 'purchases',
+
+      // Módulos independientes adicionales
+      payments: 'payments',
+      pagos: 'payments',
+      pago: 'payments',
+      services: 'services',
+      servicios: 'services',
+      servicio: 'services',
+      creditnotes: 'credit-notes',
+      notasdecredito: 'credit-notes',
+      notadecredito: 'credit-notes',
+      mobilepos: 'mobile-pos',
+
+      // Catálogo de productos
+      products: 'products',
+      productos: 'products',
+      producto: 'products',
+
+      // Módulos base
       billing: 'billing',
       billingreportsdgii: 'reports',
       facturacion: 'billing',
@@ -376,13 +748,6 @@ export class AuthService {
       customer: 'customers',
       clientes: 'customers',
       cliente: 'customers',
-      purchases: 'purchases',
-      purchase: 'purchases',
-      compras: 'purchases',
-      compra: 'purchases',
-      suppliers: 'purchases',
-      proveedor: 'purchases',
-      proveedores: 'purchases',
       receivables: 'receivables',
       cobros: 'receivables',
       cuentasporcobrar: 'receivables',
@@ -390,25 +755,98 @@ export class AuthService {
       reporte: 'reports',
       reportes: 'reports',
       metricas: 'metrics',
+      metrics: 'metrics',
       fraudguardian: 'audit',
       auditoria: 'audit',
       aprobaciones: 'audit',
-      mobilepos: 'sales',
-      adminroles: 'company',
-      adminrolesmatrix: 'company',
-      adminapprovals: 'company',
-      companysettings: 'company',
-      users: 'users',
       audit: 'audit',
+      adminroles: 'admin-roles',
+      adminrolesmatrix: 'admin-roles-matrix',
+      adminapprovals: 'admin-approvals',
+      companysettings: 'company-settings',
+      users: 'users',
+      usuarios: 'users',
+      roles: 'admin-roles',
+      profile: 'profile',
+      perfil: 'profile',
       company: 'company',
       empresa: 'company',
-      usuarios: 'company',
-      roles: 'company',
-      pagos: 'payments',
-      servicios: 'services',
-      productos: 'products',
     };
     return aliases[compact] ?? compact;
+  }
+
+  isModuleLicensed(moduleCode: string, licensed: string[]): boolean {
+    if (!licensed || !licensed.length) return false;
+    if (licensed.includes('*')) return true;
+
+    const normTarget = this.normalizeModuleCode(moduleCode);
+    const licensedNorm = licensed.map((m) => this.normalizeModuleCode(m));
+    if (licensedNorm.includes(normTarget)) return true;
+
+    // Paquetes comerciales y jerarquías de módulos:
+    if (licensedNorm.includes('company')) {
+      if (
+        [
+          'admin-roles',
+          'admin-roles-matrix',
+          'company-settings',
+          'users',
+          'roles',
+          'company',
+        ].includes(normTarget)
+      ) {
+        return true;
+      }
+    }
+
+    if (licensedNorm.includes('audit')) {
+      if (
+        ['audit', 'fraud-guardian', 'admin-approvals'].includes(normTarget)
+      ) {
+        return true;
+      }
+    }
+
+    if (licensedNorm.includes('sales')) {
+      if (
+        [
+          'sales',
+          'quick-sale',
+          'pos',
+          'mobile-pos',
+          'sales.corporate',
+          'sales.distribution',
+        ].includes(normTarget)
+      ) {
+        return true;
+      }
+    }
+
+    if (licensedNorm.includes('inventory')) {
+      if (
+        normTarget.startsWith('inventory-') ||
+        ['inventory', 'stock'].includes(normTarget)
+      ) {
+        return true;
+      }
+    }
+
+    if (licensedNorm.includes('purchases')) {
+      if (
+        normTarget.startsWith('purchases-') ||
+        ['purchases', 'payments'].includes(normTarget)
+      ) {
+        return true;
+      }
+    }
+
+    if (licensedNorm.includes('products')) {
+      if (['products', 'products.detail_sales'].includes(normTarget)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   hasModule(moduleCode: string): boolean {
@@ -418,45 +856,52 @@ export class AuthService {
     const licensed = this.licensedModules();
     if (licensed !== null && licensed.length === 0) return false;
 
-    const normalizedTarget = this.normalizeModuleCode(moduleCode);
-    const userMods = this.allowedModules().map(m => this.normalizeModuleCode(m));
-
-    if (userMods.length === 0) return false;
-
-    if (licensed !== null) {
-      const licensedNorm = licensed.map(m => this.normalizeModuleCode(m));
-      if (!licensedNorm.includes('*') && !licensedNorm.includes(normalizedTarget)) {
+    // 1. Verificar si el módulo está licenciado para la empresa
+    if (licensed !== null && !licensed.includes('*')) {
+      if (!this.isModuleLicensed(moduleCode, licensed)) {
         return false;
       }
-    } else if (userMods.includes('*')) {
+    } else if (licensed === null && this.allowedModules().includes('*')) {
+      // Si las licencias de la empresa aún no han cargado y el usuario tiene comodín '*',
+      // no abrir acceso general hasta confirmar contra /auth/me/modules
       return false;
     }
 
-    if (userMods.includes('*') || userMods.includes(normalizedTarget)) return true;
-    return this.moduleAccessService.hasModule(moduleCode);
+    // 2. Si el usuario tiene asignado '*', tiene acceso a los módulos licenciados por la empresa
+    if (this.allowedModules().includes('*')) {
+      return true;
+    }
+
+    // 3. De lo contrario, verificar autorización explícita / granular
+    return this.moduleAccessService.hasModuleAccess(moduleCode);
   }
 
   hasModuleAccess(requiredModule: string): boolean {
     return this.hasModule(requiredModule);
   }
 
+  hasPermission(permission: string): boolean {
+    const perms = this.userPermissions().map((p) => p.toLowerCase());
+    return perms.includes('*') || perms.includes(permission.toLowerCase());
+  }
+
   hasLicensedModule(moduleCode: string): boolean {
     if (!moduleCode?.trim()) return false;
+    if (this.normalizeModuleCode(moduleCode) === 'inventory-warehouses')
+      return true;
     const licensed = this.licensedModules();
     if (licensed === null) return false;
-    const normalized = this.normalizeModuleList(licensed);
-    return normalized.includes('*') || normalized.includes(this.normalizeModuleCode(moduleCode));
+    return this.isModuleLicensed(moduleCode, licensed);
   }
 
   hasAnyModuleAccess(): boolean {
     const licensed = this.licensedModules();
     if (licensed === null) return false;
-    const assignedModules = this.normalizeModuleList(this.allowedModules());
-    const licensedModules = this.normalizeModuleList(licensed);
-    if (!assignedModules.length || !licensedModules.length) return false;
-    if (assignedModules.includes('*')) return true;
-    if (licensedModules.includes('*')) return true;
-    return assignedModules.some((module) => licensedModules.includes(module));
+    if (licensed.length === 0) return false;
+    const assignedModules = this.allowedModules();
+    if (!assignedModules.length) return false;
+    if (assignedModules.includes('*') || licensed.includes('*')) return true;
+    return assignedModules.some((module) => this.isModuleLicensed(module, licensed));
   }
 
   refreshModuleEntitlements(silent = false): Promise<boolean> {
@@ -472,47 +917,98 @@ export class AuthService {
   fetchEffectiveModules(): Observable<string[]> {
     return from(this.loadModuleEntitlements(true)).pipe(
       map(() => this.moduleAccessService.allowedModulesSignal()),
-      catchError(() => of(this.moduleAccessService.allowedModulesSignal()))
+      catchError(() => of(this.moduleAccessService.allowedModulesSignal())),
     );
   }
 
   private async loadModuleEntitlements(silent: boolean): Promise<boolean> {
     try {
-      const response = await this.api.get<any, any>('/auth/me/modules');
-      const payload = response?.data ?? response?.Data ?? response;
-      const rawAssignedModules =
-        payload?.assignedModules ?? payload?.AssignedModules ?? payload?.modules ?? payload?.Modules ?? payload?.allowedModules;
-      const rawLicensedModules = payload?.licensedModules ?? payload?.LicensedModules ?? ['*'];
-
-      if (rawAssignedModules === undefined || rawAssignedModules === null) {
-        throw new Error('La API no devolvió los módulos asignados actuales del usuario.');
+      let payload: any = null;
+      try {
+        const response = await this.api.get<any, any>('/auth/me/modules');
+        payload = response?.data ?? response?.Data ?? response;
+      } catch {
+        try {
+          const response = await this.api.get<any, any>('/api/users/login-sync');
+          payload = response?.data ?? response?.Data ?? response;
+        } catch {
+          const response = await this.api.get<any, any>('/v1/auth/me');
+          payload = response?.data ?? response?.Data ?? response;
+        }
       }
 
-      const assignedModules = this.normalizeModuleList(this.parseStringList(rawAssignedModules));
-      const licensedModules = this.normalizeModuleList(this.parseStringList(rawLicensedModules));
+      const rawAssignedModules =
+        payload?.allowed_modules ??
+        payload?.allowedModules ??
+        payload?.AllowedModulesJson ??
+        payload?.allowedModulesJson ??
+        payload?.assignedModules ??
+        payload?.AssignedModules ??
+        payload?.modules ??
+        payload?.Modules ??
+        payload?.module ??
+        payload?.user?.allowed_modules ??
+        payload?.user?.allowedModules ??
+        payload?.user?.AllowedModulesJson;
+
+      const rawLicensedModules = payload?.licensedModules ??
+        payload?.LicensedModules ?? ['*'];
+
+      if (rawAssignedModules === undefined || rawAssignedModules === null) {
+        throw new Error(
+          'La API no devolvió los módulos asignados actuales del usuario.',
+        );
+      }
+
+      const assignedModules = [
+        ...new Set(
+          this.parseStringList(rawAssignedModules)
+            .map((m) => m.trim().toLowerCase())
+            .filter(Boolean),
+        ),
+      ];
+      const licensedModules = [
+        ...new Set(
+          this.parseStringList(rawLicensedModules)
+            .map((m) => m.trim().toLowerCase())
+            .filter(Boolean),
+        ),
+      ];
+
       this.allowedModules.set(assignedModules);
       this.licensedModules.set(licensedModules);
       this.hasExplicitModuleClaims.set(true);
-      this.currentUser.update((user) => user ? { ...user, allowedModules: assignedModules } : user);
+      this.currentUser.update((user) =>
+        user ? { ...user, allowedModules: assignedModules } : user,
+      );
 
-      this.moduleAccessService.setAllowedModules(assignedModules);
+      const currentRole = this.currentRole();
+      this.moduleAccessService.setAllowedModules(assignedModules, currentRole);
 
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('allowedModules', JSON.stringify(assignedModules));
-        sessionStorage.setItem('hasAllModules', JSON.stringify(assignedModules.includes('*')));
+        sessionStorage.setItem(
+          'hasAllModules',
+          JSON.stringify(assignedModules.includes('*')),
+        );
+        if (isRememberMe()) {
+          localStorage.setItem('allowed_modules', JSON.stringify(assignedModules));
+        } else {
+          localStorage.removeItem('allowed_modules');
+        }
       }
       this.entitlementErrorNotified = false;
       return true;
     } catch (error) {
       this.licensedModules.set([]);
-      if (!this.entitlementErrorNotified) {
-        console.error('[AuthService] No se pudieron verificar los módulos efectivos.', error);
-        if (!silent) {
-          this.notificationService.error(
-            'No se pudieron actualizar los módulos de la empresa. Contacta al administrador.',
-          );
-        }
-        this.entitlementErrorNotified = true;
+      this.allowedModules.set([]);
+      this.moduleAccessService.setAllowedModules([]);
+      this.currentUser.update((user) =>
+        user ? { ...user, allowedModules: [] } : user,
+      );
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('allowedModules', JSON.stringify([]));
+        sessionStorage.setItem('hasAllModules', JSON.stringify(false));
       }
       return false;
     }
@@ -533,22 +1029,52 @@ export class AuthService {
       if (decoded) {
         const previousModules = this.allowedModules();
         const hadExplicitModuleClaims = this.hasExplicitModuleClaims();
-        const responseUser = tokens?.user ?? tokens?.User ?? tokens?.data?.user ?? tokens?.data?.User;
+        const previousCompId = this.companyId();
+        const responseUser =
+          tokens?.user ??
+          tokens?.User ??
+          tokens?.data?.user ??
+          tokens?.data?.User;
         this.licensedModules.set(null);
         this.applyDecodedToken(
           decoded,
           responseUser && typeof responseUser === 'object'
-            ? responseUser as LoginResponseUser
+            ? (responseUser as LoginResponseUser)
             : undefined,
+          tokens,
+          preservePreviousModules,
         );
-        if (preservePreviousModules && !this.hasExplicitModuleClaims() && hadExplicitModuleClaims) {
+        if (
+          preservePreviousModules &&
+          !this.hasExplicitModuleClaims() &&
+          hadExplicitModuleClaims &&
+          previousModules.length > 0
+        ) {
           this.allowedModules.set(previousModules);
-          this.currentUser.update((user) => user ? { ...user, allowedModules: previousModules } : user);
+          this.currentUser.update((user) =>
+            user ? { ...user, allowedModules: previousModules } : user,
+          );
           if (typeof window !== 'undefined' && window.sessionStorage) {
-            sessionStorage.setItem('allowedModules', JSON.stringify(previousModules));
-            sessionStorage.setItem('hasAllModules', JSON.stringify(previousModules.includes('*')));
+            sessionStorage.setItem(
+              'allowedModules',
+              JSON.stringify(previousModules),
+            );
+            sessionStorage.setItem(
+              'hasAllModules',
+              JSON.stringify(previousModules.includes('*')),
+            );
           }
+          this.moduleAccessService.init(previousModules);
           this.hasExplicitModuleClaims.set(true);
+        }
+        // Siempre mantener CompanyId si la renovación no incluye claim de compañía
+        if (
+          (!this.companyId() || this.companyId()! <= 0) &&
+          previousCompId &&
+          previousCompId > 0
+        ) {
+          this.companyId.set(previousCompId);
+          setCompanyId(previousCompId);
         }
       }
     }
@@ -558,24 +1084,49 @@ export class AuthService {
     // Asegurar que el login no dependa de un token previo ni de un tenant previo
     this.clearSession();
     purgeTenantStorage();
+    setRememberMe(!!credentials.rememberMe);
     const tokens = await doLogin(
       this.api,
       credentials.email,
       credentials.password,
       credentials.deviceId || undefined,
     );
-    const loginUser = (tokens as any)?.user || (tokens as any)?.User || (tokens as any)?.data?.user;
+    const loginUser =
+      (tokens as any)?.user ||
+      (tokens as any)?.User ||
+      (tokens as any)?.data?.user;
     if (loginUser) {
       const userModules = loginUser.allowedModules || loginUser.modules || [];
+      const parsedUserModules = [
+        ...new Set(
+          this.parseStringList(userModules)
+            .map((m) => m.trim())
+            .filter(Boolean),
+        ),
+      ];
       if (typeof window !== 'undefined' && window.sessionStorage) {
-        sessionStorage.setItem('allowedModules', JSON.stringify(userModules));
-        sessionStorage.setItem('hasAllModules', JSON.stringify(userModules.includes('*') || userModules.length === 0));
+        sessionStorage.setItem(
+          'allowedModules',
+          JSON.stringify(parsedUserModules),
+        );
+        sessionStorage.setItem(
+          'hasAllModules',
+          JSON.stringify(parsedUserModules.includes('*')),
+        );
       }
-      this.moduleAccessService.init(userModules);
+      this.moduleAccessService.init(parsedUserModules);
     }
     this.handleTokenResponse(tokens);
     await this.refreshModuleEntitlements();
     return tokens;
+  }
+
+  async forgotPassword(email: string): Promise<{ success: boolean; message: string; data?: any }> {
+    return doForgotPassword(this.api, email);
+  }
+
+  async resetPassword(payload: { email: string; token: string; newPassword: string }): Promise<{ success: boolean; message: string; data?: any }> {
+    return doResetPassword(this.api, payload);
   }
 
   applyTokenResponse(tokens: any) {
@@ -597,15 +1148,70 @@ export class AuthService {
 
   async refreshSession(): Promise<void> {
     try {
-      const tokens = await doRefresh(this.api);
-      if (tokens.accessToken) {
-        this.handleTokenResponse(tokens, false);
-        await this.refreshModuleEntitlements();
-      } else {
-        this.clearSession();
+      const currentRefresh = getRefreshToken();
+      const currentAccess = getAccessToken();
+      if (!currentRefresh) {
+        throw new Error('No hay un token de renovación disponible.');
       }
+
+      const res: any = this.api?.postWithoutInterceptors
+        ? await this.api.postWithoutInterceptors<any, any>('/auth/refresh', {
+            refreshToken: currentRefresh,
+            accessToken: currentAccess,
+          })
+        : this.directHttp
+          ? await firstValueFrom(
+              this.directHttp.post<any>(
+                resolveApiUrl('/auth/refresh'),
+                {
+                  refreshToken: currentRefresh,
+                  accessToken: currentAccess,
+                },
+                {
+                  headers: new HttpHeaders({
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-Correlation-ID': generateCorrelationId(),
+                  }),
+                  withCredentials: true,
+                },
+              ),
+            )
+          : null;
+
+      const unwrapData = unwrap(res);
+      const token =
+        unwrapData?.accessToken ||
+        unwrapData?.AccessToken ||
+        unwrapData?.token ||
+        unwrapData?.Token ||
+        res?.accessToken ||
+        res?.AccessToken ||
+        res?.token;
+
+      const refresh =
+        unwrapData?.refreshToken ||
+        unwrapData?.RefreshToken ||
+        res?.refreshToken ||
+        res?.RefreshToken;
+
+      if (!token) {
+        throw new Error('La API no devolvió un token de acceso renovado.');
+      }
+
+      setAccessToken(token);
+      if (refresh) setRefreshToken(refresh);
+
+      this.handleTokenResponse(
+        { ...res, accessToken: token, refreshToken: refresh },
+        true,
+      );
+      await this.refreshModuleEntitlements(true);
     } catch (error) {
-      console.error('[AuthService] No se pudo renovar la sesión ni sus permisos.', error);
+      console.error(
+        '[AuthService] No se pudo renovar la sesión ni sus permisos.',
+        error,
+      );
       this.clearSession();
     }
   }
@@ -628,7 +1234,11 @@ export class AuthService {
         const res2 = await this.api.get<any, any>('/Auth/me');
         return { success: true, data: res2?.data ?? res2?.Data ?? res2 };
       } catch (err: any) {
-        return { success: false, message: err?.message || 'Error al obtener datos del usuario autenticado' };
+        return {
+          success: false,
+          message:
+            err?.message || 'Error al obtener datos del usuario autenticado',
+        };
       }
     }
   }
@@ -648,11 +1258,14 @@ export class AuthService {
     userId?: number,
     email?: string,
   ): Promise<TokenResponseDto> {
-    const tokens = await this.api.post<any, TokenResponseDto>('/Auth/dev/token', {
-      companyId,
-      userId,
-      email,
-    });
+    const tokens = await this.api.post<any, TokenResponseDto>(
+      '/Auth/dev/token',
+      {
+        companyId,
+        userId,
+        email,
+      },
+    );
     this.applyTokenResponse(tokens);
     await this.refreshModuleEntitlements();
     return tokens;
@@ -665,14 +1278,38 @@ export class AuthService {
       const conflictsKey = `cuadre_offline_conflicts_${compId}`;
       const rawQueue = localStorage.getItem(queueKey);
       const rawConflicts = localStorage.getItem(conflictsKey);
-      const hasUnsynced = (rawQueue && rawQueue.length > 30) || (rawConflicts && rawConflicts.length > 30);
+      const hasUnsynced =
+        (rawQueue && rawQueue.length > 30) ||
+        (rawConflicts && rawConflicts.length > 30);
       if (hasUnsynced) {
         const proceed = window.confirm(
-          'ATENCIÓN: Hay ventas o incidencias offline pendientes de sincronizar en esta terminal.\n\nLas ventas permanecerán guardadas y cifradas en este equipo, pero no se sincronizarán en la nube hasta que inicies sesión nuevamente con esta empresa.\n\n¿Deseas cerrar sesión de todos modos?'
+          'ATENCIÓN: Hay ventas o incidencias offline pendientes de sincronizar en esta terminal.\n\nLas ventas permanecerán guardadas y cifradas en este equipo, pero no se sincronizarán en la nube hasta que inicies sesión nuevamente con esta empresa.\n\n¿Deseas cerrar sesión de todos modos?',
         );
         if (!proceed) {
           return;
         }
+      }
+
+      const activeSessionRaw =
+        localStorage.getItem('app_active_cash_register_session') ||
+        localStorage.getItem('cuadreenv_active_cash_register_session') ||
+        localStorage.getItem('cuadre_active_cash_register_session');
+      if (activeSessionRaw) {
+        try {
+          const sess = JSON.parse(activeSessionRaw);
+          if (sess?.id) {
+            void this.api
+              .post(`/CashRegister/${sess.id}/close`, {
+                actualAmount: sess.currentBalance ?? sess.initialAmount ?? 0,
+                breakdownJson: null,
+                notes: 'Cierre automático por fin de sesión',
+              })
+              .catch(() => {});
+          }
+        } catch {}
+        localStorage.removeItem('app_active_cash_register_session');
+        localStorage.removeItem('cuadreenv_active_cash_register_session');
+        localStorage.removeItem('cuadre_active_cash_register_session');
       }
     }
     void clientLogout(this.api);
@@ -693,6 +1330,7 @@ export class AuthService {
     this.currentUser.set(null);
     this.currentRole.set(null);
     this.companyId.set(null);
+    this.userCompanies.set([]);
     this.userPermissions.set([]);
     this.allowedModules.set([]);
     this.hasExplicitModuleClaims.set(false);
@@ -702,7 +1340,11 @@ export class AuthService {
     setAccessToken(null);
     setRefreshToken(null);
     setCompanyId(null);
+    setRememberMe(false);
+    purgeTenantStorage();
     if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem('userCompanies');
+      localStorage.removeItem('currentCompanyId');
       localStorage.removeItem(API_CONSTANTS.COMPANY_ID_KEY);
       localStorage.removeItem(API_CONSTANTS.AUTH_TOKEN_KEY);
       localStorage.removeItem(API_CONSTANTS.AUTH_REFRESH_TOKEN_KEY);
@@ -714,8 +1356,14 @@ export class AuthService {
       localStorage.removeItem('auth_refresh_token');
       localStorage.removeItem('cuadre_access_token');
       localStorage.removeItem('cuadre_refresh_token');
+      localStorage.removeItem('allowedModules');
+      localStorage.removeItem('allowed_modules');
+      localStorage.removeItem('cuadre_remember_me');
+      localStorage.removeItem('cuadre_remember_me_checked');
     }
     if (typeof window !== 'undefined' && window.sessionStorage) {
+      sessionStorage.removeItem('userCompanies');
+      sessionStorage.removeItem('currentCompanyId');
       sessionStorage.removeItem('allowedModules');
       sessionStorage.removeItem('hasAllModules');
       sessionStorage.removeItem('companyId');
@@ -726,13 +1374,177 @@ export class AuthService {
     this.moduleAccessService.init([]);
   }
 
+  async loadUserCompanies(): Promise<UserCompanyDto[]> {
+    if (!this.isAuthenticated()) return this.userCompanies();
+    try {
+      let list: any[] = [];
+      try {
+        const res = await this.api.get<any, any>('/users/my-companies');
+        if (Array.isArray(res)) list = res;
+        else if (Array.isArray(res?.data)) list = res.data;
+        else if (Array.isArray(res?.Data)) list = res.Data;
+      } catch {
+        try {
+          const res = await this.api.get<any, any>('/auth/user-companies');
+          if (Array.isArray(res)) list = res;
+          else if (Array.isArray(res?.data)) list = res.data;
+          else if (Array.isArray(res?.Data)) list = res.Data;
+        } catch {
+          // Fallback a /Company solo para SuperAdmin para evitar 403 y alertas de seguridad
+          if (this.isSuperUser() || this.hasRole(['SuperAdmin'])) {
+            try {
+              const compRes = await this.api.get<any, any>('/Company');
+              if (Array.isArray(compRes)) list = compRes;
+              else if (Array.isArray(compRes?.data)) list = compRes.data;
+              else if (Array.isArray(compRes?.Data)) list = compRes.Data;
+            } catch {}
+          }
+        }
+      }
+
+      if (list.length > 0) {
+        const mapped: UserCompanyDto[] = list
+          .map((c) => ({
+            id: Number(c.id ?? c.companyId ?? c.CompanyId ?? 0),
+            name: String(c.name ?? c.companyName ?? c.CompanyName ?? ''),
+            commercialName: c.commercialName ?? c.CommercialName ?? undefined,
+            rnc: c.rnc ?? c.Rnc ?? undefined,
+            role: c.role ?? c.Role ?? undefined,
+            plan: c.plan ?? c.Plan ?? c.planName ?? c.PlanName ?? undefined,
+            isDefault: Boolean(c.isDefault ?? c.IsDefault ?? false),
+          }))
+          .filter((c) => c.id > 0);
+
+        if (mapped.length > 0) {
+          this.userCompanies.set(mapped);
+          if (typeof window !== 'undefined') {
+            window.localStorage?.setItem(
+              'userCompanies',
+              JSON.stringify(mapped),
+            );
+            window.sessionStorage?.setItem(
+              'userCompanies',
+              JSON.stringify(mapped),
+            );
+          }
+
+          // Si el usuario no tenía un companyId válido, asignar el default o la primera
+          if (!this.companyId() || this.companyId()! <= 0) {
+            const defaultCompany = mapped.find((c) => c.isDefault) || mapped[0];
+            if (defaultCompany?.id) {
+              this.companyId.set(defaultCompany.id);
+              setCompanyId(defaultCompany.id);
+              if (typeof window !== 'undefined') {
+                window.localStorage?.setItem(
+                  API_CONSTANTS.COMPANY_ID_KEY,
+                  String(defaultCompany.id),
+                );
+                window.localStorage?.setItem(
+                  'companyId',
+                  String(defaultCompany.id),
+                );
+                window.localStorage?.setItem(
+                  'currentCompanyId',
+                  String(defaultCompany.id),
+                );
+                window.localStorage?.setItem(
+                  'auth_company_id',
+                  String(defaultCompany.id),
+                );
+              }
+            }
+          }
+          return mapped;
+        }
+      }
+    } catch (err) {
+      console.warn(
+        '[AuthService] No se pudieron cargar las empresas del usuario:',
+        err,
+      );
+    }
+    return this.userCompanies();
+  }
+
+  async switchCompany(newCompanyId: number): Promise<boolean> {
+    if (!newCompanyId || newCompanyId <= 0) {
+      this.notificationService.error('Empresa inválida');
+      return false;
+    }
+    if (newCompanyId === this.companyId()) {
+      return true;
+    }
+
+    try {
+      // 1. Purgar datos de caja y temporales del tenant anterior para evitar contaminación
+      if (typeof window !== 'undefined') {
+        window.localStorage?.removeItem('app_active_cash_register_session');
+        window.localStorage?.removeItem(
+          'cuadreenv_active_cash_register_session',
+        );
+        window.localStorage?.removeItem('cuadre_active_cash_register_session');
+        window.localStorage?.removeItem('cuadre_company_settings');
+        window.sessionStorage?.removeItem('cuadre_company_settings');
+        window.sessionStorage?.removeItem('active_company_id');
+      }
+
+      // 2. Establecer el nuevo tenant en el servicio y en el cliente HTTP
+      this.companyId.set(newCompanyId);
+      setCompanyId(newCompanyId);
+
+      if (typeof window !== 'undefined') {
+        window.localStorage?.setItem(
+          API_CONSTANTS.COMPANY_ID_KEY,
+          String(newCompanyId),
+        );
+        window.localStorage?.setItem('companyId', String(newCompanyId));
+        window.localStorage?.setItem('currentCompanyId', String(newCompanyId));
+        window.localStorage?.setItem('auth_company_id', String(newCompanyId));
+        window.sessionStorage?.setItem('companyId', String(newCompanyId));
+        window.sessionStorage?.setItem(
+          'currentCompanyId',
+          String(newCompanyId),
+        );
+        window.sessionStorage?.setItem('auth_company_id', String(newCompanyId));
+      }
+
+      // 3. Informar al backend si el endpoint de selección de empresa existe
+      try {
+        await this.api
+          .post('/auth/switch-company', { companyId: newCompanyId })
+          .catch(() => {});
+      } catch {}
+
+      // 4. Refrescar módulos y licencias
+      await this.refreshModuleEntitlements(true).catch(() => {});
+
+      // 5. Recargar la interfaz para limpiar cachés de componentes y estado en memoria
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
+      return true;
+    } catch (err: any) {
+      this.notificationService.error(
+        err?.message || 'Error al cambiar de empresa',
+      );
+      return false;
+    }
+  }
+
   hasRole(roles: string[]): boolean {
     const userRole = this.currentRole();
-    return userRole ? roles.map((r) => r.toLowerCase()).includes(userRole.toLowerCase()) : false;
+    return userRole
+      ? roles.map((r) => r.toLowerCase()).includes(userRole.toLowerCase())
+      : false;
   }
 
   isSuperUser(): boolean {
     const role = (this.currentRole() || '').toLowerCase();
-    return role === 'admin' || role === 'superuser' || role === 'superadmin' || role === 'sysadmin';
+    return (
+      role === 'admin' ||
+      role === 'superuser' ||
+      role === 'superadmin' ||
+      role === 'sysadmin'
+    );
   }
 }

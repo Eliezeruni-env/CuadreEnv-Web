@@ -1,3 +1,330 @@
 :host {
   display: block;
 }
+
+/* ==========================================================================
+   CuadreEnv Stock & Catalog Aesthetics (Opción C)
+   ========================================================================== */
+
+/* KPI Summary Cards */
+.stock-kpi-card {
+  transition: all 0.2s ease-in-out;
+  border-top: 3px solid #0f172a; /* Default Navy */
+
+  &.border-valuation {
+    border-top: 3px solid #10b981;
+  }
+
+  &.border-critical {
+    border-top: 3px solid #e11d48; /* Coral Accent CuadreEnv Logo */
+
+    &.has-critical {
+      background: linear-gradient(180deg, rgba(225, 29, 72, 0.03) 0%, #ffffff 100%);
+    }
+  }
+
+  &.border-warning {
+    border-top: 3px solid #f59e0b;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08) !important;
+  }
+}
+
+.stock-kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+
+/* Filter Controls */
+.warehouse-chip-select {
+  border-radius: 9999px;
+  border: 1.5px solid #cbd5e1;
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0.35rem 2rem 0.35rem 0.85rem;
+  background-color: #ffffff;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:focus {
+    border-color: #0f172a;
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1);
+  }
+}
+
+.search-input-group {
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+  .input-group-text {
+    border-radius: 9999px 0 0 9999px;
+    border-color: #cbd5e1;
+    background-color: #f8fafc;
+  }
+
+  input {
+    border-radius: 0 9999px 9999px 0;
+    border-color: #cbd5e1;
+    font-size: 0.82rem;
+
+    &:focus {
+      box-shadow: none;
+      border-color: #0f172a;
+    }
+  }
+}
+
+/* Status Chip Filter Toolbar (Píldoras Interactivas) */
+.stock-chip-toolbar {
+  scrollbar-width: thin;
+}
+
+.stock-chip-btn {
+  background-color: #f1f5f9;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9999px;
+  padding: 0.32rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  user-select: none;
+
+  &:hover {
+    background-color: #e2e8f0;
+    color: #0f172a;
+    transform: translateY(-1px);
+  }
+
+  &.active {
+    background-color: #0f172a; /* CuadreEnv Deep Slate Navy */
+    color: #ffffff;
+    border-color: #0f172a;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
+
+    .chip-count {
+      background-color: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+    }
+  }
+
+  &.chip-critical.active {
+    background-color: #e11d48; /* Coral Accent CuadreEnv Logo */
+    border-color: #e11d48;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+  }
+
+  &.chip-low.active {
+    background-color: #d97706;
+    border-color: #d97706;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
+  }
+
+  &.chip-normal.active {
+    background-color: #059669;
+    border-color: #059669;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+  }
+
+  &.chip-overstock.active {
+    background-color: #7c3aed;
+    border-color: #7c3aed;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+  }
+}
+
+.chip-count {
+  background-color: #e2e8f0;
+  color: #334155;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-family: var(--font-family-monospace, monospace);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+
+  &.dot-critical { background-color: #e11d48; }
+  &.dot-low { background-color: #f59e0b; }
+  &.dot-normal { background-color: #10b981; }
+  &.dot-overstock { background-color: #8b5cf6; }
+}
+
+/* Interactive Table Rows */
+.stock-modern-table {
+  border-collapse: separate;
+  border-spacing: 0;
+
+  thead th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 0.5rem;
+    border-bottom: 2px solid #e2e8f0;
+  }
+}
+
+.stock-interactive-row {
+  transition: all 0.15s ease-in-out;
+  border-left: 3.5px solid transparent;
+
+  td {
+    padding: 0.75rem 0.5rem;
+  }
+
+  &:hover {
+    background-color: #f8fafc !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+
+    .stock-product-title {
+      color: #0f172a;
+    }
+  }
+
+  &.row-critical {
+    border-left-color: #e11d48; /* Coral Accent CuadreEnv Logo */
+  }
+
+  &.row-low {
+    border-left-color: #f59e0b;
+  }
+
+  &.row-normal {
+    border-left-color: #10b981;
+  }
+
+  &.row-overstock {
+    border-left-color: #8b5cf6;
+  }
+}
+
+/* Visual Stock Progress Bar */
+.stock-progress-track {
+  height: 6px;
+  background-color: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.stock-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+
+  &.fill-critical {
+    background: linear-gradient(90deg, #e11d48, #f43f5e);
+  }
+
+  &.fill-low {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  }
+
+  &.fill-normal {
+    background: linear-gradient(90deg, #059669, #10b981);
+  }
+
+  &.fill-overstock {
+    background: linear-gradient(90deg, #7c3aed, #a78bfa);
+  }
+}
+
+/* Modern Status Badges with Pulse Dots */
+.stock-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+
+  .status-dot-pulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  &.pill-critical {
+    background-color: rgba(225, 29, 72, 0.08);
+    color: #e11d48; /* Coral Logo Accent */
+    border: 1px solid rgba(225, 29, 72, 0.25);
+
+    .status-dot-pulse {
+      background-color: #e11d48;
+      box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7);
+      animation: pulseCriticalDot 1.8s infinite;
+    }
+  }
+
+  &.pill-low {
+    background-color: rgba(245, 158, 11, 0.09);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+
+    .status-dot-pulse {
+      background-color: #f59e0b;
+    }
+  }
+
+  &.pill-normal {
+    background-color: rgba(16, 185, 129, 0.09);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+
+    .status-dot-pulse {
+      background-color: #10b981;
+    }
+  }
+
+  &.pill-overstock {
+    background-color: rgba(124, 58, 237, 0.09);
+    color: #7c3aed;
+    border: 1px solid rgba(124, 58, 237, 0.25);
+
+    .status-dot-pulse {
+      background-color: #8b5cf6;
+    }
+  }
+}
+
+@keyframes pulseCriticalDot {
+  0% {
+    box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 5px rgba(225, 29, 72, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(225, 29, 72, 0);
+  }
+}

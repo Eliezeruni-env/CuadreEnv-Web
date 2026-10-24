@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CategoryService } from '../../services/category.service';
 import { ProductTypeService } from '../../services/product-type.service';
+import { UnitOfMeasurementService, type UnitOfMeasurement } from '../../services/unit-of-measurement.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog.service';
@@ -46,6 +47,7 @@ export class ProductSettingsComponent implements OnInit {
   readonly translationService = inject(TranslationService);
   private categoryService = inject(CategoryService);
   private productTypeService = inject(ProductTypeService);
+  readonly unitService = inject(UnitOfMeasurementService);
   private notificationService = inject(NotificationService);
   private confirmService = inject(ConfirmDialogService);
   private authService = inject(AuthService);
@@ -67,6 +69,12 @@ export class ProductSettingsComponent implements OnInit {
   productTypesPageSize = 10;
   productTypesTotal = signal<number>(0);
 
+  // Units of Measurement Data & Pagination
+  units = signal<UnitOfMeasurement[]>([]);
+  unitsPage = signal<number>(1);
+  unitsPageSize = 10;
+  unitsTotal = signal<number>(0);
+
   // Modals visibility and models
   isCategoryModalVisible = false;
   categoryForm: FormGroup;
@@ -76,6 +84,10 @@ export class ProductSettingsComponent implements OnInit {
   typeForm: FormGroup;
   editingType: any = null;
 
+  isUnitModalVisible = false;
+  unitForm: FormGroup;
+  editingUnit: UnitOfMeasurement | null = null;
+
   constructor() {
     this.categoryForm = this.fb.group({
       description: ['', [Validators.required, Validators.maxLength(100)]]
@@ -83,6 +95,13 @@ export class ProductSettingsComponent implements OnInit {
 
     this.typeForm = this.fb.group({
       description: ['', [Validators.required, Validators.maxLength(100)]]
+    });
+
+    this.unitForm = this.fb.group({
+      name: ['', [Validators.required, Validators.maxLength(80)]],
+      symbol: ['', [Validators.required, Validators.maxLength(15)]],
+      allowsDecimals: [false],
+      description: ['', [Validators.maxLength(200)]]
     });
   }
 
@@ -101,7 +120,8 @@ export class ProductSettingsComponent implements OnInit {
     try {
       await Promise.all([
         this.loadCategories(),
-        this.loadProductTypes()
+        this.loadProductTypes(),
+        this.loadUnits()
       ]);
     } catch (e: any) {
       const mapped = this.notificationService.showApiError(e);
@@ -314,6 +334,133 @@ export class ProductSettingsComponent implements OnInit {
       await this.productTypeService.deleteProductType(type.id);
       this.notificationService.success('Tipo de producto eliminado exitosamente.');
       await this.loadProductTypes();
+    } catch (e: any) {
+      this.notificationService.showApiError(e);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  // Units of Measurement Logic
+  async loadUnits() {
+    try {
+      const res = await this.unitService.getUnitsOfMeasurement();
+      if (res.success && res.data) {
+        this.units.set(res.data);
+        this.unitsTotal.set(res.data.length);
+      }
+    } catch (e: any) {
+      console.error('Error loading units of measurement:', e);
+    }
+  }
+
+  get paginatedUnits(): UnitOfMeasurement[] {
+    const start = (this.unitsPage() - 1) * this.unitsPageSize;
+    return this.units().slice(start, start + this.unitsPageSize);
+  }
+
+  onUnitsPageChange(page: number) {
+    this.unitsPage.set(page);
+  }
+
+  openCreateUnit() {
+    this.editingUnit = null;
+    this.unitForm.reset({
+      name: '',
+      symbol: '',
+      allowsDecimals: false,
+      description: ''
+    });
+    this.isUnitModalVisible = true;
+  }
+
+  openEditUnit(unit: UnitOfMeasurement) {
+    this.editingUnit = unit;
+    this.unitForm.patchValue({
+      name: unit.name,
+      symbol: unit.symbol,
+      allowsDecimals: unit.allowsDecimals,
+      description: unit.description || ''
+    });
+    this.isUnitModalVisible = true;
+  }
+
+  closeUnitModal() {
+    this.isUnitModalVisible = false;
+    this.editingUnit = null;
+  }
+
+  async saveUnit() {
+    if (this.unitForm.invalid) {
+      this.unitForm.markAllAsTouched();
+      return;
+    }
+
+    this.isLoading.set(true);
+    const formVal = this.unitForm.value;
+
+    try {
+      if (this.editingUnit) {
+        const res = await this.unitService.updateUnitOfMeasurement(this.editingUnit.id, {
+          name: formVal.name,
+          symbol: formVal.symbol,
+          allowsDecimals: formVal.allowsDecimals,
+          description: formVal.description
+        });
+        if (res.success) {
+          this.notificationService.success('Unidad de medida actualizada exitosamente.');
+          await this.loadUnits();
+          this.closeUnitModal();
+        } else {
+          this.notificationService.error(res.message || 'Error al actualizar unidad.');
+        }
+      } else {
+        const res = await this.unitService.createUnitOfMeasurement({
+          name: formVal.name,
+          symbol: formVal.symbol,
+          allowsDecimals: formVal.allowsDecimals,
+          description: formVal.description
+        });
+        if (res.success) {
+          this.notificationService.success('Unidad de medida creada exitosamente.');
+          await this.loadUnits();
+          this.closeUnitModal();
+        } else {
+          this.notificationService.error(res.message || 'Error al crear unidad.');
+        }
+      }
+    } catch (e: any) {
+      this.notificationService.showApiError(e);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  async deleteUnit(unit: UnitOfMeasurement) {
+    if (unit.isSystem) {
+      this.notificationService.warning('Las unidades de medida estándar del sistema no pueden eliminarse.');
+      return;
+    }
+
+    const confirmed = await this.confirmService.confirm({
+      title: '¿Eliminar unidad de medida?',
+      message: '¿Estás seguro de que deseas eliminar esta unidad de medida? Los productos que la utilicen mantendrán su histórico.',
+      itemName: `${unit.name} (${unit.symbol})`,
+      itemType: 'Unidad de Medida',
+      confirmText: 'Eliminar',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    this.isLoading.set(true);
+    try {
+      const res = await this.unitService.deleteUnitOfMeasurement(unit.id);
+      if (res.success) {
+        this.notificationService.success('Unidad de medida eliminada exitosamente.');
+        await this.loadUnits();
+      } else {
+        this.notificationService.error(res.message || 'Error al eliminar unidad.');
+      }
     } catch (e: any) {
       this.notificationService.showApiError(e);
     } finally {

@@ -1,5 +1,25 @@
 <!--<c-header class="mb-4 d-print-none" position="sticky">-->
 <ng-container>
+  @if (authService.isImpersonated()) {
+    <div class="alert alert-warning border-0 rounded-0 py-2 px-4 mb-0 d-flex align-items-center justify-content-between shadow-sm sticky-top w-100" style="z-index: 1050; background-color: #FEF3C7; color: #92400E; border-bottom: 2px solid #F59E0B !important;">
+      <div class="d-flex align-items-center gap-2">
+        <span class="fs-5">⚠️</span>
+        <div class="small">
+          <strong>Modo Soporte Técnico (Impersonación Activa):</strong>
+          <span class="ms-1">
+            Has iniciado sesión como <strong>{{ authService.currentUser()?.fullName || authService.currentUser()?.email }}</strong>.
+            @if (authService.impersonatedBy()?.name || authService.impersonatedBy()?.email) {
+              (Accedido por soporte: {{ authService.impersonatedBy()?.name || authService.impersonatedBy()?.email }})
+            }
+          </span>
+        </div>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-danger fw-bold px-3 py-1 bg-white text-danger border-danger shadow-2xs hover-bg-danger hover-text-white d-flex align-items-center gap-1.5" (click)="exitImpersonation()" title="Finalizar soporte y volver al panel de USM">
+        <span>Salir y Volver a USM</span>
+        <span>&rarr;</span>
+      </button>
+    </div>
+  }
   <c-container [fluid]="true" class="border-bottom px-4">
     <button [cSidebarToggle]="sidebarId()" cHeaderToggler class="btn" toggle="visible"
       style="margin-inline-start: -14px;" aria-label="Toggle sidebar navigation">
@@ -22,7 +42,92 @@
       </c-nav-item>
     </c-header-nav>
 
-    <c-header-nav class="ms-auto">
+    <!-- Global Command Palette Quick Trigger (Ctrl + K) -->
+    <div class="d-none d-sm-flex align-items-center ms-3">
+      <button
+        type="button"
+        class="btn btn-sm btn-light border rounded-pill px-3 py-1 text-muted d-flex align-items-center gap-2 shadow-2xs hover-bg-gray"
+        (click)="openCommandPalette()"
+        title="Buscar módulo, acción o cliente (Ctrl + K)"
+      >
+        <svg cIcon name="cilSearch" style="width: 14px; height: 14px;" class="text-secondary"></svg>
+        <span class="small text-secondary" style="font-size: 0.8rem;">Buscar módulo o acción...</span>
+        <kbd class="bg-secondary-subtle text-secondary px-1.5 py-0.5 rounded font-monospace small" style="font-size: 0.65rem;">Ctrl + K</kbd>
+      </button>
+    </div>
+
+    <c-header-nav class="ms-auto align-items-center">
+      <!-- Selector de Empresa Activa / Plan Contratado -->
+      @if (hasMultipleCompanies()) {
+        <c-dropdown [popperOptions]="{ placement: 'bottom-end' }" variant="nav-item">
+          <button
+            [caret]="false"
+            cDropdownToggle
+            class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2.5 px-3 py-1.5 rounded-3 border-secondary-subtle bg-body shadow-2xs hover-border-primary"
+            title="Cambiar de empresa o sucursal activa"
+          >
+            <div class="d-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-2 flex-shrink-0" style="width: 30px; height: 30px;">
+              <svg cIcon name="cilBuilding" style="width: 16px; height: 16px;"></svg>
+            </div>
+            <div class="d-flex flex-column text-start justify-content-center pe-1" style="min-width: 90px; max-width: 190px;">
+              <span class="fw-semibold text-truncate text-body mb-0.5" style="font-size: 0.84rem; line-height: 1.25;" [title]="companyDisplayName()">
+                {{ companyDisplayName() }}
+              </span>
+              <span class="badge {{ companyPlanBadgeClass() }} border px-2 py-0.5 rounded-pill text-uppercase" style="font-size: 0.65rem; width: fit-content; letter-spacing: 0.5px; font-weight: 700;">
+                {{ currentPlanName() }}
+              </span>
+            </div>
+            <svg cIcon name="cilChevronBottom" style="width: 12px; height: 12px;" class="text-secondary ms-1 flex-shrink-0"></svg>
+          </button>
+          <ul cDropdownMenu class="shadow-lg border-0 rounded-3 p-2" style="min-width: 260px; max-width: 320px;">
+            <li class="px-2 py-1.5 border-bottom mb-1">
+              <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                Empresas Asociadas
+              </span>
+            </li>
+            @for (company of userCompanies(); track company.id) {
+              <li>
+                <button
+                  type="button"
+                  cDropdownItem
+                  (click)="onSelectCompany(company.id)"
+                  class="d-flex align-items-center justify-content-between rounded-2 px-2 py-2 w-100 border-0"
+                  [class.bg-primary-subtle]="company.id === authService.companyId()"
+                  [class.text-primary]="company.id === authService.companyId()"
+                >
+                  <div class="d-flex flex-column text-start me-2 overflow-hidden">
+                    <span class="fw-semibold text-truncate small" [class.text-primary]="company.id === authService.companyId()">
+                      {{ company.commercialName || company.name }}
+                    </span>
+                    <span class="text-secondary small font-size-xs text-truncate">
+                      @if (company.rnc) { RNC: {{ company.rnc }} • } {{ company.role || 'Miembro' }}
+                    </span>
+                  </div>
+                  @if (company.id === authService.companyId()) {
+                    <svg cIcon name="cilCheck" style="width: 16px; height: 16px;" class="text-primary flex-shrink-0"></svg>
+                  }
+                </button>
+              </li>
+            }
+          </ul>
+        </c-dropdown>
+      } @else {
+        <!-- Empresa Activa Única con Plan Contratado -->
+        <div class="d-flex align-items-center gap-2.5 px-3 py-1.5 rounded-3 border border-secondary-subtle bg-body shadow-2xs">
+          <div class="d-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-2 flex-shrink-0" style="width: 30px; height: 30px;">
+            <svg cIcon name="cilBuilding" style="width: 16px; height: 16px;"></svg>
+          </div>
+          <div class="d-flex flex-column text-start justify-content-center pe-1" style="min-width: 90px; max-width: 200px;">
+            <span class="fw-semibold text-truncate text-body mb-0.5" style="font-size: 0.84rem; line-height: 1.25;" [title]="companyDisplayName()">
+              {{ companyDisplayName() }}
+            </span>
+            <span class="badge {{ companyPlanBadgeClass() }} border px-2 py-0.5 rounded-pill text-uppercase" style="font-size: 0.65rem; width: fit-content; letter-spacing: 0.5px; font-weight: 700;">
+              {{ currentPlanName() }}
+            </span>
+          </div>
+        </div>
+      }
+
       <div class="nav-item py-1">
         <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
       </div>
@@ -49,17 +154,25 @@
 
 <ng-template #userDropdown>
   <c-dropdown [popperOptions]="{ placement: 'bottom-start' }" variant="nav-item">
-    <button [caret]="false" cDropdownToggle class="py-0 pe-0" aria-label="Open user menu">
-      <c-avatar shape="rounded-1" size="md" src="../../../../assets/images/avatars/avatar.png" status="success"
-        textColor="primary" alt="User avatar" />
+    <button [caret]="false" cDropdownToggle class="py-0 pe-0 border-0 bg-transparent d-flex align-items-center" aria-label="Open company user menu">
+      @if (companyLogo()) {
+        <div class="user-avatar-badge rounded-circle overflow-hidden shadow-xs border border-2 border-primary-subtle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; background: #ffffff;">
+          <img [src]="companyLogo()" [alt]="companyDisplayName()" style="width: 100%; height: 100%; object-fit: cover;" />
+        </div>
+      } @else {
+        <div class="user-avatar-badge d-flex align-items-center justify-content-center rounded-circle shadow-xs fw-bold border border-2 border-primary-subtle" style="width: 38px; height: 38px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; font-size: 0.82rem; letter-spacing: 0.5px;" [title]="companyDisplayName()">
+          {{ companyInitials() }}
+        </div>
+      }
     </button>
     <ul cDropdownMenu class="pt-0 w-auto shadow border-0" style="min-width: 220px;">
       <li>
         <div class="px-3 py-2 bg-light border-bottom rounded-top">
-          <div class="fw-bold text-dark text-truncate">{{ authService.currentUser()?.email || 'Usuario' }}</div>
-          <div class="text-secondary small font-size-xs mt-1">Role: <span
-              class="badge bg-secondary-subtle text-secondary border font-monospace ms-1">{{ authService.currentRole()
-              || 'User' }}</span></div>
+          <div class="fw-bold text-dark text-truncate">{{ companyDisplayName() }}</div>
+          <div class="text-secondary small font-size-xs mt-1 text-truncate">
+            {{ authService.currentUser()?.email || 'Usuario' }}
+            <span class="badge bg-secondary-subtle text-secondary border font-monospace ms-1">{{ authService.currentRole() || 'User' }}</span>
+          </div>
         </div>
       </li>
       <li>
@@ -176,3 +289,6 @@
     </div>
   </div>
 }
+
+<!-- Command Palette Global Modal Component -->
+<app-command-palette #commandPalette />

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { PurchaseService } from '../../services/purchase.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
+import { ModuleAccessService } from '../../../cuadreEnv/services/module-access.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import type { PurchaseDto } from '../../../cuadreEnv/types/api';
 import { IconDirective } from '@coreui/icons-angular';
@@ -42,6 +43,15 @@ export class PurchasesComponent implements OnInit {
   @ViewChild('purchaseModal') purchaseModal!: PurchaseModalComponent;
 
   readonly translationService = inject(TranslationService);
+  private moduleAccess = inject(ModuleAccessService);
+
+  readonly canManualReceive = computed(() => this.moduleAccess.hasModule('purchases-receipts'));
+  readonly canAutoReceive = computed(() =>
+    this.authService.hasRole(['Admin', 'SuperAdmin', 'Supervisor', 'Manager']) ||
+    this.authService.isSuperUser() ||
+    this.authService.hasPermission('purchases:create') ||
+    this.moduleAccess.hasModule('purchases-receipts')
+  );
 
   purchases = signal<PurchaseDto[]>([]);
   isLoading = signal<boolean>(false);
@@ -216,6 +226,7 @@ export class PurchasesComponent implements OnInit {
   }
 
   receivePurchase(purchase: PurchaseDto) {
+    if (!this.canManualReceive()) return;
     if (!purchase.id) return;
     this.router.navigate(['/purchases/receipts/create', purchase.id]);
   }

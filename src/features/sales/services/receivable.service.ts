@@ -12,13 +12,24 @@ export interface PaymentPlanDto {
   frequency: 'Semanal' | 'Quincenal' | 'Mensual' | 'Diaria';
 }
 
+export interface PaymentVoucherAttachment {
+  name: string;
+  type: string;
+  dataUrl: string;
+  size?: number;
+  extractedText?: string | null;
+}
+
 export interface PaymentRecordDto {
   id: number;
   amount: number;
   date: string;
   method: string;
+  bank?: string | null;
   reference?: string | null;
   notes?: string | null;
+  registerInCash?: boolean;
+  voucherAttachment?: PaymentVoucherAttachment | null;
   isCurrent?: boolean;
 }
 
@@ -51,12 +62,14 @@ export interface ReceivableDto {
   dueDate?: string | null;
   paymentPlan?: PaymentPlanDto | null;
   payments: PaymentRecordDto[];
-  warehouseId?: number;
+  warehouseId?: number | null;
   warehouseName?: string;
   avatarColor: string;
   isReopened?: boolean;
   reopenedDate?: string;
   settledDate?: string;
+  active?: boolean;
+  isDeleted?: boolean;
 }
 
 export interface CreateReceivableDto {
@@ -175,13 +188,54 @@ export class ReceivableService {
   }
 
   async getReceivables(): Promise<ApiResponse<ReceivableDto[]>> {
-    // Try merging with backend sales where paidAmount < total
+    const stored = this.getStoredReceivables();
+
+    // 1. Intentar cargar desde el endpoint oficial de Cuentas por Cobrar (/AccountReceivable)
+    try {
+      const arRes = await this.api.get<any, any>('/AccountReceivable');
+      const arList = extractArray<any>(arRes);
+      if (arList && arList.length > 0) {
+        for (const ar of arList) {
+          const id = ar.id ?? ar.saleId;
+          const pending = Math.max(0, (ar.totalAmount || ar.total || 0) - (ar.paidAmount || 0));
+          const existing = stored.find((r) => r.id === id);
+          const colorIdx = (id || 1) % AVATAR_COLORS.length;
+
+          if (existing) {
+            existing.totalAmount = ar.totalAmount || ar.total || existing.totalAmount;
+            existing.paidAmount = Math.max(existing.paidAmount || 0, ar.paidAmount || 0);
+            existing.pendingAmount = Math.max(0, existing.totalAmount - existing.paidAmount);
+            existing.status = existing.pendingAmount === 0 ? 'Pagado' : existing.paidAmount > 0 ? 'Parcial' : 'Pendiente';
+          } else {
+            stored.unshift({
+              id: id,
+              invoiceNumber: ar.invoiceNumber || `INV-${String(id).padStart(6, '0')}`,
+              customerId: ar.customerId,
+              customerName: ar.customerName || `Cliente #${ar.customerId || id}`,
+              customerPhone: ar.customerPhone || '',
+              customerEmail: ar.customerEmail || '',
+              description: ar.description || 'Cuenta por Cobrar',
+              totalAmount: ar.totalAmount || ar.total || 0,
+              paidAmount: ar.paidAmount || 0,
+              pendingAmount: pending,
+              status: pending === 0 ? 'Pagado' : (ar.paidAmount > 0 ? 'Parcial' : 'Pendiente'),
+              creationDate: ar.creationDate || ar.createdAt || new Date().toISOString(),
+              dueDate: ar.dueDate,
+              avatarColor: AVATAR_COLORS[colorIdx].bg,
+              payments: ar.payments || [],
+            });
+          }
+        }
+      }
+    } catch {
+      // offline / endpoint fallback
+    }
+
+    // 2. Integrar ventas a crédito desde /Sale
     try {
       const salesRes = await this.api.get<any, any>('/Sale');
       const sales = extractArray<SaleResponseDto>(salesRes);
-      const stored = this.getStoredReceivables();
 
-      // If backend has sales, integrate any sales with pending balances
       if (sales && sales.length > 0) {
         const custRes = await this.customerService.getCustomers();
         const customers = custRes.data || [];
@@ -189,47 +243,49 @@ export class ReceivableService {
         for (const s of sales) {
           if (s.isCancelled) continue;
           const pending = Math.max(0, (s.total || 0) - (s.paidAmount || 0));
-          if (pending > 0) {
-            const existing = stored.find((r) => r.id === s.id);
-            const customer = customers.find((c) => c.id === s.customerId);
-            const colorIdx = s.id % AVATAR_COLORS.length;
+          const existing = stored.find((r) => r.id === s.id);
+          const customer = customers.find((c) => c.id === s.customerId);
+          const colorIdx = s.id % AVATAR_COLORS.length;
 
-            if (!existing) {
-              stored.unshift({
-                id: s.id,
-                invoiceNumber: `INV-${String(s.id).padStart(6, '0')}`,
-                customerId: s.customerId,
-                customerName: customer?.name || `Cliente #${s.customerId || s.id}`,
-                customerPhone: customer?.phone || '',
-                customerEmail: customer?.email || '',
-                description: 'Venta a crédito',
-                totalAmount: s.total,
-                paidAmount: s.paidAmount || 0,
-                pendingAmount: pending,
-                status: s.paidAmount > 0 ? 'Parcial' : 'Pendiente',
-                creationDate: s.creationDate || new Date().toISOString(),
-                dueDate: s.dueDate,
-                avatarColor: AVATAR_COLORS[colorIdx].bg,
-                payments: s.paidAmount > 0 ? [
-                  {
-                    id: 1,
-                    amount: s.paidAmount,
-                    date: new Date().toLocaleDateString('es-DO'),
-                    method: 'Efectivo',
-                    reference: 'Abono inicial',
-                  }
-                ] : [],
-              });
-            }
+          if (existing) {
+            existing.paidAmount = Math.max(existing.paidAmount || 0, s.paidAmount || 0);
+            existing.pendingAmount = Math.max(0, (s.total || existing.totalAmount) - existing.paidAmount);
+            existing.status = existing.pendingAmount === 0 ? 'Pagado' : existing.paidAmount > 0 ? 'Parcial' : 'Pendiente';
+          } else if (pending > 0) {
+            stored.unshift({
+              id: s.id,
+              invoiceNumber: `INV-${String(s.id).padStart(6, '0')}`,
+              customerId: s.customerId,
+              customerName: customer?.name || `Cliente #${s.customerId || s.id}`,
+              customerPhone: customer?.phone || '',
+              customerEmail: customer?.email || '',
+              description: 'Venta a crédito',
+              totalAmount: s.total,
+              paidAmount: s.paidAmount || 0,
+              pendingAmount: pending,
+              status: s.paidAmount > 0 ? 'Parcial' : 'Pendiente',
+              creationDate: s.creationDate || new Date().toISOString(),
+              dueDate: s.dueDate,
+              avatarColor: AVATAR_COLORS[colorIdx].bg,
+              payments: s.paidAmount > 0 ? [
+                {
+                  id: 1,
+                  amount: s.paidAmount,
+                  date: new Date().toLocaleDateString('es-DO'),
+                  method: 'Efectivo',
+                  reference: 'Abono inicial',
+                }
+              ] : [],
+            });
           }
         }
-        this.saveStoredReceivables(stored);
       }
-      return { success: true, data: stored };
     } catch {
-      // Backend is offline -> return empty list
-      return { success: false, data: [], message: 'No se pudo conectar con el servidor.' };
+      // ignore
     }
+
+    this.saveStoredReceivables(stored);
+    return { success: true, data: stored };
   }
 
   async getReceivable(id: number): Promise<ApiResponse<ReceivableDto>> {
@@ -332,8 +388,8 @@ export class ReceivableService {
       pendingAmount: pendingAmount,
       downPayment: downPayment,
       items: dto.items || [],
-      warehouseId: dto.warehouseId || 1,
-      warehouseName: dto.warehouseName || 'Almacén Principal',
+      warehouseId: dto.warehouseId || null,
+      warehouseName: dto.warehouseName || '',
       status: initialStatus,
       creationDate: new Date().toISOString(),
       dueDate: dto.startDate,
@@ -398,8 +454,11 @@ export class ReceivableService {
       amount: number;
       date?: string;
       method: string;
+      bank?: string;
       reference?: string;
       notes?: string;
+      registerInCash?: boolean;
+      voucherAttachment?: PaymentVoucherAttachment | null;
     },
   ): Promise<ApiResponse<ReceivableDto>> {
     const list = this.getStoredReceivables();
@@ -414,8 +473,11 @@ export class ReceivableService {
       amount: payment.amount,
       date: payment.date || new Date().toLocaleString('es-DO'),
       method: payment.method,
+      bank: payment.bank || null,
       reference: payment.reference || null,
       notes: payment.notes || null,
+      registerInCash: payment.registerInCash ?? (payment.method === 'Efectivo'),
+      voucherAttachment: payment.voucherAttachment || null,
       isCurrent: true,
     };
 
@@ -423,9 +485,9 @@ export class ReceivableService {
     item.payments.forEach((p) => (p.isCurrent = false));
     item.payments.push(newRecord);
 
-    item.paidAmount += payment.amount;
+    item.paidAmount = item.payments.reduce((acc, p) => acc + (p.amount || 0), 0);
     item.pendingAmount = Math.max(0, item.totalAmount - item.paidAmount);
-    item.status = item.pendingAmount === 0 ? 'Pagado' : 'Parcial';
+    item.status = item.pendingAmount === 0 ? 'Pagado' : item.paidAmount > 0 ? 'Parcial' : 'Pendiente';
 
     // Check active cash register session
     let cashRegisterId: number | null = null;
@@ -442,30 +504,38 @@ export class ReceivableService {
 
     const methodCode = payment.method === 'Efectivo' ? 'CASH' : payment.method === 'Transferencia' ? 'TRANSFER' : payment.method === 'Tarjeta' ? 'CARD' : 'CHECK';
 
-    // Post to AccountReceivable payments endpoint
+    // Post to AccountReceivable payments endpoint with fallback
     try {
-      await this.api.post(`/AccountReceivable/${receivableId}/payments`, {
-        amount: payment.amount,
-        method: methodCode,
-        reference: payment.reference || null,
-        cashRegisterId: cashRegisterId,
-      });
+      await this.api.post(
+        `/AccountReceivable/${receivableId}/payments`,
+        {
+          amount: payment.amount,
+          method: methodCode,
+          reference: payment.reference || null,
+          cashRegisterId: cashRegisterId,
+        },
+        { headers: { 'X-Silent-Error': 'true', 'X-Silent-404': 'true' } }
+      );
     } catch {
       // Fallback to Sale payments
       try {
-        await this.api.post(`/Sale/${receivableId}/payments`, {
-          amount: payment.amount,
-          reference: payment.reference || payment.method,
-          method: methodCode,
-          cashRegisterId: cashRegisterId,
-        });
+        await this.api.post(
+          `/Sale/${receivableId}/payments`,
+          {
+            amount: payment.amount,
+            reference: payment.reference || payment.method,
+            method: methodCode,
+            cashRegisterId: cashRegisterId,
+          },
+          { headers: { 'X-Silent-Error': 'true', 'X-Silent-404': 'true' } }
+        );
       } catch {
-        // ignore
+        // ignore - payment recorded in local state and cash register
       }
     }
 
-    // Automatically sync with local Cash Register if active
-    if (this.cashRegisterService) {
+    // Automatically sync with local Cash Register if active and registerInCash is enabled
+    if (this.cashRegisterService && newRecord.registerInCash) {
       try {
         await this.cashRegisterService.addMovement({
           type: 'Entrada',
@@ -533,8 +603,11 @@ export class ReceivableService {
       amount: number;
       date?: string;
       method: string;
+      bank?: string;
       reference?: string;
       notes?: string;
+      registerInCash?: boolean;
+      voucherAttachment?: PaymentVoucherAttachment | null;
     },
   ): Promise<ApiResponse<ReceivableDto>> {
     const list = this.getStoredReceivables();
@@ -553,8 +626,11 @@ export class ReceivableService {
       amount: payment.amount,
       date: payment.date || item.payments[payIdx].date,
       method: payment.method,
-      reference: payment.reference || null,
-      notes: payment.notes || null,
+      bank: payment.bank !== undefined ? payment.bank : item.payments[payIdx].bank,
+      reference: payment.reference !== undefined ? payment.reference : item.payments[payIdx].reference,
+      notes: payment.notes !== undefined ? payment.notes : item.payments[payIdx].notes,
+      registerInCash: payment.registerInCash !== undefined ? payment.registerInCash : item.payments[payIdx].registerInCash,
+      voucherAttachment: payment.voucherAttachment !== undefined ? payment.voucherAttachment : item.payments[payIdx].voucherAttachment,
     };
 
     // Recalculate total paid & pending balance

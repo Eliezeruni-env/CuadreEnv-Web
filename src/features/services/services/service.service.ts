@@ -50,14 +50,17 @@ export class ServiceService {
   async getServices(query?: { search?: string; categoryId?: number; activeOnly?: boolean }): Promise<ServiceItemDto[]> {
     const cached = this.getCachedServices();
     let backendServices: ServiceItemDto[] = [];
+    const catMap = new Map<number, string>();
 
     try {
       // 1. Fetch categories for name resolution
       const catRes = await this.categoryService.getCategories();
       const categories = Array.isArray(catRes?.data) ? catRes.data : [];
-      const catMap = new Map<number, string>();
       categories.forEach((c: any) => {
-        if (c.id) catMap.set(c.id, c.name || c.description || '');
+        if (c.id) {
+          const name = c.description || c.name || c.Description || c.Name || '';
+          catMap.set(c.id, name);
+        }
       });
 
       // 2. Fetch products and filter services
@@ -98,8 +101,12 @@ export class ServiceService {
     }
     for (const c of cached) {
       const key = c.id ? `id_${c.id}` : `code_${c.code}`;
-      // Prefer cached overrides if updated locally
-      map.set(key, { ...(map.get(key) || {}), ...c });
+      const existing = map.get(key) || {};
+      const merged = { ...existing, ...c };
+      if (merged.categoryId && catMap.has(merged.categoryId)) {
+        merged.categoryName = catMap.get(merged.categoryId);
+      }
+      map.set(key, merged);
     }
 
     let result = Array.from(map.values());
@@ -160,8 +167,9 @@ export class ServiceService {
     if (dto.categoryId && !categoryName) {
       try {
         const cats = await this.categoryService.getCategories();
-        const foundCat = cats.data?.find((c: any) => c.id === dto.categoryId);
-        if (foundCat) categoryName = foundCat.name;
+        const catList = Array.isArray(cats?.data) ? cats.data : [];
+        const foundCat = catList.find((c: any) => c.id === dto.categoryId);
+        if (foundCat) categoryName = foundCat.description || foundCat.name || foundCat.Description || foundCat.Name;
       } catch {
         // ignore
       }
@@ -224,12 +232,32 @@ export class ServiceService {
     const cached = this.getCachedServices();
     const index = cached.findIndex((s) => s.id === id);
 
+    let categoryName = dto.categoryName;
+    if (dto.categoryId !== undefined) {
+      if (dto.categoryId) {
+        try {
+          const cats = await this.categoryService.getCategories();
+          const catList = Array.isArray(cats?.data) ? cats.data : [];
+          const foundCat = catList.find((c: any) => c.id === dto.categoryId);
+          if (foundCat) categoryName = foundCat.description || foundCat.name || foundCat.Description || foundCat.Name;
+        } catch {
+          // ignore
+        }
+      } else {
+        categoryName = undefined;
+      }
+    } else if (index >= 0) {
+      categoryName = cached[index].categoryName;
+    }
+
     const updated: ServiceItemDto = {
       ...(index >= 0 ? cached[index] : {}),
       ...dto,
       id,
       code: dto.code || (index >= 0 ? cached[index].code : `SERV-${id}`),
       name: dto.name || (index >= 0 ? cached[index].name : 'Servicio'),
+      categoryId: dto.categoryId !== undefined ? dto.categoryId : (index >= 0 ? cached[index].categoryId : undefined),
+      categoryName: categoryName !== undefined ? categoryName : (index >= 0 ? cached[index].categoryName : undefined),
       price: Number(dto.price !== undefined ? dto.price : (index >= 0 ? cached[index].price : 0)),
       isActive: dto.isActive !== undefined ? dto.isActive : true,
       updatedAt: new Date().toISOString(),

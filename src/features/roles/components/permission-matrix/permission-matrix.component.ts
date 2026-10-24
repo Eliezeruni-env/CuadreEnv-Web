@@ -37,6 +37,7 @@ export class PermissionMatrixComponent implements OnInit {
 
   // Set of selected permission IDs for the currently active role
   activePermissionIds = signal<Set<number>>(new Set());
+  roleAllowedModules = signal<string[]>([]);
 
   isSaving = signal<boolean>(false);
   hasUnsavedChanges = signal<boolean>(false);
@@ -87,7 +88,32 @@ export class PermissionMatrixComponent implements OnInit {
     }
 
     this.activePermissionIds.set(permSet);
+
+    // Populate granular modules
+    const mods = role.allowedModules || (role.isSystem ? ['purchases-receipts', 'inventory-entries'] : []);
+    this.roleAllowedModules.set([...mods]);
+
     this.hasUnsavedChanges.set(false);
+  }
+
+  isGranularModuleEnabled(moduleCode: string): boolean {
+    const code = moduleCode.toLowerCase();
+    const mods = this.roleAllowedModules();
+    if (mods.includes('*') || mods.includes('ALL') || mods.includes('all')) return true;
+    return mods.some((m) => m.toLowerCase() === code);
+  }
+
+  toggleGranularModule(moduleCode: string): void {
+    const code = moduleCode.toLowerCase();
+    const current = this.roleAllowedModules();
+    let updated: string[];
+    if (this.isGranularModuleEnabled(code)) {
+      updated = current.filter((m) => m.toLowerCase() !== code && m !== '*' && m !== 'ALL' && m !== 'all');
+    } else {
+      updated = [...current.filter((m) => m.toLowerCase() !== code), code];
+    }
+    this.roleAllowedModules.set(updated);
+    this.hasUnsavedChanges.set(true);
   }
 
   getPermission(modKey: PermissionDto['module'], actionKey: PermissionDto['action']): PermissionDto | undefined {
@@ -197,7 +223,8 @@ export class PermissionMatrixComponent implements OnInit {
     this.isSaving.set(true);
     try {
       const permissionIds = Array.from(this.activePermissionIds());
-      await this.roleService.updateRolePermissions(role.id, permissionIds);
+      const allowedModules = this.roleAllowedModules();
+      await this.roleService.updateRolePermissions(role.id, permissionIds, allowedModules);
       this.hasUnsavedChanges.set(false);
       this.notificationService.success(
         `Permisos actualizados para el rol "${role.name}" (${permissionIds.length} activos).`

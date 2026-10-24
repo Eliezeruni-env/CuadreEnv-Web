@@ -13,19 +13,31 @@
 
 .supplier-modal-header {
   color: #fff;
-  background: linear-gradient(115deg, #252b43, #343b59);
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
   h5 {
-    color: inherit;
-    font-size: 1rem;
+    color: #fff;
+    font-size: 1.1rem;
+    letter-spacing: -0.2px;
   }
 
   small {
-    color: rgb(255 255 255 / 68%);
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.8rem;
   }
 
   .btn-close {
     filter: invert(1) grayscale(100%) brightness(200%);
+  }
+}
+
+.supplier-form-card {
+  transition: all 0.2s ease;
+  &:hover {
+    border-color: #cbd5e1 !important;
+    background-color: #fff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
 }
 

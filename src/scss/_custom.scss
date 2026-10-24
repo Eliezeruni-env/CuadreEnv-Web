@@ -15,3 +15,17 @@
 .select-week .calendar-row.current {
   cursor: pointer;
 }
+
+// Fractional spacing helpers matching half-step utilities (1.5, 2.5, 3.5)
+.gap-1\.5 { gap: 0.375rem !important; }
+.gap-2\.5 { gap: 0.625rem !important; }
+.gap-3\.5 { gap: 0.875rem !important; }
+.p-1\.5   { padding: 0.375rem !important; }
+.p-2\.5   { padding: 0.625rem !important; }
+.px-1\.5  { padding-left: 0.375rem !important; padding-right: 0.375rem !important; }
+.px-2\.5  { padding-left: 0.625rem !important; padding-right: 0.625rem !important; }
+.py-1\.5  { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+.ps-2\.5  { padding-left: 0.625rem !important; }
+.pe-2\.5  { padding-right: 0.625rem !important; }
+.pe-3\.5  { padding-right: 0.875rem !important; }
+

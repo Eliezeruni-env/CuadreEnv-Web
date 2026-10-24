@@ -1,16 +1,34 @@
-import { Routes } from '@angular/router';
-import { authGuard, adminGuard, moduleGuard, moduleChildAccessGuard } from './guards/auth.guard';
+import { inject } from '@angular/core';
+import { Router, Routes, CanActivateFn } from '@angular/router';
+import { authGuard, adminGuard, moduleGuard, moduleAccessGuard, moduleChildAccessGuard } from './guards/auth.guard';
+
+export const rootRedirectGuard: CanActivateFn = () => {
+  const router = inject(Router);
+  const isMobile =
+    typeof window !== 'undefined' &&
+    (window.innerWidth <= 768 ||
+      /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent.toLowerCase()) ||
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as any).standalone === true);
+
+  if (isMobile) {
+    router.navigate(['/mobile']);
+    return false;
+  }
+  router.navigate(['/dashboard']);
+  return false;
+};
 
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'dashboard',
-    pathMatch: 'full'
+    canActivate: [rootRedirectGuard],
+    pathMatch: 'full',
+    children: []
   },
   {
     path: 'mobile',
     loadComponent: () => import('../features/sales/components/mobile-pos/mobile-owner-pos.component').then((m) => m.MobileOwnerPosComponent),
-    canActivate: [authGuard, moduleGuard('mobile-pos')],
     data: { module: 'sales', title: 'CuadreEnv Mobile POS & Vista Ejecutiva' }
   },
   {
@@ -46,9 +64,8 @@ export const routes: Routes = [
       },
       {
         path: 'inventory',
-        loadComponent: () => import('../features/inventory/components/inventory/inventory.component').then((m) => m.InventoryComponent),
-        canActivate: [moduleGuard('inventory-stock')],
-        data: { module: 'inventory-stock', title: 'Inventory & Warehouses' }
+        redirectTo: 'inventory/stock',
+        pathMatch: 'full'
       },
       {
         path: 'inventory/warehouses',
@@ -125,7 +142,7 @@ export const routes: Routes = [
       {
         path: 'users',
         loadComponent: () => import('../features/users/components/users/users.component').then((m) => m.UsersComponent),
-        canActivate: [moduleGuard('users')],
+        canActivate: [moduleAccessGuard('users')],
         data: { module: 'users', title: 'Team Management' }
       },
       {
@@ -135,10 +152,38 @@ export const routes: Routes = [
         data: { module: 'sales', title: 'Sales Register' }
       },
       {
-        path: 'sales/quick',
+        path: 'sales/corporate',
+        loadComponent: () => import('../features/sales/components/corporate-sales/corporate-sales.component').then((m) => m.CorporateSalesComponent),
+        canActivate: [moduleGuard('sales.corporate')],
+        data: { module: 'sales.corporate', title: 'Ventas Corporativas B2B' }
+      },
+      {
+        path: 'sales/distribution',
+        loadComponent: () => import('../features/sales/components/distribution-routes/distribution-routes.component').then((m) => m.DistributionRoutesComponent),
+        canActivate: [moduleGuard('sales.distribution')],
+        data: { module: 'sales.distribution', title: 'Rutas de Distribución' }
+      },
+      {
+        path: 'products/detail-sales',
+        loadComponent: () => import('../features/products/components/products/products.component').then((m) => m.ProductsComponent),
+        canActivate: [moduleGuard('products.detail_sales')],
+        data: { module: 'products.detail_sales', title: 'Venta Fraccionada / Menudeo' }
+      },
+      {
+        path: 'pos',
         loadComponent: () => import('../features/sales/components/quick-sale-page/quick-sale-page.component').then((m) => m.QuickSalePageComponent),
         canActivate: [moduleGuard('sales')],
-        data: { module: 'sales', title: 'Venta Rápida POS' }
+        data: { module: 'sales', title: 'Punto de Venta (POS)' }
+      },
+      {
+        path: 'sales/pos',
+        redirectTo: 'pos',
+        pathMatch: 'full'
+      },
+      {
+        path: 'sales/quick',
+        redirectTo: 'pos',
+        pathMatch: 'full'
       },
       {
         path: 'sales/service',
@@ -154,6 +199,11 @@ export const routes: Routes = [
       },
       {
         path: 'sales/receivables',
+        redirectTo: 'receivables',
+        pathMatch: 'full'
+      },
+      {
+        path: 'payments/accounts-receivable',
         redirectTo: 'receivables',
         pathMatch: 'full'
       },
@@ -217,6 +267,11 @@ export const routes: Routes = [
         data: { module: 'cash-register', title: 'Cash Register Control' }
       },
       {
+        path: 'cash-register/sessions',
+        redirectTo: 'cash-register',
+        pathMatch: 'full'
+      },
+      {
         path: 'cash-register/fraud-guardian',
         loadComponent: () => import('../features/cash-register/components/loss-prevention/fraud-guardian-dashboard.component').then((m) => m.FraudGuardianDashboardComponent),
         canActivate: [moduleGuard('fraud-guardian')],
@@ -254,13 +309,13 @@ export const routes: Routes = [
       {
         path: 'profile',
         loadComponent: () => import('../features/users/components/user-profile/user-profile.component').then((m) => m.UserProfileComponent),
-        canActivate: [moduleGuard('profile')],
+        canActivate: [moduleAccessGuard('profile')],
         data: { module: 'profile', title: 'Mi Perfil' }
       },
       {
         path: 'admin/roles',
         loadComponent: () => import('../features/roles/components/roles-list/roles-list.component').then((m) => m.RolesListComponent),
-        canActivate: [adminGuard, moduleGuard('admin-roles')],
+        canActivate: [moduleAccessGuard('admin-roles')],
         data: { module: 'admin-roles', title: 'Gestión de Roles y Permisos' }
       },
       {
@@ -271,13 +326,13 @@ export const routes: Routes = [
       {
         path: 'admin/roles/matrix',
         loadComponent: () => import('../features/roles/components/permission-matrix/permission-matrix.component').then((m) => m.PermissionMatrixComponent),
-        canActivate: [adminGuard, moduleGuard('admin-roles-matrix')],
+        canActivate: [moduleAccessGuard('admin-roles-matrix')],
         data: { module: 'admin-roles-matrix', title: 'Matriz de Permisos' }
       },
       {
         path: 'admin/approvals',
         loadComponent: () => import('../features/approvals/components/approval-inbox/approval-inbox.component').then((m) => m.ApprovalInboxComponent),
-        canActivate: [moduleGuard('admin-approvals')],
+        canActivate: [moduleAccessGuard('admin-approvals')],
         data: { module: 'admin-approvals', title: 'Bandeja de Aprobaciones' }
       },
       {
@@ -288,7 +343,7 @@ export const routes: Routes = [
       {
         path: 'company/settings',
         loadComponent: () => import('../features/companies/components/company-settings/company-settings.component').then((m) => m.CompanySettingsComponent),
-        canActivate: [adminGuard, moduleGuard('company-settings')],
+        canActivate: [moduleAccessGuard('company-settings')],
         data: { module: 'company-settings', title: 'Configuración de Empresa' }
       },
       {
@@ -349,6 +404,20 @@ export const routes: Routes = [
     loadComponent: () => import('../features/pages/components/pages/register/register.component').then(m => m.RegisterComponent),
     data: {
       title: 'Register Page'
+    }
+  },
+  {
+    path: 'forgot-password',
+    loadComponent: () => import('../features/pages/components/pages/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent),
+    data: {
+      title: 'Recuperar Contraseña'
+    }
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () => import('../features/pages/components/pages/reset-password/reset-password.component').then(m => m.ResetPasswordComponent),
+    data: {
+      title: 'Restablecer Contraseña'
     }
   },
   { path: '**', redirectTo: 'dashboard' }

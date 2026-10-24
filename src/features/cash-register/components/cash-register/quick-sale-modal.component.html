@@ -5,11 +5,20 @@
       (click)="$event.stopPropagation()"
     >
       <!-- Modal Header -->
-      <div class="custom-modal-header d-flex justify-content-between align-items-center p-3 border-bottom bg-white">
+      <div class="custom-modal-header d-flex flex-wrap justify-content-between align-items-center p-3 border-bottom bg-white gap-2">
         <div>
           <h5 class="fw-bold mb-0 text-dark">Nueva venta rápida</h5>
           <span class="text-secondary small">Registra una venta y cobra al cliente al instante</span>
         </div>
+
+        <!-- Keyboard Shortcuts Hints Bar -->
+        <div class="d-none d-md-flex align-items-center gap-2">
+          <span class="badge bg-light text-secondary border px-2 py-1"><kbd class="bg-white text-dark border">F2</kbd> Buscar Producto</span>
+          <span class="badge bg-light text-secondary border px-2 py-1"><kbd class="bg-white text-dark border">F4</kbd> Cobrar</span>
+          <span class="badge bg-light text-secondary border px-2 py-1"><kbd class="bg-white text-dark border">F8</kbd> Cambiar Pago</span>
+          <span class="badge bg-light text-secondary border px-2 py-1"><kbd class="bg-white text-dark border">Esc</kbd> Salir</span>
+        </div>
+
         <button
           type="button"
           class="btn-close"
@@ -75,9 +84,23 @@
                     @for (item of cartItems(); track item.productId; let i = $index) {
                       <tr>
                         <td class="ps-3">
-                          <div class="fw-bold text-dark">{{ item.productName }}</div>
-                          <div class="text-secondary font-monospace" style="font-size: 0.75rem;">
-                            Código: {{ item.productCode }}
+                          <div class="d-flex align-items-center gap-1 flex-wrap">
+                            <span class="fw-bold text-dark">{{ item.productName }}</span>
+                            @if (item.saleMode && item.saleMode !== 'detail') {
+                              <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.68rem;">
+                                {{ item.modeLabel }}
+                              </span>
+                            }
+                          </div>
+                          <div class="d-flex align-items-center gap-2">
+                            <span class="text-secondary font-monospace" style="font-size: 0.75rem;">
+                              Código: {{ item.productCode }}
+                            </span>
+                            @if (item.deductionQuantity && item.deductionQuantity !== item.quantity) {
+                              <span class="text-primary-emphasis font-monospace fw-semibold" style="font-size: 0.70rem;">
+                                • Deduce: {{ item.deductionQuantity }} {{ item.unitSymbol }}
+                              </span>
+                            }
                           </div>
                         </td>
                         <td class="text-end font-monospace">
@@ -92,14 +115,15 @@
                             >
                               -
                             </button>
-                            <input
-                              type="number"
-                              min="1"
-                              class="form-control form-control-sm border-0 text-center bg-transparent font-monospace p-0 fw-bold"
-                              style="width: 36px;"
-                              [(ngModel)]="item.quantity"
-                              (input)="updateItemQuantity(i, item.quantity)"
-                            />
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-light border-0 text-center bg-transparent font-monospace p-0 fw-bold"
+                              style="width: 44px;"
+                              (click)="getProductById(item.productId) && openMeasurementModal(getProductById(item.productId)!, i)"
+                              title="Clic para cambiar cantidad o peso"
+                            >
+                              {{ item.quantity }}
+                            </button>
                             <button
                               type="button"
                               class="btn btn-sm btn-link text-secondary px-2 py-0"
@@ -291,26 +315,46 @@
                   <svg cIcon name="cilSearch" style="width: 14px; height: 14px;"></svg>
                 </span>
                 <input
+                  #productSearchInput
                   type="text"
                   class="form-control border-start-0 ps-0"
-                  placeholder="Buscar por nombre, código o barra..."
+                  placeholder="Buscar o escanear código (F2) [Enter para agregar]..."
                   [ngModel]="catalogSearchTerm()"
                   (ngModelChange)="catalogSearchTerm.set($event)"
+                  (keydown)="onSearchInputKeydown($event)"
                 />
               </div>
 
-              <!-- Category Pills -->
-              <div class="category-pills-container d-flex gap-1 mb-3 overflow-auto pb-1">
-                @for (cat of categories(); track cat.id ?? cat.label) {
-                  <button
-                    type="button"
-                    class="btn btn-sm category-chip text-nowrap"
-                    [class.active]="selectedCategory() === cat.id"
-                    (click)="setCategory(cat.id)"
+              <!-- Category Quick Selector and Pills -->
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="input-group input-group-sm flex-shrink-0" style="min-width: 170px; max-width: 220px;">
+                  <span class="input-group-text bg-white border-end-0 py-1 px-2 text-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+                  </span>
+                  <select
+                    class="form-select form-select-sm border-start-0 py-1 font-size-xs fw-semibold text-dark bg-white"
+                    [ngModel]="selectedCategory()"
+                    (ngModelChange)="setCategory($event)"
+                    aria-label="Filtrar por categoría"
                   >
-                    {{ cat.label }}
-                  </button>
-                }
+                    <option [ngValue]="null">📂 Todas las categorías</option>
+                    @for (cat of nonAllCategories(); track cat.id ?? cat.label) {
+                      <option [ngValue]="cat.id">📁 {{ cat.label }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="category-pills-container d-flex gap-1 overflow-auto flex-grow-1 pb-1">
+                  @for (cat of categories(); track cat.id ?? cat.label) {
+                    <button
+                      type="button"
+                      class="btn btn-sm category-chip text-nowrap"
+                      [class.active]="selectedCategory() === cat.id"
+                      (click)="setCategory(cat.id)"
+                    >
+                      {{ cat.label }}
+                    </button>
+                  }
+                </div>
               </div>
 
               <!-- Products List (Without Images, Structured List) -->
@@ -336,13 +380,22 @@
                           <div class="text-secondary small font-monospace" style="font-size: 0.72rem;">
                             Código: {{ p.barcode || p.reference || 'PROD-' + p.id }}
                           </div>
-                          <div class="mt-1">
+                          <div class="d-flex flex-wrap gap-1 mt-1">
+                            @if (p.id && packagingService.getPackaging(p.id)?.hasPackaging) {
+                              <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-size-xs">
+                                📦 {{ packagingService.getPackaging(p.id)?.packageUnitName || 'Empaque' }} ({{ packagingService.getPackaging(p.id)?.packageUnitsCount }} {{ getProductUnitSymbol(p) }})
+                              </span>
+                            } @else if (isProductMeasurable(p)) {
+                              <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle font-size-xs">
+                                ⚖️ Pesaje / {{ getProductUnitSymbol(p) }}
+                              </span>
+                            }
                             @if (p.productTypeId === 2 || p.invoiceWithoutStock) {
                               <span class="badge bg-info-subtle text-info border font-size-xs">Servicio</span>
                             } @else if (p.stock > 10) {
-                              <span class="badge bg-success-subtle text-success border font-size-xs">En stock: {{ p.stock }}</span>
+                              <span class="badge bg-success-subtle text-success border font-size-xs">En stock: {{ p.stock }} {{ getProductUnitSymbol(p) }}</span>
                             } @else if (p.stock > 0) {
-                              <span class="badge bg-warning-subtle text-warning-emphasis border font-size-xs">Bajo stock: {{ p.stock }}</span>
+                              <span class="badge bg-warning-subtle text-warning-emphasis border font-size-xs">Bajo stock: {{ p.stock }} {{ getProductUnitSymbol(p) }}</span>
                             } @else {
                               <span class="badge bg-danger-subtle text-danger border font-size-xs">Sin stock</span>
                             }
@@ -352,6 +405,7 @@
                         <div class="text-end">
                           <div class="fw-bold text-primary font-monospace mb-1">
                             RD$ {{ (p.cost || 100) | number:'1.2-2' }}
+                            <small class="text-secondary fw-normal font-size-xs">/ {{ getProductUnitSymbol(p) }}</small>
                           </div>
                           <button
                             type="button"
@@ -419,6 +473,160 @@
           } @else {
             Cobrar RD$ {{ total() | number:'1.2-2' }}
           }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MEASUREMENT / PACKAGING MODAL (PC QUICK SALE MODAL) -->
+@if (isMeasurementModalOpen() && selectedProductForMeasurement()) {
+  <div class="custom-modal-backdrop" style="z-index: 1060;" (click)="closeMeasurementModal()">
+    <div class="custom-modal-content" style="max-width: 520px; z-index: 1061;" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header bg-light border-bottom p-3 d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="fw-bold mb-0 text-dark">
+            {{ selectedProductForMeasurement()?.description }}
+          </h5>
+          <div class="small text-muted font-monospace">
+            Unidad Base: {{ getProductUnitSymbol(selectedProductForMeasurement()!) }} • En Stock: {{ selectedProductForMeasurement()?.stock || 0 }} {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="closeMeasurementModal()" aria-label="Close"></button>
+      </div>
+
+      <div class="custom-modal-body p-4">
+        <!-- Mode Switcher -->
+        <label class="form-label fw-bold small text-secondary text-uppercase mb-2">Modalidad de Venta</label>
+        <div class="btn-group w-100 mb-3 shadow-xs" role="group">
+          <!-- Modo 1: Al Detalle -->
+          <button
+            type="button"
+            class="btn py-2 text-start d-flex flex-column"
+            [ngClass]="measurementMode() === 'detail' ? 'btn-primary' : 'btn-outline-secondary'"
+            (click)="setMeasurementMode('detail')"
+          >
+            <span class="fw-bold">⚖️ Al Detalle</span>
+            <small style="font-size: 0.72rem;">Por {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</small>
+          </button>
+
+          <!-- Modo 2: Por Empaque / Saco (si aplica) -->
+          @if (activeProductPackaging()?.hasPackaging) {
+            <button
+              type="button"
+              class="btn py-2 text-start d-flex flex-column"
+              [ngClass]="measurementMode() === 'package' ? 'btn-primary' : 'btn-outline-secondary'"
+              (click)="setMeasurementMode('package')"
+            >
+              <span class="fw-bold">📦 {{ activeProductPackaging()?.packageUnitName || 'Empaque' }}</span>
+              <small style="font-size: 0.72rem;">{{ activeProductPackaging()?.packageUnitsCount }} {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</small>
+            </button>
+          }
+
+          <!-- Modo 3: Por Pieza Individual (si aplica) -->
+          @if (activeProductPackaging()?.hasIndividualUnit) {
+            <button
+              type="button"
+              class="btn py-2 text-start d-flex flex-column"
+              [ngClass]="measurementMode() === 'individual' ? 'btn-primary' : 'btn-outline-secondary'"
+              (click)="setMeasurementMode('individual')"
+            >
+              <span class="fw-bold">🧅 {{ activeProductPackaging()?.individualUnitName || 'Pieza' }}</span>
+              <small style="font-size: 0.72rem;">Aprox. {{ activeProductPackaging()?.individualUnitWeight }} {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</small>
+            </button>
+          }
+        </div>
+
+        <!-- Quantity input & Presets -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="form-label fw-bold text-dark mb-0">
+              Cantidad a Vender ({{ getEffectiveUnitLabel() }})
+            </label>
+            <span class="badge bg-light text-dark border font-monospace">
+              Precio: RD$ {{ getEffectiveUnitPrice() | number:'1.2-2' }}
+            </span>
+          </div>
+
+          <div class="input-group input-group-lg mb-2">
+            <input
+              type="number"
+              class="form-control fw-bold font-monospace text-center fs-3"
+              [step]="isProductMeasurable(selectedProductForMeasurement()!) && measurementMode() === 'detail' ? '0.01' : '1'"
+              min="0.01"
+              [ngModel]="measurementQuantity()"
+              (ngModelChange)="measurementQuantity.set($event)"
+              placeholder="1"
+              autofocus
+            />
+            <span class="input-group-text fw-semibold bg-light text-secondary">
+              {{ getEffectiveUnitLabel() }}
+            </span>
+          </div>
+
+          <!-- Quick Presets & Scale Reader -->
+          @if (measurementMode() === 'detail') {
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="small text-secondary fw-semibold">Pesaje rápido:</span>
+              <button
+                type="button"
+                class="btn btn-sm btn-success fw-bold d-inline-flex align-items-center gap-1 shadow-xs"
+                (click)="readWeightFromScale()"
+                [disabled]="isReadingScale()"
+                title="Capturar peso directamente de la balanza conectada por USB"
+              >
+                @if (isReadingScale()) {
+                  <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  Leyendo Balanza...
+                } @else {
+                  ⚖️ Leer Balanza (USB)
+                }
+              </button>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mb-2">
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setPresetQuantity(0.5)">½ {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setPresetQuantity(1)">1 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setPresetQuantity(2)">2 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setPresetQuantity(5)">5 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setPresetQuantity(10)">10 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+            </div>
+          } @else {
+            <div class="d-flex flex-wrap gap-2 mb-2">
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setPresetQuantity(1)">1 unid.</button>
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setPresetQuantity(2)">2 unid.</button>
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setPresetQuantity(3)">3 unid.</button>
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setPresetQuantity(5)">5 unid.</button>
+            </div>
+          }
+        </div>
+
+        <!-- Live Calculation Box -->
+        <div class="card bg-light border rounded-3 p-3 mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="text-secondary small">Total a cobrar:</span>
+            <span class="fw-bold font-monospace fs-5 text-success">
+              RD$ {{ (measurementQuantity() * getEffectiveUnitPrice()) | number:'1.2-2' }}
+            </span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center text-muted font-size-xs border-top pt-1 mt-1">
+            <span>Deducción real de almacén:</span>
+            <span class="font-monospace fw-semibold text-dark">
+              {{ getInventoryDeduction() }} {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="custom-modal-footer bg-light border-top p-3 d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary px-3" (click)="closeMeasurementModal()">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary px-4 fw-bold shadow-xs"
+          (click)="confirmMeasurementModal()"
+        >
+          ✓ Agregar a la Venta
         </button>
       </div>
     </div>

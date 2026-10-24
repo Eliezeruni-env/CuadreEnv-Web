@@ -15,7 +15,7 @@ import { CashRegisterService } from '../../../cash-register/services/cash-regist
 import { ApprovalService } from '../../../approvals/services/approval.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { PhoneMaskDirective, CedulaMaskDirective } from '../../../../app/shared/directives';
-import type { UserDto } from '../../../cuadreEnv/types/api';
+import type { UserDto, CompanyBankAccountDto } from '../../../cuadreEnv/types/api';
 
 @Component({
   selector: 'app-user-profile',
@@ -40,6 +40,20 @@ export class UserProfileComponent implements OnInit {
   readonly isLoading = signal<boolean>(true);
   readonly isSaving = signal<boolean>(false);
   readonly isEditing = signal<boolean>(false);
+
+  // Company Bank Accounts Management
+  readonly bankAccounts = signal<CompanyBankAccountDto[]>([]);
+  readonly isAddBankModalOpen = signal<boolean>(false);
+  readonly isSavingBank = signal<boolean>(false);
+
+  bankForm: FormGroup = this.fb.group({
+    bankName: ['', [Validators.required, Validators.minLength(2)]],
+    accountNumber: ['', [Validators.required, Validators.minLength(4)]],
+    accountType: ['Corriente', [Validators.required]],
+    accountHolder: [''],
+    rncOrCedula: [''],
+    isDefault: [false],
+  });
 
   // Logout & Pending state
   isLogoutModalVisible = signal<boolean>(false);
@@ -132,6 +146,7 @@ export class UserProfileComponent implements OnInit {
 
   ngOnInit(): void {
     void this.loadProfileData();
+    this.loadBankAccounts();
   }
 
   async loadProfileData(): Promise<void> {
@@ -277,5 +292,106 @@ export class UserProfileComponent implements OnInit {
 
   goToApprovals(): void {
     this.router.navigate(['/admin/approvals']);
+  }
+
+  // =========================================================================
+  // Company Bank Accounts Management
+  // =========================================================================
+  loadBankAccounts(): void {
+    const list = this.companyService.getBankAccounts();
+    this.bankAccounts.set(list);
+  }
+
+  openAddBankModal(): void {
+    const s = this.companyService.currentSettings();
+    this.bankForm.reset({
+      bankName: '',
+      accountNumber: '',
+      accountType: 'Corriente',
+      accountHolder: s.commercialName || s.companyName || (this.userProfile() ? `${this.userProfile()?.firstName} ${this.userProfile()?.lastName}` : ''),
+      rncOrCedula: s.rnc || '',
+      isDefault: this.bankAccounts().length === 0,
+    });
+    this.isAddBankModalOpen.set(true);
+  }
+
+  closeAddBankModal(): void {
+    this.isAddBankModalOpen.set(false);
+  }
+
+  selectBankSuggestion(name: string): void {
+    this.bankForm.patchValue({ bankName: name });
+  }
+
+  async saveBankAccount(): Promise<void> {
+    if (this.bankForm.invalid) {
+      this.bankForm.markAllAsTouched();
+      return;
+    }
+
+    this.isSavingBank.set(true);
+    try {
+      const val = this.bankForm.value;
+      const isFirst = this.bankAccounts().length === 0;
+      const isDef = Boolean(val.isDefault) || isFirst;
+
+      const newAcc: CompanyBankAccountDto = {
+        id: `BANK_${Date.now()}`,
+        bankName: (val.bankName || '').trim(),
+        accountNumber: (val.accountNumber || '').trim(),
+        accountType: val.accountType || 'Corriente',
+        holderName: (val.accountHolder || '').trim(),
+        holderRnc: (val.rncOrCedula || '').trim(),
+        currency: 'DOP',
+        isDefault: isDef,
+      };
+
+      let updated = [...this.bankAccounts()];
+      if (isDef) {
+        updated = updated.map((a) => ({ ...a, isDefault: false }));
+      }
+      updated.push(newAcc);
+
+      await this.companyService.saveBankAccounts(updated);
+      this.bankAccounts.set(updated);
+      this.notificationService.success(`Cuenta de ${newAcc.bankName} agregada correctamente.`);
+      this.closeAddBankModal();
+    } catch (err: any) {
+      this.notificationService.error(err?.message || 'Error al guardar la cuenta bancaria.');
+    } finally {
+      this.isSavingBank.set(false);
+    }
+  }
+
+  async deleteBankAccount(id: string): Promise<void> {
+    const target = this.bankAccounts().find((a) => a.id === id);
+    const confirmed = confirm(`¿Estás seguro de eliminar la cuenta de ${target?.bankName || 'banco'} (${target?.accountNumber})?`);
+    if (!confirmed) return;
+
+    try {
+      const filtered = this.bankAccounts().filter((a) => a.id !== id);
+      if (filtered.length > 0 && !filtered.some((a) => a.isDefault)) {
+        filtered[0].isDefault = true;
+      }
+      await this.companyService.saveBankAccounts(filtered);
+      this.bankAccounts.set(filtered);
+      this.notificationService.success('Cuenta bancaria eliminada con éxito.');
+    } catch (err: any) {
+      this.notificationService.error(err?.message || 'Error al eliminar la cuenta bancaria.');
+    }
+  }
+
+  async setDefaultBankAccount(id: string): Promise<void> {
+    try {
+      const updated = this.bankAccounts().map((a) => ({
+        ...a,
+        isDefault: a.id === id,
+      }));
+      await this.companyService.saveBankAccounts(updated);
+      this.bankAccounts.set(updated);
+      this.notificationService.success('Cuenta marcada como predeterminada.');
+    } catch (err: any) {
+      this.notificationService.error(err?.message || 'Error al actualizar cuenta predeterminada.');
+    }
   }
 }

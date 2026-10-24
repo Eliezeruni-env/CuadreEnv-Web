@@ -25,6 +25,7 @@ import { navItems as staticNavItems, ModuleNavItem } from './_nav';
 import { NotificationService } from '../../features/cuadreEnv/services/notification.service';
 import { TranslationService } from '../../features/cuadreEnv/services/translation.service';
 import { ConfirmDialogComponent } from '../../features/cuadreEnv/components/confirm-dialog/confirm-dialog.component';
+import { PwaControlBarComponent } from '../../features/cuadreEnv/components/pwa-control-bar/pwa-control-bar.component';
 
 import { AuthService } from '../../features/cuadreEnv/services/auth.service';
 import { PermissionService } from '../../features/roles/services/permission.service';
@@ -57,6 +58,7 @@ import { ModuleAccessService } from '../../features/cuadreEnv/services/module-ac
     ToastHeaderComponent,
     ToastBodyComponent,
     ConfirmDialogComponent,
+    PwaControlBarComponent,
   ],
 })
 export class DefaultLayoutComponent {
@@ -66,23 +68,59 @@ export class DefaultLayoutComponent {
   private readonly permissionService = inject(PermissionService);
   public readonly moduleAccess = inject(ModuleAccessService);
 
+  private cachedNavItems: ModuleNavItem[] = [];
+  private cachedKey = '';
+
   public readonly navItems = computed(() => {
+    const currentLang = this.translationService.language();
+    const modules = (this.moduleAccess.allowedModulesSignal() || []).join(',');
+    const role = (this.authService.currentRole() || this.moduleAccess.userRoleSignal() || '').toLowerCase();
+    const cacheKey = `${currentLang}_${modules}_${role}`;
+
+    if (this.cachedKey === cacheKey && this.cachedNavItems.length > 0) {
+      return this.cachedNavItems;
+    }
+
     const translated = this.translationService.getTranslatedNavItems(staticNavItems) as ModuleNavItem[];
     
-    // Filtrar usando moduleAccess.hasModule(item.moduleCode)
-    const visible = translated.filter(item => {
-      if (item.title) return true;
+    // Filtrar recursivamente usando moduleAccess.hasModule(item.moduleCode)
+    const filterItem = (item: ModuleNavItem): ModuleNavItem | null => {
+      if (item.title) return item;
+
+      if (item.children && item.children.length > 0) {
+        const filteredChildren = (item.children as ModuleNavItem[])
+          .map(child => filterItem(child))
+          .filter((child): child is ModuleNavItem => child !== null);
+
+        if (filteredChildren.length === 0) {
+          return null;
+        }
+
+        return {
+          ...item,
+          children: filteredChildren
+        };
+      }
+
       const moduleCode = item.moduleCode || '';
-      return this.moduleAccess.hasModule(moduleCode);
-    });
+      return this.moduleAccess.hasModule(moduleCode) ? item : null;
+    };
+
+    const visible = translated
+      .map(item => filterItem(item))
+      .filter((item): item is ModuleNavItem => item !== null);
 
     // Limpiar títulos de sección que hayan quedado sin sub-ítems
-    return visible.filter((item, index, array) => {
+    const finalItems = visible.filter((item, index, array) => {
       if (!item.title) return true;
       const rest = array.slice(index + 1);
       const nextTitleIndex = rest.findIndex(r => r.title);
       const sectionChildren = nextTitleIndex === -1 ? rest : rest.slice(0, nextTitleIndex);
       return sectionChildren.length > 0;
     });
+
+    this.cachedKey = cacheKey;
+    this.cachedNavItems = finalItems;
+    return finalItems;
   });
 }

@@ -1,0 +1,342 @@
+<div class="corporate-sales-container">
+  <!-- Top Header Toolbar -->
+  <header class="corp-header-card">
+    <div class="header-left">
+      <div class="icon-badge-corp">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+      </div>
+      <div>
+        <h1 class="corp-title">Ventas Corporativas & B2B</h1>
+        <p class="corp-subtitle">Gestión de cuentas empresariales, líneas de crédito comercial y facturación con comprobante fiscal (NCF B01)</p>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-1.5" (click)="syncWithSystemCustomers()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Sincronizar
+      </button>
+      <button type="button" class="btn btn-primary fw-semibold d-flex align-items-center gap-1.5 shadow-sm" (click)="openNewClientModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Nuevo Cliente Corporativo
+      </button>
+    </div>
+  </header>
+
+  <!-- KPI Metrics Row -->
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="corp-kpi-card border-credit">
+        <div class="kpi-label">Línea de Crédito Otorgada</div>
+        <div class="kpi-value">RD$ {{ totalCreditAssigned() | number:'1.2-2' }}</div>
+        <div class="kpi-caption">Cupo comercial total aprobado para empresas</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="corp-kpi-card border-balance">
+        <div class="kpi-label">Saldo Pendiente de Cobro</div>
+        <div class="kpi-value text-danger">RD$ {{ totalReceivableBalance() | number:'1.2-2' }}</div>
+        <div class="kpi-caption">Cuentas por cobrar comerciales activas</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="corp-kpi-card border-clients">
+        <div class="kpi-label">Empresas en Cartera</div>
+        <div class="kpi-value text-primary">{{ corporateClients().length }} <span class="fs-6 fw-normal text-muted">empresas</span></div>
+        <div class="kpi-caption">Convenios de crédito comercial activos</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters & Search Toolbar -->
+  <div class="corp-card p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <div class="input-group input-group-sm" style="width: 320px;">
+        <span class="input-group-text bg-light border-end-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </span>
+        <input
+          type="text"
+          class="form-control form-control-sm border-start-0"
+          placeholder="Buscar por Empresa, RNC o Contacto..."
+          [ngModel]="searchTerm()"
+          (ngModelChange)="searchTerm.set($event)"
+        />
+      </div>
+
+      <div class="btn-group btn-group-sm">
+        <button type="button" class="btn btn-outline-secondary" [class.active]="selectedFilter() === 'TODOS'" (click)="selectedFilter.set('TODOS')">Todos</button>
+        <button type="button" class="btn btn-outline-secondary" [class.active]="selectedFilter() === 'CON_SALDO'" (click)="selectedFilter.set('CON_SALDO')">Con Saldo</button>
+        <button type="button" class="btn btn-outline-secondary" [class.active]="selectedFilter() === 'AL_DIA'" (click)="selectedFilter.set('AL_DIA')">Al Día</button>
+      </div>
+    </div>
+
+    <span class="badge bg-light text-secondary border font-monospace">
+      {{ filteredClients().length }} empresas filtradas
+    </span>
+  </div>
+
+  <!-- Corporate Clients Table -->
+  <div class="corp-card p-0 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Empresa / Razón Social</th>
+            <th>RNC</th>
+            <th>Contacto Principal</th>
+            <th>Término Crédito</th>
+            <th class="text-end">Límite Crédito</th>
+            <th class="text-end">Saldo Pendiente</th>
+            <th class="text-end">Crédito Disponible</th>
+            <th class="text-center">Estado</th>
+            <th class="text-center pe-4" style="width: 170px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of filteredClients(); track c.id) {
+            <tr>
+              <td class="ps-4">
+                <div class="fw-bold text-dark">{{ c.companyName }}</div>
+                <div class="small text-muted">{{ c.email }} · Tel: {{ c.phone }}</div>
+              </td>
+              <td class="font-monospace fw-semibold text-secondary">{{ c.rnc }}</td>
+              <td>{{ c.contactPerson }}</td>
+              <td>
+                <span class="badge bg-secondary-subtle text-secondary font-monospace">{{ c.creditDays }} Días</span>
+              </td>
+              <td class="text-end font-monospace fw-semibold">RD$ {{ c.creditLimit | number:'1.2-2' }}</td>
+              <td class="text-end font-monospace fw-bold" [class.text-danger]="c.currentBalance > 0" [class.text-muted]="c.currentBalance === 0">
+                RD$ {{ c.currentBalance | number:'1.2-2' }}
+              </td>
+              <td class="text-end font-monospace fw-bold text-success">
+                RD$ {{ c.availableCredit | number:'1.2-2' }}
+              </td>
+              <td class="text-center">
+                <span class="badge" [class.bg-success-subtle]="c.status === 'Activo'" [class.text-success]="c.status === 'Activo'" [class.bg-danger-subtle]="c.status !== 'Activo'" [class.text-danger]="c.status !== 'Activo'">
+                  {{ c.status }}
+                </span>
+              </td>
+              <td class="text-center pe-4">
+                <div class="d-flex justify-content-center gap-1.5">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-primary fw-semibold d-inline-flex align-items-center gap-1"
+                    (click)="openSaleModal(c)"
+                    [disabled]="c.availableCredit <= 0"
+                    title="Emitir nueva orden o factura B2B a crédito"
+                  >
+                    <span>+ Orden B2B</span>
+                  </button>
+                  <a [routerLink]="['/receivables']" class="btn btn-sm btn-outline-secondary" title="Ver estado de cuenta de cobros">
+                    📄
+                  </a>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="9" class="text-center py-5 text-muted">
+                No se encontraron clientes corporativos con ese criterio.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: REGISTRAR CLIENTE CORPORATIVO -->
+@if (isClientModalOpen()) {
+  <div class="custom-modal-backdrop" (click)="isClientModalOpen.set(false)">
+    <div class="custom-modal-content" style="max-width: 620px;" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header p-3 bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">🏢 Registrar Empresa / Cliente Corporativo</h5>
+        <button type="button" class="btn-close btn-close-white" (click)="isClientModalOpen.set(false)"></button>
+      </div>
+      <div class="custom-modal-body p-4">
+        <form [formGroup]="clientForm" (ngSubmit)="saveCorporateClient()">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label small fw-semibold">Razón Social / Nombre Legal *</label>
+              <input type="text" class="form-control" formControlName="companyName" placeholder="Ej. Distribuidora del Caribe SAS" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">RNC *</label>
+              <input type="text" class="form-control font-monospace" formControlName="rnc" placeholder="131-00000-0" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Contacto Comercial / Representante *</label>
+              <input type="text" class="form-control" formControlName="contactPerson" placeholder="Ej. Lic. Pedro Santana" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Teléfono Comercial *</label>
+              <input type="text" class="form-control" formControlName="phone" placeholder="809-555-0000" />
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Correo Electrónico de Facturación *</label>
+              <input type="email" class="form-control" formControlName="email" placeholder="facturas@empresa.com" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Límite de Crédito Aprobado (RD$) *</label>
+              <input type="number" class="form-control font-monospace" formControlName="creditLimit" step="5000" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Plazo de Pago (Días) *</label>
+              <select class="form-select font-monospace" formControlName="creditDays">
+                <option [ngValue]="15">15 Días (Quincenal)</option>
+                <option [ngValue]="30">30 Días (Mensual)</option>
+                <option [ngValue]="45">45 Días</option>
+                <option [ngValue]="60">60 Días</option>
+              </select>
+            </div>
+          </div>
+          <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+            <button type="button" class="btn btn-light border" (click)="isClientModalOpen.set(false)">Cancelar</button>
+            <button type="submit" class="btn btn-primary fw-semibold px-4">Guardar Empresa</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL: NUEVA ORDEN CORPORATIVA B2B -->
+@if (isSaleModalOpen() && selectedClientForSale(); as client) {
+  <div class="custom-modal-backdrop" (click)="isSaleModalOpen.set(false)">
+    <div class="custom-modal-content" style="max-width: 780px;" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header p-3 bg-primary text-white d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-0 fw-bold">📦 Emitir Orden Comercial B2B</h5>
+          <small class="opacity-75">Cliente: {{ client.companyName }} (RNC: {{ client.rnc }})</small>
+        </div>
+        <button type="button" class="btn-close btn-close-white" (click)="isSaleModalOpen.set(false)"></button>
+      </div>
+
+      <div class="custom-modal-body p-4">
+        <!-- Banner de Crédito Disponible -->
+        <div class="p-3 mb-3 rounded-3 bg-light border d-flex justify-content-between align-items-center">
+          <div>
+            <span class="small text-muted d-block">Crédito Comercial Disponible:</span>
+            <strong class="fs-5 text-success font-monospace">RD$ {{ client.availableCredit | number:'1.2-2' }}</strong>
+          </div>
+          <div class="text-end">
+            <span class="badge bg-secondary font-monospace">{{ client.creditDays }} Días de Crédito</span>
+            <div class="small text-muted mt-1">Límite Total: RD$ {{ client.creditLimit | number:'1.2-2' }}</div>
+          </div>
+        </div>
+
+        <!-- Selector de Productos -->
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Agregar Artículo al Pedido:</label>
+          <select class="form-select" (change)="addOrderItem(+$any($event.target).value); $any($event.target).value=''">
+            <option value="" disabled selected>-- Selecciona un producto para agregar --</option>
+            @for (p of products(); track p.id) {
+              <option [value]="p.id">{{ p.description }} · Ref: {{ p.barcode || ('PROD-' + p.id) }} (Precio: RD$ {{ (p.cost ? p.cost * 1.35 : 100) | number:'1.2-2' }})</option>
+            }
+          </select>
+        </div>
+
+        <!-- Tabla de Artículos -->
+        <div class="table-responsive border rounded-3 mb-3">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Artículo</th>
+                <th style="width: 140px;" class="text-center">Cantidad</th>
+                <th class="text-end" style="width: 130px;">Precio Unit.</th>
+                <th class="text-end pe-3" style="width: 130px;">Subtotal</th>
+                <th style="width: 40px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (it of orderItems(); track it.productId; let idx = $index) {
+                <tr>
+                  <td class="ps-3 fw-semibold">{{ it.productName }}</td>
+                  <td class="text-center">
+                    <div class="btn-group btn-group-sm">
+                      <button type="button" class="btn btn-outline-secondary" (click)="updateItemQty(idx, -1)">−</button>
+                      <span class="btn btn-light px-3 fw-bold">{{ it.quantity }}</span>
+                      <button type="button" class="btn btn-outline-secondary" (click)="updateItemQty(idx, 1)">+</button>
+                    </div>
+                  </td>
+                  <td class="text-end font-monospace">RD$ {{ it.unitPrice | number:'1.2-2' }}</td>
+                  <td class="text-end pe-3 font-monospace fw-bold">RD$ {{ it.total | number:'1.2-2' }}</td>
+                  <td>
+                    <button type="button" class="btn btn-sm btn-link text-danger p-0" (click)="removeOrderItem(idx)">✕</button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="text-center py-4 text-muted small">
+                    Selecciona productos en el desplegable superior para armar la orden.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Notas y Tipo NCF -->
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Tipo de Comprobante Fiscal:</label>
+            <select class="form-select form-select-sm" [ngModel]="orderNcfType()" (ngModelChange)="orderNcfType.set($event)">
+              <option value="B01">B01 - Factura de Crédito Fiscal (Válida para DGII / ITBIS)</option>
+              <option value="B02">B02 - Factura de Consumo Final</option>
+              <option value="B14">B14 - Régimen Especial de Tributación</option>
+              <option value="B15">B15 - Comprobante Gubernamental</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Orden de Compra / Referencia Cliente:</label>
+            <input type="text" class="form-control form-control-sm" placeholder="Ej. OC-CLIENTE-2026-99" [ngModel]="orderNotes()" (ngModelChange)="orderNotes.set($event)" />
+          </div>
+        </div>
+
+        <!-- Totales de la Orden -->
+        <div class="p-3 rounded-3 bg-light border">
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>Subtotal:</span>
+            <span class="font-monospace">RD$ {{ getOrderSubtotal() | number:'1.2-2' }}</span>
+          </div>
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>ITBIS (18%):</span>
+            <span class="font-monospace">RD$ {{ getOrderItbis() | number:'1.2-2' }}</span>
+          </div>
+          <div class="d-flex justify-content-between fw-bold fs-5 text-dark border-top pt-2">
+            <span>Total Facturado a Crédito:</span>
+            <span class="font-monospace text-primary">RD$ {{ getOrderTotal() | number:'1.2-2' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="custom-modal-footer p-3 bg-light d-flex justify-content-between align-items-center">
+        <button type="button" class="btn btn-outline-secondary" (click)="isSaleModalOpen.set(false)">Cancelar</button>
+        <button
+          type="button"
+          class="btn btn-primary fw-bold px-4"
+          [disabled]="orderItems().length === 0 || getOrderTotal() > client.availableCredit"
+          (click)="processCorporateSale()"
+        >
+          Aprobar & Facturar Orden
+        </button>
+      </div>
+    </div>
+  </div>
+}

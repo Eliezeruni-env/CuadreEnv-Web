@@ -1,0 +1,73 @@
+@if (isOpen()) {
+  <div class="cmd-backdrop" (click)="close()">
+    <div class="cmd-modal" (click)="$event.stopPropagation()">
+      <!-- Search Input Header -->
+      <div class="cmd-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cmd-search-icon">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          #searchInput
+          type="text"
+          class="cmd-input"
+          placeholder="Escribe un comando o busca un módulo... (ej. venta, caja, stock, clientes)"
+          [ngModel]="query()"
+          (ngModelChange)="onQueryChange($event)"
+        />
+        <button type="button" class="cmd-close-btn" (click)="close()" title="Cerrar (Esc)">
+          <kbd>Esc</kbd>
+        </button>
+      </div>
+
+      <!-- Command List Body -->
+      <div class="cmd-body">
+        @if (filteredCommands().length === 0) {
+          <div class="cmd-empty">
+            <div class="cmd-empty-icon">🔍</div>
+            <div class="fw-semibold text-dark">No se encontraron resultados</div>
+            <div class="text-secondary small mt-1">Prueba buscando con otra palabra o revisa tus permisos de acceso.</div>
+          </div>
+        } @else {
+          <div class="cmd-list">
+            @for (cmd of filteredCommands(); track cmd.id; let idx = $index) {
+              <div
+                class="cmd-item"
+                [class.active]="idx === selectedIndex()"
+                (mouseenter)="selectedIndex.set(idx)"
+                (click)="executeCommand(cmd)"
+              >
+                <div class="cmd-item-left">
+                  <span class="cmd-item-emoji">{{ cmd.icon }}</span>
+                  <div class="cmd-item-texts">
+                    <div class="cmd-item-title">{{ cmd.title }}</div>
+                    <div class="cmd-item-category">{{ cmd.category }}</div>
+                  </div>
+                </div>
+
+                <div class="cmd-item-right">
+                  @if (cmd.badge) {
+                    <span class="cmd-badge">{{ cmd.badge }}</span>
+                  }
+                  <span class="cmd-enter-hint">↵ Abrir</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Footer Help Hints -->
+      <div class="cmd-footer">
+        <div class="d-flex align-items-center gap-3">
+          <span class="cmd-hint-item"><kbd>↑</kbd> <kbd>↓</kbd> Navegar</span>
+          <span class="cmd-hint-item"><kbd>↵</kbd> Seleccionar</span>
+          <span class="cmd-hint-item"><kbd>Esc</kbd> Cerrar</span>
+        </div>
+        <div class="text-secondary small font-monospace" style="font-size: 0.7rem;">
+          CuadreEnv Quick Command
+        </div>
+      </div>
+    </div>
+  </div>
+}

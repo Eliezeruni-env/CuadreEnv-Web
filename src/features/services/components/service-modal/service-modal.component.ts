@@ -122,12 +122,17 @@ export class ServiceModalComponent implements OnInit {
 
     this.isLoading.set(true);
     try {
+      const selectedCatId = val.categoryId ? Number(val.categoryId) : undefined;
+      const selectedCat = selectedCatId ? this.categories().find((c: any) => c.id === selectedCatId) : null;
+      const categoryName = selectedCat ? (selectedCat.description || selectedCat.name || selectedCat.Description || selectedCat.Name) : undefined;
+
       if (this.isEditMode && this.selectedServiceId) {
         const updated = await this.serviceService.updateService(this.selectedServiceId, {
           code: codeStr,
           name: val.name.trim(),
           description: val.description ? val.description.trim() : undefined,
-          categoryId: val.categoryId ? Number(val.categoryId) : undefined,
+          categoryId: selectedCatId,
+          categoryName,
           price: Number(val.price),
           cost: Number(val.cost || 0),
           estimatedDuration: val.estimatedDuration,
@@ -141,7 +146,8 @@ export class ServiceModalComponent implements OnInit {
           code: codeStr,
           name: val.name.trim(),
           description: val.description ? val.description.trim() : undefined,
-          categoryId: val.categoryId ? Number(val.categoryId) : undefined,
+          categoryId: selectedCatId,
+          categoryName,
           price: Number(val.price),
           cost: Number(val.cost || 0),
           estimatedDuration: val.estimatedDuration,

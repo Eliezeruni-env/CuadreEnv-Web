@@ -45,8 +45,8 @@ export class PurchaseService {
           prefix: 'OC',
           supplierId: purchase.supplierId || 1,
           supplierName: (purchase as any).supplierName || (purchase.supplierId ? `Proveedor #${purchase.supplierId}` : 'Proveedor General'),
-          warehouseId: 1,
-          warehouseName: 'Almacén Principal Central',
+          warehouseId: (purchase as any).warehouseId || null,
+          warehouseName: (purchase as any).warehouseName || '',
           orderDate: purchase.creationDate || new Date().toISOString(),
           expectedDeliveryDate: new Date(Date.now() + 86400000 * 3).toISOString(),
           statusId: 1, // Pendiente de Recepción

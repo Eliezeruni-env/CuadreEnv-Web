@@ -7,7 +7,7 @@ import { NcfSequenceService, NcfSequenceRange } from '../../services/ncf-sequenc
   standalone: true,
   imports: [CommonModule],
   template: `
-    @if (ncfService.criticalAlerts().length > 0) {
+    @if (isDgiiActive && ncfService.criticalAlerts().length > 0) {
       <div class="ncf-alerts-container mb-3">
         @for (alert of ncfService.criticalAlerts(); track alert.id) {
           <div
@@ -61,5 +61,6 @@ import { NcfSequenceService, NcfSequenceRange } from '../../services/ncf-sequenc
   `],
 })
 export class NcfAlertBannerComponent {
+  readonly isDgiiActive = false;
   readonly ncfService = inject(NcfSequenceService);
 }

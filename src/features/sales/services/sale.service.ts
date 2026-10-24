@@ -60,6 +60,23 @@ export class SaleService {
       const localList = this.getLocalSales();
       if (localList.length > 0) {
         const merged = [...apiSales];
+        for (const s of merged) {
+          const locMatch = localList.find((l) => l.id === s.id);
+          if (locMatch) {
+            if (!s.originChannel && locMatch.originChannel) {
+              s.originChannel = locMatch.originChannel;
+            }
+            if (!s.notes && locMatch.notes) {
+              s.notes = locMatch.notes;
+            }
+            if (!s.invoiceNumber && locMatch.invoiceNumber) {
+              s.invoiceNumber = locMatch.invoiceNumber;
+            }
+            if ((!s.details || s.details.length === 0) && locMatch.details && locMatch.details.length > 0) {
+              s.details = locMatch.details;
+            }
+          }
+        }
         for (const loc of localList) {
           if (!merged.some((m) => m.id === loc.id)) {
             merged.unshift(loc);
@@ -75,6 +92,23 @@ export class SaleService {
           const apiSales2 = extractArray<SaleResponseDto>(res2);
           const localList = this.getLocalSales();
           const merged2 = [...(apiSales2 || [])];
+          for (const s of merged2) {
+            const locMatch = localList.find((l) => l.id === s.id);
+            if (locMatch) {
+              if (!s.originChannel && locMatch.originChannel) {
+                s.originChannel = locMatch.originChannel;
+              }
+              if (!s.notes && locMatch.notes) {
+                s.notes = locMatch.notes;
+              }
+              if (!s.invoiceNumber && locMatch.invoiceNumber) {
+                s.invoiceNumber = locMatch.invoiceNumber;
+              }
+              if ((!s.details || s.details.length === 0) && locMatch.details && locMatch.details.length > 0) {
+                s.details = locMatch.details;
+              }
+            }
+          }
           for (const loc of localList) {
             if (!merged2.some((m) => m.id === loc.id)) {
               merged2.unshift(loc);
@@ -96,12 +130,30 @@ export class SaleService {
   async getSale(id: number): Promise<ApiResponse<SaleResponseDto>> {
     try {
       const res = await this.api.get<any, any>(`/Sale/${id}`);
-      return { success: true, data: (res?.data ?? res?.Data ?? res) as SaleResponseDto };
+      const sale = (res?.data ?? res?.Data ?? res) as SaleResponseDto;
+      if (sale && (!sale.details || sale.details.length === 0)) {
+        const localMatch = this.getLocalSales().find((s) => s.id === id);
+        if (localMatch?.details && localMatch.details.length > 0) {
+          sale.details = localMatch.details;
+        }
+      }
+      return { success: true, data: sale };
     } catch {
       try {
         const res2 = await this.api.get<any, any>(`/sales/${id}`);
-        return { success: true, data: (res2?.data ?? res2?.Data ?? res2) as SaleResponseDto };
+        const sale2 = (res2?.data ?? res2?.Data ?? res2) as SaleResponseDto;
+        if (sale2 && (!sale2.details || sale2.details.length === 0)) {
+          const localMatch = this.getLocalSales().find((s) => s.id === id);
+          if (localMatch?.details && localMatch.details.length > 0) {
+            sale2.details = localMatch.details;
+          }
+        }
+        return { success: true, data: sale2 };
       } catch {
+        const localMatch = this.getLocalSales().find((s) => s.id === id);
+        if (localMatch) {
+          return { success: true, data: localMatch };
+        }
         return { success: false, message: 'Venta no encontrada en el servidor.' };
       }
     }
@@ -111,9 +163,13 @@ export class SaleService {
     sale: SaleRequestDto,
   ): Promise<ApiResponse<SaleResponseDto>> {
     const idempotencyKey =
-      typeof crypto !== 'undefined' && crypto.randomUUID
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? crypto.randomUUID()
-        : `sale-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            const v = c === 'x' ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+          });
 
     let createdSale: SaleResponseDto | null = null;
 
@@ -149,6 +205,27 @@ export class SaleService {
 
     if (!createdSale) {
       throw new Error('No se pudo registrar la venta en el servidor.');
+    }
+
+    if (!createdSale.originChannel && (sale as any).originChannel) {
+      createdSale.originChannel = (sale as any).originChannel;
+    }
+    if (!createdSale.notes && (sale as any).notes) {
+      createdSale.notes = (sale as any).notes;
+    }
+    if (!createdSale.invoiceNumber && (sale as any).invoiceNumber) {
+      createdSale.invoiceNumber = (sale as any).invoiceNumber;
+    }
+    if ((!createdSale.details || createdSale.details.length === 0) && sale.details && sale.details.length > 0) {
+      createdSale.details = sale.details.map((d: any) => ({
+        productId: d.productId,
+        quantity: d.quantity,
+        unitPrice: d.unitPrice,
+        productName: d.productName,
+        productCode: d.productCode,
+        isService: d.isService,
+        total: (d.quantity || 1) * (d.unitPrice || 0),
+      }));
     }
 
     this.saveLocalSale(createdSale);
@@ -189,6 +266,17 @@ export class SaleService {
 
   async cancelSale(saleId: number, reason: string): Promise<void> {
     await this.api.post<any, any>(`/Sale/${saleId}/cancel`, { reason });
+    try {
+      const list = this.getLocalSales();
+      const target = list.find((s) => s.id === saleId);
+      if (target) {
+        target.isCancelled = true;
+        (target as any).cancellationReason = reason;
+        localStorage.setItem(SALES_STORAGE_KEY, JSON.stringify(list));
+      }
+    } catch {
+      // ignore
+    }
   }
 
   async sendInvoiceEmail(

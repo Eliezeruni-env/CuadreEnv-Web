@@ -178,39 +178,45 @@
                               <span class="text-muted me-3">ITBIS: <strong>RD$ {{ b.amountItbis | number:'1.2-2' }}</strong></span>
                               <span class="text-success fw-bold">Total: RD$ {{ b.amountTotal | number:'1.2-2' }}</span>
                             </div>
-                          </div>
-                          <div class="card-body p-0">
-                            <table class="table table-sm table-bordered mb-0 align-middle">
-                              <thead class="table-light text-muted font-size-xs">
-                                <tr>
-                                  <th class="ps-2">Código</th>
-                                  <th>Descripción</th>
-                                  <th class="text-center">Cant.</th>
-                                  <th class="text-end">Precio Unit.</th>
-                                  <th class="text-center">Desc.</th>
-                                  <th class="text-end">Subtotal</th>
-                                  <th class="text-end">ITBIS</th>
-                                  <th class="text-end pe-2">Importe Total</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                @for (item of (b.productDetails || b.details || []); track $index) {
+                                             <div class="card-body p-0">
+                            @if ((b.productDetails || b.details || []).length === 0) {
+                              <div class="text-center py-4 text-muted small">
+                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                <span>Consultando artículos facturados...</span>
+                              </div>
+                            } @else {
+                              <table class="table table-sm table-bordered mb-0 align-middle">
+                                <thead class="table-light text-muted font-size-xs">
                                   <tr>
-                                    <td class="ps-2 font-monospace small">{{ item.barCode || 'PROD-' + item.productId }}</td>
-                                    <td class="fw-semibold">{{ item.productName }}</td>
-                                    <td class="text-center font-monospace">{{ item.quantity }}</td>
-                                    <td class="text-end">RD$ {{ item.price | number:'1.2-2' }}</td>
-                                    <td class="text-center">
-                                      {{ item.discountPercentage > 0 ? (item.discountPercentage + '%') : '-' }}
-                                    </td>
-                                    <td class="text-end">RD$ {{ (item.subTotal || (item.quantity * item.price)) | number:'1.2-2' }}</td>
-                                    <td class="text-end">RD$ {{ (item.itbisAmount || 0) | number:'1.2-2' }}</td>
-                                    <td class="text-end pe-2 fw-bold text-success">RD$ {{ (item.totalAmount || (item.subTotal + item.itbisAmount)) | number:'1.2-2' }}</td>
+                                    <th class="ps-2">Código</th>
+                                    <th>Descripción</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th class="text-end">Precio Unit.</th>
+                                    <th class="text-center">Desc.</th>
+                                    <th class="text-end">Subtotal</th>
+                                    <th class="text-end">ITBIS</th>
+                                    <th class="text-end pe-2">Importe Total</th>
                                   </tr>
-                                }
-                              </tbody>
-                            </table>
-                          </div>
+                                </thead>
+                                <tbody>
+                                  @for (item of (b.productDetails || b.details || []); track $index) {
+                                    <tr>
+                                      <td class="ps-2 font-monospace small">{{ item.barCode || 'PROD-' + item.productId }}</td>
+                                      <td class="fw-semibold">{{ item.productName }}</td>
+                                      <td class="text-center font-monospace">{{ item.quantity }}</td>
+                                      <td class="text-end">RD$ {{ item.price | number:'1.2-2' }}</td>
+                                      <td class="text-center">
+                                        {{ item.discountPercentage > 0 ? (item.discountPercentage + '%') : '-' }}
+                                      </td>
+                                      <td class="text-end">RD$ {{ (item.subTotal || (item.quantity * item.price)) | number:'1.2-2' }}</td>
+                                      <td class="text-end">RD$ {{ (item.itbisAmount || 0) | number:'1.2-2' }}</td>
+                                      <td class="text-end pe-2 fw-bold text-success">RD$ {{ (item.totalAmount || (item.subTotal + item.itbisAmount)) | number:'1.2-2' }}</td>
+                                    </tr>
+                                  }
+                                </tbody>
+                              </table>
+                            }
+                          </div>          </div>
                         </div>
                       </td>
                     </tr>

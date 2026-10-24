@@ -19,7 +19,7 @@
       </button>
       @if (authService.hasRole(['Admin', 'Manager', 'Employee'])) {
         <button class="btn btn-outline-success fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openQuickSaleDirect()">
-          <span>⚡ Venta Rápida (POS)</span>
+          <span>Venta Rápida (POS)</span>
         </button>
         <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openCreateModal()">
           <span>+ Nueva Venta</span>
@@ -93,25 +93,48 @@
                       </button>
                     </td>
                     <td>
-                      <span class="fw-bold text-dark font-monospace">
-                        #{{ sale.id }}
-                      </span>
+                      <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                        <span class="fw-bold text-dark font-monospace">
+                          #{{ sale.id }}
+                        </span>
+                        @if (isServicioSale(sale)) {
+                          <span class="badge border rounded-pill px-2 py-0.5 font-size-xs fw-bold shadow-xs"
+                                style="background-color: #f3e8ff; color: #7e22ce; border-color: #d8b4fe;"
+                                title="Venta de Servicio">
+                            🛠️ Servicio
+                          </span>
+                        }
+                      </div>
                     </td>
                     <td class="text-muted small">
-                      {{ sale.creationDate | date:'dd/MM/yyyy HH:mm' }}
+                      {{ sale.creationDate | date:'dd/MM/yyyy hh:mm a' }}
                     </td>
                     <td>
                       <div class="fw-semibold text-dark">{{ getCustomerName(sale.customerId) }}</div>
                       <small class="text-muted font-monospace">ID Cliente: {{ sale.customerId || 'General' }}</small>
                     </td>
                     <td class="text-center">
-                      @if (sale.cashRegisterId) {
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill">
-                          Caja #{{ sale.cashRegisterId }}
+                      @if (isServicioSale(sale)) {
+                        <span class="badge border px-2.5 py-1 rounded-pill fw-semibold shadow-xs"
+                              style="background-color: #ede9fe; color: #6b21a8; border-color: #c4b5fd;"
+                              title="Factura de Servicios / Mano de Obra">
+                          🛠️ Venta de Servicio {{ sale.cashRegisterId ? '(Caja #' + sale.cashRegisterId + ')' : '' }}
+                        </span>
+                      } @else if (sale.originChannel === 'POS_PRESENCIAL' || (!sale.originChannel && sale.cashRegisterId)) {
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill" title="Venta Presencial en Mostrador">
+                          🏪 POS {{ sale.cashRegisterId ? '(Caja #' + sale.cashRegisterId + ')' : '' }}
+                        </span>
+                      } @else if (sale.originChannel === 'CREDITO') {
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 rounded-pill" title="Venta a Crédito">
+                          📋 Crédito
+                        </span>
+                      } @else if (sale.originChannel === 'ONLINE') {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill" title="Tienda Online">
+                          🌐 Online
                         </span>
                       } @else {
-                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 rounded-pill">
-                          Directa
+                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 rounded-pill" title="Venta Administrativa">
+                          🏢 Admin
                         </span>
                       }
                     </td>
@@ -183,10 +206,18 @@
                   @if (isSaleExpanded(sale.id)) {
                     <tr class="detail-row">
                       <td colspan="9">
-                        <div class="card border border-secondary-subtle shadow-xs rounded-3 overflow-hidden">
+                        <div class="card border border-secondary-subtle shadow-xs rounded-3 overflow-hidden my-2">
                           <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <span class="fw-bold small text-secondary text-uppercase d-flex align-items-center gap-2">
-                              Detalle de Artículos Vendidos ({{ getSaleItems(sale).length }} ítems)
+                              @if (isServicioSale(sale)) {
+                                <span class="badge border rounded-pill px-2 py-0.5 font-size-xs fw-bold"
+                                      style="background-color: #f3e8ff; color: #7e22ce; border-color: #d8b4fe;">
+                                  🛠️ Servicios Facturados
+                                </span>
+                                ({{ getSaleItems(sale).length }} ítems • {{ getTotalQuantity(sale) }} unidades)
+                              } @else {
+                                Detalle de Artículos Vendidos ({{ getSaleItems(sale).length }} ítems • {{ getTotalQuantity(sale) }} unidades)
+                              }
                             </span>
                             <div class="small font-monospace">
                               <span class="text-muted me-3">Subtotal: <strong>RD$ {{ (sale.total / 1.18) | number:'1.2-2' }}</strong></span>
@@ -198,14 +229,14 @@
                             <table class="table table-sm table-bordered mb-0 align-middle">
                               <thead class="table-light text-muted font-size-xs">
                                 <tr>
-                                  <th class="ps-3">Código</th>
-                                  <th>Descripción del Producto</th>
-                                  <th class="text-center">Cant.</th>
-                                  <th class="text-end">Precio Unit.</th>
-                                  <th class="text-center">Descuento</th>
-                                  <th class="text-end">Subtotal</th>
-                                  <th class="text-end">ITBIS</th>
-                                  <th class="text-end pe-3">Importe Total</th>
+                                  <th class="ps-3 py-2">Código</th>
+                                  <th class="py-2">Descripción del Producto</th>
+                                  <th class="text-center py-2" style="width: 100px;">Cant.</th>
+                                  <th class="text-end py-2" style="width: 120px;">Precio Unit.</th>
+                                  <th class="text-center py-2" style="width: 90px;">Descuento</th>
+                                  <th class="text-end py-2" style="width: 120px;">Subtotal</th>
+                                  <th class="text-end py-2" style="width: 110px;">ITBIS (18%)</th>
+                                  <th class="text-end pe-3 py-2" style="width: 130px;">Importe Total</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -213,17 +244,32 @@
                                   <tr>
                                     <td class="ps-3 font-monospace small text-secondary">{{ item.productCode }}</td>
                                     <td class="fw-semibold text-dark">{{ item.productName }}</td>
-                                    <td class="text-center font-monospace fw-bold">{{ item.quantity }}</td>
+                                    <td class="text-center">
+                                      <span class="badge bg-secondary-subtle text-dark border px-2 py-0.5 rounded-pill font-monospace fw-bold">
+                                        {{ item.quantity }} ud.
+                                      </span>
+                                    </td>
                                     <td class="text-end font-monospace">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
                                     <td class="text-center">
-                                      {{ item.discount > 0 ? (item.discount + '%') : '-' }}
+                                      {{ item.discount > 0 ? (item.discount + '%') : '—' }}
                                     </td>
-                                    <td class="text-end font-monospace">RD$ {{ item.subtotal | number:'1.2-2' }}</td>
-                                    <td class="text-end font-monospace">RD$ {{ item.itbis | number:'1.2-2' }}</td>
+                                    <td class="text-end font-monospace text-secondary">RD$ {{ item.subtotal | number:'1.2-2' }}</td>
+                                    <td class="text-end font-monospace text-secondary">RD$ {{ item.itbis | number:'1.2-2' }}</td>
                                     <td class="text-end pe-3 font-monospace fw-bold text-success">RD$ {{ item.total | number:'1.2-2' }}</td>
                                   </tr>
                                 }
                               </tbody>
+                              <tfoot class="table-light">
+                                <tr class="fw-bold font-monospace">
+                                  <td colspan="2" class="ps-3 text-secondary">Totales del Desglose:</td>
+                                  <td class="text-center text-dark">{{ getTotalQuantity(sale) }} uds</td>
+                                  <td></td>
+                                  <td></td>
+                                  <td class="text-end text-secondary">RD$ {{ (sale.total / 1.18) | number:'1.2-2' }}</td>
+                                  <td class="text-end text-secondary">RD$ {{ (sale.total - (sale.total / 1.18)) | number:'1.2-2' }}</td>
+                                  <td class="text-end pe-3 text-success fs-6">RD$ {{ sale.total | number:'1.2-2' }}</td>
+                                </tr>
+                              </tfoot>
                             </table>
                           </div>
                         </div>

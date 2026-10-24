@@ -301,36 +301,40 @@ export class PermissionService {
     }
 
     const p = this.cleanPath(path);
-    if (!p || p === '/profile') return null;
+    if (!p) return null;
     if (p === '/dashboard' || p.startsWith('/dashboard/')) return 'dashboard';
     if (p.startsWith('/metrics')) return 'metrics';
-    if (p.startsWith('/mobile') || p.startsWith('/sales')) return 'sales';
+    if (p.startsWith('/mobile')) return 'mobile-pos';
+    if (p.startsWith('/sales')) return 'sales';
     if (p.startsWith('/services')) return 'services';
     if (p.startsWith('/billing/reports')) return 'reports';
     if (p.startsWith('/billing')) return 'billing';
-    if (p.startsWith('/credit-notes')) return 'creditnotes';
+    if (p.startsWith('/credit-notes')) return 'credit-notes';
     if (p.startsWith('/cash-register/fraud-guardian')) return 'audit';
     if (p.startsWith('/cash-register')) return 'cashregister';
     if (p.startsWith('/receivables')) return 'receivables';
     if (p.startsWith('/customers')) return 'customers';
-    if (p.startsWith('/inventory/stock') || p.startsWith('/inventory/entries')) return 'inventory';
-    if (p.startsWith('/inventory/outlets')) return 'inventoryoutlets';
-    if (p.startsWith('/inventory/transfers')) return 'inventory';
-    if (p.startsWith('/inventory/warehouses')) return 'inventorywarehouses';
-    if (p.startsWith('/inventory/manage-requests')) return 'inventorymanagerequests';
+    if (p.startsWith('/inventory/entries')) return 'inventory-entries';
+    if (p.startsWith('/inventory/stock')) return 'inventory-stock';
+    if (p.startsWith('/inventory/outlets')) return 'inventory-outlets';
+    if (p.startsWith('/inventory/transfers')) return 'inventory-transfers';
+    if (p.startsWith('/inventory/warehouses')) return 'inventory-warehouses';
+    if (p.startsWith('/inventory/manage-requests')) return 'inventory-manage-requests';
     if (p.startsWith('/inventory')) return 'inventory';
-    if (p.startsWith('/products/settings')) return 'productssettings';
+    if (p.startsWith('/products/settings')) return 'products';
     if (p.startsWith('/products')) return 'products';
-    if (p.startsWith('/purchases/suppliers') || p.startsWith('/suppliers')) return 'purchasessuppliers';
-    if (p.startsWith('/purchases/receipts')) return 'purchasesreceipts';
-    if (p.startsWith('/purchases')) return 'purchasesorders';
+    if (p.startsWith('/purchases/suppliers') || p.startsWith('/suppliers')) return 'purchases-suppliers';
+    if (p.startsWith('/purchases/receipts')) return 'purchases-receipts';
+    if (p.startsWith('/purchases')) return 'purchases-orders';
     if (p.startsWith('/payments')) return 'payments';
-    if (p.startsWith('/admin/approvals') || p.startsWith('/approvals')) return 'company';
-    if (p.startsWith('/admin/roles') || p.startsWith('/roles')) return 'company';
+    if (p.startsWith('/admin/approvals') || p.startsWith('/approvals')) return 'admin-approvals';
+    if (p.startsWith('/admin/roles/matrix')) return 'admin-roles-matrix';
+    if (p.startsWith('/admin/roles') || p.startsWith('/roles')) return 'admin-roles';
+    if (p.startsWith('/company/settings') || p.startsWith('/companies/settings')) return 'company-settings';
     if (p.startsWith('/users')) return 'users';
     if (p.startsWith('/company')) return 'company';
     if (p.startsWith('/reports')) return 'reports';
-    if (p.startsWith('/profile')) return null;
+    if (p.startsWith('/profile')) return 'profile';
     if (p.startsWith('/')) return null;
     return this.normalizeModuleCode(p);
   }
@@ -363,29 +367,51 @@ export class PermissionService {
       billing: '/billing',
       inventory: '/inventory',
       inventorystock: '/inventory/stock',
+      'inventory-stock': '/inventory/stock',
       inventoryentries: '/inventory/entries',
+      'inventory-entries': '/inventory/entries',
       inventorytransfers: '/inventory/transfers',
+      'inventory-transfers': '/inventory/transfers',
       inventoryoutlets: '/inventory/outlets',
+      'inventory-outlets': '/inventory/outlets',
       inventorywarehouses: '/inventory/warehouses',
+      'inventory-warehouses': '/inventory/warehouses',
       inventorymanagerequests: '/inventory/manage-requests',
+      'inventory-manage-requests': '/inventory/manage-requests',
       cashregister: '/cash-register',
       receivables: '/receivables',
       customers: '/customers',
       fraudguardian: '/cash-register/fraud-guardian',
+      'fraud-guardian': '/cash-register/fraud-guardian',
       mobilepos: '/mobile',
+      'mobile-pos': '/mobile',
       products: '/products',
       productssettings: '/products/settings',
+      'products-settings': '/products/settings',
       metrics: '/metrics',
       purchasesorders: '/purchases',
+      'purchases-orders': '/purchases',
       purchasessuppliers: '/purchases/suppliers',
+      'purchases-suppliers': '/purchases/suppliers',
       purchasesreceipts: '/purchases/receipts',
+      'purchases-receipts': '/purchases/receipts',
       payments: '/payments',
       creditnotes: '/credit-notes',
+      'credit-notes': '/credit-notes',
       services: '/services',
       audit: '/cash-register/fraud-guardian',
       reports: '/dashboard',
-      company: '/users',
+      company: '/company/settings',
+      'company-settings': '/company/settings',
+      companysettings: '/company/settings',
+      'admin-roles': '/admin/roles',
+      adminroles: '/admin/roles',
+      'admin-roles-matrix': '/admin/roles/matrix',
+      adminrolesmatrix: '/admin/roles/matrix',
+      'admin-approvals': '/admin/approvals',
+      adminapprovals: '/admin/approvals',
       users: '/users',
+      profile: '/profile',
       dashboard: '/dashboard',
     };
     const allowed = this.authService.allowedModules().map((module) => this.normalizeModuleCode(module));
@@ -419,22 +445,63 @@ export class PermissionService {
       .replace(/[^a-z0-9]/g, '');
     const aliases: Record<string, string> = {
       cashregister: 'cashregister',
-      inventorystock: 'inventory',
-      inventorytransfers: 'inventory',
+
+      // Submódulos granulares de inventario
+      inventorystock: 'inventory-stock',
+      stock: 'inventory-stock',
+      inventoryentries: 'inventory-entries',
+      entries: 'inventory-entries',
+      inventoryoutlets: 'inventory-outlets',
+      outlets: 'inventory-outlets',
+      inventorytransfers: 'inventory-transfers',
+      transfers: 'inventory-transfers',
+      inventorywarehouses: 'inventory-warehouses',
+      warehouses: 'inventory-warehouses',
+      warehouse: 'inventory-warehouses',
+      inventorymanagerequests: 'inventory-manage-requests',
+      managerequests: 'inventory-manage-requests',
+      inventario: 'inventory',
+      inventory: 'inventory',
+
+      // Submódulos granulares de compras
+      purchasesorders: 'purchases-orders',
+      orders: 'purchases-orders',
+      ordenesdecompra: 'purchases-orders',
+      purchasesreceipts: 'purchases-receipts',
+      receipts: 'purchases-receipts',
+      recepciones: 'purchases-receipts',
+      purchasessuppliers: 'purchases-suppliers',
+      suppliers: 'purchases-suppliers',
+      proveedor: 'purchases-suppliers',
+      proveedores: 'purchases-suppliers',
+      purchases: 'purchases',
+      compras: 'purchases',
+      compra: 'purchases',
+
+      // Otros submódulos independientes
+      payments: 'payments',
+      pagos: 'payments',
+      services: 'services',
+      servicios: 'services',
+      creditnotes: 'credit-notes',
+      mobilepos: 'mobile-pos',
+
+      // Base
       billingreportsdgii: 'reports',
       fraudguardian: 'audit',
-      mobilepos: 'sales',
-      adminroles: 'company',
-      adminrolesmatrix: 'company',
-      adminapprovals: 'company',
-      companysettings: 'company',
+      adminroles: 'admin-roles',
+      adminrolesmatrix: 'admin-roles-matrix',
+      adminapprovals: 'admin-approvals',
+      companysettings: 'company-settings',
       users: 'users',
-      stock: 'inventory',
+      usuarios: 'users',
+      roles: 'admin-roles',
+      profile: 'profile',
+      perfil: 'profile',
       venta: 'sales',
       ventas: 'sales',
       facturacion: 'billing',
       ncf: 'billing',
-      inventario: 'inventory',
       almacen: 'inventory',
       almacenes: 'inventory',
       caja: 'cashregister',
@@ -443,23 +510,24 @@ export class PermissionService {
       cuentasporcobrar: 'receivables',
       cliente: 'customers',
       clientes: 'customers',
-      compra: 'purchases',
-      compras: 'purchases',
-      proveedor: 'purchases',
-      proveedores: 'purchases',
-      pagos: 'payments',
       auditoria: 'audit',
       aprobaciones: 'audit',
       reporte: 'reports',
       reportes: 'reports',
       metricas: 'metrics',
       empresa: 'company',
-      usuarios: 'company',
-      roles: 'company',
-      servicios: 'services',
+      company: 'company',
       productos: 'products',
+      products: 'products',
     };
     return aliases[normalized] ?? normalized;
+  }
+
+  /**
+   * Valida acceso a un módulo específico por código granular.
+   */
+  hasModule(code: string): boolean {
+    return this.hasModuleAccess(code);
   }
 
   /**
@@ -473,7 +541,7 @@ export class PermissionService {
     const isRoute = original.startsWith('/');
     const cleanPath = this.cleanPath(original);
     const requestedModule = isRoute ? null : this.normalizeModuleCode(original);
-    if (cleanPath === '/profile' || requestedModule === 'profile') return true;
+
     if ((isRoute && cleanPath === '/dashboard') || requestedModule === 'dashboard') {
       if (typeof this.authService.hasAnyModuleAccess === 'function') {
         return this.authService.hasAnyModuleAccess();
@@ -485,10 +553,12 @@ export class PermissionService {
     const targetModule = isRoute ? this.resolveModuleFromRoute(cleanPath) : requestedModule;
     if (!targetModule) return false;
 
-    if (
-      typeof this.authService.hasLicensedModule === 'function' &&
-      !this.authService.hasLicensedModule(targetModule)
-    ) {
+    const isLicensed =
+      typeof this.authService.hasLicensedModule !== 'function' ||
+      this.authService.hasLicensedModule(targetModule) ||
+      (this.isAdminSubmodule(targetModule) && this.authService.hasLicensedModule('company'));
+
+    if (!isLicensed) {
       return false;
     }
 
@@ -496,8 +566,35 @@ export class PermissionService {
       return this.authService.hasModule(targetModule);
     }
 
+    const isSuper = this.authService.isPlatformSuperUser();
     const allowed = this.authService.allowedModules().map((module) => this.normalizeModuleCode(module));
-    return this.authService.hasExplicitModuleClaims() &&
-      (allowed.includes('*') || allowed.includes(this.normalizeModuleCode(targetModule)));
+    if (isSuper || allowed.includes('*')) {
+      return true;
+    }
+
+    const normalizedTarget = this.normalizeModuleCode(targetModule);
+    if (allowed.includes(normalizedTarget)) {
+      return true;
+    }
+
+    // Permitir consulta de stock si tiene el módulo padre de inventario
+    if (normalizedTarget === 'inventory-stock' && allowed.some((m) => ['inventory', 'inventario'].includes(m))) {
+      return true;
+    }
+
+    // Permitir mobile si tiene ventas o viceversa
+    if (
+      (normalizedTarget === 'mobile-pos' && allowed.some((m) => ['sales', 'ventas'].includes(m))) ||
+      (normalizedTarget === 'sales' && allowed.some((m) => ['mobile-pos', 'mobile'].includes(m)))
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private isAdminSubmodule(moduleCode: string): boolean {
+    const code = this.normalizeModuleCode(moduleCode);
+    return ['admin-roles', 'admin-roles-matrix', 'admin-approvals', 'company-settings', 'users', 'profile'].includes(code);
   }
 }

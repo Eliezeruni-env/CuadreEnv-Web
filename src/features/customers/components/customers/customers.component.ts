@@ -239,5 +239,35 @@ export class CustomersComponent implements OnInit {
       this.isLoading.set(false);
     }
   }
+
+  async toggleCustomerStatus(customer: CustomerDto) {
+    if (!customer.id) return;
+    const newStatus = customer.active === false;
+    const actionLabel = newStatus ? 'activar' : 'desactivar';
+
+    const confirmed = await this.confirmService.confirm({
+      title: `¿${newStatus ? 'Activar' : 'Desactivar'} cliente?`,
+      message: `¿Estás seguro de que deseas ${actionLabel} al cliente "${customer.name}"?`,
+      itemName: customer.name,
+      itemType: 'Cliente',
+      confirmText: newStatus ? 'Activar' : 'Desactivar',
+      variant: newStatus ? 'primary' : 'warning',
+    });
+    if (!confirmed) return;
+
+    this.isLoading.set(true);
+    try {
+      await this.customerService.updateCustomer({
+        ...customer,
+        active: newStatus
+      });
+      this.notificationService.success(`Cliente "${customer.name}" ${newStatus ? 'activado' : 'desactivado'} exitosamente.`);
+      await this.loadCustomers();
+    } catch (e: any) {
+      this.notificationService.showApiError(e);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
 }
 

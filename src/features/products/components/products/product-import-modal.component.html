@@ -7,9 +7,6 @@
         <!-- Header -->
         <div class="modal-header bg-dark text-white border-0 py-3 px-4 d-flex align-items-center justify-content-between">
           <div class="d-flex align-items-center gap-3">
-            <div class="p-2 bg-primary rounded-3 text-white fs-4 shadow-sm">
-              📊
-            </div>
             <div>
               <h5 class="modal-title fw-bold mb-0 text-white">Importador Inteligente & Catálogos Pre-cargados</h5>
               <p class="small text-white-50 mb-0">Comienza a facturar en menos de 15 minutos sin digitar productos a mano</p>
@@ -29,7 +26,7 @@
               [ngClass]="activeTab() === 'preloaded' ? 'btn-primary text-white shadow-xs' : 'btn-light text-secondary'"
               (click)="activeTab.set('preloaded')"
             >
-              <span>🏬 Catálogos Listos por Rubro (1 Clic)</span>
+              <span>Catálogos Listos por Rubro (1 Clic)</span>
             </button>
             <button
               type="button"
@@ -37,42 +34,49 @@
               [ngClass]="activeTab() === 'upload' ? 'btn-primary text-white shadow-xs' : 'btn-light text-secondary'"
               (click)="activeTab.set('upload')"
             >
-              <span>📁 Subir mi propio Excel / CSV</span>
+              <span>Subir mi propio Excel / CSV</span>
             </button>
           </div>
 
           <!-- TAB 1: PRELOADED CATALOGS -->
           @if (activeTab() === 'preloaded') {
-            <div class="row g-3 mb-3">
-              @for (cat of catalogs; track cat.id) {
-                <div class="col-md-6 col-lg-3">
-                  <div
-                    class="card h-100 border-2 rounded-4 p-3 cursor-pointer transition-all shadow-xs"
-                    [ngClass]="selectedCatalog()?.id === cat.id ? 'border-' + cat.color + ' bg-white ring-select' : 'border bg-white'"
-                    (click)="selectCatalog(cat)"
-                  >
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                      <span class="fs-2">{{ cat.icon }}</span>
-                      <span class="badge bg-{{ cat.color }}-subtle text-{{ cat.color }} border font-monospace">
-                        {{ cat.items.length }} ítems
-                      </span>
-                    </div>
-                    <h6 class="fw-bold text-dark mb-1">{{ cat.name }}</h6>
-                    <p class="small text-secondary mb-3 flex-grow-1" style="font-size: 0.78rem;">
-                      {{ cat.tagline }}
-                    </p>
-                    <button
-                      type="button"
-                      class="btn btn-sm w-100 fw-semibold"
-                      [ngClass]="selectedCatalog()?.id === cat.id ? 'btn-' + cat.color + ' text-white' : 'btn-outline-secondary'"
-                      (click)="selectCatalog(cat); $event.stopPropagation()"
+            @if (isLoadingCatalogs()) {
+              <div class="text-center py-4 bg-white rounded-4 border mb-3">
+                <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                <div class="small text-secondary">Cargando plantillas de catálogo...</div>
+              </div>
+            } @else {
+              <div class="row g-3 mb-3">
+                @for (cat of catalogs(); track cat.id) {
+                  <div class="col-md-6 col-lg-3">
+                    <div
+                      class="card h-100 border-2 rounded-4 p-3 cursor-pointer transition-all shadow-xs"
+                      [ngClass]="selectedCatalog()?.id === cat.id ? 'border-' + cat.color + ' bg-white ring-select' : 'border bg-white'"
+                      (click)="selectCatalog(cat)"
                     >
-                      {{ selectedCatalog()?.id === cat.id ? '✓ Seleccionado' : 'Ver Detalles' }}
-                    </button>
+                      <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="fs-2">{{ cat.icon }}</span>
+                        <span class="badge bg-{{ cat.color }}-subtle text-{{ cat.color }} border font-monospace">
+                          {{ cat.items.length }} ítems
+                        </span>
+                      </div>
+                      <h6 class="fw-bold text-dark mb-1">{{ cat.name }}</h6>
+                      <p class="small text-secondary mb-3 flex-grow-1" style="font-size: 0.78rem;">
+                        {{ cat.tagline }}
+                      </p>
+                      <button
+                        type="button"
+                        class="btn btn-sm w-100 fw-semibold"
+                        [ngClass]="selectedCatalog()?.id === cat.id ? 'btn-' + cat.color + ' text-white' : 'btn-outline-secondary'"
+                        (click)="selectCatalog(cat); $event.stopPropagation()"
+                      >
+                        {{ selectedCatalog()?.id === cat.id ? '✓ Seleccionado' : 'Ver Detalles' }}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              }
-            </div>
+                }
+              </div>
+            }
 
             <!-- Selected Catalog Preview -->
             @if (selectedCatalog(); as curCat) {
@@ -104,7 +108,7 @@
                       [disabled]="isImporting()"
                       (click)="importSelectedPreloadedCatalog()"
                     >
-                      <span>⚡ Cargar Esta Plantilla Ahora Mismo</span>
+                      <span>Cargar Esta Plantilla Ahora Mismo</span>
                     </button>
                   </div>
                 </div>
@@ -181,7 +185,7 @@
                   class="btn btn-sm btn-outline-secondary"
                   (click)="downloadTemplateCsv(); $event.stopPropagation()"
                 >
-                  📥 Descargar Plantilla Base en Blanco
+                 Descargar Plantilla Base en Blanco
                 </button>
               </div>
             </div>
@@ -291,7 +295,7 @@
         <!-- Footer -->
         <div class="modal-footer bg-white border-0 py-3 px-4 d-flex justify-content-between">
           <span class="small text-secondary">
-            ⚡ Los productos importados estarán inmediatamente disponibles en el Punto de Venta (POS).
+            Los productos importados estarán inmediatamente disponibles en el Punto de Venta (POS).
           </span>
           <button type="button" class="btn btn-secondary px-4 fw-semibold" (click)="close()" [disabled]="isImporting()">
             Cerrar

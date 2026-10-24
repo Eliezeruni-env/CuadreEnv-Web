@@ -51,12 +51,29 @@
             </span>
           </div>
         </div>
-        <button
-          type="button"
-          class="btn-close"
-          (click)="close()"
-          aria-label="Close"
-        ></button>
+        <div class="d-flex align-items-center gap-2">
+          <button
+            type="button"
+            class="btn btn-outline-primary btn-sm fw-semibold d-flex align-items-center gap-1.5"
+            (click)="printAccountStatementPdf()"
+            title="Generar e imprimir Estado de Cuenta en PDF con historial de abonos"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <span>Estado de Cuenta (PDF)</span>
+          </button>
+          <button
+            type="button"
+            class="btn-close"
+            (click)="close()"
+            aria-label="Close"
+          ></button>
+        </div>
       </div>
 
       <!-- Body -->
@@ -184,8 +201,89 @@
             </div>
           } @else {
             <form cForm [formGroup]="paymentForm">
+              <!-- SECCIÓN COMPROBANTE DE PAGO DIGITAL (OCR & UPLOAD) -->
+              <div class="voucher-upload-card mb-3 p-3">
+                <input
+                  #voucherFileInput
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,application/pdf"
+                  class="d-none"
+                  (change)="onVoucherFileSelected($event)"
+                />
+
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <div>
+                      <h6 class="fw-bold mb-0 text-body small">Comprobante de Pago (Foto o PDF)</h6>
+                      <span class="text-muted extra-small">Carga el recibo para autodetectar monto, referencia, banco y fecha</span>
+                    </div>
+                  </div>
+
+                  @if (!uploadedVoucher()) {
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-primary fw-semibold px-3 py-1 d-flex align-items-center gap-1"
+                      (click)="voucherFileInput.click()"
+                      [disabled]="isAnalyzingVoucher()"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                      </svg>
+                      Subir Comprobante
+                    </button>
+                  }
+                </div>
+
+                @if (isAnalyzingVoucher()) {
+                  <div class="d-flex align-items-center gap-2 text-primary p-2 bg-primary-subtle rounded-2 small">
+                    <c-spinner size="sm"></c-spinner>
+                    <span>Analizando documento y extrayendo datos con OCR...</span>
+                  </div>
+                }
+
+                @if (uploadedVoucher()) {
+                  <div class="uploaded-voucher-preview d-flex align-items-center justify-content-between p-2 rounded-2 mt-2">
+                    <div class="d-flex align-items-center gap-2 overflow-hidden">
+                      <span class="voucher-icon-badge">📎</span>
+                      <div class="text-truncate">
+                        <span class="fw-bold text-body small text-truncate d-block">{{ uploadedVoucher()?.name }}</span>
+                        <span class="text-muted extra-small">
+                          {{ uploadedVoucher()?.type }} · {{ ((uploadedVoucher()?.size || 0) / 1024) | number:'1.0-1' }} KB
+                        </span>
+                      </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-light border py-1 px-2 small text-primary fw-semibold"
+                        (click)="openVoucherPreview(uploadedVoucher()!)"
+                        title="Ver Comprobante"
+                      >
+                        👁 Ver
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger py-1 px-2 small"
+                        (click)="removeUploadedVoucher()"
+                        title="Quitar Comprobante"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                }
+
+                @if (voucherDetectionMessage()) {
+                  <div class="voucher-msg-pill mt-2">
+                    {{ voucherDetectionMessage() }}
+                  </div>
+                }
+              </div>
+
               <!-- Información del pago -->
-              <div class="form-section mb-4">
+              <div class="form-section mb-3">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                   <h6 class="section-title mb-0">
                     @if (editingPayment()) {
@@ -197,7 +295,7 @@
                         Editando Pago #{{ editingPayment()?.id }}
                       </span>
                     } @else {
-                      Información del pago
+                      Datos del Pago
                     }
                   </h6>
                   @if (editingPayment()) {
@@ -211,228 +309,340 @@
                   }
                 </div>
 
-              <!-- Row 1: Amount & DateTime -->
-              <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                  <label class="form-label required-label"
-                    >Monto del pago</label
+                <!-- Shortcuts for Quick Amount -->
+                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                  <span class="extra-small text-muted fw-semibold">Sugerencias:</span>
+                  @if (receivable.paymentPlan?.installmentAmount) {
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-light border py-0 px-2 extra-small text-body"
+                      (click)="setQuickAmount(receivable.paymentPlan!.installmentAmount)"
+                    >
+                      Cuota: RD$ {{ receivable.paymentPlan!.installmentAmount | number:'1.2-2' }}
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-light border py-0 px-2 extra-small text-body"
+                    (click)="setQuickAmount(receivable.pendingAmount)"
                   >
-                  <div class="input-group">
-                    <span
-                      class="input-group-text currency-addon fw-semibold"
-                      >RD$</span
+                    Saldo total: RD$ {{ receivable.pendingAmount | number:'1.2-2' }}
+                  </button>
+                </div>
+
+                <!-- Row 1: Amount & DateTime -->
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label required-label"
+                      >Monto del pago</label
+                    >
+                    <div class="input-group">
+                      <span
+                        class="input-group-text currency-addon fw-semibold"
+                        >RD$</span
+                      >
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        cFormControl
+                        formControlName="amount"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label required-label"
+                      >Fecha y hora del pago</label
                     >
                     <input
-                      type="number"
-                      step="0.01"
-                      min="0.01"
+                      type="datetime-local"
                       cFormControl
-                      formControlName="amount"
-                      placeholder="0.00"
+                      formControlName="paymentDate"
                     />
                   </div>
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label required-label"
-                    >Fecha y hora del pago</label
-                  >
-                  <input
-                    type="datetime-local"
-                    cFormControl
-                    formControlName="paymentDate"
-                  />
-                </div>
-              </div>
 
-              <!-- Row 2: Method & Reference -->
-              <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                  <label class="form-label required-label"
-                    >Método de pago (Se reflejará en Caja)</label
-                  >
-                  <select cSelect formControlName="method">
-                    <option value="Efectivo">Efectivo (Registra en Caja)</option>
-                    <option value="Transferencia">Transferencia Bancaria</option>
-                    <option value="Tarjeta">Tarjeta de Crédito / Débito</option>
-                    <option value="Cheque">Cheque</option>
-                  </select>
+                <!-- Row 2: Method & Bank / Financial Entity -->
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label required-label"
+                      >Método de pago</label
+                    >
+                    <select cSelect formControlName="method">
+                      <option value="Efectivo">Efectivo</option>
+                      <option value="Transferencia">Transferencia Bancaria</option>
+                      <option value="Tarjeta">Tarjeta de Crédito / Débito</option>
+                      <option value="Depósito Bancario">Depósito Bancario</option>
+                      <option value="Cheque">Cheque</option>
+                      <option value="Otro">Otro Método</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Banco / Entidad Financiera</label>
+                    <input
+                      type="text"
+                      list="dominicanBanksList"
+                      cFormControl
+                      formControlName="bank"
+                      placeholder="Ej. Banco Popular, BHD, Banreservas..."
+                    />
+                    <datalist id="dominicanBanksList">
+                      <option value="Banco Popular Dominicano"></option>
+                      <option value="Banreservas"></option>
+                      <option value="Banco BHD"></option>
+                      <option value="APAP (Asociación Popular)"></option>
+                      <option value="Scotiabank"></option>
+                      <option value="Banco Santa Cruz"></option>
+                      <option value="Banco Promerica"></option>
+                      <option value="Asociación Cibao"></option>
+                      <option value="Qik Banco Digital"></option>
+                      <option value="Banco BDI"></option>
+                    </datalist>
+                  </div>
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label">Referencia / Comprobante</label>
+
+                <!-- Row 3: Reference & Register in Cash Register Toggle -->
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">No. de Referencia / Comprobante</label>
+                    <input
+                      type="text"
+                      cFormControl
+                      formControlName="reference"
+                      placeholder="Ej. No. de transferencia, cheque o recibo"
+                    />
+                  </div>
+                  <div class="col-md-6 d-flex align-items-center pt-md-3">
+                    <div class="form-check form-switch custom-cash-toggle p-2 rounded-2 border w-100">
+                      <input
+                        class="form-check-input ms-0 me-2"
+                        type="checkbox"
+                        role="switch"
+                        id="registerInCashSwitch"
+                        formControlName="registerInCash"
+                      />
+                      <label class="form-check-label small fw-semibold text-body" for="registerInCashSwitch">
+                        Registrar en Caja Física (Turno activo)
+                        <small class="d-block text-muted fw-normal extra-small">
+                          Ingresa este movimiento en la caja registradora abierta.
+                        </small>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Row 4: Notes -->
+                <div>
+                  <label class="form-label">Notas / Observaciones (opcional)</label>
                   <input
                     type="text"
                     cFormControl
-                    formControlName="reference"
-                    placeholder="Ej. No. de transacción, recibo, etc."
+                    formControlName="notes"
+                    placeholder="Detalles adicionales del abono..."
                   />
                 </div>
               </div>
 
-              <!-- Row 3: Notes -->
-              <div>
-                <label class="form-label">Notas (opcional)</label>
-                <input
-                  type="text"
-                  cFormControl
-                  formControlName="notes"
-                  placeholder="Agregar una nota..."
-                />
-              </div>
-            </div>
+              <!-- Historial de pagos -->
+              <div class="form-section mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="section-title mb-0">Historial de pagos</h6>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-link text-primary text-decoration-none p-0 small fw-semibold"
+                    (click)="setTab('timeline')"
+                  >
+                    Ver Timeline completo →
+                  </button>
+                </div>
 
-            <!-- Historial de pagos -->
-            <div class="form-section mb-3">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="section-title mb-0">Historial de pagos</h6>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-link text-primary text-decoration-none p-0 small fw-semibold"
-                  (click)="setTab('timeline')"
-                >
-                  Ver Timeline completo →
-                </button>
-              </div>
-
-              <div class="table-responsive payment-history-table-box">
-                <table class="table table-hover align-middle mb-0">
-                  <thead>
-                    <tr>
-                      <th style="width: 40px;">#</th>
-                      <th>Monto</th>
-                      <th>Fecha y hora</th>
-                      <th>Método</th>
-                      <th>Referencia</th>
-                      <th class="text-end" style="min-width: 90px;">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (p of receivable.payments; track p.id) {
-                      <tr [class.table-active]="editingPayment()?.id === p.id">
-                        <td class="text-muted small fw-semibold">
-                          {{ p.id }}
-                        </td>
-                        <td class="fw-bold text-body">
-                          RD$ {{ p.amount | number: '1.2-2' }}
-                        </td>
-                        <td class="small text-muted">
-                          {{ p.date }}
-                          @if (p.isCurrent) {
-                            <span class="badge badge-este-pago ms-1"
-                              >Este pago</span
-                            >
-                          }
-                        </td>
-                        <td>
-                          <span class="small">{{ p.method }}</span>
-                        </td>
-                        <td class="small text-muted font-monospace">
-                          {{ p.reference || '-' }}
-                        </td>
-                        <td class="text-end">
-                          <div class="d-inline-flex align-items-center gap-1">
-                            <!-- Edit Payment Button -->
-                            <button
-                              type="button"
-                              class="btn btn-sm btn-icon-action btn-action-edit"
-                              title="Editar este pago"
-                              (click)="editPayment(p)"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="15"
-                                height="15"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                              >
-                                <path
-                                  d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
-                                ></path>
-                                <path
-                                  d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
-                                ></path>
-                              </svg>
-                            </button>
-
-                            <!-- Delete Payment Button -->
-                            <button
-                              type="button"
-                              class="btn btn-sm btn-icon-action btn-action-delete"
-                              title="Eliminar este pago"
-                              (click)="deletePayment(p)"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="15"
-                                height="15"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                              >
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path
-                                  d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                                ></path>
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    }
-                    @if (receivable.payments.length === 0) {
+                <div class="table-responsive payment-history-table-box">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead>
                       <tr>
-                        <td
-                          colspan="6"
-                          class="text-center text-muted py-3 small"
-                        >
-                          No hay pagos registrados aún.
-                        </td>
+                        <th style="width: 40px;">#</th>
+                        <th>Monto</th>
+                        <th>Fecha y hora</th>
+                        <th>Método</th>
+                        <th>Banco / Ref</th>
+                        <th class="text-center" style="width: 100px;">Comprobante</th>
+                        <th class="text-end" style="min-width: 80px;">Acciones</th>
                       </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                    </thead>
+                    <tbody>
+                      @for (p of receivable.payments; track p.id) {
+                        <tr [class.table-active]="editingPayment()?.id === p.id">
+                          <td class="text-muted small fw-semibold">
+                            {{ p.id }}
+                          </td>
+                          <td class="fw-bold text-body">
+                            RD$ {{ p.amount | number: '1.2-2' }}
+                          </td>
+                          <td class="small text-muted">
+                            {{ p.date }}
+                            @if (p.isCurrent) {
+                              <span class="badge badge-este-pago ms-1"
+                                >Este pago</span
+                              >
+                            }
+                          </td>
+                          <td>
+                            <span class="small fw-semibold text-body">{{ p.method }}</span>
+                            @if (p.registerInCash) {
+                              <span class="badge bg-success-subtle text-success border ms-1 extra-small">Caja</span>
+                            }
+                          </td>
+                          <td class="small text-muted">
+                            @if (p.bank) {
+                              <span class="d-block text-truncate fw-medium" style="max-width: 130px;">{{ p.bank }}</span>
+                            }
+                            <span class="font-monospace text-truncate d-block" style="max-width: 130px;">
+                              {{ p.reference || '-' }}
+                            </span>
+                          </td>
+                          <td class="text-center">
+                            @if (p.voucherAttachment) {
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary py-0 px-2 extra-small fw-semibold d-inline-flex align-items-center gap-1"
+                                (click)="openVoucherPreview(p.voucherAttachment)"
+                                title="Ver comprobante adjunto"
+                              >
+                                📎 Ver
+                              </button>
+                            } @else {
+                              <span class="text-muted small">-</span>
+                            }
+                          </td>
+                          <td class="text-end">
+                            <div class="d-inline-flex align-items-center gap-1">
+                              <!-- WhatsApp Receipt Button (1 Toque) -->
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-icon-action btn-action-whatsapp text-success"
+                                title="Enviar comprobante formal de este abono por WhatsApp (1 toque)"
+                                (click)="sendPaymentWhatsAppReceipt(p)"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="14"
+                                  height="14"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"></path>
+                                  <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"></path>
+                                </svg>
+                              </button>
 
-            <!-- Bottom Progress & Metric Summary Box -->
-            <div class="metrics-summary-bar">
-              <div class="row align-items-center g-2 text-center text-md-start">
-                <div class="col-md-4 border-end-md">
-                  <span class="metrics-label">Total pagado</span>
-                  <h6 class="metrics-val text-body mb-0">
-                    RD$ {{ receivable.paidAmount | number: '1.2-2' }}
-                  </h6>
+                              <!-- Edit Payment Button -->
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-icon-action btn-action-edit"
+                                title="Editar este pago"
+                                (click)="editPayment(p)"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="14"
+                                  height="14"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <path
+                                    d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                                  ></path>
+                                  <path
+                                    d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                                  ></path>
+                                </svg>
+                              </button>
+
+                              <!-- Delete Payment Button -->
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-icon-action btn-action-delete"
+                                title="Eliminar este pago"
+                                (click)="deletePayment(p)"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="14"
+                                  height="14"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <polyline points="3 6 5 6 21 6"></polyline>
+                                  <path
+                                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                                  ></path>
+                                </svg>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                      @if (receivable.payments.length === 0) {
+                        <tr>
+                          <td
+                            colspan="7"
+                            class="text-center text-muted py-3 small"
+                          >
+                            No hay pagos registrados aún.
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
                 </div>
-                <div class="col-md-4 border-end-md">
-                  <span class="metrics-label">Pendiente</span>
-                  <h6 class="metrics-val text-amber mb-0">
-                    RD$ {{ receivable.pendingAmount | number: '1.2-2' }}
-                  </h6>
-                </div>
-                <div class="col-md-4">
-                  <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="metrics-label">Progreso</span>
-                    <span class="small fw-bold text-primary"
-                      >{{ paymentProgress() }}%</span
-                    >
+              </div>
+
+              <!-- Bottom Progress & Metric Summary Box -->
+              <div class="metrics-summary-bar">
+                <div class="row align-items-center g-2 text-center text-md-start">
+                  <div class="col-md-4 border-end-md">
+                    <span class="metrics-label">Total pagado</span>
+                    <h6 class="metrics-val text-body mb-0">
+                      RD$ {{ receivable.paidAmount | number: '1.2-2' }}
+                    </h6>
                   </div>
-                  <div class="progress progress-thin">
-                    <div
-                      class="progress-bar bg-primary"
-                      role="progressbar"
-                      [style.width.%]="paymentProgress()"
-                    ></div>
+                  <div class="col-md-4 border-end-md">
+                    <span class="metrics-label">Pendiente</span>
+                    <h6 class="metrics-val text-amber mb-0">
+                      RD$ {{ receivable.pendingAmount | number: '1.2-2' }}
+                    </h6>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <span class="metrics-label">Progreso</span>
+                      <span class="small fw-bold text-primary"
+                        >{{ paymentProgress() }}%</span
+                      >
+                    </div>
+                    <div class="progress progress-thin">
+                      <div
+                        class="progress-bar bg-primary"
+                        role="progressbar"
+                        [style.width.%]="paymentProgress()"
+                      ></div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </form>
+            </form>
           }
         }
 
@@ -448,7 +658,7 @@
               </div>
               <div class="text-end">
                 <span class="badge bg-light text-dark border px-3 py-2 fw-semibold">
-                  Monto por cuota: RD$ {{ (receivable.paymentPlan?.installmentAmount || receivable.totalAmount) | number: '1.2-2' }}
+                  Monto por cuota: RD$ {{ (receivable.paymentPlan?.installmentAmount || (receivable.totalAmount / (installmentsBreakdown().length || 1))) | number: '1.2-2' }}
                 </span>
               </div>
             </div>
@@ -628,7 +838,7 @@
           </div>
         }
 
-        <!-- TAB: DETALLE DE VENTA Y ARTÍCULOS -->
+        <!-- TAB 4: DETALLE DE VENTA Y ARTÍCULOS -->
         @if (activeTab() === 'sale') {
           <form cForm [formGroup]="saleEditForm" class="py-2">
             <div class="mb-3">
@@ -750,6 +960,82 @@
             }
           </button>
         }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL PREVIEW DEL COMPROBANTE DE PAGO -->
+@if (previewModalOpen() && previewVoucherData()) {
+  <div class="custom-modal-backdrop preview-backdrop" (click)="closeVoucherPreview()">
+    <div
+      class="custom-modal-content voucher-preview-dialog"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="custom-modal-header border-bottom pb-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="fs-5">📎</span>
+          <div>
+            <h6 class="fw-bold mb-0 text-body text-truncate" style="max-width: 450px;">
+              {{ previewVoucherData()?.name }}
+            </h6>
+            <span class="text-muted extra-small">Comprobante de pago adjunto</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          (click)="closeVoucherPreview()"
+          aria-label="Cerrar"
+        ></button>
+      </div>
+
+      <div class="custom-modal-body text-center p-3">
+        @if (previewVoucherData()?.type?.startsWith('image/')) {
+          <div class="voucher-image-container">
+            <img
+              [src]="previewVoucherData()?.dataUrl"
+              [alt]="previewVoucherData()?.name"
+              class="img-fluid rounded shadow-sm voucher-preview-img"
+            />
+          </div>
+        } @else {
+          <div class="voucher-pdf-container">
+            <object
+              [data]="getSafeVoucherUrl(previewVoucherData()?.dataUrl)"
+              type="application/pdf"
+              class="w-100 rounded voucher-preview-pdf"
+            >
+              <div class="p-4 text-center">
+                <p class="text-muted mb-2">No se puede previsualizar el PDF directamente en este navegador.</p>
+                <a
+                  [href]="previewVoucherData()?.dataUrl"
+                  [download]="previewVoucherData()?.name || 'comprobante.pdf'"
+                  class="btn btn-sm btn-primary"
+                >
+                  Descargar comprobante PDF
+                </a>
+              </div>
+            </object>
+          </div>
+        }
+      </div>
+
+      <div class="custom-modal-footer border-top pt-2 d-flex justify-content-between">
+        <a
+          [href]="previewVoucherData()?.dataUrl"
+          [download]="previewVoucherData()?.name || 'comprobante'"
+          class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+        >
+          ⬇ Descargar archivo
+        </a>
+        <button
+          type="button"
+          class="btn btn-sm btn-secondary px-3"
+          (click)="closeVoucherPreview()"
+        >
+          Cerrar
+        </button>
       </div>
     </div>
   </div>

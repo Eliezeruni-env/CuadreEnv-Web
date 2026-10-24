@@ -132,17 +132,63 @@
                   }
                 </select>
               </div>
-              <!-- Quantity -->
-              <div class="mb-3">
-                <label cLabel class="small fw-semibold text-secondary mb-1">Cantidad *</label>
-                <input type="number" min="1" formControlName="quantity" cFormControl />
-                @if (inboundForm.get('quantity')?.touched && inboundForm.get('quantity')?.invalid) {
-                <div class="text-danger small mt-1">La cantidad debe ser 1 o mayor.</div>
+
+              <!-- Packaging Selector if product has bulk packaging -->
+              @if (getSelectedInboundProduct(); as selProd) {
+                @if (getProductPackaging(selProd); as pkg) {
+                  @if (pkg.hasPackaging) {
+                    <div class="p-3 mb-3 bg-light rounded-3 border">
+                      <label class="small fw-semibold text-dark mb-2 d-block">Presentación de Entrada:</label>
+                      <div class="btn-group w-100 mb-2">
+                        <button
+                          type="button"
+                          class="btn btn-sm"
+                          [ngClass]="inboundForm.get('inboundMode')?.value === 'package' ? 'btn-primary text-white fw-bold' : 'btn-outline-secondary'"
+                          (click)="inboundForm.patchValue({ inboundMode: 'package' })"
+                        >
+                          📦 Por {{ pkg.packageUnitName || 'Empaque' }} ({{ pkg.packageUnitsCount }} {{ getProductUnitSymbol(selProd) }})
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm"
+                          [ngClass]="inboundForm.get('inboundMode')?.value === 'units' ? 'btn-primary text-white fw-bold' : 'btn-outline-secondary'"
+                          (click)="inboundForm.patchValue({ inboundMode: 'units' })"
+                        >
+                          ⚖️ Por {{ getProductUnitSymbol(selProd) }} (Directo)
+                        </button>
+                      </div>
+
+                      @if (inboundForm.get('inboundMode')?.value === 'package') {
+                        <div class="mb-2">
+                          <label class="small fw-semibold text-secondary mb-1">
+                            Cantidad de {{ pkg.packageUnitName || 'Empaques / Sacos' }}:
+                          </label>
+                          <input type="number" min="1" formControlName="packageQuantity" class="form-control" />
+                        </div>
+                        <div class="small text-primary fw-bold font-monospace bg-white p-2 rounded border">
+                          ✨ Acreditará al almacén: {{ getInboundCalculatedUnits() }} {{ getProductUnitSymbol(selProd) }} ({{ inboundForm.get('packageQuantity')?.value || 1 }} {{ pkg.packageUnitName || 'Saco(s)' }} × {{ pkg.packageUnitsCount }} {{ getProductUnitSymbol(selProd) }})
+                        </div>
+                      }
+                    </div>
+                  }
                 }
-              </div>
-              <button cButton color="success" class="w-100 py-2 text-white" type="submit"
+              }
+
+              <!-- Quantity in Base Units -->
+              @if (inboundForm.get('inboundMode')?.value !== 'package') {
+                <div class="mb-3">
+                  <label cLabel class="small fw-semibold text-secondary mb-1">
+                    Cantidad (en {{ getSelectedInboundProduct() ? getProductUnitSymbol(getSelectedInboundProduct()!) : 'unidades base' }}) *
+                  </label>
+                  <input type="number" step="any" min="0.01" formControlName="quantity" cFormControl />
+                  @if (inboundForm.get('quantity')?.touched && inboundForm.get('quantity')?.invalid) {
+                  <div class="text-danger small mt-1">La cantidad debe ser mayor a 0.</div>
+                  }
+                </div>
+              }
+              <button cButton color="success" class="w-100 py-2 text-white fw-bold" type="submit"
                 [disabled]="isLoading() || inboundForm.invalid">
-                Registrar Entrada
+                Registrar Entrada ({{ getInboundCalculatedUnits() }} {{ getSelectedInboundProduct() ? getProductUnitSymbol(getSelectedInboundProduct()!) : 'unidades' }})
               </button>
             </form>
           </c-card-body>
@@ -405,7 +451,12 @@
               <td class="ps-4 fw-semibold text-dark">{{ p.description }}</td>
               <td><span class="badge bg-light text-secondary border font-monospace">{{ p.barcode || '-' }}</span></td>
               <td class="text-end text-secondary fw-semibold">{{ p.minimumQuantity }}</td>
-              <td class="text-end text-danger fw-bold">{{ p.stock }} unidades</td>
+              <td class="text-end text-danger fw-bold">
+                {{ p.stock }} {{ getProductUnitSymbol(p) }}
+                @if (getEquivalenceText(p); as eqText) {
+                  <div class="small text-muted font-monospace fw-normal">{{ eqText }}</div>
+                }
+              </td>
               <td class="text-center">
                 <span class="badge bg-danger text-white">REORDENAR / COMPRA</span>
               </td>

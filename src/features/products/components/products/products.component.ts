@@ -1,24 +1,31 @@
-import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  OnInit,
+  signal,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProductService } from '../../services/product.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog.service';
-import type { ProductDto } from '../../../cuadreEnv/types/api';
 import { ProductModalComponent } from './product-modal.component';
 import { ProductImportModalComponent } from './product-import-modal.component';
+import { ProductDetailModalComponent } from './product-detail-modal.component';
 import {
   FilterPanelComponent,
   type FilterConfig,
   type FilterValues,
 } from '../../../cuadreEnv/components/filter-panel/filter-panel.component';
-import {
-  AlertComponent,
-  SpinnerComponent,
-} from '@coreui/angular';
+import { AlertComponent, SpinnerComponent } from '@coreui/angular';
 
 import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/kt-paginator.component';
+
+import { RouterLink } from '@angular/router';
+import { ProductDto } from '../../../cuadreEnv/types/api';
 
 @Component({
   selector: 'app-products',
@@ -27,10 +34,12 @@ import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/k
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     AlertComponent,
     SpinnerComponent,
     ProductModalComponent,
     ProductImportModalComponent,
+    ProductDetailModalComponent,
     FilterPanelComponent,
     KtPaginatorComponent,
   ],
@@ -38,6 +47,10 @@ import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/k
 export class ProductsComponent implements OnInit {
   @ViewChild('productModal') productModal!: ProductModalComponent;
   @ViewChild('importModal') importModal!: ProductImportModalComponent;
+  @ViewChild('detailModal') detailModal!: ProductDetailModalComponent;
+
+  selectedProductForDetail = signal<ProductDto | null>(null);
+  isDetailModalOpen = signal<boolean>(false);
 
   readonly translationService = inject(TranslationService);
   readonly authService = inject(AuthService);
@@ -52,17 +65,17 @@ export class ProductsComponent implements OnInit {
   isLoading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
 
-  expiringProducts = signal<{ product: ProductDto; daysRemaining: number }[]>([]);
+  expiringProducts = signal<{ product: ProductDto; daysRemaining: number }[]>(
+    [],
+  );
   showExpirationModal = signal<boolean>(false);
 
-  lowStockCount = computed(() =>
-    this.products().filter((p) => this.getStockState(p) !== 'healthy').length,
+  lowStockCount = computed(
+    () =>
+      this.products().filter((p) => this.getStockState(p) !== 'healthy').length,
   );
   totalInventoryValue = computed(() =>
-    this.products().reduce(
-      (sum, p) => sum + (p.cost || 0) * (p.stock || 0),
-      0,
-    ),
+    this.products().reduce((sum, p) => sum + (p.cost || 0) * (p.stock || 0), 0),
   );
 
   // Pagination & Stale Request Tracking
@@ -130,13 +143,15 @@ export class ProductsComponent implements OnInit {
         label: this.translationService.t('products.table.stock'),
         align: 'end',
       },
-      { field: 'actions', label: this.translationService.t('common.actions'), align: 'center' },
+      {
+        field: 'actions',
+        label: this.translationService.t('common.actions'),
+        align: 'center',
+      },
     ];
   }
 
-  constructor(
-    private productService: ProductService,
-  ) {}
+  constructor(private productService: ProductService) {}
 
   ngOnInit() {
     this.loadProducts();
@@ -148,7 +163,9 @@ export class ProductsComponent implements OnInit {
     this.errorMessage.set(null);
 
     const activeFilters = this.filters();
-    const search = String((activeFilters['search'] as string | undefined) || '').trim();
+    const search = String(
+      (activeFilters['search'] as string | undefined) || '',
+    ).trim();
     const validPage = Math.max(1, this.currentPage());
     const validSize = Math.min(100, Math.max(1, this.pageSize));
 
@@ -165,8 +182,59 @@ export class ProductsComponent implements OnInit {
       }
 
       if (res.success && res.data) {
-        this.products.set(res.data.items || []);
-        this.totalItems.set(res.data.totalItemCount ?? res.data.total ?? 0);
+        let items = res.data.items || [];
+
+        // Filtros adicionales por stock y estado
+        const stockObj = activeFilters['stock'] as
+          | { from?: any; to?: any }
+          | undefined;
+        const stockMin =
+          activeFilters['stock_min'] !== undefined &&
+          activeFilters['stock_min'] !== ''
+            ? Number(activeFilters['stock_min'])
+            : stockObj?.from !== undefined &&
+                stockObj?.from !== null &&
+                stockObj?.from !== ''
+              ? Number(stockObj.from)
+              : null;
+
+        const stockMax =
+          activeFilters['stock_max'] !== undefined &&
+          activeFilters['stock_max'] !== ''
+            ? Number(activeFilters['stock_max'])
+            : stockObj?.to !== undefined &&
+                stockObj?.to !== null &&
+                stockObj?.to !== ''
+              ? Number(stockObj.to)
+              : null;
+
+        const status = String(
+          (activeFilters['status'] as string | undefined) || '',
+        ).trim();
+
+        if (stockMin !== null && !isNaN(stockMin)) {
+          items = items.filter((p) => (p.stock || 0) >= stockMin);
+        }
+        if (stockMax !== null && !isNaN(stockMax)) {
+          items = items.filter((p) => (p.stock || 0) <= stockMax);
+        }
+
+        if (status === 'in-stock') {
+          items = items.filter(
+            (p) => (p.stock || 0) > (p.minimumQuantity || 0),
+          );
+        } else if (status === 'low-stock') {
+          items = items.filter(
+            (p) => (p.stock || 0) <= (p.minimumQuantity || 0),
+          );
+        }
+
+        this.products.set(items);
+        this.totalItems.set(
+          items.length < (res.data.items || []).length
+            ? items.length
+            : (res.data.totalItemCount ?? res.data.total ?? items.length),
+        );
         this.pageCount.set(res.data.pageCount || 1);
         this.checkExpiringProducts();
       } else {
@@ -211,7 +279,10 @@ export class ProductsComponent implements OnInit {
     });
 
     this.expiringProducts.set(expiring);
-    if (expiring.length > 0 && !sessionStorage.getItem('cuadreenv_dismissed_expiration_alert')) {
+    if (
+      expiring.length > 0 &&
+      !sessionStorage.getItem('cuadreenv_dismissed_expiration_alert')
+    ) {
       this.showExpirationModal.set(true);
     }
   }
@@ -288,7 +359,8 @@ export class ProductsComponent implements OnInit {
       return {
         status: 'warning',
         label: `Por vencer (${diffDays} d)`,
-        badgeClass: 'bg-warning-subtle text-warning-emphasis border border-warning',
+        badgeClass:
+          'bg-warning-subtle text-warning-emphasis border border-warning',
       };
     }
 
@@ -347,7 +419,9 @@ export class ProductsComponent implements OnInit {
     });
   });
 
-  readonly filteredProductsCount = computed(() => this.filteredProducts().length);
+  readonly filteredProductsCount = computed(
+    () => this.filteredProducts().length,
+  );
 
   readonly pagedProducts = computed(() => {
     // If backend pagination is already active, return the filtered products
@@ -356,6 +430,11 @@ export class ProductsComponent implements OnInit {
 
   getFilteredProducts(): ProductDto[] {
     return this.filteredProducts();
+  }
+
+  openDetailModal(product: ProductDto): void {
+    this.selectedProductForDetail.set(product);
+    this.isDetailModalOpen.set(true);
   }
 
   openCreateModal() {
@@ -383,7 +462,8 @@ export class ProductsComponent implements OnInit {
     if (!product.id) return;
     const confirmed = await this.confirmService.confirm({
       title: '¿Eliminar producto?',
-      message: '¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.',
+      message:
+        '¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.',
       itemName: product.description || `Producto #${product.id}`,
       itemType: 'Producto',
       confirmText: 'Eliminar',

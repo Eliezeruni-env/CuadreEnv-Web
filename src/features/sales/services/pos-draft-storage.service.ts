@@ -51,16 +51,31 @@ export class PosDraftStorageService {
   }
 
   private getHeldKey(): string {
-    const compId = typeof window !== 'undefined' && window.localStorage
-      ? localStorage.getItem('companyId') || 'default'
-      : 'default';
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return `${HELD_SALES_PREFIX}default`;
+    }
+    const compId =
+      localStorage.getItem('currentCompanyId') ||
+      localStorage.getItem('companyId') ||
+      localStorage.getItem('auth_company_id') ||
+      sessionStorage.getItem('currentCompanyId') ||
+      sessionStorage.getItem('companyId') ||
+      'default';
     return `${HELD_SALES_PREFIX}${compId}`;
   }
 
   reloadHeldSales(): void {
     if (typeof window === 'undefined' || !window.localStorage) return;
     try {
-      const raw = localStorage.getItem(this.getHeldKey());
+      const key = this.getHeldKey();
+      let raw = localStorage.getItem(key);
+      if (!raw && key !== `${HELD_SALES_PREFIX}default`) {
+        const defaultRaw = localStorage.getItem(`${HELD_SALES_PREFIX}default`);
+        if (defaultRaw) {
+          raw = defaultRaw;
+          localStorage.setItem(key, defaultRaw);
+        }
+      }
       if (raw) {
         const parsed: PosHeldSale[] = JSON.parse(raw);
         this.heldSalesSignal.set(Array.isArray(parsed) ? parsed : []);
@@ -120,8 +135,10 @@ export class PosDraftStorageService {
   // ==========================================
 
   holdSale(draft: PosSaleDraft, customLabel?: string): PosHeldSale {
+    this.reloadHeldSales();
     const id = 'HELD-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-    const totalAmount = draft.items.reduce((sum, it) => sum + it.total, 0);
+    const items = draft.items || [];
+    const totalAmount = items.reduce((sum, it) => sum + (Number(it.total) || 0), 0);
     const label = customLabel || draft.customerName || `Venta en espera #${this.heldCount() + 1}`;
 
     const heldSale: PosHeldSale = {
@@ -130,7 +147,7 @@ export class PosDraftStorageService {
       label,
       heldAt: new Date().toISOString(),
       totalAmount,
-      itemCount: draft.items.reduce((sum, it) => sum + it.quantity, 0),
+      itemCount: items.reduce((sum, it) => sum + (Number(it.quantity) || 1), 0),
     };
 
     const current = [...this.heldSalesSignal(), heldSale];
@@ -154,6 +171,16 @@ export class PosDraftStorageService {
     const remaining = this.heldSalesSignal().filter((s) => s.id !== id);
     this.heldSalesSignal.set(remaining);
     this.persistHeldSales(remaining);
+  }
+
+  clearAllHeldSales(): void {
+    this.heldSalesSignal.set([]);
+    this.persistHeldSales([]);
+  }
+
+  clearAll(): void {
+    this.clearActiveDraft();
+    this.clearAllHeldSales();
   }
 
   private persistHeldSales(sales: PosHeldSale[]): void {

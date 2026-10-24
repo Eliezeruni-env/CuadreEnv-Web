@@ -32,6 +32,16 @@
         <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
           <button
             type="button"
+            class="btn btn-outline-success d-flex align-items-center gap-1.5 px-3 shadow-xs fw-bold"
+            (click)="sendWhatsAppInvoice()"
+            title="Compartir comprobante formateado por WhatsApp"
+          >
+            <svg cIcon name="cilPhone" style="width: 15px; height: 15px;"></svg>
+            <span>WhatsApp</span>
+          </button>
+
+          <button
+            type="button"
             class="btn btn-light border d-flex align-items-center gap-2 px-3 shadow-sm fw-semibold text-secondary"
             (click)="printInvoice()"
             title="Imprimir formato factura estándar"
@@ -89,7 +99,7 @@
               <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
                 <div class="d-flex align-items-center gap-3">
                   @if (companyService.currentSettings().logoUrl) {
-                    <img [src]="companyService.currentSettings().logoUrl" alt="Logo" style="max-height: 48px; max-width: 140px; object-fit: contain;" />
+                    <img [src]="companyService.currentSettings().logoUrl" alt="Logo" style="max-height: 56px; max-width: 160px; object-fit: contain;" />
                   } @else {
                     <div class="invoice-logo-box">
                       <svg
@@ -110,8 +120,12 @@
                     </div>
                   }
                   <div>
-                    <h5 class="fw-bold mb-0 text-dark">{{ companyService.currentSettings().companyName || 'CuadreEnv' }}</h5>
-                    <div class="text-secondary small">{{ companyService.currentSettings().commercialName || 'Soluciones de Facturación & Control' }}</div>
+                    <h5 class="fw-bold mb-0 text-dark">{{ companyService.currentSettings().commercialName || companyService.currentSettings().companyName || 'CuadreEnv, SRL' }}</h5>
+                    @if (companyService.currentSettings().commercialName && companyService.currentSettings().companyName && companyService.currentSettings().commercialName !== companyService.currentSettings().companyName) {
+                      <div class="text-secondary small">{{ companyService.currentSettings().companyName }}</div>
+                    } @else {
+                      <div class="text-secondary small">{{ companyService.currentSettings().companyName || 'Soluciones de Facturación & Control' }}</div>
+                    }
                   </div>
                 </div>
 
@@ -132,10 +146,19 @@
               <!-- Company & Transaction Metadata -->
               <div class="row g-3 small text-secondary mb-4 pb-3 border-bottom">
                 <div class="col-md-7">
-                  <div class="fw-bold text-dark">{{ companyService.currentSettings().companyName || 'CuadreEnv, SRL' }}</div>
-                  <div>RNC: {{ companyService.currentSettings().rnc || '1-01-00000-0' }}</div>
-                  <div>{{ companyService.currentSettings().address || 'Santo Domingo, República Dominicana' }}</div>
-                  <div>Tel.: {{ companyService.currentSettings().phone || '(809) 555-0199' }}</div>
+                  <div class="fw-bold text-dark">{{ companyService.currentSettings().commercialName || companyService.currentSettings().companyName || 'CuadreEnv, SRL' }}</div>
+                  @if (companyService.currentSettings().rnc) {
+                    <div>RNC: {{ companyService.currentSettings().rnc }}</div>
+                  }
+                  @if (companyService.currentSettings().address) {
+                    <div>{{ companyService.currentSettings().address }}</div>
+                  }
+                  @if (companyService.currentSettings().phone) {
+                    <div>Tel.: {{ companyService.currentSettings().phone }}</div>
+                  }
+                  @if (companyService.currentSettings().ticketWhatsapp) {
+                    <div>WhatsApp: {{ companyService.currentSettings().ticketWhatsapp }}</div>
+                  }
                 </div>
                 <div class="col-md-5 text-md-end">
                   <div><span class="text-dark fw-semibold">Fecha:</span> {{ formattedDate }}</div>
@@ -242,28 +265,30 @@
                 </div>
               </div>
 
-              <!-- Timbre Digital QR e-CF (Ley 32-23) -->
-              <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-light-subtle my-3">
-                <div class="d-flex align-items-center gap-3">
-                  <img [src]="digitalStampQrUrl" alt="Timbre Digital DGII" style="width: 76px; height: 76px; image-rendering: pixelated;" class="border p-1 bg-white rounded-2" />
-                  <div>
-                    <div class="fw-bold text-dark small d-flex align-items-center gap-1">
-                      <span>Timbre Digital DGII</span>
-                      <span class="badge bg-success text-white" style="font-size: 0.65rem;">✓ Certificado e-CF</span>
-                    </div>
-                    <div class="text-secondary small font-monospace mt-1" style="font-size: 0.72rem;">
-                      e-NCF: {{ eNcfNumber }} · Cód. Seguridad: {{ securityCode }}
-                    </div>
-                    <div class="text-muted small" style="font-size: 0.68rem;">
-                      Consulte la validez fiscal escaneando el código QR o en ecf.dgii.gov.do
+              <!-- Timbre Digital QR e-CF (Ley 32-23) - Pausado a futuro -->
+              @if (isDgiiActive) {
+                <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-light-subtle my-3">
+                  <div class="d-flex align-items-center gap-3">
+                    <img [src]="digitalStampQrUrl" alt="Timbre Digital DGII" style="width: 76px; height: 76px; image-rendering: pixelated;" class="border p-1 bg-white rounded-2" />
+                    <div>
+                      <div class="fw-bold text-dark small d-flex align-items-center gap-1">
+                        <span>Timbre Digital DGII</span>
+                        <span class="badge bg-success text-white" style="font-size: 0.65rem;">✓ Certificado e-CF</span>
+                      </div>
+                      <div class="text-secondary small font-monospace mt-1" style="font-size: 0.72rem;">
+                        e-NCF: {{ eNcfNumber }} · Cód. Seguridad: {{ securityCode }}
+                      </div>
+                      <div class="text-muted small" style="font-size: 0.68rem;">
+                        Consulte la validez fiscal escaneando el código QR o en ecf.dgii.gov.do
+                      </div>
                     </div>
                   </div>
+                  <div class="text-end font-monospace text-secondary small d-none d-sm-block">
+                    <div class="badge bg-secondary-subtle text-secondary border font-size-xs">Ley No. 32-23</div>
+                    <div class="text-success fw-bold font-size-xs mt-1">Emisión e-CF Activa</div>
+                  </div>
                 </div>
-                <div class="text-end font-monospace text-secondary small d-none d-sm-block">
-                  <div class="badge bg-secondary-subtle text-secondary border font-size-xs">Ley No. 32-23</div>
-                  <div class="text-success fw-bold font-size-xs mt-1">Emisión e-CF Activa</div>
-                </div>
-              </div>
+              }
 
               <!-- Invoice Footer Disclaimer -->
               <div class="text-center text-secondary small pt-3 border-top">
@@ -275,13 +300,31 @@
             </div>
 
             <!-- Dedicated 80mm/58mm Thermal Ticket Print Template -->
-            <div id="thermalTicketPrintArea" class="thermal-ticket-container font-monospace">
+            <div id="thermalTicketPrintArea" class="thermal-ticket-container font-monospace" [class.ticket-58mm]="companyService.currentSettings().ticketPaperSize === '58mm'">
               <div class="text-center mb-2">
-                <div class="fw-bold fs-6">{{ companyService.currentSettings().companyName || 'CuadreEnv POS' }}</div>
-                <div class="small">{{ companyService.currentSettings().commercialName || 'Soluciones de Facturación' }}</div>
-                <div class="small">RNC: {{ companyService.currentSettings().rnc || '1-01-00000-0' }}</div>
-                <div class="small">{{ companyService.currentSettings().address || 'Santo Domingo, R.D.' }}</div>
-                <div class="small">Tel: {{ companyService.currentSettings().phone || '(809) 555-0199' }}</div>
+                @if (companyService.currentSettings().logoUrl) {
+                  <div class="ticket-logo-container mb-2">
+                    <img
+                      [src]="companyService.currentSettings().logoUrl"
+                      alt="Logo Empresa"
+                      class="ticket-logo-img"
+                      style="max-height: 48px; max-width: 140px; object-fit: contain; margin: 0 auto 6px auto; display: block;"
+                    />
+                  </div>
+                }
+                <div class="fw-bold fs-6 text-uppercase">{{ companyService.currentSettings().commercialName || companyService.currentSettings().companyName || 'CUADRE-ENV' }}</div>
+                @if (companyService.currentSettings().companyName && companyService.currentSettings().commercialName && companyService.currentSettings().companyName !== companyService.currentSettings().commercialName) {
+                  <div class="small text-muted">{{ companyService.currentSettings().companyName }}</div>
+                }
+                @if (companyService.currentSettings().rnc) {
+                  <div class="small">RNC: {{ companyService.currentSettings().rnc }}</div>
+                }
+                @if (companyService.currentSettings().address) {
+                  <div class="small">{{ companyService.currentSettings().address }}</div>
+                }
+                @if (companyService.currentSettings().phone) {
+                  <div class="small">Tel: {{ companyService.currentSettings().phone }}</div>
+                }
               </div>
 
               <div class="ticket-divider text-center">================================</div>
@@ -360,12 +403,22 @@
               <div class="ticket-divider text-center my-2">================================</div>
 
               <div class="text-center small mt-2">
-                <div class="fw-bold">¡GRACIAS POR SU PREFERENCIA!</div>
-                <div class="text-muted font-size-xs mb-2">Conserve su ticket para cualquier reclamo o garantía</div>
-                <div class="text-center my-1">
-                  <img [src]="digitalStampQrUrl" style="width: 80px; height: 80px; image-rendering: pixelated;" alt="QR e-CF" />
-                  <div class="text-muted font-size-xs mt-1">Timbre Digital DGII (Ley 32-23)</div>
+                @if (companyService.currentSettings().ticketInstagram || companyService.currentSettings().ticketWhatsapp) {
+                  <div class="text-secondary font-size-xs mb-1">
+                    {{ companyService.currentSettings().ticketInstagram ? '📸 IG: ' + companyService.currentSettings().ticketInstagram : '' }}
+                    {{ companyService.currentSettings().ticketWhatsapp ? ' · 📲 WS: ' + companyService.currentSettings().ticketWhatsapp : '' }}
+                  </div>
+                }
+                <div class="fw-bold">
+                  {{ companyService.currentSettings().invoiceFooterPhrase || '¡GRACIAS POR SU PREFERENCIA!' }}
                 </div>
+                <div class="text-muted font-size-xs mb-2">Conserve su ticket para cualquier reclamo o garantía</div>
+                @if (companyService.currentSettings().ticketShowQr !== false) {
+                  <div class="text-center my-1.5">
+                    <img [src]="digitalStampQrUrl" style="width: 72px; height: 72px; image-rendering: pixelated;" alt="QR" />
+                    <div class="text-muted font-size-xs mt-0.5">Comprobante y Atención Digital</div>
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -445,6 +498,18 @@
               </div>
 
               <div class="list-group list-group-flush small">
+                <button
+                  type="button"
+                  class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 text-success fw-bold"
+                  (click)="sendWhatsAppInvoice()"
+                >
+                  <div class="d-flex align-items-center gap-2">
+                    <svg cIcon name="cilPhone" style="width: 16px; height: 16px;"></svg>
+                    <span>Compartir por WhatsApp</span>
+                  </div>
+                  <span class="text-success">&rsaquo;</span>
+                </button>
+
                 <button
                   type="button"
                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3"
@@ -530,3 +595,6 @@
 
 <!-- Send Email Modal Component -->
 <app-send-invoice-email-modal #sendEmailModal [(visible)]="isEmailModalOpen"></app-send-invoice-email-modal>
+
+<!-- Send WhatsApp Modal Component -->
+<app-send-whatsapp-modal #sendWhatsAppModal></app-send-whatsapp-modal>

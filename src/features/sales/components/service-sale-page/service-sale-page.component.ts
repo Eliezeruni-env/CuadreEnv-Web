@@ -205,12 +205,22 @@ export class ServiceSalePageComponent implements OnInit {
         }
       }
 
-      const salePayload = {
+      const salePayload: any = {
         customerId: this.selectedCustomerId,
         cashRegisterId: cashRegisterId,
         total: this.totalAmount,
         paidAmount: this.paymentMode === 'CASH' ? this.totalAmount : 0,
         dueDate: this.paymentMode === 'CREDIT' ? this.dueDate : null,
+        originChannel: 'SERVICIO',
+        paymentType: this.paymentMode === 'CASH' ? 'CASH' : 'CREDIT',
+        paymentMethod: this.paymentMode === 'CASH' ? 'CASH' : 'OTHER',
+        notes: this.serviceNotes ? `[SERVICIO] ${this.serviceNotes.trim()}` : '[SERVICIO] Factura de Servicios',
+        payment: this.paymentMode === 'CASH' ? {
+          method: 'CASH',
+          amount: this.totalAmount,
+          amountReceived: this.totalAmount,
+          changeAmount: 0,
+        } : undefined,
         details: this.cart.map((item) => ({
           productId: item.serviceId,
           quantity: item.quantity,

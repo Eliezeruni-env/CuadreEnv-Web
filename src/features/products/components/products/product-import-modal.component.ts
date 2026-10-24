@@ -1,30 +1,12 @@
-import { Component, EventEmitter, inject, Output, signal } from '@angular/core';
+import { Component, EventEmitter, inject, Output, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ProductService } from '../../services/product.service';
+import { ProductService, PreloadedCatalog } from '../../services/product.service';
 import { CategoryService } from '../../services/category.service';
 import { ProductTypeService } from '../../services/product-type.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import type { ProductDto } from '../../../cuadreEnv/types/api';
-
-export interface PreloadedCatalog {
-  id: string;
-  name: string;
-  icon: string;
-  tagline: string;
-  color: string;
-  items: {
-    description: string;
-    barcode: string;
-    reference: string;
-    category: string;
-    cost: number;
-    price: number;
-    stock: number;
-    minQuantity: number;
-  }[];
-}
 
 export interface ParsedImportRow {
   rowNumber: number;
@@ -40,78 +22,6 @@ export interface ParsedImportRow {
   validationError?: string;
 }
 
-export const PRELOADED_CATALOGS: PreloadedCatalog[] = [
-  {
-    id: 'colmado',
-    name: 'Minimarket & Colmado Dominicano',
-    icon: '🛒',
-    tagline: 'Arroz, aceite, café, salami, lácteos y canasta básica',
-    color: 'success',
-    items: [
-      { description: 'Arroz Selecto Campos 10 lbs', barcode: '746010100101', reference: 'ARR-10LB', category: 'Granos y Víveres', cost: 340.00, price: 410.00, stock: 45, minQuantity: 10 },
-      { description: 'Habichuelas Rojas Don Pedro 800g', barcode: '746010100102', reference: 'HAB-ROJ', category: 'Granos y Víveres', cost: 75.00, price: 95.00, stock: 60, minQuantity: 15 },
-      { description: 'Aceite Vegetal Crisol 64 oz', barcode: '746010100103', reference: 'ACE-64OZ', category: 'Aceites y Grasas', cost: 245.00, price: 295.00, stock: 30, minQuantity: 8 },
-      { description: 'Café Santo Domingo Molido 1 lb', barcode: '746010100104', reference: 'CAF-1LB', category: 'Bebidas Calientes', cost: 185.00, price: 225.00, stock: 50, minQuantity: 12 },
-      { description: 'Leche Rica Entera UHT 1 Litro', barcode: '746010100105', reference: 'LEC-RIC-1L', category: 'Lácteos', cost: 78.00, price: 92.00, stock: 80, minQuantity: 20 },
-      { description: 'Salami Induveca Super Especial 1 lb', barcode: '746010100106', reference: 'SAL-IND-1LB', category: 'Embutidos', cost: 165.00, price: 210.00, stock: 40, minQuantity: 10 },
-      { description: 'Huevos Frescos Granja (Cartón 30 uds)', barcode: '746010100107', reference: 'HUE-30UD', category: 'Abarrotes', cost: 230.00, price: 275.00, stock: 25, minQuantity: 5 },
-      { description: 'Azúcar Blanca Don Pedro 5 lbs', barcode: '746010100108', reference: 'AZU-5LB', category: 'Abarrotes', cost: 175.00, price: 210.00, stock: 35, minQuantity: 8 },
-      { description: 'Sopita Doña Gallina (Caja 24 uds)', barcode: '746010100109', reference: 'SOP-DG-24', category: 'Condimentos', cost: 140.00, price: 170.00, stock: 50, minQuantity: 10 },
-      { description: 'Agua Purificada Planeta Azul 5 Galones (Botellón)', barcode: '746010100110', reference: 'AGU-5GAL', category: 'Bebidas', cost: 65.00, price: 90.00, stock: 40, minQuantity: 15 },
-      { description: 'Detergente Brillante Multiusos 900g', barcode: '746010100111', reference: 'DET-900G', category: 'Limpieza', cost: 110.00, price: 140.00, stock: 30, minQuantity: 8 }
-    ]
-  },
-  {
-    id: 'ferreteria',
-    name: 'Ferretería & Construcción',
-    icon: '🔩',
-    tagline: 'Cemento, varillas, PVC, pinturas, herramientas y fijaciones',
-    color: 'warning',
-    items: [
-      { description: 'Cemento Gris Cibao Tipo Portland 42.5 kg', barcode: '746020200101', reference: 'CEM-CIB-42', category: 'Materiales Pesados', cost: 485.00, price: 545.00, stock: 120, minQuantity: 25 },
-      { description: 'Tubo PVC 1/2 pulgada Presión SDR 13.5 (20 pies)', barcode: '746020200102', reference: 'PVC-12-PRES', category: 'Plomería', cost: 210.00, price: 280.00, stock: 85, minQuantity: 15 },
-      { description: 'Pintura Acrílica Blanco Colonial Tropical 1 Galón', barcode: '746020200103', reference: 'PIN-TROP-1G', category: 'Pinturas', cost: 890.00, price: 1180.00, stock: 40, minQuantity: 8 },
-      { description: 'Clavos de Acero para Concreto 2 pulgadas (Libra)', barcode: '746020200104', reference: 'CLA-AC-2IN', category: 'Fijaciones', cost: 65.00, price: 95.00, stock: 150, minQuantity: 30 },
-      { description: 'Cinta Teflón Industrial 3/4 pulgada x 12m', barcode: '746020200105', reference: 'TEF-34-12M', category: 'Plomería', cost: 35.00, price: 60.00, stock: 200, minQuantity: 40 },
-      { description: 'Llave de Paso PVC 1/2 pulgada Pegable', barcode: '746020200106', reference: 'LLAV-PVC-12', category: 'Plomería', cost: 85.00, price: 130.00, stock: 60, minQuantity: 12 },
-      { description: 'Disco de Corte Fino para Metal 4-1/2 pulgada DeWalt', barcode: '746020200107', reference: 'DISC-COR-45', category: 'Abrasivos', cost: 65.00, price: 105.00, stock: 90, minQuantity: 20 },
-      { description: 'Brocha de Cerdas Finas 3 pulgadas', barcode: '746020200108', reference: 'BROC-3IN', category: 'Herramientas Manuales', cost: 115.00, price: 175.00, stock: 45, minQuantity: 10 },
-      { description: 'Cerradura de Pomo para Dormitorio Acero Inoxidable', barcode: '746020200109', reference: 'CER-POM-SS', category: 'Cerrajería', cost: 380.00, price: 550.00, stock: 25, minQuantity: 6 }
-    ]
-  },
-  {
-    id: 'cafeteria',
-    name: 'Repostería & Cafetería / Fast Food',
-    icon: '🥖',
-    tagline: 'Cafés, pastelitos, panes, postres, bebidas y empanadas',
-    color: 'info',
-    items: [
-      { description: 'Café Espresso Simple Taza', barcode: '746030300101', reference: 'CAF-ESP', category: 'Cafetería', cost: 25.00, price: 75.00, stock: 500, minQuantity: 50 },
-      { description: 'Capuchino Vainilla Cremoso 8 oz', barcode: '746030300102', reference: 'CAP-VAI-8OZ', category: 'Cafetería', cost: 45.00, price: 135.00, stock: 350, minQuantity: 30 },
-      { description: 'Pastelito de Pollo Horneado Tradicional', barcode: '746030300103', reference: 'PAS-POL-HOR', category: 'Picaderas', cost: 30.00, price: 65.00, stock: 80, minQuantity: 15 },
-      { description: 'Croissant Mantequilla con Jamón y Queso Danés', barcode: '746030300104', reference: 'CRO-JAM-QUE', category: 'Panadería', cost: 65.00, price: 145.00, stock: 40, minQuantity: 8 },
-      { description: 'Porción Bizcocho Dominicano Suspiro Tradicional', barcode: '746030300105', reference: 'BIZ-DOM-POR', category: 'Repostería', cost: 40.00, price: 110.00, stock: 50, minQuantity: 10 },
-      { description: 'Empanada Catibía de Res Crujiente', barcode: '746030300106', reference: 'EMP-CAT-RES', category: 'Picaderas', cost: 35.00, price: 75.00, stock: 65, minQuantity: 12 },
-      { description: 'Jugo Natural de Chinola 16 oz Frío', barcode: '746030300107', reference: 'JUG-CHI-16OZ', category: 'Bebidas Frías', cost: 40.00, price: 115.00, stock: 60, minQuantity: 10 }
-    ]
-  },
-  {
-    id: 'farmacia',
-    name: 'Farmacia & Cuidado Personal',
-    icon: '💊',
-    tagline: 'Analgésicos, antibióticos, primeros auxilios e higiene',
-    color: 'danger',
-    items: [
-      { description: 'Acetaminofén 500 mg (Blister 10 Tabletas)', barcode: '746040400101', reference: 'ACE-500-10T', category: 'Analgésicos', cost: 25.00, price: 50.00, stock: 150, minQuantity: 30 },
-      { description: 'Ibuprofeno 400 mg Cápsulas Blandas (10 Tabletas)', barcode: '746040400102', reference: 'IBU-400-10T', category: 'Antiinflamatorios', cost: 45.00, price: 85.00, stock: 120, minQuantity: 25 },
-      { description: 'Alcohol Isopropílico Antiséptico 70% 500 ml', barcode: '746040400103', reference: 'ALC-70-500ML', category: 'Primeros Auxilios', cost: 65.00, price: 110.00, stock: 75, minQuantity: 15 },
-      { description: 'Gasas Quirúrgicas Estériles 3x3 (Paquete 5 uds)', barcode: '746040400104', reference: 'GAS-EST-3X3', category: 'Primeros Auxilios', cost: 30.00, price: 60.00, stock: 100, minQuantity: 20 },
-      { description: 'Suero de Rehidratación Oral Electrolitos 500 ml', barcode: '746040400105', reference: 'SUE-REH-500ML', category: 'Hidratación', cost: 85.00, price: 140.00, stock: 60, minQuantity: 12 },
-      { description: 'Curitas Adhesivas Flexibles (Caja 20 uds)', barcode: '746040400106', reference: 'CUR-FLEX-20', category: 'Primeros Auxilios', cost: 45.00, price: 80.00, stock: 80, minQuantity: 15 }
-    ]
-  }
-];
-
 @Component({
   selector: 'app-product-import-modal',
   templateUrl: './product-import-modal.component.html',
@@ -119,7 +29,7 @@ export const PRELOADED_CATALOGS: PreloadedCatalog[] = [
   standalone: true,
   imports: [CommonModule, FormsModule]
 })
-export class ProductImportModalComponent {
+export class ProductImportModalComponent implements OnInit {
   @Output() imported = new EventEmitter<void>();
 
   private readonly productService = inject(ProductService);
@@ -130,7 +40,8 @@ export class ProductImportModalComponent {
 
   isOpen = signal<boolean>(false);
   activeTab = signal<'preloaded' | 'upload'>('preloaded');
-  catalogs = PRELOADED_CATALOGS;
+  catalogs = signal<PreloadedCatalog[]>([]);
+  isLoadingCatalogs = signal<boolean>(false);
 
   selectedCatalog = signal<PreloadedCatalog | null>(null);
 
@@ -143,13 +54,37 @@ export class ProductImportModalComponent {
   importProgress = signal<number>(0);
   importStats = signal<{ total: number; success: number; failed: number } | null>(null);
 
+  ngOnInit(): void {
+    void this.loadCatalogs();
+  }
+
+  async loadCatalogs(): Promise<void> {
+    this.isLoadingCatalogs.set(true);
+    try {
+      const res = await this.productService.getPreloadedCatalogs();
+      const list = res?.data || [];
+      this.catalogs.set(list);
+      if (list.length > 0 && !this.selectedCatalog()) {
+        this.selectedCatalog.set(list[0]);
+      }
+    } catch {
+      this.catalogs.set([]);
+    } finally {
+      this.isLoadingCatalogs.set(false);
+    }
+  }
+
   open(): void {
     this.isOpen.set(true);
     this.activeTab.set('preloaded');
-    this.selectedCatalog.set(this.catalogs[0]);
     this.importStats.set(null);
     this.parsedRows.set([]);
     this.fileName.set('');
+    if (this.catalogs().length === 0) {
+      void this.loadCatalogs();
+    } else if (!this.selectedCatalog()) {
+      this.selectedCatalog.set(this.catalogs()[0]);
+    }
   }
 
   close(): void {
@@ -165,7 +100,8 @@ export class ProductImportModalComponent {
    * Descarga la plantilla CSV lista para abrir en Excel con acentos y caracteres especiales dominicanos (UTF-8 con BOM).
    */
   downloadTemplateCsv(catalog?: PreloadedCatalog): void {
-    const target = catalog || this.selectedCatalog() || this.catalogs[0];
+    const target = catalog || this.selectedCatalog() || this.catalogs()[0];
+    if (!target) return;
     const headers = 'Codigo_Barra,Referencia,Descripcion,Categoria,Costo_Compra,Precio_Venta,Stock_Inicial,Stock_Minimo';
     
     const rows = target.items.map(it => 

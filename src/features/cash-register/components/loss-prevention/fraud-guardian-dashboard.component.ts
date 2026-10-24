@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FraudGuardianService, type FraudFlag, type CashierIntegrityScore } from '../../services/fraud-guardian.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
+import { formatDateInRD, formatTimeInRD } from '../../../cuadreEnv/utils/rd-date.util';
 
 @Component({
   selector: 'app-fraud-guardian-dashboard',
@@ -54,7 +55,7 @@ export class FraudGuardianDashboardComponent {
   exportForensicReport(): void {
     const flags = this.fraudService.flags();
     const scores = this.fraudService.cashierScores();
-    const dateStr = new Date().toLocaleDateString('es-DO', { dateStyle: 'full' });
+    const dateStr = formatDateInRD(new Date(), { dateStyle: 'full' });
 
     let report = `========================================================================\r\n`;
     report += `CUADRE-ENV POS - INFORME FORENSE & PREVENCIÓN DE PÉRDIDAS (EL GUARDIÁN)\r\n`;
@@ -66,7 +67,7 @@ export class FraudGuardianDashboardComponent {
     for (const f of this.fraudService.activeFlags()) {
       report += ` - [${f.severity}] ${f.title}\r\n`;
       report += `   Cajero: ${f.cashierName} | Caja: ${f.cashRegisterName}\r\n`;
-      report += `   Hora: ${new Date(f.timestamp).toLocaleTimeString()} | Métrica: ${f.metricValue} (Límite: ${f.thresholdLimit})\r\n`;
+      report += `   Hora: ${formatTimeInRD(f.timestamp)} | Métrica: ${f.metricValue} (Límite: ${f.thresholdLimit})\r\n`;
       report += `   Detalle: ${f.description}\r\n\r\n`;
     }
 

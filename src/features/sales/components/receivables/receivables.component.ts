@@ -22,6 +22,8 @@ import {
   ContainerComponent,
   SpinnerComponent,
 } from '@coreui/angular';
+import { IconDirective } from '@coreui/icons-angular';
+import { WhatsAppShareService } from '../../services/whatsapp-share.service';
 
 @Component({
   selector: 'app-receivables',
@@ -33,6 +35,7 @@ import {
     ContainerComponent,
     ButtonDirective,
     SpinnerComponent,
+    IconDirective,
     CreateReceivableModalComponent,
     ReceivableDetailModalComponent,
     ListPaginationComponent,
@@ -46,6 +49,7 @@ export class ReceivablesComponent implements OnInit {
   private readonly receivableService = inject(ReceivableService);
   private readonly notificationService = inject(NotificationService);
   private readonly confirmService = inject(ConfirmDialogService);
+  private readonly whatsappShareService = inject(WhatsAppShareService);
 
   receivables = signal<ReceivableDto[]>([]);
   isLoading = signal<boolean>(false);
@@ -151,9 +155,10 @@ export class ReceivablesComponent implements OnInit {
 
   async reopenReceivable(item: ReceivableDto) {
     const confirmed = await this.confirmService.confirm({
-      title: '¿Reabrir cuenta por cobrar?',
-      message: `¿Desea reactivar la cuenta por cobrar de "${item.customerName}" (${item.invoiceNumber}) para permitir nuevos ajustes o correcciones de saldo?`,
-      confirmText: 'Sí, reactivar',
+      title: '⚠️ Aviso de Reapertura de Cuenta',
+      message: `¿Desea reactivar la cuenta por cobrar de "${item.customerName}" (${item.invoiceNumber})? Su estado pasará nuevamente a Pendiente y volverá a computarse dentro de los saldos pendientes de cobro.`,
+      confirmText: 'Sí, reactivar cuenta',
+      cancelText: 'Cancelar',
       variant: 'warning',
     });
 
@@ -298,17 +303,15 @@ export class ReceivablesComponent implements OnInit {
   }
 
   sendWhatsAppReminder(item: ReceivableDto): void {
-    const rawPhone = (item.customerPhone || '').replace(/[^0-9]/g, '');
-    const cleanPhone = rawPhone.length === 10 ? '1' + rawPhone : rawPhone;
     const dueDateStr = item.dueDate
       ? new Date(item.dueDate).toLocaleDateString('es-DO')
       : 'fecha acordada';
 
-    const msg = `Hola ${item.customerName}, le saludamos de CuadreEnv. Le enviamos un recordatorio amistoso de su saldo pendiente de RD$ ${item.pendingAmount.toLocaleString('es-DO', { minimumFractionDigits: 2 })} correspondiente a la factura ${item.invoiceNumber} con fecha límite ${dueDateStr}. Agradecemos su pronta atención. Para cualquier consulta estamos a su entera orden. ¡Muchas gracias!`;
+    const senderPhone = this.whatsappShareService.getUserPhone();
+    const senderLine = senderPhone ? `\n👤 Atendido por: Tel ${senderPhone}` : '';
 
-    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
-    if (typeof window !== 'undefined') {
-      window.open(url, '_blank');
-    }
+    const msg = `Hola ${item.customerName || 'Estimado cliente'}, le saludamos de CuadreEnv. Le enviamos un recordatorio amistoso de su balance pendiente de RD$ ${item.pendingAmount.toLocaleString('es-DO', { minimumFractionDigits: 2 })} correspondiente a la factura ${item.invoiceNumber} con fecha límite ${dueDateStr}.${senderLine}\nPara cualquier consulta o confirmación de pago estamos a su completa orden. ¡Muchas gracias!`;
+
+    this.whatsappShareService.openWhatsApp(item.customerPhone || '', msg);
   }
 }

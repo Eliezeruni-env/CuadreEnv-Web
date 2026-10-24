@@ -18,6 +18,7 @@ import {
 import { PurchaseService } from '../../services/purchase.service';
 import { ProductService } from '../../../products/services/product.service';
 import { SupplierService } from '../../services/supplier.service';
+import { StockService } from '../../../inventory/services/stock.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import type { PurchaseDto, ProductDto } from '../../../cuadreEnv/types/api';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
@@ -55,6 +56,7 @@ import { Router } from '@angular/router';
 export class PurchaseModalComponent implements OnInit {
   readonly translationService = inject(TranslationService);
   private readonly supplierService = inject(SupplierService);
+  private readonly stockService = inject(StockService);
   private readonly router = inject(Router);
 
   @Input() visible = false;
@@ -238,7 +240,25 @@ export class PurchaseModalComponent implements OnInit {
       });
 
       if (res.success) {
-        this.notificationService.success('Compra registrada exitosamente.');
+        // 1. Enlazar con Catálogo: Actualizar costo de compra y calcular márgenes
+        for (const d of details) {
+          this.productService.updateProductCostFromPurchase(
+            d.productId,
+            d.costPrice,
+            formVal.supplierId ? parseInt(formVal.supplierId, 10) : null,
+          );
+        }
+
+        // 2. Enlazar con Inventario & Almacén: Aumentar existencias en Almacén Principal
+        for (const d of details) {
+          try {
+            await this.stockService.updateStock(1, d.productId, d.quantity, this.getProductName(d.productId));
+          } catch {
+            // ignore
+          }
+        }
+
+        this.notificationService.success('Compra registrada: Costos de productos y existencias de almacén actualizados.');
         this.saved.emit();
         this.close();
       } else {

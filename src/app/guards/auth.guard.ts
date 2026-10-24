@@ -15,39 +15,43 @@ export const authGuard: CanActivateFn = (route, state) => {
     return false;
   };
 
-  if (!authService.isInitializing()) {
-    if (authService.isAuthenticated()) {
-      const companyId = authService.companyId();
-      const role = authService.currentRole();
-      
-      // If Admin has registered but has no company, redirect to company creation
-      if (!companyId && role === 'Admin') {
-        const currentUrl = router.url;
-        if (!currentUrl.includes('/companies/create')) {
-          router.navigate(['/companies/create']);
-          return false;
-        }
-      }
-      return true;
+  const checkTenantAccess = (): boolean => {
+    if (!authService.isAuthenticated()) {
+      return redirectLogin();
     }
-    return redirectLogin();
-  }
 
-  return toObservable(authService.isInitializing).pipe(
-    filter((isInit) => !isInit),
-    take(1),
-    map(() => {
-      if (authService.isAuthenticated()) {
-        const companyId = authService.companyId();
-        const role = authService.currentRole();
-        if (!companyId && role === 'Admin') {
+    const companyId = authService.companyId();
+    const role = authService.currentRole();
+    const isSuper = authService.isSuperUser();
+
+    // Si el usuario no tiene CompanyId válido, bloquear rutas SaaS que requieren tenant
+    if (!companyId || companyId <= 0) {
+      if (isSuper) {
+        return true;
+      }
+      if (role === 'Admin') {
+        const currentUrl = router.url || state?.url || '';
+        if (!currentUrl.includes('/companies/create')) {
           router.navigate(['/companies/create']);
           return false;
         }
         return true;
       }
-      return redirectLogin();
-    })
+      router.navigate(['/login'], { queryParams: { error: 'missing_tenant' } });
+      return false;
+    }
+
+    return true;
+  };
+
+  if (!authService.isInitializing()) {
+    return checkTenantAccess();
+  }
+
+  return toObservable(authService.isInitializing).pipe(
+    filter((isInit) => !isInit),
+    take(1),
+    map(() => checkTenantAccess())
   );
 };
 
@@ -81,7 +85,12 @@ export function moduleGuard(moduleCodeOrRoute: any, state?: any): any {
       const moduleService = inject(ModuleAccessService);
       const router = inject(Router);
 
-      const hasAccess = authService?.hasModuleAccess(moduleCode) ?? moduleService.hasModule(moduleCode);
+      const isSuperAdmin =
+        authService?.isSuperAdmin() === true ||
+        authService?.currentRole()?.toLowerCase() === 'superadmin';
+      const hasAccess =
+        (isSuperAdmin && authService?.hasAllModules()) ||
+        moduleService.hasModuleAccess(moduleCode);
       if (hasAccess) return true;
 
       router.navigate(['/dashboard'], { queryParams: { error: 'no-access', module: moduleCode } });
@@ -95,7 +104,12 @@ export function moduleGuard(moduleCodeOrRoute: any, state?: any): any {
   const router = inject(Router);
   const targetModule = (route?.data?.['module'] as string) || 'dashboard';
 
-  const hasAccess = authService?.hasModuleAccess(targetModule) ?? moduleService.hasModule(targetModule);
+  const isSuperAdmin =
+    authService?.isSuperAdmin() === true ||
+    authService?.currentRole()?.toLowerCase() === 'superadmin';
+  const hasAccess =
+    (isSuperAdmin && authService?.hasAllModules()) ||
+    moduleService.hasModuleAccess(targetModule);
   if (hasAccess) return true;
 
   router.navigate(['/dashboard'], { queryParams: { error: 'no-access', module: targetModule } });
@@ -110,7 +124,10 @@ export const moduleChildAccessGuard: CanActivateChildFn = (route, state) => {
   const router = inject(Router);
   const targetModule = (route?.data?.['module'] as string) || 'dashboard';
 
-  const hasAccess = authService?.hasModuleAccess(targetModule) ?? moduleService.hasModule(targetModule);
+  const hasAccess =
+    authService?.isSuperUser() ||
+    authService?.hasRole(['Admin', 'SuperUser', 'SuperAdmin', 'SysAdmin']) ||
+    (authService?.hasModuleAccess(targetModule) ?? moduleService.hasModule(targetModule));
   if (hasAccess) return true;
 
   router.navigate(['/dashboard'], { queryParams: { error: 'no-access', module: targetModule } });

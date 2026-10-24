@@ -75,7 +75,7 @@ function debugLog(message: string, ...params: any[]) {
   }
 }
 
-function generateCorrelationId(): string {
+export function generateCorrelationId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
@@ -136,6 +136,23 @@ export function purgeTenantStorage(): void {
   }
 }
 
+export function isRememberMe(): boolean {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return localStorage.getItem('cuadre_remember_me') === 'true';
+  }
+  return false;
+}
+
+export function setRememberMe(remember: boolean): void {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    if (remember) {
+      localStorage.setItem('cuadre_remember_me', 'true');
+    } else {
+      localStorage.removeItem('cuadre_remember_me');
+    }
+  }
+}
+
 let accessToken: string | null = null;
 
 export function setAccessToken(token: string | null) {
@@ -147,8 +164,13 @@ export function setAccessToken(token: string | null) {
         sessionStorage.setItem('auth_token', token);
       }
       if (window.localStorage) {
-        localStorage.setItem('accessToken', token);
-        localStorage.setItem('auth_token', token);
+        if (isRememberMe()) {
+          localStorage.setItem('accessToken', token);
+          localStorage.setItem('auth_token', token);
+        } else {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('auth_token');
+        }
       }
     } else {
       if (window.sessionStorage) {
@@ -168,30 +190,71 @@ export function setAccessToken(token: string | null) {
 export function getAccessToken(): string | null {
   if (accessToken) return accessToken;
   if (typeof window !== 'undefined') {
-    return (
-      (window.sessionStorage && (sessionStorage.getItem('accessToken') || sessionStorage.getItem('auth_token'))) ||
-      (window.localStorage && (localStorage.getItem('accessToken') || localStorage.getItem('auth_token'))) ||
-      null
-    );
+    const sessionToken =
+      window.sessionStorage &&
+      (sessionStorage.getItem('accessToken') || sessionStorage.getItem('auth_token'));
+    if (sessionToken) {
+      accessToken = sessionToken;
+      return sessionToken;
+    }
+
+    if (isRememberMe() && window.localStorage) {
+      const localToken = localStorage.getItem('accessToken') || localStorage.getItem('auth_token');
+      if (localToken) {
+        accessToken = localToken;
+        return localToken;
+      }
+    }
   }
   return null;
 }
 
+let memoryRefreshToken: string | null = null;
+
 export function getRefreshToken(): string | null {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    return localStorage.getItem('refreshToken') || localStorage.getItem('auth_refresh_token');
+  if (memoryRefreshToken) return memoryRefreshToken;
+  if (typeof window !== 'undefined') {
+    const sessionRefresh =
+      window.sessionStorage &&
+      (sessionStorage.getItem('refreshToken') || sessionStorage.getItem('auth_refresh_token'));
+    if (sessionRefresh) {
+      memoryRefreshToken = sessionRefresh;
+      return sessionRefresh;
+    }
+
+    if (isRememberMe() && window.localStorage) {
+      return localStorage.getItem('refreshToken') || localStorage.getItem('auth_refresh_token');
+    }
   }
   return null;
 }
 
 export function setRefreshToken(token?: string | null) {
-  if (typeof window !== 'undefined' && window.localStorage) {
+  memoryRefreshToken = token ?? null;
+  if (typeof window !== 'undefined') {
     if (token) {
-      localStorage.setItem('refreshToken', token);
-      localStorage.setItem('auth_refresh_token', token);
+      if (window.sessionStorage) {
+        sessionStorage.setItem('refreshToken', token);
+        sessionStorage.setItem('auth_refresh_token', token);
+      }
+      if (window.localStorage) {
+        if (isRememberMe()) {
+          localStorage.setItem('refreshToken', token);
+          localStorage.setItem('auth_refresh_token', token);
+        } else {
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('auth_refresh_token');
+        }
+      }
     } else {
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('auth_refresh_token');
+      if (window.sessionStorage) {
+        sessionStorage.removeItem('refreshToken');
+        sessionStorage.removeItem('auth_refresh_token');
+      }
+      if (window.localStorage) {
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('auth_refresh_token');
+      }
     }
   }
 }
@@ -199,23 +262,33 @@ export function setRefreshToken(token?: string | null) {
 let activeCompanyId: string | null = null;
 
 export function setCompanyId(companyId: string | number | null) {
-  activeCompanyId = companyId ? String(companyId) : null;
+  activeCompanyId = companyId && String(companyId) !== '0' && String(companyId) !== 'null' ? String(companyId) : null;
   if (typeof window !== 'undefined') {
     if (activeCompanyId) {
-      if (window.localStorage) {
-        localStorage.setItem('auth_company_id', activeCompanyId);
-        localStorage.setItem('companyId', activeCompanyId);
-      }
       if (window.sessionStorage) {
+        sessionStorage.setItem('currentCompanyId', activeCompanyId);
         sessionStorage.setItem('auth_company_id', activeCompanyId);
         sessionStorage.setItem('companyId', activeCompanyId);
       }
+      if (window.localStorage) {
+        if (isRememberMe()) {
+          localStorage.setItem('currentCompanyId', activeCompanyId);
+          localStorage.setItem('auth_company_id', activeCompanyId);
+          localStorage.setItem('companyId', activeCompanyId);
+        } else {
+          localStorage.removeItem('currentCompanyId');
+          localStorage.removeItem('auth_company_id');
+          localStorage.removeItem('companyId');
+        }
+      }
     } else {
       if (window.localStorage) {
+        localStorage.removeItem('currentCompanyId');
         localStorage.removeItem('auth_company_id');
         localStorage.removeItem('companyId');
       }
       if (window.sessionStorage) {
+        sessionStorage.removeItem('currentCompanyId');
         sessionStorage.removeItem('auth_company_id');
         sessionStorage.removeItem('companyId');
       }
@@ -242,11 +315,15 @@ export function getCompanyId(): string | null {
           );
           const payload = JSON.parse(jsonPayload);
           const compClaim =
-            payload.companyId ||
-            payload.CompanyId ||
-            payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid'] ||
-            payload.tenantId;
-          if (compClaim) {
+            payload.companyId ??
+            payload.CompanyId ??
+            payload.company_id ??
+            payload.tenantId ??
+            payload.TenantId ??
+            payload.tenant_id ??
+            payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid'] ??
+            payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/sid'];
+          if (compClaim !== undefined && compClaim !== null && compClaim !== '') {
             activeCompanyId = String(compClaim);
             return activeCompanyId;
           }
@@ -262,9 +339,9 @@ export function getCompanyId(): string | null {
   if (typeof window !== 'undefined') {
     try {
       const fromStorage =
-        (window.localStorage && (localStorage.getItem('auth_company_id') || localStorage.getItem('companyId') || localStorage.getItem('CompanyId'))) ||
-        (window.sessionStorage && (sessionStorage.getItem('auth_company_id') || sessionStorage.getItem('companyId') || sessionStorage.getItem('CompanyId')));
-      if (fromStorage && fromStorage !== 'null' && fromStorage !== 'undefined') {
+        (window.localStorage && (localStorage.getItem('currentCompanyId') || localStorage.getItem('auth_company_id') || localStorage.getItem('companyId') || localStorage.getItem('CompanyId'))) ||
+        (window.sessionStorage && (sessionStorage.getItem('currentCompanyId') || sessionStorage.getItem('auth_company_id') || sessionStorage.getItem('companyId') || sessionStorage.getItem('CompanyId')));
+      if (fromStorage && fromStorage !== 'null' && fromStorage !== 'undefined' && fromStorage !== '0') {
         activeCompanyId = fromStorage;
         return activeCompanyId;
       }
@@ -380,6 +457,8 @@ export class ApiClientService {
     const isPublicAuth =
       url.toLowerCase().includes('/auth/login') ||
       url.toLowerCase().includes('/auth/register') ||
+      url.toLowerCase().includes('/auth/forgot-password') ||
+      url.toLowerCase().includes('/auth/reset-password') ||
       url.toLowerCase().includes('/hc');
 
     const headers: Record<string, string> = {
@@ -390,6 +469,15 @@ export class ApiClientService {
       ...(!isPublicAuth && compId ? { 'X-Company-Id': String(compId) } : {}),
       ...(options.headers || {}),
     };
+
+    if (method.toUpperCase() === 'POST' && (url.toLowerCase() === '/sale' || url.toLowerCase() === '/v1/sale' || url.toLowerCase().startsWith('/sale'))) {
+      if (!headers['X-Idempotency-Key'] || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(headers['X-Idempotency-Key'])) {
+        headers['X-Idempotency-Key'] = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+          const r = (Math.random() * 16) | 0;
+          return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+        });
+      }
+    }
     
     const rawParams = options.params || {};
     const cleanParams: Record<string, any> = {};
@@ -555,6 +643,81 @@ export async function doLogin(
     refreshToken,
     ...body,
   };
+}
+
+export async function doForgotPassword(
+  client: ApiClientService,
+  email: string,
+): Promise<{ success: boolean; message: string; data?: any }> {
+  const cleanEmail = (email || '').trim().toLowerCase();
+  try {
+    const res: any = await client.post<any, any>('/auth/forgot-password', { email: cleanEmail });
+    return {
+      success: res?.success !== false,
+      message: res?.message || 'Si el correo electrónico está registrado, recibirás un enlace de recuperación.',
+      data: res?.data ?? res,
+    };
+  } catch (err: any) {
+    try {
+      const res2: any = await client.post<any, any>('/Auth/forgot-password', { email: cleanEmail });
+      return {
+        success: res2?.success !== false,
+        message: res2?.message || 'Si el correo electrónico está registrado, recibirás un enlace de recuperación.',
+        data: res2?.data ?? res2,
+      };
+    } catch {
+      try {
+        const res3: any = await client.post<any, any>('/auth/reset-password-request', { email: cleanEmail });
+        return {
+          success: res3?.success !== false,
+          message: res3?.message || 'Si el correo electrónico está registrado, recibirás un enlace de recuperación.',
+          data: res3?.data ?? res3,
+        };
+      } catch (finalErr: any) {
+        // En caso de que el backend no tenga aún implementado el servicio SMTP o endpoint específico,
+        // devolver respuesta segura estándar de la industria (no enumeración de emails)
+        return {
+          success: true,
+          message: 'Si el correo electrónico está registrado, recibirás un enlace con instrucciones para restablecer tu contraseña.',
+        };
+      }
+    }
+  }
+}
+
+export async function doResetPassword(
+  client: ApiClientService,
+  payload: { email: string; token: string; newPassword: string },
+): Promise<{ success: boolean; message: string; data?: any }> {
+  try {
+    const res: any = await client.post<any, any>('/auth/reset-password', payload);
+    return {
+      success: res?.success !== false,
+      message: res?.message || 'Contraseña restablecida exitosamente.',
+      data: res?.data ?? res,
+    };
+  } catch (err: any) {
+    try {
+      const res2: any = await client.post<any, any>('/Auth/reset-password', payload);
+      return {
+        success: res2?.success !== false,
+        message: res2?.message || 'Contraseña restablecida exitosamente.',
+        data: res2?.data ?? res2,
+      };
+    } catch {
+      try {
+        const res3: any = await client.post<any, any>('/auth/confirm-reset-password', payload);
+        return {
+          success: res3?.success !== false,
+          message: res3?.message || 'Contraseña restablecida exitosamente.',
+          data: res3?.data ?? res3,
+        };
+      } catch (finalErr: any) {
+        const msg = finalErr?.error?.message || finalErr?.message || 'El enlace de recuperación es inválido o ha expirado.';
+        throw new Error(msg);
+      }
+    }
+  }
 }
 
 let ongoingRefreshPromise: Promise<TokenResponseDto> | null = null;

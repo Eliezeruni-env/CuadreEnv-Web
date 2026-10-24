@@ -121,6 +121,96 @@
     </div>
   </div>
 
+  <!-- Control Antidescuadre de Stock: Vías de Entrada de Mercancía para el Rol -->
+  <div class="card border-0 shadow-sm rounded-4 p-3.5 mb-4 bg-white" style="border-left: 4px solid #4f46e5 !important;">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+      <div class="d-flex align-items-center gap-2">
+        <span class="fs-5">🛡️</span>
+        <div>
+          <h5 class="fw-bold text-dark mb-0 fs-6">Control Antidescuadre de Stock: Vías de Entrada de Mercancía</h5>
+          <span class="text-secondary small">
+            Define si los usuarios con el rol <strong>{{ selectedRole()?.name || 'seleccionado' }}</strong> pueden recepcionar compras y/o ingresar inventario manual.
+          </span>
+        </div>
+      </div>
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill small">
+        Aislamiento Granular Activo
+      </span>
+    </div>
+
+    <div class="row g-3 mt-1">
+      <!-- purchases-receipts Switch -->
+      <div class="col-md-6">
+        <div class="p-3 border rounded-3 bg-light bg-opacity-50 h-100 d-flex flex-column justify-content-between">
+          <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
+            <div>
+              <div class="d-flex align-items-center gap-1.5 mb-1">
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">
+                  Vía Formal
+                </span>
+                <strong class="text-dark small">Recepciones de Orden de Compra</strong>
+              </div>
+              <p class="text-secondary mb-0" style="font-size: 0.76rem; line-height: 1.35;">
+                Permite a este rol verificar y recibir pedidos físicos de proveedores respaldados por una Orden de Compra (<code>purchases-receipts</code>).
+              </p>
+            </div>
+            <div class="form-check form-switch m-0">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+                id="rolePurReceiptsSwitch"
+                [checked]="isGranularModuleEnabled('purchases-receipts')"
+                (change)="toggleGranularModule('purchases-receipts')"
+              />
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-1 text-muted" style="font-size: 0.7rem;">
+            <span>Estado:</span>
+            <span [ngClass]="isGranularModuleEnabled('purchases-receipts') ? 'text-success fw-bold' : 'text-danger fw-bold'">
+              {{ isGranularModuleEnabled('purchases-receipts') ? '● Habilitado' : '○ Bloqueado' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- inventory-entries Switch -->
+      <div class="col-md-6">
+        <div class="p-3 border rounded-3 bg-light bg-opacity-50 h-100 d-flex flex-column justify-content-between">
+          <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
+            <div>
+              <div class="d-flex align-items-center gap-1.5 mb-1">
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">
+                  Vía Manual
+                </span>
+                <strong class="text-dark small">Entradas Manuales de Almacén</strong>
+              </div>
+              <p class="text-secondary mb-0" style="font-size: 0.76rem; line-height: 1.35;">
+                Permite a este rol registrar ingresos directos y ajustes de stock sin orden de compra formal (<code>inventory-entries</code>).
+              </p>
+            </div>
+            <div class="form-check form-switch m-0">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+                id="roleInvEntriesSwitch"
+                [checked]="isGranularModuleEnabled('inventory-entries')"
+                (change)="toggleGranularModule('inventory-entries')"
+              />
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-1 text-muted" style="font-size: 0.7rem;">
+            <span>Estado:</span>
+            <span [ngClass]="isGranularModuleEnabled('inventory-entries') ? 'text-success fw-bold' : 'text-danger fw-bold'">
+              {{ isGranularModuleEnabled('inventory-entries') ? '● Habilitado' : '○ Bloqueado' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Interactive Permissions Matrix Table -->
   <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
     <div class="table-responsive matrix-scroll-wrap">

@@ -81,6 +81,34 @@ export class StockComponent implements OnInit {
     return this.stockList().filter((s) => s.quantity > 0 && s.quantity <= (s.minimumQuantity || 5)).length;
   });
 
+  readonly normalCount = computed(() => {
+    return this.stockList().filter((s) => s.quantity > (s.minimumQuantity || 5) && s.quantity < (s.maximumQuantity || 100)).length;
+  });
+
+  readonly overstockCount = computed(() => {
+    return this.stockList().filter((s) => s.quantity >= (s.maximumQuantity || 100)).length;
+  });
+
+  readonly allCount = computed(() => {
+    return this.stockList().length;
+  });
+
+  setStatusFilter(status: 'ALL' | 'CRITICAL' | 'LOW' | 'NORMAL' | 'OVERSTOCK'): void {
+    this.statusFilter = status;
+    this.onFilterChange();
+  }
+
+  setWarehouseFilter(whId: number | ''): void {
+    this.selectedWarehouseId = whId;
+    this.onFilterChange();
+  }
+
+  getStockPercentage(s: Stock): number {
+    const max = s.maximumQuantity || 100;
+    if (max <= 0) return 0;
+    return Math.min(100, Math.max(0, Math.round(((s.quantity || 0) / max) * 100)));
+  }
+
   ngOnInit() {
     this.loadData();
   }

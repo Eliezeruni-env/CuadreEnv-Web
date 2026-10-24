@@ -11,9 +11,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomerService } from '../../../customers/services/customer.service';
 import { TaxpayerService } from '../../services/taxpayer.service';
+import { WarehouseService } from '../../../inventory/services/warehouse.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import type { CustomerDto } from '../../../cuadreEnv/types/api';
 import type { HeaderDto } from '../../../../app/models/billing';
+import type { Warehouse } from '../../../../app/models/warehouse';
 
 @Component({
   selector: 'app-client-search',
@@ -25,6 +27,7 @@ import type { HeaderDto } from '../../../../app/models/billing';
 export class ClientSearchComponent implements OnInit {
   private customerService = inject(CustomerService);
   private taxpayerService = inject(TaxpayerService);
+  private warehouseService = inject(WarehouseService);
   private notificationService = inject(NotificationService);
 
   @Input() set initialHeader(h: HeaderDto | null | undefined) {
@@ -36,6 +39,7 @@ export class ClientSearchComponent implements OnInit {
   @Output() headerChange = new EventEmitter<HeaderDto>();
 
   customers = signal<CustomerDto[]>([]);
+  warehouses = signal<Warehouse[]>([]);
   isSearchingRnc = signal<boolean>(false);
   rncSearchInput = signal<string>('');
 
@@ -50,8 +54,26 @@ export class ClientSearchComponent implements OnInit {
   };
 
   async ngOnInit() {
-    await this.loadCustomers();
+    await Promise.all([this.loadCustomers(), this.loadWarehouses()]);
     this.emitHeader();
+  }
+
+  async loadWarehouses() {
+    try {
+      const res = await this.warehouseService.getWarehouses();
+      if (res?.success && res.data && res.data.length > 0) {
+        this.warehouses.set(res.data);
+        const match = res.data.find((w) => w.id === this.header.warehouseId);
+        if (!match) {
+          const mainWh = res.data.find((w) => w.isMain) || res.data[0];
+          this.header.warehouseId = mainWh.id;
+        }
+      } else {
+        this.warehouses.set([]);
+      }
+    } catch {
+      this.warehouses.set([]);
+    }
   }
 
   async loadCustomers() {
