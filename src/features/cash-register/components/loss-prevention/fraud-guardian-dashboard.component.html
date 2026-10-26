@@ -1,0 +1,300 @@
+<div class="container-fluid py-3 forensic-dashboard">
+
+  <!-- Top Bar -->
+  <div class="forensic-header d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
+    <div class="d-flex align-items-center gap-3">
+      <div class="forensic-brand-icon p-3 rounded-3 text-white fs-3 shadow-sm" [ngClass]="{
+        'bg-success': fraudService.branchRiskLevel() === 'BAJO',
+        'bg-warning': fraudService.branchRiskLevel() === 'MODERADO',
+        'bg-danger': fraudService.branchRiskLevel() === 'CRÍTICO'
+      }">
+        🛡️
+      </div>
+      <div>
+        <div class="d-flex align-items-center gap-2">
+          <h4 class="fw-bold mb-0 text-dark">El Guardián Antirrobo</h4>
+          <span class="badge rounded-pill font-monospace" [ngClass]="{
+            'bg-success-subtle text-success border border-success': fraudService.branchRiskLevel() === 'BAJO',
+            'bg-warning-subtle text-warning-emphasis border border-warning': fraudService.branchRiskLevel() === 'MODERADO',
+            'bg-danger-subtle text-danger border border-danger': fraudService.branchRiskLevel() === 'CRÍTICO'
+          }">
+            Nivel de Riesgo: {{ fraudService.branchRiskLevel() }} ({{ fraudService.branchRiskScore() }}/100)
+          </span>
+        </div>
+        <small class="text-secondary">Auditoría forense en tiempo real y detección automática de anomalías en cajas</small>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <button
+        type="button"
+        class="btn btn-outline-secondary d-flex align-items-center gap-2 shadow-xs px-3"
+        (click)="exportForensicReport()"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Exportar Informe Forense</span>
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3"
+        (click)="fraudService.loadInitialForensicData()"
+      >
+        <span>🔄 Actualizar Auditoría</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI SUMMARY ROW -->
+  <div class="row g-3 mb-3 forensic-kpi-grid">
+    <!-- Banderas Activas -->
+    <div class="col-sm-6 col-lg-3">
+      <div class="card forensic-kpi-card border-0 rounded-4 p-3 bg-white shadow-sm h-100 border-start border-4 border-danger">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-secondary small fw-semibold">Banderas Forenses Activas</div>
+            <h3 class="fw-bold text-danger mb-0 font-monospace">{{ fraudService.activeFlags().length }}</h3>
+            <small class="text-muted">{{ fraudService.criticalFlagsCount() }} de severidad crítica</small>
+          </div>
+          <div class="p-3 bg-danger-subtle text-danger rounded-circle fs-4">
+            🚩
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tasa Anulaciones -->
+    <div class="col-sm-6 col-lg-3">
+      <div class="card forensic-kpi-card border-0 rounded-4 p-3 bg-white shadow-sm h-100 border-start border-4 border-warning">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-secondary small fw-semibold">Alerta Anulaciones (>5%)</div>
+            <h3 class="fw-bold text-dark mb-0 font-monospace">1 Cajero</h3>
+            <small class="text-danger fw-semibold">Supera el límite seguro de 5%</small>
+          </div>
+          <div class="p-3 bg-warning-subtle text-warning-emphasis rounded-circle fs-4">
+            📉
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gavetas sin venta -->
+    <div class="col-sm-6 col-lg-3">
+      <div class="card forensic-kpi-card border-0 rounded-4 p-3 bg-white shadow-sm h-100 border-start border-4 border-info">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-secondary small fw-semibold">Gavetas Abiertas sin Venta</div>
+            <h3 class="fw-bold text-info mb-0 font-monospace">7 eventos</h3>
+            <small class="text-muted">Aperturas de gaveta manuales</small>
+          </div>
+          <div class="p-3 bg-info-subtle text-info rounded-circle fs-4">
+            🚪
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Descuadre Acumulado -->
+    <div class="col-sm-6 col-lg-3">
+      <div class="card forensic-kpi-card border-0 rounded-4 p-3 bg-white shadow-sm h-100 border-start border-4 border-primary">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-secondary small fw-semibold">Faltante Neto Acumulado</div>
+            <h3 class="fw-bold text-dark mb-0 font-monospace">RD$ -190.00</h3>
+            <small class="text-muted">En cierres ciegos de turno</small>
+          </div>
+          <div class="p-3 bg-primary-subtle text-primary rounded-circle fs-4">
+            💵
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- COL-LG-7: LISTA DE BANDERAS ACTIVAS -->
+    <div class="col-lg-7">
+      <div class="card forensic-panel border rounded-4 shadow-sm bg-white p-3 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+              <span>🚨 Banderas de Riesgo Detectadas</span>
+              <span class="badge bg-danger rounded-pill">{{ fraudService.activeFlags().length }} activas</span>
+            </h5>
+            <small class="text-secondary">Patrones sospechosos que requieren revisión o justificación de supervisión</small>
+          </div>
+        </div>
+
+        @if (fraudService.activeFlags().length === 0) {
+          <div class="p-5 text-center bg-light rounded-4">
+            <span class="fs-1 text-success">✅</span>
+            <h6 class="fw-bold text-dark mt-2 mb-1">¡Auditoría Limpia!</h6>
+            <p class="small text-secondary mb-0">No se registran anomalías en cajas ni anulaciones excesivas en este momento.</p>
+          </div>
+        } @else {
+          <div class="d-flex flex-column gap-3">
+            @for (flag of fraudService.activeFlags(); track flag.id) {
+              <div class="card forensic-flag-card border rounded-3 p-3 transition-all shadow-xs" [ngClass]="{
+                'flag-critical border-danger bg-danger-subtle bg-opacity-10': flag.severity === 'CRITICAL',
+                'flag-medium border-warning bg-warning-subtle bg-opacity-10': flag.severity === 'MEDIUM',
+                'flag-low border-info bg-light': flag.severity === 'LOW'
+              }">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fs-5">
+                      @if (flag.severity === 'CRITICAL') { 🚩 } @else { ⚠️ }
+                    </span>
+                    <div>
+                      <h6 class="fw-bold mb-0 text-dark">{{ flag.title }}</h6>
+                      <small class="text-secondary">
+                        Cajero: <strong>{{ flag.cashierName }}</strong> · {{ flag.cashRegisterName }} · {{ flag.timestamp | date:'shortTime' }}
+                      </small>
+                    </div>
+                  </div>
+
+                  <span class="badge font-monospace" [ngClass]="{
+                    'bg-danger text-white': flag.severity === 'CRITICAL',
+                    'bg-warning text-dark': flag.severity === 'MEDIUM',
+                    'bg-info text-white': flag.severity === 'LOW'
+                  }">
+                    {{ flag.severity }}
+                  </span>
+                </div>
+
+                <p class="small text-dark mb-3">
+                  {{ flag.description }}
+                </p>
+
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                  <div class="small">
+                    <span class="text-secondary">Valor: </span>
+                    <strong class="text-danger font-monospace">{{ flag.metricValue }}</strong>
+                    <span class="text-muted ms-2">(Límite seguro: {{ flag.thresholdLimit }})</span>
+                  </div>
+
+                  <div class="d-flex gap-2">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      (click)="openJustifyModal(flag)"
+                    >
+                      Descartar / Justificar
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-success fw-semibold"
+                      (click)="selectedFlag.set(flag); confirmResolve('RESOLVE')"
+                    >
+                      ✓ Validar Incidencia
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- COL-LG-5: TABLA DE INTEGRIDAD POR CAJERO -->
+    <div class="col-lg-5">
+      <div class="card forensic-panel border rounded-4 shadow-sm bg-white p-3 h-100">
+        <div class="mb-3">
+          <h5 class="fw-bold text-dark mb-0">Integridad por Cajero</h5>
+          <small class="text-secondary">Historial de comportamiento, anulaciones y arqueo ciego</small>
+        </div>
+
+        <div class="table-responsive rounded-3 border">
+          <table class="table table-hover align-middle mb-0 font-size-sm">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Cajero</th>
+                <th class="text-center">Ventas</th>
+                <th class="text-center">% Anul.</th>
+                <th class="text-center">Gavetas</th>
+                <th class="text-end pe-3">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of fraudService.cashierScores(); track c.cashierId) {
+                <tr>
+                  <td class="ps-3">
+                    <div class="fw-bold text-dark">{{ c.cashierName }}</div>
+                    <small class="text-muted font-monospace">ID #{{ c.cashierId }}</small>
+                  </td>
+                  <td class="text-center font-monospace">{{ c.totalSalesCount }}</td>
+                  <td class="text-center font-monospace" [class.text-danger]="c.cancellationRate >= 5.0">
+                    {{ c.cancellationRate | number:'1.1-1' }}%
+                  </td>
+                  <td class="text-center font-monospace">{{ c.noSaleDrawerKicksCount }}</td>
+                  <td class="text-end pe-3">
+                    @if (c.riskStatus === 'HIGH_RISK') {
+                      <span class="badge bg-danger text-white">Riesgo Alto</span>
+                    } @else if (c.riskStatus === 'MONITORED') {
+                      <span class="badge bg-warning text-dark">Observado</span>
+                    } @else {
+                      <span class="badge bg-success-subtle text-success border">Confiable</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-3 p-3 bg-light rounded-3 border small text-secondary">
+          <div class="fw-bold text-dark mb-1">ℹ️ Criterios del Guardián:</div>
+          <ul class="mb-0 ps-3">
+            <li>Anulaciones mayores a 5.0% activan bandera roja inmediata.</li>
+            <li>Más de 3 aperturas de gaveta sin venta alertan por posible sustracción.</li>
+            <li>Descuentos sucesivos mayores a 10% requieren validación del supervisor.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE JUSTIFICACIÓN / DESCARTE DE BANDERA FORENSE -->
+  @if (isJustifyModalOpen() && selectedFlag(); as flag) {
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+          <div class="modal-header bg-dark text-white border-0 py-3 px-4">
+            <h5 class="modal-title fw-bold mb-0">Justificación de Auditoría Forense</h5>
+            <button type="button" class="btn-close btn-close-white" (click)="closeJustifyModal()"></button>
+          </div>
+          <div class="modal-body p-4 bg-light">
+            <div class="alert alert-warning mb-3">
+              <div class="fw-bold">{{ flag.title }}</div>
+              <small>{{ flag.description }}</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold text-dark">Nota del Supervisor o Justificación del Cajero:</label>
+              <textarea
+                class="form-control"
+                rows="3"
+                placeholder="Ej. El cliente se equivocó de producto y se refacturó de inmediato, verificado por cámara."
+                [(ngModel)]="supervisorNoteInput"
+              ></textarea>
+            </div>
+          </div>
+          <div class="modal-footer bg-white border-0 py-3 px-4 d-flex justify-content-between">
+            <button type="button" class="btn btn-outline-secondary" (click)="confirmResolve('DISMISS')">
+              Descartar como Falso Positivo
+            </button>
+            <button type="button" class="btn btn-success fw-bold px-4" (click)="confirmResolve('RESOLVE')">
+              Guardar Nota y Resolver
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

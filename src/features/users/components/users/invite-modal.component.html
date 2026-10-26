@@ -1,0 +1,58 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="close()">
+    <div class="custom-modal-content" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header">
+        <h5 class="fw-bold">{{ translationService.t('users.modal.inviteTitle') }}</h5>
+        <button type="button" class="btn-close" (click)="close()" aria-label="Close"></button>
+      </div>
+      
+      <div class="custom-modal-body">
+        @if (generatedInviteUrl()) {
+          <div class="text-center py-3">
+            <svg cIcon name="cilCheckCircle" size="xl" class="text-success mb-3" style="width: 48px; height: 48px;"></svg>
+            <h5 class="fw-bold text-dark">{{ translationService.t('common.success') }}</h5>
+            
+            <div class="p-2 border rounded font-monospace small text-dark bg-light text-break mb-3 select-all">
+              {{ generatedInviteUrl() }}
+            </div>
+            
+            <button cButton color="primary" class="w-100 py-2" (click)="copyToClipboard(generatedInviteUrl()!)">
+              Copy Invitation URL
+            </button>
+          </div>
+        } @else {
+          <form cForm [formGroup]="inviteForm">
+            <div class="mb-3">
+              <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('users.modal.emailLabel') }} *</label>
+              <input formControlName="email" cFormControl [placeholder]="translationService.t('users.modal.emailLabel')" />
+              @if (inviteForm.get('email')?.touched && inviteForm.get('email')?.invalid) {
+                <div class="text-danger small mt-1">{{ translationService.t('common.error') }}</div>
+              }
+            </div>
+
+            <div class="mb-3">
+              <label class="small fw-semibold text-secondary mb-1">Validity (Days) *</label>
+              <input type="number" formControlName="validDays" cFormControl />
+            </div>
+          </form>
+        }
+      </div>
+
+      <div class="custom-modal-footer">
+        <button cButton color="light" class="border" (click)="close()">
+          {{ generatedInviteUrl() ? translationService.t('common.close') : translationService.t('common.cancel') }}
+        </button>
+        @if (!generatedInviteUrl()) {
+          <button cButton color="primary" [disabled]="isLoading() || inviteForm.invalid" (click)="sendInvitation()">
+            @if (isLoading()) {
+              <c-spinner size="sm" class="me-2"></c-spinner>
+              {{ translationService.t('common.loading') }}
+            } @else {
+              {{ translationService.t('users.modal.sendInvite') }}
+            }
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}

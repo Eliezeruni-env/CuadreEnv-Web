@@ -1,0 +1,97 @@
+<div class="card shadow-sm border-0 mb-3 generic-filters-card">
+  <div class="card-body p-3">
+    <div class="row g-2 align-items-end">
+      <!-- Búsqueda por documento / NCF -->
+      <div class="col-md-3">
+        <label class="form-label fw-semibold text-secondary small mb-1">
+          Documento / NCF
+        </label>
+        <div class="input-group">
+          <span class="input-group-text bg-light text-muted border-end-0 filter-input-element">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input
+            type="text"
+            class="form-control border-start-0 filter-input-element"
+            [(ngModel)]="filterValues.documentNumber"
+            (ngModelChange)="emitFilters()"
+            placeholder="ej. FAC-001 o B01..."
+          />
+        </div>
+      </div>
+
+      <!-- Cliente -->
+      <div class="col-md-3">
+        <label class="form-label fw-semibold text-secondary small mb-1">
+          Cliente
+        </label>
+        <select
+          class="form-select filter-input-element"
+          [(ngModel)]="filterValues.clientId"
+          (ngModelChange)="emitFilters()"
+        >
+          <option [ngValue]="null">Todos los clientes</option>
+          @for (c of customers(); track c.id) {
+            <option [ngValue]="c.id">{{ c.name }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Estatus -->
+      <div class="col-md-2">
+        <label class="form-label fw-semibold text-secondary small mb-1">
+          Estatus
+        </label>
+        <select
+          class="form-select filter-input-element"
+          [(ngModel)]="filterValues.statusId"
+          (ngModelChange)="emitFilters()"
+        >
+          <option [ngValue]="null">Todos</option>
+          <option [ngValue]="1">Emitida / Cobrada</option>
+          <option [ngValue]="2">Pendiente</option>
+          <option [ngValue]="3">Anulada</option>
+        </select>
+      </div>
+
+      <!-- Desde -->
+      <div class="col-md-2">
+        <label class="form-label fw-semibold text-secondary small mb-1">
+          Desde
+        </label>
+        <input
+          type="date"
+          class="form-control filter-input-element"
+          [(ngModel)]="filterValues.startDate"
+          (ngModelChange)="emitFilters()"
+        />
+      </div>
+
+      <!-- Hasta y Limpiar -->
+      <div class="col-md-2">
+        <label class="form-label fw-semibold text-secondary small mb-1">
+          Hasta
+        </label>
+        <div class="d-flex align-items-center gap-1.5">
+          <input
+            type="date"
+            class="form-control filter-input-element flex-grow-1"
+            [(ngModel)]="filterValues.endDate"
+            (ngModelChange)="emitFilters()"
+          />
+          <button
+            class="btn btn-outline-secondary filter-clear-btn flex-shrink-0"
+            type="button"
+            (click)="resetFilters()"
+            title="Limpiar filtros"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,217 @@
+/* ==========================================================================
+   CuadreEnv PWA Control Bar & Install Banners
+   ========================================================================== */
+
+/* 1. Offline Banner */
+.pwa-offline-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);
+  border-top: 3px solid #f59e0b; /* Amber Alert */
+  z-index: 1060;
+  transition: all 0.25s ease;
+}
+
+.offline-pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #f59e0b;
+  box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  animation: pulseAmber 1.8s infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+@keyframes pulseAmber {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+/* 2. Update Available Toast */
+.pwa-update-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  max-width: 420px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-left: 4px solid #10b981; /* Emerald Success */
+  border-radius: 14px;
+  z-index: 1070;
+}
+
+/* 3. Floating Install Button */
+.pwa-install-floating {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 1045;
+  transition: all 0.25s ease;
+
+  @media (max-width: 768px) {
+    bottom: calc(76px + env(safe-area-inset-bottom, 12px));
+    left: 16px;
+  }
+}
+
+.pwa-install-pill-wrap {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  padding: 2px 4px 2px 2px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.35);
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: rgba(225, 29, 72, 0.5); /* Coral Accent */
+    transform: translateY(-2px);
+  }
+}
+
+.pwa-install-btn {
+  background: transparent;
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 0.45rem 0.95rem;
+  transition: all 0.2s ease;
+  font-size: 0.88rem;
+
+  &:hover {
+    color: #38bdf8;
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.pwa-dismiss-btn {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  border: none;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.12);
+  }
+}
+
+/* 4. Multi-Platform Install Modal */
+.pwa-install-modal-backdrop {
+  z-index: 2000 !important;
+}
+
+.pwa-install-modal {
+  max-width: 500px;
+  width: 92%;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.3);
+}
+
+.pwa-platform-tabs {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  gap: 4px;
+}
+
+.platform-tab-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.82rem;
+  transition: all 0.18s ease;
+
+  &:hover {
+    color: #0f172a;
+    background: rgba(255, 255, 255, 0.6);
+  }
+
+  &.active {
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.step-item {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.step-badge {
+  width: 26px;
+  height: 26px;
+  background-color: #0f172a;
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.step-desc {
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+.ios-icon-share {
+  font-size: 1.1rem;
+  display: inline-block;
+  color: #0284c7;
+  font-weight: bold;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes bounceIn {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

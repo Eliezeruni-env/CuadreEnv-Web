@@ -1,146 +1,398 @@
-<div class="bg-light dark:bg-transparent min-vh-100 d-flex flex-row align-items-center">
-  <c-container breakpoint="md">
-    <c-row class="justify-content-center">
-      <c-col lg="8" md="10">
-        <c-card class="mx-4 shadow-sm border-0">
-          <c-card-body class="p-4">
-            <form cForm [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-              <h1 class="fw-bold text-dark">Register</h1>
-              <p class="text-body-secondary mb-4">Create your SaaS admin account</p>
+<div class="auth-page-wrapper">
+  <div class="register-split-layout">
+    <!-- LEFT SIDEBAR: Brand & Benefits -->
+    <div class="register-sidebar-panel d-none d-lg-flex">
+      <div class="sidebar-content-inner">
+        <!-- Logo Header -->
+        <div class="sidebar-brand mb-4">
+          <img src="assets/brand/cuadreEnv-logo-white.png" alt="CuadreEnv" class="sidebar-logo mb-2" />
+          <p class="sidebar-hero-text">Crea tu cuenta y comienza a gestionar tu negocio.</p>
+        </div>
 
-              <!-- Notifications -->
-              @if (errorMessage()) {
-                <c-alert color="danger" class="py-2 mb-4 d-flex align-items-center">
-                  <svg cIcon name="cilWarning" class="me-2"></svg>
-                  <span>{{ errorMessage() }}</span>
-                </c-alert>
-              }
+        <!-- Benefits List -->
+        <div class="benefits-list mb-5">
+          <!-- Benefit 1 -->
+          <div class="benefit-item d-flex align-items-start gap-3 mb-4">
+            <div class="benefit-icon-circle bg-purple-badge">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="benefit-title">Fácil y rápido</div>
+              <div class="benefit-desc">Crea tu cuenta en solo unos pasos.</div>
+            </div>
+          </div>
 
-              @if (successMessage()) {
-                <c-alert color="success" class="py-2 mb-4 d-flex align-items-center">
-                  <svg cIcon name="cilCheckCircle" class="me-2"></svg>
-                  <span>{{ successMessage() }}</span>
-                </c-alert>
-              }
+          <!-- Benefit 2 -->
+          <div class="benefit-item d-flex align-items-start gap-3 mb-4">
+            <div class="benefit-icon-circle bg-green-badge">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <path d="m9 12 2 2 4-4"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="benefit-title">Seguro</div>
+              <div class="benefit-desc">Tus datos y los de tu empresa están protegidos.</div>
+            </div>
+          </div>
 
-              <c-row>
-                <!-- First Name -->
-                <c-col md="6" class="mb-3">
-                  <c-input-group>
-                    <span cInputGroupText><svg cIcon name="cilUser"></svg></span>
-                    <input formControlName="firstName" cFormControl placeholder="First Name" />
-                  </c-input-group>
-                </c-col>
+          <!-- Benefit 3 -->
+          <div class="benefit-item d-flex align-items-start gap-3">
+            <div class="benefit-icon-circle bg-amber-badge">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+            </div>
+            <div>
+              <div class="benefit-title">Todo en un solo lugar</div>
+              <div class="benefit-desc">Ventas, inventario, caja, clientes y más.</div>
+            </div>
+          </div>
+        </div>
 
-                <!-- Last Name -->
-                <c-col md="6" class="mb-3">
-                  <c-input-group>
-                    <span cInputGroupText><svg cIcon name="cilUser"></svg></span>
-                    <input formControlName="lastName" cFormControl placeholder="Last Name" />
-                  </c-input-group>
-                </c-col>
-              </c-row>
+        <!-- Step Indicator Dots -->
+        <div class="step-dots d-flex gap-2">
+          <span class="step-dot" [class.active]="currentStep() === 1"></span>
+          <span class="step-dot" [class.active]="currentStep() === 2"></span>
+        </div>
+      </div>
+    </div>
 
-              <c-row>
-                <!-- Username -->
-                <c-col md="6" class="mb-3">
-                  <c-input-group>
-                    <span cInputGroupText><svg cIcon name="cilUserFollow"></svg></span>
-                    <input formControlName="userName" cFormControl placeholder="Username" />
-                  </c-input-group>
-                </c-col>
+    <!-- RIGHT CONTENT: Registration Form -->
+    <div class="register-form-panel">
+      <div class="form-container-inner">
+        <!-- Mobile Header (Visible only on small screens) -->
+        <div class="d-lg-none text-center mb-4">
+          <img src="assets/brand/cuadreEnv-logo.png" alt="CuadreEnv" class="mobile-logo mb-2" />
+        </div>
 
-                <!-- Email -->
-                <c-col md="6" class="mb-3">
-                  <c-input-group>
-                    <span cInputGroupText>&#64;</span>
-                    <input
-                      formControlName="email"
-                      autoComplete="email"
-                      cFormControl
-                      placeholder="Email"
-                      [valid]="registerForm.get('email')?.touched ? registerForm.get('email')?.valid : undefined"
-                    />
-                  </c-input-group>
-                  @if (registerForm.get('email')?.touched && registerForm.get('email')?.errors?.['required']) {
-                    <div class="text-danger small mt-1">Email is required.</div>
-                  }
-                  @if (registerForm.get('email')?.touched && registerForm.get('email')?.errors?.['email']) {
-                    <div class="text-danger small mt-1">Please enter a valid email address.</div>
-                  }
-                </c-col>
-              </c-row>
+        <!-- Progress Bar & Step Label -->
+        <div class="progress-section mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="step-indicator-text">Paso {{ currentStep() }} de 2</span>
+          </div>
+          <div class="progress-track">
+            <div
+              class="progress-bar-fill"
+              [style.width.%]="currentStep() === 1 ? 50 : 100"
+            ></div>
+          </div>
+        </div>
 
-              <c-row>
-                <!-- Password -->
-                <c-col md="6" class="mb-3">
-                  <c-input-group>
-                    <span cInputGroupText><svg cIcon name="cilLockLocked"></svg></span>
-                    <input
-                      formControlName="password"
-                      autoComplete="new-password"
-                      cFormControl
-                      placeholder="Password"
-                      type="password"
-                      [valid]="registerForm.get('password')?.touched ? registerForm.get('password')?.valid : undefined"
-                    />
-                  </c-input-group>
-                  @if (registerForm.get('password')?.touched && registerForm.get('password')?.errors?.['required']) {
-                    <div class="text-danger small mt-1">Password is required.</div>
-                  }
-                  @if (registerForm.get('password')?.touched && registerForm.get('password')?.errors?.['minlength']) {
-                    <div class="text-danger small mt-1">Password must be at least 6 characters.</div>
-                  }
-                </c-col>
+        <!-- Alerts -->
+        @if (errorMessage()) {
+          <div class="auth-alert-danger mb-4 d-flex align-items-center" role="alert">
+            <svg class="alert-icon flex-shrink-0 me-2" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span class="small fw-semibold">{{ errorMessage() }}</span>
+          </div>
+        }
 
-                <!-- Repeat Password -->
-                <c-col md="6" class="mb-3">
-                  <c-input-group>
-                    <span cInputGroupText><svg cIcon name="cilLockLocked"></svg></span>
-                    <input
-                      formControlName="repeatPassword"
-                      autoComplete="new-password"
-                      cFormControl
-                      placeholder="Repeat password"
-                      type="password"
-                      [valid]="registerForm.get('repeatPassword')?.touched ? !registerForm.errors?.['mismatch'] : undefined"
-                    />
-                  </c-input-group>
-                  @if (registerForm.get('repeatPassword')?.touched && registerForm.errors?.['mismatch']) {
-                    <div class="text-danger small mt-1">Passwords do not match.</div>
-                  }
-                </c-col>
-              </c-row>
+        @if (successMessage()) {
+          <div class="auth-alert-success mb-4 d-flex align-items-center" role="alert">
+            <svg class="alert-icon flex-shrink-0 me-2" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span class="small fw-semibold">{{ successMessage() }}</span>
+          </div>
+        }
 
-              <!-- Create Company Optional Field -->
-              <div class="mb-4">
-                <hr class="my-4" />
-                <h5 class="fw-bold text-secondary mb-2">Create a New Company (SaaS Tenant)</h5>
-                <p class="text-body-secondary small mb-3">Optional: If provided, a new company will be created and you will be assigned as its administrator.</p>
-                <c-input-group>
-                  <span cInputGroupText><svg cIcon name="cilBuilding"></svg></span>
-                  <input formControlName="createCompanyName" cFormControl placeholder="Company Name (e.g. My Business SRL)" />
-                </c-input-group>
+        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+          <!-- STEP 1: Crear Cuenta -->
+          @if (currentStep() === 1) {
+            <div class="step-content animate-fade-in">
+              <div class="step-title-block mb-4">
+                <h2 class="step-main-title">Crear Cuenta</h2>
+                <p class="step-subtitle">Completa tus datos personales para continuar.</p>
               </div>
 
-              <div class="d-grid gap-2">
-                <button cButton color="success" class="py-2 d-flex align-items-center justify-content-center text-white" type="submit" [disabled]="isLoading()">
-                  @if (isLoading()) {
-                    <c-spinner size="sm" class="me-2"></c-spinner>
-                    Creating account...
-                  } @else {
-                    Create Account
-                  }
-                </button>
-                <div class="text-center mt-3">
-                  <span class="text-body-secondary">Already have an account? </span>
-                  <a routerLink="/login" class="text-decoration-none fw-bold">Sign In</a>
+              <!-- Names Row -->
+              <div class="row g-3 mb-3">
+                <div class="col-sm-6">
+                  <div class="input-field-wrapper">
+                    <span class="field-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                      </svg>
+                    </span>
+                    <input
+                      type="text"
+                      formControlName="firstName"
+                      class="form-control-custom"
+                      placeholder="Nombre"
+                      autocomplete="given-name"
+                    />
+                  </div>
+                </div>
+
+                <div class="col-sm-6">
+                  <div class="input-field-wrapper">
+                    <span class="field-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                      </svg>
+                    </span>
+                    <input
+                      type="text"
+                      formControlName="lastName"
+                      class="form-control-custom"
+                      placeholder="Apellido"
+                      autocomplete="family-name"
+                    />
+                  </div>
                 </div>
               </div>
-            </form>
-          </c-card-body>
-        </c-card>
-      </c-col>
-    </c-row>
-  </c-container>
+
+              <!-- Username & Email Row -->
+              <div class="row g-3 mb-3">
+                <div class="col-sm-6">
+                  <div class="input-field-wrapper">
+                    <span class="field-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="4"></circle>
+                        <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path>
+                      </svg>
+                    </span>
+                    <input
+                      type="text"
+                      formControlName="userName"
+                      class="form-control-custom"
+                      placeholder="Nombre de usuario"
+                      autocomplete="username"
+                    />
+                  </div>
+                </div>
+
+                <div class="col-sm-6">
+                  <div class="input-field-wrapper" [class.is-invalid]="registerForm.get('email')?.touched && registerForm.get('email')?.invalid">
+                    <span class="field-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                      </svg>
+                    </span>
+                    <input
+                      type="email"
+                      formControlName="email"
+                      class="form-control-custom"
+                      placeholder="Correo electrónico"
+                      autocomplete="email"
+                    />
+                  </div>
+                  @if (registerForm.get('email')?.touched && registerForm.get('email')?.invalid) {
+                    <div class="validation-error">Introduce un correo válido.</div>
+                  }
+                </div>
+              </div>
+
+              <!-- Passwords Row -->
+              <div class="row g-3 mb-4">
+                <div class="col-sm-6">
+                  <div class="input-field-wrapper" [class.is-invalid]="registerForm.get('password')?.touched && registerForm.get('password')?.invalid">
+                    <span class="field-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                      </svg>
+                    </span>
+                    <input
+                      [type]="showPassword() ? 'text' : 'password'"
+                      formControlName="password"
+                      class="form-control-custom"
+                      placeholder="Contraseña"
+                      autocomplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      class="btn-toggle-eye"
+                      (click)="toggleShowPassword()"
+                      tabindex="-1"
+                      aria-label="Toggle password visibility"
+                    >
+                      @if (showPassword()) {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                          <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      }
+                    </button>
+                  </div>
+                  @if (registerForm.get('password')?.touched && registerForm.get('password')?.invalid) {
+                    <div class="validation-error">Mínimo 6 caracteres.</div>
+                  }
+                </div>
+
+                <div class="col-sm-6">
+                  <div class="input-field-wrapper" [class.is-invalid]="(registerForm.get('repeatPassword')?.touched && registerForm.get('repeatPassword')?.invalid) || (registerForm.hasError('mismatch') && registerForm.get('repeatPassword')?.touched)">
+                    <span class="field-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                      </svg>
+                    </span>
+                    <input
+                      [type]="showRepeatPassword() ? 'text' : 'password'"
+                      formControlName="repeatPassword"
+                      class="form-control-custom"
+                      placeholder="Confirmar contraseña"
+                      autocomplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      class="btn-toggle-eye"
+                      (click)="toggleShowRepeatPassword()"
+                      tabindex="-1"
+                      aria-label="Toggle repeat password visibility"
+                    >
+                      @if (showRepeatPassword()) {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                          <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      }
+                    </button>
+                  </div>
+                  @if (registerForm.hasError('mismatch') && registerForm.get('repeatPassword')?.touched) {
+                    <div class="validation-error">Las contraseñas no coinciden.</div>
+                  }
+                </div>
+              </div>
+
+              <!-- Continue Button -->
+              <button
+                type="button"
+                class="btn-auth-success w-100 mb-4"
+                (click)="nextStep()"
+              >
+                <span>Continuar</span>
+                <svg class="btn-arrow-icon ms-2" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </button>
+
+              <!-- Login Prompt -->
+              <div class="text-center">
+                <span class="text-secondary small">¿Ya tienes una cuenta? </span>
+                <a routerLink="/login" class="auth-link fw-bold">Inicia sesión</a>
+              </div>
+            </div>
+          }
+
+          <!-- STEP 2: Crear tu Empresa (SaaS Tenant) -->
+          @if (currentStep() === 2) {
+            <div class="step-content animate-fade-in">
+              <div class="step-title-block mb-4">
+                <h2 class="step-main-title">Crear tu Empresa (SaaS Tenant)</h2>
+                <p class="step-subtitle">Registra tu empresa para comenzar a gestionar tus ventas, inventario y operaciones.</p>
+              </div>
+
+              <!-- Company Name Input -->
+              <div class="form-group mb-4">
+                <label class="form-label small fw-semibold text-dark mb-1">Nombre de la empresa</label>
+                <div class="input-field-wrapper">
+                  <span class="field-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                      <path d="M9 22v-4h6v4"></path>
+                      <path d="M8 6h.01"></path>
+                      <path d="M16 6h.01"></path>
+                      <path d="M8 10h.01"></path>
+                      <path d="M16 10h.01"></path>
+                      <path d="M8 14h.01"></path>
+                      <path d="M16 14h.01"></path>
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    formControlName="createCompanyName"
+                    class="form-control-custom"
+                    placeholder="Ej. Mi Empresa SRL"
+                  />
+                </div>
+              </div>
+
+              <!-- Admin Assignment Info Banner -->
+              <div class="info-alert-card mb-4 d-flex align-items-start gap-3">
+                <div class="info-icon-circle flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                </div>
+                <div class="info-alert-text">
+                  Serás asignado como administrador de esta empresa y podrás invitar a tu equipo más adelante.
+                </div>
+              </div>
+
+              <!-- Action Buttons Row -->
+              <div class="d-flex align-items-center gap-3 mb-4">
+                <button
+                  type="button"
+                  class="btn-auth-back d-flex align-items-center justify-content-center"
+                  (click)="prevStep()"
+                >
+                  <svg class="me-1" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                  <span>Volver</span>
+                </button>
+
+                <button
+                  type="submit"
+                  class="btn-auth-success flex-grow-1"
+                  [disabled]="isLoading()"
+                >
+                  @if (isLoading()) {
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    <span>Creando cuenta...</span>
+                  } @else {
+                    <svg class="me-2" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Crear mi cuenta y empresa</span>
+                  }
+                </button>
+              </div>
+
+              <!-- Terms Disclaimer -->
+              <div class="terms-disclaimer d-flex align-items-center justify-content-center gap-2 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span class="small text-secondary">
+                  Al crear tu cuenta, aceptas nuestros <a href="#" class="auth-link">Términos y Condiciones</a> y nuestra <a href="#" class="auth-link">Política de Privacidad</a>.
+                </span>
+              </div>
+            </div>
+          }
+        </form>
+      </div>
+    </div>
+  </div>
 </div>

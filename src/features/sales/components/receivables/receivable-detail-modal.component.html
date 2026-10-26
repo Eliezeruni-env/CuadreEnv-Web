@@ -1,0 +1,1042 @@
+@if (visible && receivable) {
+  <div class="custom-modal-backdrop" (click)="close()">
+    <div
+      class="custom-modal-content detail-modal-container"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Header -->
+      <div class="custom-modal-header border-0 pb-0">
+        <div class="d-flex align-items-center gap-3">
+          <div class="modal-pay-icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-primary"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+              <path d="M12 18V6"></path>
+            </svg>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0 text-body">
+              @if (activeTab() === 'payment') {
+                @if (editingPayment()) {
+                  Editar Pago #{{ editingPayment()?.id }}
+                } @else {
+                  Agregar Pago a la Venta
+                }
+              } @else if (activeTab() === 'cuotas') {
+                Plan de Cuotas y Vencimientos
+              } @else if (activeTab() === 'timeline') {
+                Timeline / Actividad de la Venta
+              } @else if (activeTab() === 'client') {
+                Editar Información del Cliente
+              } @else {
+                Editar Detalles de la Venta
+              }
+            </h5>
+            <span class="text-muted small">
+              {{ receivable.customerName }} · {{ receivable.invoiceNumber }}
+              @if (receivable.warehouseName) {
+                · 🏢 {{ receivable.warehouseName }}
+              }
+            </span>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <button
+            type="button"
+            class="btn btn-outline-primary btn-sm fw-semibold d-flex align-items-center gap-1.5"
+            (click)="printAccountStatementPdf()"
+            title="Generar e imprimir Estado de Cuenta en PDF con historial de abonos"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <span>Estado de Cuenta (PDF)</span>
+          </button>
+          <button
+            type="button"
+            class="btn-close"
+            (click)="close()"
+            aria-label="Close"
+          ></button>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="custom-modal-body pt-3">
+        <!-- Top Client Financial Status Summary Card -->
+        <div class="client-summary-card mb-3">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+              <div
+                class="client-avatar"
+                [style.background-color]="receivable.avatarColor || '#ede9fe'"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="text-dark-indigo"
+                >
+                  <path
+                    d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
+                  ></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0 text-body">
+                  {{ receivable.customerName }}
+                </h6>
+                <span class="text-muted small">{{ receivable.description }}</span>
+              </div>
+            </div>
+
+            <!-- Financial Status Pill Badge -->
+            <div class="text-end">
+              <div class="d-flex align-items-center gap-2 mb-1 justify-content-end">
+                @if (financialStatus().type === 'pagada') {
+                  <span class="badge badge-financial badge-pagada">Pagada (100%)</span>
+                } @else if (financialStatus().type === 'parcial') {
+                  <span class="badge badge-financial badge-parcial">Parcial ({{ paymentProgress() }}%)</span>
+                } @else if (financialStatus().type === 'vencida') {
+                  <span class="badge badge-financial badge-vencida">Vencida ({{ financialStatus().daysOverdue }} días de atraso)</span>
+                } @else {
+                  <span class="badge badge-financial badge-pendiente">Pendiente (0%)</span>
+                }
+              </div>
+              <div class="small text-muted">
+                Total: <span class="fw-semibold text-body">RD$ {{ receivable.totalAmount | number: '1.2-2' }}</span>
+                · Pendiente: <span class="fw-bold text-amber">RD$ {{ receivable.pendingAmount | number: '1.2-2' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress bar -->
+          <div class="progress progress-thin mt-2">
+            <div
+              class="progress-bar"
+              [ngClass]="{
+                'bg-success': financialStatus().type === 'pagada',
+                'bg-primary': financialStatus().type === 'parcial',
+                'bg-danger': financialStatus().type === 'vencida',
+                'bg-warning': financialStatus().type === 'pendiente'
+              }"
+              role="progressbar"
+              [style.width.%]="paymentProgress()"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="nav-tabs-custom mb-3">
+          <button
+            type="button"
+            class="tab-btn"
+            [class.active]="activeTab() === 'payment'"
+            (click)="setTab('payment')"
+          >
+            Registrar Pago
+          </button>
+          <button
+            type="button"
+            class="tab-btn"
+            [class.active]="activeTab() === 'cuotas'"
+            (click)="setTab('cuotas')"
+          >
+            Plan de Cuotas
+          </button>
+          <button
+            type="button"
+            class="tab-btn"
+            [class.active]="activeTab() === 'timeline'"
+            (click)="setTab('timeline')"
+          >
+            Timeline / Actividad
+          </button>
+          <button
+            type="button"
+            class="tab-btn"
+            [class.active]="activeTab() === 'sale'"
+            (click)="setTab('sale')"
+          >
+            Detalle de Venta y Artículos
+          </button>
+        </div>
+
+        <!-- TAB 1: REGISTRAR / EDITAR PAGO -->
+        @if (activeTab() === 'payment') {
+          @if ((receivable.pendingAmount <= 0 || receivable.status === 'Pagado') && !editingPayment()) {
+            <div class="card border border-success-subtle bg-success-subtle p-4 rounded-3 text-center my-3 shadow-xs">
+              <div class="fs-2 text-success mb-2">✓</div>
+              <h5 class="fw-bold text-success mb-1">¡Cuenta Saldada por Completo!</h5>
+              <p class="text-secondary small mb-3">
+                Esta cuenta por cobrar ha alcanzado el 100% de los abonos requeridos (RD$ {{ receivable.totalAmount | number:'1.2-2' }}). No admite más pagos salvo que sea reactivada para corrección.
+              </p>
+              <div>
+                <button type="button" class="btn btn-outline-warning fw-semibold shadow-sm" (click)="reopenAccount()">
+                  Reabrir / Reactivar Cuenta
+                </button>
+              </div>
+            </div>
+          } @else {
+            <form cForm [formGroup]="paymentForm">
+              <!-- SECCIÓN COMPROBANTE DE PAGO DIGITAL (OCR & UPLOAD) -->
+              <div class="voucher-upload-card mb-3 p-3">
+                <input
+                  #voucherFileInput
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,application/pdf"
+                  class="d-none"
+                  (change)="onVoucherFileSelected($event)"
+                />
+
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <div>
+                      <h6 class="fw-bold mb-0 text-body small">Comprobante de Pago (Foto o PDF)</h6>
+                      <span class="text-muted extra-small">Carga el recibo para autodetectar monto, referencia, banco y fecha</span>
+                    </div>
+                  </div>
+
+                  @if (!uploadedVoucher()) {
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-primary fw-semibold px-3 py-1 d-flex align-items-center gap-1"
+                      (click)="voucherFileInput.click()"
+                      [disabled]="isAnalyzingVoucher()"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                      </svg>
+                      Subir Comprobante
+                    </button>
+                  }
+                </div>
+
+                @if (isAnalyzingVoucher()) {
+                  <div class="d-flex align-items-center gap-2 text-primary p-2 bg-primary-subtle rounded-2 small">
+                    <c-spinner size="sm"></c-spinner>
+                    <span>Analizando documento y extrayendo datos con OCR...</span>
+                  </div>
+                }
+
+                @if (uploadedVoucher()) {
+                  <div class="uploaded-voucher-preview d-flex align-items-center justify-content-between p-2 rounded-2 mt-2">
+                    <div class="d-flex align-items-center gap-2 overflow-hidden">
+                      <span class="voucher-icon-badge">📎</span>
+                      <div class="text-truncate">
+                        <span class="fw-bold text-body small text-truncate d-block">{{ uploadedVoucher()?.name }}</span>
+                        <span class="text-muted extra-small">
+                          {{ uploadedVoucher()?.type }} · {{ ((uploadedVoucher()?.size || 0) / 1024) | number:'1.0-1' }} KB
+                        </span>
+                      </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-light border py-1 px-2 small text-primary fw-semibold"
+                        (click)="openVoucherPreview(uploadedVoucher()!)"
+                        title="Ver Comprobante"
+                      >
+                        👁 Ver
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger py-1 px-2 small"
+                        (click)="removeUploadedVoucher()"
+                        title="Quitar Comprobante"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                }
+
+                @if (voucherDetectionMessage()) {
+                  <div class="voucher-msg-pill mt-2">
+                    {{ voucherDetectionMessage() }}
+                  </div>
+                }
+              </div>
+
+              <!-- Información del pago -->
+              <div class="form-section mb-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <h6 class="section-title mb-0">
+                    @if (editingPayment()) {
+                      <span class="text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Editando Pago #{{ editingPayment()?.id }}
+                      </span>
+                    } @else {
+                      Datos del Pago
+                    }
+                  </h6>
+                  @if (editingPayment()) {
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary py-0 px-2 small"
+                      (click)="cancelEditPayment()"
+                    >
+                      ✕ Cancelar edición
+                    </button>
+                  }
+                </div>
+
+                <!-- Shortcuts for Quick Amount -->
+                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                  <span class="extra-small text-muted fw-semibold">Sugerencias:</span>
+                  @if (receivable.paymentPlan?.installmentAmount) {
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-light border py-0 px-2 extra-small text-body"
+                      (click)="setQuickAmount(receivable.paymentPlan!.installmentAmount)"
+                    >
+                      Cuota: RD$ {{ receivable.paymentPlan!.installmentAmount | number:'1.2-2' }}
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-light border py-0 px-2 extra-small text-body"
+                    (click)="setQuickAmount(receivable.pendingAmount)"
+                  >
+                    Saldo total: RD$ {{ receivable.pendingAmount | number:'1.2-2' }}
+                  </button>
+                </div>
+
+                <!-- Row 1: Amount & DateTime -->
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label required-label"
+                      >Monto del pago</label
+                    >
+                    <div class="input-group">
+                      <span
+                        class="input-group-text currency-addon fw-semibold"
+                        >RD$</span
+                      >
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        cFormControl
+                        formControlName="amount"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label required-label"
+                      >Fecha y hora del pago</label
+                    >
+                    <input
+                      type="datetime-local"
+                      cFormControl
+                      formControlName="paymentDate"
+                    />
+                  </div>
+                </div>
+
+                <!-- Row 2: Method & Bank / Financial Entity -->
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label required-label"
+                      >Método de pago</label
+                    >
+                    <select cSelect formControlName="method">
+                      <option value="Efectivo">Efectivo</option>
+                      <option value="Transferencia">Transferencia Bancaria</option>
+                      <option value="Tarjeta">Tarjeta de Crédito / Débito</option>
+                      <option value="Depósito Bancario">Depósito Bancario</option>
+                      <option value="Cheque">Cheque</option>
+                      <option value="Otro">Otro Método</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Banco / Entidad Financiera</label>
+                    <input
+                      type="text"
+                      list="dominicanBanksList"
+                      cFormControl
+                      formControlName="bank"
+                      placeholder="Ej. Banco Popular, BHD, Banreservas..."
+                    />
+                    <datalist id="dominicanBanksList">
+                      <option value="Banco Popular Dominicano"></option>
+                      <option value="Banreservas"></option>
+                      <option value="Banco BHD"></option>
+                      <option value="APAP (Asociación Popular)"></option>
+                      <option value="Scotiabank"></option>
+                      <option value="Banco Santa Cruz"></option>
+                      <option value="Banco Promerica"></option>
+                      <option value="Asociación Cibao"></option>
+                      <option value="Qik Banco Digital"></option>
+                      <option value="Banco BDI"></option>
+                    </datalist>
+                  </div>
+                </div>
+
+                <!-- Row 3: Reference & Register in Cash Register Toggle -->
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">No. de Referencia / Comprobante</label>
+                    <input
+                      type="text"
+                      cFormControl
+                      formControlName="reference"
+                      placeholder="Ej. No. de transferencia, cheque o recibo"
+                    />
+                  </div>
+                  <div class="col-md-6 d-flex align-items-center pt-md-3">
+                    <div class="form-check form-switch custom-cash-toggle p-2 rounded-2 border w-100">
+                      <input
+                        class="form-check-input ms-0 me-2"
+                        type="checkbox"
+                        role="switch"
+                        id="registerInCashSwitch"
+                        formControlName="registerInCash"
+                      />
+                      <label class="form-check-label small fw-semibold text-body" for="registerInCashSwitch">
+                        Registrar en Caja Física (Turno activo)
+                        <small class="d-block text-muted fw-normal extra-small">
+                          Ingresa este movimiento en la caja registradora abierta.
+                        </small>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Row 4: Notes -->
+                <div>
+                  <label class="form-label">Notas / Observaciones (opcional)</label>
+                  <input
+                    type="text"
+                    cFormControl
+                    formControlName="notes"
+                    placeholder="Detalles adicionales del abono..."
+                  />
+                </div>
+              </div>
+
+              <!-- Historial de pagos -->
+              <div class="form-section mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="section-title mb-0">Historial de pagos</h6>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-link text-primary text-decoration-none p-0 small fw-semibold"
+                    (click)="setTab('timeline')"
+                  >
+                    Ver Timeline completo →
+                  </button>
+                </div>
+
+                <div class="table-responsive payment-history-table-box">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th style="width: 40px;">#</th>
+                        <th>Monto</th>
+                        <th>Fecha y hora</th>
+                        <th>Método</th>
+                        <th>Banco / Ref</th>
+                        <th class="text-center" style="width: 100px;">Comprobante</th>
+                        <th class="text-end" style="min-width: 80px;">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (p of receivable.payments; track p.id) {
+                        <tr [class.table-active]="editingPayment()?.id === p.id">
+                          <td class="text-muted small fw-semibold">
+                            {{ p.id }}
+                          </td>
+                          <td class="fw-bold text-body">
+                            RD$ {{ p.amount | number: '1.2-2' }}
+                          </td>
+                          <td class="small text-muted">
+                            {{ p.date }}
+                            @if (p.isCurrent) {
+                              <span class="badge badge-este-pago ms-1"
+                                >Este pago</span
+                              >
+                            }
+                          </td>
+                          <td>
+                            <span class="small fw-semibold text-body">{{ p.method }}</span>
+                            @if (p.registerInCash) {
+                              <span class="badge bg-success-subtle text-success border ms-1 extra-small">Caja</span>
+                            }
+                          </td>
+                          <td class="small text-muted">
+                            @if (p.bank) {
+                              <span class="d-block text-truncate fw-medium" style="max-width: 130px;">{{ p.bank }}</span>
+                            }
+                            <span class="font-monospace text-truncate d-block" style="max-width: 130px;">
+                              {{ p.reference || '-' }}
+                            </span>
+                          </td>
+                          <td class="text-center">
+                            @if (p.voucherAttachment) {
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary py-0 px-2 extra-small fw-semibold d-inline-flex align-items-center gap-1"
+                                (click)="openVoucherPreview(p.voucherAttachment)"
+                                title="Ver comprobante adjunto"
+                              >
+                                📎 Ver
+                              </button>
+                            } @else {
+                              <span class="text-muted small">-</span>
+                            }
+                          </td>
+                          <td class="text-end">
+                            <div class="d-inline-flex align-items-center gap-1">
+                              <!-- WhatsApp Receipt Button (1 Toque) -->
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-icon-action btn-action-whatsapp text-success"
+                                title="Enviar comprobante formal de este abono por WhatsApp (1 toque)"
+                                (click)="sendPaymentWhatsAppReceipt(p)"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="14"
+                                  height="14"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"></path>
+                                  <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"></path>
+                                </svg>
+                              </button>
+
+                              <!-- Edit Payment Button -->
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-icon-action btn-action-edit"
+                                title="Editar este pago"
+                                (click)="editPayment(p)"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="14"
+                                  height="14"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <path
+                                    d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                                  ></path>
+                                  <path
+                                    d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                                  ></path>
+                                </svg>
+                              </button>
+
+                              <!-- Delete Payment Button -->
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-icon-action btn-action-delete"
+                                title="Eliminar este pago"
+                                (click)="deletePayment(p)"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="14"
+                                  height="14"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <polyline points="3 6 5 6 21 6"></polyline>
+                                  <path
+                                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                                  ></path>
+                                </svg>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                      @if (receivable.payments.length === 0) {
+                        <tr>
+                          <td
+                            colspan="7"
+                            class="text-center text-muted py-3 small"
+                          >
+                            No hay pagos registrados aún.
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Bottom Progress & Metric Summary Box -->
+              <div class="metrics-summary-bar">
+                <div class="row align-items-center g-2 text-center text-md-start">
+                  <div class="col-md-4 border-end-md">
+                    <span class="metrics-label">Total pagado</span>
+                    <h6 class="metrics-val text-body mb-0">
+                      RD$ {{ receivable.paidAmount | number: '1.2-2' }}
+                    </h6>
+                  </div>
+                  <div class="col-md-4 border-end-md">
+                    <span class="metrics-label">Pendiente</span>
+                    <h6 class="metrics-val text-amber mb-0">
+                      RD$ {{ receivable.pendingAmount | number: '1.2-2' }}
+                    </h6>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <span class="metrics-label">Progreso</span>
+                      <span class="small fw-bold text-primary"
+                        >{{ paymentProgress() }}%</span
+                      >
+                    </div>
+                    <div class="progress progress-thin">
+                      <div
+                        class="progress-bar bg-primary"
+                        role="progressbar"
+                        [style.width.%]="paymentProgress()"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+          }
+        }
+
+        <!-- TAB 2: PLAN DE CUOTAS (SEPARACIÓN CUOTA vs PAGO) -->
+        @if (activeTab() === 'cuotas') {
+          <div class="cuotas-breakdown-card p-3 p-md-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+              <div>
+                <h6 class="timeline-title mb-0">Plan de Cuotas y Amortización</h6>
+                <span class="text-muted small">
+                  {{ installmentsBreakdown().length }} cuotas · Frecuencia: {{ receivable.paymentPlan?.frequency || 'Mensual' }}
+                </span>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-light text-dark border px-3 py-2 fw-semibold">
+                  Monto por cuota: RD$ {{ (receivable.paymentPlan?.installmentAmount || (receivable.totalAmount / (installmentsBreakdown().length || 1))) | number: '1.2-2' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="table-responsive installments-table-box mb-3">
+              <table class="table align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Cuota</th>
+                    <th>Esperado</th>
+                    <th>Pagado</th>
+                    <th>Pendiente</th>
+                    <th>Vencimiento</th>
+                    <th class="text-end">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of installmentsBreakdown(); track item.number) {
+                    <tr>
+                      <td class="fw-bold text-body">Cuota #{{ item.number }}</td>
+                      <td class="text-body fw-semibold">
+                        RD$ {{ item.expectedAmount | number: '1.2-2' }}
+                      </td>
+                      <td class="text-success fw-bold">
+                        RD$ {{ item.paidAmount | number: '1.2-2' }}
+                      </td>
+                      <td class="text-body-secondary">
+                        {{ item.pendingAmount > 0 ? ('RD$ ' + (item.pendingAmount | number: '1.2-2')) : '-' }}
+                      </td>
+                      <td class="small text-muted">{{ item.dueDate }}</td>
+                      <td class="text-end">
+                        @if (item.status === 'Pagada') {
+                          <span class="badge bg-success-subtle text-success border">✓ Pagada</span>
+                        } @else if (item.status === 'Parcial') {
+                          <span class="badge bg-warning-subtle text-warning-emphasis border me-1">🟠 Parcial ({{ item.progressPct }}%)</span>
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary py-0 px-2 small"
+                            (click)="quickPayInstallment(item)"
+                          >
+                            Abonar
+                          </button>
+                        } @else if (item.status === 'Vencida') {
+                          <span class="badge bg-danger-subtle text-danger border me-1">🔴 Vencida</span>
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-danger text-white py-0 px-2 small"
+                            (click)="quickPayInstallment(item)"
+                          >
+                            Pagar
+                          </button>
+                        } @else {
+                          <span class="badge bg-secondary-subtle text-secondary border me-1">○ Pendiente</span>
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary py-0 px-2 small"
+                            (click)="quickPayInstallment(item)"
+                          >
+                            Pagar
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+
+        <!-- TAB 3: TIMELINE / ACTIVIDAD -->
+        @if (activeTab() === 'timeline') {
+          <div class="timeline-container-card p-3 p-md-4">
+            <div class="timeline-header mb-4">
+              <h6 class="timeline-title mb-1">Timeline / Actividad</h6>
+              <span class="text-muted small">Historial de eventos, cobros y vencimientos de la cuenta</span>
+            </div>
+
+            <div class="timeline-list">
+              @for (item of timelineItems(); track item.id) {
+                <div class="timeline-item">
+                  <!-- Icon Bubble Node -->
+                  <div class="timeline-icon-bubble" [ngClass]="item.colorClass">
+                    @if (item.iconType === 'doc') {
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                      </svg>
+                    } @else if (item.iconType === 'cash') {
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                        <circle cx="12" cy="12" r="2"></circle>
+                        <path d="M6 12h.01M18 12h.01"></path>
+                      </svg>
+                    } @else if (item.iconType === 'calendar') {
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                    } @else {
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                    }
+                  </div>
+
+                  <!-- Content Column -->
+                  <div class="timeline-content">
+                    <div>
+                      <div class="timeline-item-title">{{ item.title }}</div>
+                      <div class="timeline-item-subtitle">
+                        @if (item.highlightText) {
+                          <span class="fw-bold text-success">{{ item.highlightText }}</span>
+                          @if (item.subtitle) {
+                            <span> · {{ item.subtitle }}</span>
+                          }
+                        } @else if (item.type === 'next_due' || item.type === 'final_due') {
+                          <span class="fw-semibold text-body">{{ item.subtitle }}</span>
+                        } @else {
+                          <span>{{ item.subtitle }}</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="timeline-item-date">
+                      {{ item.date }}
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- TAB 4: DETALLE DE VENTA Y ARTÍCULOS -->
+        @if (activeTab() === 'sale') {
+          <form cForm [formGroup]="saleEditForm" class="py-2">
+            <div class="mb-3">
+              <label class="form-label required-label"
+                >Descripción / Concepto</label
+              >
+              <input
+                type="text"
+                cFormControl
+                formControlName="description"
+              />
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label required-label"
+                  >Monto Total (RD$)</label
+                >
+                <input
+                  type="number"
+                  step="0.01"
+                  cFormControl
+                  formControlName="totalAmount"
+                />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Fecha de Vencimiento</label>
+                <input
+                  type="date"
+                  cFormControl
+                  formControlName="dueDate"
+                />
+              </div>
+            </div>
+
+            @if (receivable.items && receivable.items.length > 0) {
+              <div class="mt-3 pt-3 border-top">
+                <h6 class="small fw-bold text-secondary mb-2">Artículos del Apartado / Venta a Crédito</h6>
+                <div class="table-responsive border rounded-3 overflow-hidden">
+                  <table class="table table-sm table-hover mb-0 align-middle">
+                    <thead class="table-light small">
+                      <tr>
+                        <th class="ps-3">Producto</th>
+                        <th class="text-center" style="width: 80px;">Cant.</th>
+                        <th class="text-end" style="width: 120px;">Precio</th>
+                        <th class="text-end pe-3" style="width: 130px;">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (it of receivable.items; track it.productId) {
+                        <tr>
+                          <td class="ps-3">
+                            <span class="fw-semibold text-body">{{ it.productName }}</span>
+                            @if (it.barCode) {
+                              <small class="text-muted d-block font-monospace">{{ it.barCode }}</small>
+                            }
+                          </td>
+                          <td class="text-center">
+                            <span class="badge bg-secondary-subtle text-secondary border px-2">
+                              {{ it.quantity }}
+                            </span>
+                          </td>
+                          <td class="text-end font-monospace">RD$ {{ it.unitPrice | number:'1.2-2' }}</td>
+                          <td class="text-end pe-3 font-monospace fw-bold text-primary">
+                            RD$ {{ it.subtotal | number:'1.2-2' }}
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            }
+          </form>
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="custom-modal-footer">
+        <button
+          cButton
+          color="light"
+          class="border px-4"
+          (click)="close()"
+        >
+          {{ (activeTab() === 'timeline' || activeTab() === 'cuotas') ? 'Cerrar' : 'Cancelar' }}
+        </button>
+        @if (activeTab() === 'timeline' || activeTab() === 'cuotas') {
+          @if (receivable.pendingAmount > 0 && receivable.status !== 'Pagado') {
+            <button
+              cButton
+              class="btn-primary-custom px-4"
+              (click)="setTab('payment')"
+            >
+              + Registrar Pago
+            </button>
+          }
+        } @else if (activeTab() === 'payment' && (receivable.pendingAmount <= 0 || receivable.status === 'Pagado') && !editingPayment()) {
+          <!-- No submit button needed since account is 100% settled -->
+        } @else {
+          <button
+            cButton
+            class="btn-primary-custom px-4"
+            [disabled]="isLoading()"
+            (click)="saveActiveTab()"
+          >
+            @if (isLoading()) {
+              <c-spinner size="sm" class="me-2"></c-spinner>
+              Guardando...
+            } @else {
+              @if (activeTab() === 'payment') {
+                @if (editingPayment()) {
+                  Actualizar Pago
+                } @else {
+                  Guardar Pago
+                }
+              } @else {
+                Guardar Cambios
+              }
+            }
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL PREVIEW DEL COMPROBANTE DE PAGO -->
+@if (previewModalOpen() && previewVoucherData()) {
+  <div class="custom-modal-backdrop preview-backdrop" (click)="closeVoucherPreview()">
+    <div
+      class="custom-modal-content voucher-preview-dialog"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="custom-modal-header border-bottom pb-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="fs-5">📎</span>
+          <div>
+            <h6 class="fw-bold mb-0 text-body text-truncate" style="max-width: 450px;">
+              {{ previewVoucherData()?.name }}
+            </h6>
+            <span class="text-muted extra-small">Comprobante de pago adjunto</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          (click)="closeVoucherPreview()"
+          aria-label="Cerrar"
+        ></button>
+      </div>
+
+      <div class="custom-modal-body text-center p-3">
+        @if (previewVoucherData()?.type?.startsWith('image/')) {
+          <div class="voucher-image-container">
+            <img
+              [src]="previewVoucherData()?.dataUrl"
+              [alt]="previewVoucherData()?.name"
+              class="img-fluid rounded shadow-sm voucher-preview-img"
+            />
+          </div>
+        } @else {
+          <div class="voucher-pdf-container">
+            <object
+              [data]="getSafeVoucherUrl(previewVoucherData()?.dataUrl)"
+              type="application/pdf"
+              class="w-100 rounded voucher-preview-pdf"
+            >
+              <div class="p-4 text-center">
+                <p class="text-muted mb-2">No se puede previsualizar el PDF directamente en este navegador.</p>
+                <a
+                  [href]="previewVoucherData()?.dataUrl"
+                  [download]="previewVoucherData()?.name || 'comprobante.pdf'"
+                  class="btn btn-sm btn-primary"
+                >
+                  Descargar comprobante PDF
+                </a>
+              </div>
+            </object>
+          </div>
+        }
+      </div>
+
+      <div class="custom-modal-footer border-top pt-2 d-flex justify-content-between">
+        <a
+          [href]="previewVoucherData()?.dataUrl"
+          [download]="previewVoucherData()?.name || 'comprobante'"
+          class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+        >
+          ⬇ Descargar archivo
+        </a>
+        <button
+          type="button"
+          class="btn btn-sm btn-secondary px-3"
+          (click)="closeVoucherPreview()"
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+}

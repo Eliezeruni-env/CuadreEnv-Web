@@ -4,8 +4,12 @@ import { ColorModeService } from '@coreui/angular';
 
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
-  private readonly colorMode = inject(ColorModeService);
+  readonly colorMode = inject(ColorModeService);
   private readonly storageKey = 'app-theme';
+
+  get isDark(): boolean {
+    return this.colorMode.colorMode() === 'dark';
+  }
 
   constructor() {
     const saved = localStorage.getItem(this.storageKey) as 'light' | 'dark' | 'auto' | null;

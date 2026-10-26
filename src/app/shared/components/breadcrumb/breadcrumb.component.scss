@@ -1,0 +1,15 @@
+.custom-breadcrumb-nav {
+  .breadcrumb {
+    font-size: 0.85rem;
+  }
+  .breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    font-size: 1.1rem;
+    line-height: 1;
+    vertical-align: middle;
+    color: var(--cui-secondary-color, #94a3b8);
+  }
+  a:hover {
+    color: var(--cui-primary, #6366f1) !important;
+  }
+}

@@ -1,0 +1,2453 @@
+<div class="quick-sale-page-container" [class.pos-compact-mode]="isCompactMode()">
+  <!-- CABECERA (Card, padding 14px) -->
+  <header class="pos-header-card">
+    <div class="header-left">
+      <a [routerLink]="['/sales']" class="btn-pos-outline btn-40" aria-label="Volver a Ventas">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span>Volver a Ventas</span>
+      </a>
+      <div class="header-titles">
+        <div class="header-title-row">
+          <h1 class="pos-title">Punto de Venta</h1>
+          @if (hasOpenSession()) {
+            <span class="cuadre-badge badge-ok">
+              <span class="badge-dot"></span>
+              <span>Caja abierta</span>
+            </span>
+          } @else {
+            <span class="cuadre-badge badge-bad">
+              <span class="badge-dot"></span>
+              <span>Punto de Venta Cerrado</span>
+            </span>
+          }
+          @if (offlineService.isOnline() && offlineService.pendingCount() === 0) {
+            <span class="cuadre-badge badge-ok pos-network-pill" title="Conexión en línea con el servidor activa">
+              <span class="badge-dot pulse-green"></span>
+              <span>En línea</span>
+            </span>
+          } @else {
+            <div class="pos-network-sync-badge" [class.is-offline]="!offlineService.isOnline()">
+              <span class="badge-dot" [class.pulse-yellow]="offlineService.isOnline()" [class.pulse-red]="!offlineService.isOnline()"></span>
+              <span class="sync-status-text">
+                {{ !offlineService.isOnline() ? 'Sin Conexión' : 'Modo Local' }}
+                @if (offlineService.pendingCount() > 0) {
+                  <strong>({{ offlineService.pendingCount() }} pendientes)</strong>
+                }
+              </span>
+              <button
+                type="button"
+                class="btn-pos-sync-direct"
+                (click)="syncOfflineSales()"
+                [disabled]="offlineService.isSyncing()"
+                title="Sincronizar ventas offline al servidor ahora"
+              >
+                @if (offlineService.isSyncing()) {
+                  <span class="spinner-border spinner-border-sm" role="status"></span>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                  </svg>
+                }
+                <span>Sincronizar</span>
+              </button>
+            </div>
+          }
+        </div>
+        <div class="header-subtext">
+          @if (hasOpenSession()) {
+            {{ activeSessionName() }} · Turno actual
+          } @else {
+            No hay un turno de caja abierto en este momento
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Botones de la cabecera (40px, con icono, atajo como kbd al lado del texto, borde uniforme #CBD5E1) -->
+    @if (hasOpenSession()) {
+    <div class="header-actions-row">
+      <!-- 1. AUTO-IMPRESIÓN TOGGLE -->
+      <label class="pos-toggle-switch-card" [class.active]="autoPrintTicket()" title="Auto-imprimir ticket térmico al cobrar una venta (58mm/80mm)">
+        <input type="checkbox" [checked]="autoPrintTicket()" (change)="toggleAutoPrint()" />
+        <span class="switch-slider"></span>
+        <span class="switch-label">Auto-imprimir</span>
+      </label>
+
+      <!-- 3. HISTORIAL & ANULACIÓN DE FACTURA -->
+      <button
+        type="button"
+        class="btn-pos-outline btn-40"
+        (click)="openRecentSalesModal()"
+        title="Historial de ventas de la caja y anulación rápida de factura"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span>Historial / Anular</span>
+      </button>
+
+      <!-- 5. DATOS DEL NEGOCIO PARA EL TICKET -->
+      <button
+        type="button"
+        class="btn-pos-outline btn-40"
+        (click)="openBusinessTicketModal()"
+        title="Configurar datos del negocio en el ticket impreso (Nombre, RNC, dirección, 80mm/58mm)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+          <line x1="7" y1="7" x2="7.01" y2="7"></line>
+        </svg>
+        <span>Datos Ticket</span>
+      </button>
+
+      <!-- 6. CÓDIGOS DE BARRA (DESCARGA / IMPRESIÓN PLANILLA) -->
+      <button
+        type="button"
+        class="btn-pos-outline btn-40"
+        (click)="openBarcodeSheetModal()"
+        title="Descargar o imprimir planilla de códigos de barra para productos"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="5" x2="3" y2="19"></line>
+          <line x1="7" y1="5" x2="7" y2="19"></line>
+          <line x1="11" y1="5" x2="11" y2="19"></line>
+          <line x1="15" y1="5" x2="15" y2="19"></line>
+          <line x1="18" y1="5" x2="18" y2="19"></line>
+          <line x1="21" y1="5" x2="21" y2="19"></line>
+        </svg>
+        <span>Códigos de Barra</span>
+      </button>
+
+      <!-- MODO COMPACTO (15" / 1366x768 / ALTA DENSIDAD) -->
+      <button
+        type="button"
+        class="btn-pos-outline btn-40"
+        [class.active]="isCompactMode()"
+        (click)="toggleCompactMode()"
+        [title]="isCompactMode() ? 'Desactivar Modo Compacto' : 'Activar Modo Cajero Compacto (Pantallas 15&quot; táctiles o 1366x768)'"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 14 10 14 10 20"></polyline>
+          <polyline points="20 10 14 10 14 4"></polyline>
+          <line x1="14" y1="10" x2="21" y2="3"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+        <span>{{ isCompactMode() ? 'Compacto: ON' : 'Modo Compacto' }}</span>
+      </button>
+
+      <!-- Atajos [F1] -->
+      <button
+        type="button"
+        class="btn-pos-outline btn-40"
+        (click)="isShortcutsModalOpen.set(true)"
+        title="Ver atajos de teclado (F1)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+          <line x1="6" y1="8" x2="6.01" y2="8"></line>
+          <line x1="10" y1="8" x2="10.01" y2="8"></line>
+          <line x1="14" y1="8" x2="14.01" y2="8"></line>
+          <line x1="18" y1="8" x2="18.01" y2="8"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+        <span>Atajos</span>
+        <span class="kbd-pill">F1</span>
+      </button>
+
+      <!-- Calc [F3] -->
+      <button
+        type="button"
+        class="btn-pos-outline btn-40"
+        (click)="isCalculatorOpen.update(v => !v)"
+        title="Calculadora (F3)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+          <line x1="8" y1="6" x2="16" y2="6"></line>
+          <line x1="16" y1="14" x2="16" y2="18"></line>
+          <path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"></path>
+        </svg>
+        <span>Calc</span>
+        <span class="kbd-pill">F3</span>
+      </button>
+
+      <!-- En espera -->
+      <button
+        type="button"
+        class="btn-pos-outline btn-40"
+        (click)="openHeldSalesModal()"
+        title="Ver ventas en espera (F9)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+          <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+        </svg>
+        <span>En espera</span>
+        @if (draftStorageService.heldCount() > 0) {
+          <span class="cuadre-badge badge-info" style="padding: 1px 6px; font-size: 11px;">{{ draftStorageService.heldCount() }}</span>
+        }
+      </button>
+
+      <!-- Pausar [F8] -->
+      <button
+        type="button"
+        class="btn-pos-outline btn-40"
+        (click)="holdCurrentSale()"
+        [disabled]="cartItems().length === 0"
+        title="Poner en pausa la venta actual (F8)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
+        </svg>
+        <span>Pausar</span>
+        <span class="kbd-pill">F8</span>
+      </button>
+
+      <!-- Reimprimir -->
+      <button
+        type="button"
+        class="btn-pos-outline btn-40"
+        (click)="reprintLastSale()"
+        [disabled]="!lastCompletedSale()"
+        title="Reimprimir el ticket de la última venta"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+          <rect x="6" y="14" width="12" height="8"></rect>
+        </svg>
+        <span>Reimprimir</span>
+      </button>
+
+      <!-- Abrir gaveta -->
+      <button
+        type="button"
+        class="btn-pos-outline btn-40"
+        (click)="openDrawerManual()"
+        title="Abrir gaveta manual"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+        </svg>
+        <span>Abrir gaveta</span>
+      </button>
+
+      <!-- Limpiar (danger-outline) -->
+      <button
+        type="button"
+        class="btn-pos-danger-outline"
+        (click)="resetForm()"
+        title="Limpiar carrito (F5)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>Limpiar</span>
+      </button>
+    </div>
+    }
+  </header>
+
+  <!-- ALERTA DE AGOTAMIENTO DE SECUENCIAS DGII (NCF / e-CF) -->
+  <app-ncf-alert-banner></app-ncf-alert-banner>
+
+  <!-- PERSISTENT CRITICAL ALERT PANEL -->
+  @if (criticalAlert(); as alert) {
+    <div class="pos-card" style="border-color: var(--cuadre-color-danger-border); background-color: var(--cuadre-color-danger-light); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+      <div style="display: flex; align-items: flex-start; gap: 12px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--cuadre-color-danger-text); flex-shrink: 0; margin-top: 2px;">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <div>
+          <strong style="color: var(--cuadre-color-danger-text); font-size: 14px; display: block;">{{ alert.title }}</strong>
+          <span style="color: var(--cuadre-text-body); font-size: 13px;">{{ alert.message }}</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button
+          type="button"
+          class="btn-pos-outline btn-40"
+          style="background-color: var(--cuadre-color-danger-button); color: #FFFFFF; border-color: var(--cuadre-color-danger-button);"
+          (click)="retryCriticalPayment()"
+        >
+          Reintentar Cobro
+        </button>
+        @if (alert.canQueueOffline) {
+          <button
+            type="button"
+            class="btn-pos-outline btn-40"
+            (click)="forceQueueOfflineSale()"
+          >
+            Guardar Offline
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- POS Cerrado si no hay turno abierto -->
+  @if (!hasOpenSession()) {
+    <div class="pos-card" style="text-align: center; padding: 48px 24px;">
+      <div style="width: 64px; height: 64px; border-radius: 50%; background-color: var(--cuadre-color-danger-light); color: var(--cuadre-color-danger-text); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </div>
+      <h2 style="font-size: 20px; font-weight: 700; color: var(--cuadre-text-main); margin-bottom: 8px;">Punto de Venta Cerrado</h2>
+      <p style="font-size: 14px; color: var(--cuadre-text-muted); max-width: 520px; margin: 0 auto 24px auto;">
+        Para registrar ventas, emitir comprobantes fiscales y gestionar cobros, es indispensable tener un <strong>turno de caja abierto</strong>.
+      </p>
+
+      <div style="display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <button
+          type="button"
+          class="btn-pos-blue-solid btn-44"
+          (click)="goToOpenCashRegister()"
+        >
+          Ir al Módulo de Caja (Abrir Turno)
+        </button>
+        <button
+          type="button"
+          class="btn-pos-outline btn-44"
+          (click)="checkActiveSession()"
+          [disabled]="isLoading()"
+        >
+          @if (isLoading()) {
+            <c-spinner size="sm"></c-spinner>
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+          }
+          <span>Verificar Estado</span>
+        </button>
+        <a [routerLink]="['/sales']" class="btn-pos-outline btn-44">
+          Volver a Ventas
+        </a>
+      </div>
+    </div>
+  } @else {
+    <!-- LAYOUT PRINCIPAL (1440x900 referencia, 2 columnas) -->
+    <div class="pos-main-layout">
+      <!-- COLUMNA IZQUIERDA (Flexible, min-width 0) -->
+      <div class="pos-left-column">
+        <!-- 1. CARD DE BÚSQUEDA (Padding 14px) -->
+        <div class="pos-card pos-search-card">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              #catalogSearchInput
+              type="text"
+              class="search-input"
+              placeholder="Buscar por nombre o código (Lector USB/Bluetooth o Teclado)"
+              [ngModel]="catalogSearchTerm()"
+              (ngModelChange)="catalogSearchTerm.set($event)"
+              (keydown)="onSearchKeydown($event)"
+            />
+            <div class="search-actions-group">
+              <button
+                type="button"
+                class="btn-camera-scan-pc"
+                (click)="openCameraScanner()"
+                title="Escanear con Cámara Web de la PC (F6)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+                <span>Cámara (F6)</span>
+              </button>
+              <div class="search-right-badge" (click)="focusCatalogSearch()" title="Lector externo activo / Enfocar (F2)">
+                <span class="kbd-pill">F2</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                  <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                  <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                  <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="categories-filter-row">
+            <div class="category-select-wrap">
+              <select
+                class="pos-category-select"
+                [ngModel]="selectedCategory()"
+                (ngModelChange)="setCategory($event)"
+                aria-label="Todas las categorías"
+              >
+                <option [ngValue]="null">Todas las categorías</option>
+                @for (cat of nonAllCategories(); track cat.id ?? cat.label) {
+                  <option [ngValue]="cat.id">{{ cat.label }}</option>
+                }
+              </select>
+            </div>
+            <div class="category-chips-list">
+              @for (cat of categories(); track cat.id) {
+                <button
+                  type="button"
+                  class="category-chip"
+                  [class.active]="selectedCategory() === cat.id"
+                  (click)="setCategory(cat.id)"
+                >
+                  {{ cat.label }}
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. CATÁLOGO DE PRODUCTOS (Card) -->
+        <div class="pos-card pos-catalog-card">
+          <div class="catalog-header">
+            <div class="catalog-title-group">
+              <h2 class="catalog-title">Catálogo de productos</h2>
+              <span class="cuadre-badge badge-info">{{ filteredCatalogProducts().length }} disponibles</span>
+            </div>
+            <div class="catalog-warehouse-group">
+              <label for="warehouseSelect" class="warehouse-label">Almacén</label>
+              <select
+                id="warehouseSelect"
+                class="warehouse-select"
+                [ngModel]="selectedWarehouseId()"
+                (ngModelChange)="onWarehouseChange($event)"
+              >
+                @for (wh of warehouses(); track wh.id) {
+                  <option [ngValue]="wh.id">{{ wh.name }}{{ wh.isMain ? ' (Principal)' : '' }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- ⭐ FILA DE FAVORITOS / PRODUCTOS ESTRELLA (1 TOQUE) -->
+          @if (favoriteProducts().length > 0) {
+            <div class="pos-favorites-bar">
+              <div class="pos-favorites-header">
+                <span class="pos-favorites-badge">
+                  <span>Favoritos / Más Vendidos (1 Toque)</span>
+                </span>
+                <span class="pos-favorites-hint">Toca para agregar directo al carrito</span>
+              </div>
+              <div class="pos-favorites-pills-row">
+                @for (fav of favoriteProducts(); track fav.id) {
+                  <button
+                    type="button"
+                    class="fav-pill-btn"
+                    (click)="addProductToCart(fav)"
+                    [title]="'Agregar ' + fav.description + ' - RD$ ' + ((fav.cost || 100) | number:'1.2-2')"
+                  >
+                    <span class="fav-pill-star">⭐</span>
+                    <span class="fav-pill-name">{{ fav.description }}</span>
+                    <span class="fav-pill-price">RD$ {{ (fav.cost || 100) | number:'1.0-0' }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="catalog-grid">
+            @if (isLoadingProducts()) {
+              <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                <c-spinner color="primary"></c-spinner>
+                <div style="margin-top: 8px; color: var(--cuadre-text-muted); font-size: 13px;">Cargando productos...</div>
+              </div>
+            } @else {
+              @for (prod of pagedCatalogProducts(); track prod.id) {
+                <div class="product-flat-card" (click)="addProductToCart(prod)">
+                  <div class="product-card-top">
+                    <div class="product-card-top-left">
+                      <button
+                        type="button"
+                        class="btn-pos-star"
+                        [class.active]="isFavoriteProduct(prod.id!)"
+                        (click)="$event.stopPropagation(); toggleFavoriteProduct(prod.id!, $event)"
+                        [title]="isFavoriteProduct(prod.id!) ? 'Quitar de Favoritos Estrella' : 'Fijar en Favoritos / Estrella'"
+                        aria-label="Favorito"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" [attr.fill]="isFavoriteProduct(prod.id!) ? '#f59e0b' : 'none'" [attr.stroke]="isFavoriteProduct(prod.id!) ? '#d97706' : '#94a3b8'" stroke-width="2">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                      </button>
+                      <span class="product-sku-tag" [title]="prod.barcode || prod.reference || 'SKU-' + prod.id">
+                        {{ prod.barcode || prod.reference || 'SKU-' + prod.id }}
+                      </span>
+                    </div>
+                    @if (getProductAvailableStock(prod.id!) <= 0) {
+                      <span class="cuadre-badge badge-bad">
+                        <span class="badge-dot"></span>
+                        <span>Agotado</span>
+                      </span>
+                    } @else if (getProductAvailableStock(prod.id!) <= 5) {
+                      <span class="cuadre-badge badge-warn">
+                        <span class="badge-dot"></span>
+                        <span>Stock: {{ getProductAvailableStock(prod.id!) }} {{ getProductUnitSymbol(prod) }}</span>
+                      </span>
+                    } @else {
+                      <span class="cuadre-badge badge-ok">
+                        <span class="badge-dot"></span>
+                        <span>Stock: {{ getProductAvailableStock(prod.id!) }} {{ getProductUnitSymbol(prod) }}</span>
+                      </span>
+                    }
+                  </div>
+
+                  <div class="product-name" [title]="prod.description">
+                    {{ prod.description }}
+                  </div>
+
+                  <div class="product-separator"></div>
+
+                  <div class="product-card-bottom">
+                    <div class="product-price-box">
+                      <span class="product-price">RD$ {{ (prod.cost || 100) | number:'1.2-2' }}</span>
+                      <span class="product-unit">/ {{ getProductUnitSymbol(prod) }}</span>
+                    </div>
+                    <div class="product-bottom-actions">
+                      @if (prod.imageUrl || prod.photoUrl) {
+                        <button
+                          type="button"
+                          class="btn-pos-photo-preview"
+                          (click)="$event.stopPropagation(); openProductPhotoPreviewModal(prod)"
+                          title="Ver foto subida y código de barras del producto"
+                          aria-label="Ver foto"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                          </svg>
+                          <span>Foto</span>
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        class="btn-pos-add"
+                        [disabled]="getProductAvailableStock(prod.id!) <= 0"
+                        (click)="$event.stopPropagation(); addProductToCart(prod)"
+                        aria-label="Agregar producto"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="12" y1="5" x2="12" y2="19"></line>
+                          <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              } @empty {
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--cuadre-text-muted); font-size: 14px;">
+                  No se encontraron productos coincidentes.
+                </div>
+              }
+            }
+          </div>
+
+          @if (totalCatalogPages() > 1) {
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--cuadre-border-color);">
+              <button
+                type="button"
+                class="btn-pos-outline btn-40"
+                [disabled]="catalogPage() <= 1"
+                (click)="prevCatalogPage()"
+              >
+                &laquo; Anterior
+              </button>
+              <span style="font-size: 13px; color: var(--cuadre-text-muted); font-weight: 500;">
+                Página {{ catalogPage() }} de {{ totalCatalogPages() }}
+              </span>
+              <button
+                type="button"
+                class="btn-pos-outline btn-40"
+                [disabled]="catalogPage() >= totalCatalogPages()"
+                (click)="nextCatalogPage()"
+              >
+                Siguiente &raquo;
+              </button>
+            </div>
+          }
+        </div>
+
+        <!-- 3. CARRITO DE VENTA (Card, flex: 1) -->
+        <div class="pos-card pos-cart-card">
+          <div class="cart-header">
+            <h3 class="cart-title">Productos en la venta ({{ cartItems().length }})</h3>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button
+                type="button"
+                class="btn-pos-outline btn-40"
+                (click)="holdCurrentSale()"
+                [disabled]="cartItems().length === 0"
+                title="Poner venta actual en espera (F8)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="6" y="4" width="4" height="16"></rect>
+                  <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+                <span>Pausar (F8)</span>
+              </button>
+              <button
+                type="button"
+                class="btn-pos-danger-outline"
+                (click)="resetForm()"
+                [disabled]="cartItems().length === 0"
+                title="Limpiar carrito (F5)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Limpiar</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="cart-table-wrapper">
+            <div class="cart-table-scroll">
+              <table class="cart-table">
+                <thead>
+                  <tr>
+                    <th style="width: 40px; text-align: center;">#</th>
+                    <th>Producto</th>
+                    <th style="width: 120px; text-align: right;">Precio unit.</th>
+                    <th style="width: 150px; text-align: center;">Cantidad</th>
+                    <th style="width: 130px; text-align: right;">Subtotal</th>
+                    <th style="width: 44px; text-align: center;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of cartItems(); track item.productId; let i = $index) {
+                    <tr
+                      [class.selected-row]="selectedCartIndex() === i"
+                      (click)="selectCartItem(i)"
+                      style="cursor: pointer;"
+                    >
+                      <td class="item-num">{{ i + 1 }}</td>
+                      <td>
+                        <div class="item-name" [title]="item.productName">{{ item.productName }}</div>
+                        <div style="font-size: 11px; color: var(--cuadre-text-muted); font-weight: 500;">
+                          {{ item.productCode }}
+                          @if (item.saleMode && item.saleMode !== 'detail') {
+                            · <span style="color: var(--cuadre-color-primary);">{{ item.modeLabel }}</span>
+                          }
+                        </div>
+                      </td>
+                      <td class="item-price">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
+                      <td style="text-align: center;">
+                        <div class="item-stepper" (click)="$event.stopPropagation()">
+                          <button
+                            type="button"
+                            class="btn-stepper"
+                            (click)="updateItemQuantity(i, item.quantity - 1)"
+                            aria-label="Disminuir cantidad"
+                          >
+                            −
+                          </button>
+                          <span
+                            class="stepper-qty"
+                            (click)="getProductById(item.productId) && openMeasurementModal(getProductById(item.productId)!, i)"
+                            title="Clic para cambiar cantidad o peso"
+                            style="cursor: pointer;"
+                          >
+                            {{ item.quantity }}
+                          </span>
+                          <button
+                            type="button"
+                            class="btn-stepper"
+                            (click)="updateItemQuantity(i, item.quantity + 1)"
+                            aria-label="Aumentar cantidad"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </td>
+                      <td class="item-subtotal">RD$ {{ item.total | number:'1.2-2' }}</td>
+                      <td style="text-align: center;">
+                        <button
+                          type="button"
+                          class="btn-delete-row"
+                          (click)="$event.stopPropagation(); removeCartItem(i)"
+                          aria-label="Eliminar ítem"
+                          title="Eliminar ítem"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="6">
+                        <div class="cart-empty-message">
+                          Carrito vacío. Selecciona productos del catálogo o escanea un código de barras (F2).
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="cart-footer">
+            <div class="discount-control-group">
+              <label for="cartDiscountInput" class="discount-label">Descuento</label>
+              <div class="discount-input-box">
+                <input
+                  id="cartDiscountInput"
+                  type="number"
+                  min="0"
+                  class="discount-input-field"
+                  [ngModel]="discountValue()"
+                  (ngModelChange)="setDiscountValue($event)"
+                  placeholder="0"
+                />
+                <button type="button" class="discount-toggle-btn" (click)="toggleDiscountType()">
+                  {{ discountType() === 'percent' ? '%' : 'RD$' }}
+                </button>
+              </div>
+            </div>
+            <div class="cart-items-count">
+              {{ cartItems().length }} artículo(s) en venta
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. BARRA DE TECLAS RÁPIDAS (Card compacta, padding 10px) -->
+        <div class="pos-card pos-shortcuts-bar">
+          <div class="shortcuts-left">
+            <div class="shortcuts-title">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                <line x1="6" y1="8" x2="6.01" y2="8"></line>
+                <line x1="10" y1="8" x2="10.01" y2="8"></line>
+                <line x1="14" y1="8" x2="14.01" y2="8"></line>
+                <line x1="18" y1="8" x2="18.01" y2="8"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              <span>Teclas rápidas</span>
+            </div>
+            <div class="shortcut-item"><span class="kbd-pill">F2</span> <span>Buscar</span></div>
+            <div class="shortcut-item"><span class="kbd-pill">F3</span> <span>Calculadora</span></div>
+            <div class="shortcut-item"><span class="kbd-pill">F4</span> <span>Cobrar</span></div>
+            <div class="shortcut-item"><span class="kbd-pill">F5</span> <span>Cancelar</span></div>
+            <div class="shortcut-item"><span class="kbd-pill">F8</span> <span>Pausar</span></div>
+            <div class="shortcut-item"><span class="kbd-pill">F9</span> <span>En espera</span></div>
+            <div class="shortcut-item"><span class="kbd-pill">Esc</span> <span>Cerrar</span></div>
+          </div>
+          <button type="button" class="btn-more-shortcuts" (click)="isShortcutsModalOpen.set(true)">
+            Más atajos &gt;
+          </button>
+        </div>
+      </div>
+
+      <!-- COLUMNA DERECHA (Fija 420px, Panel de cobro) -->
+      <div class="pos-right-column">
+        <div class="pos-card pos-checkout-card">
+          <!-- 1. STEPPER DE 3 PASOS GUIADOS -->
+          <div class="pos-stepper-container">
+            <div class="pos-stepper-header-banner">
+              <div class="flow-step-tag">
+                <span class="flow-pulse-dot"></span>
+                <span class="flow-tag-text">PASO {{ checkoutStep() }} DE 3</span>
+              </div>
+              <div class="flow-step-hint">
+                @if (checkoutStep() === 1) { 1. Método de Pago y Cobro }
+                @else if (checkoutStep() === 2) { 2. Factura / Cliente (Opcional) }
+                @else { 3. Comprobante Fiscal e-CF }
+              </div>
+            </div>
+
+            <div class="pos-stepper-row">
+              <button
+                type="button"
+                class="pos-step-btn"
+                [class.active]="checkoutStep() === 1"
+                [class.completed]="checkoutStep() > 1"
+                (click)="goToStep(1)"
+                title="Paso 1: Cobrar"
+              >
+                <span class="step-circle">
+                  @if (checkoutStep() > 1) {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  } @else {
+                    1
+                  }
+                </span>
+                <div class="step-info-col">
+                  <span class="step-badge-kicker">PASO 1</span>
+                  <span class="step-label">Cobrar</span>
+                </div>
+              </button>
+              <div class="step-connector-line" [class.filled]="checkoutStep() > 1"></div>
+              <button
+                type="button"
+                class="pos-step-btn"
+                [class.active]="checkoutStep() === 2"
+                [class.completed]="checkoutStep() > 2"
+                [disabled]="!isStep1Valid()"
+                (click)="goToStep(2)"
+                title="Paso 2: Factura (opcional)"
+              >
+                <span class="step-circle">
+                  @if (checkoutStep() > 2) {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  } @else {
+                    2
+                  }
+                </span>
+                <div class="step-info-col">
+                  <span class="step-badge-kicker">PASO 2</span>
+                  <span class="step-label">Factura</span>
+                </div>
+              </button>
+              <div class="step-connector-line" [class.filled]="checkoutStep() > 2"></div>
+              <button
+                type="button"
+                class="pos-step-btn"
+                [class.active]="checkoutStep() === 3"
+                [class.completed]="checkoutStep() === 3"
+                [disabled]="!isStep1Valid()"
+                (click)="goToStep(3)"
+                title="Paso 3: Comprobante"
+              >
+                <span class="step-circle">3</span>
+                <div class="step-info-col">
+                  <span class="step-badge-kicker">PASO 3</span>
+                  <span class="step-label">Comprobante</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- PASO 1: COBRO -->
+          @if (checkoutStep() === 1) {
+            <div class="checkout-section-label">MÉTODO DE PAGO</div>
+
+            <div class="payment-methods-grid">
+              <!-- Efectivo -->
+              <button
+                type="button"
+                class="method-card"
+                [class.active]="selectedMethod() === 'Efectivo'"
+                (click)="setMethod('Efectivo')"
+              >
+                <svg class="method-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                  <circle cx="12" cy="12" r="2"></circle>
+                  <path d="M6 12h.01M18 12h.01"></path>
+                </svg>
+                <span class="method-label">Efectivo</span>
+              </button>
+
+              <!-- Tarjeta -->
+              <button
+                type="button"
+                class="method-card"
+                [class.active]="selectedMethod() === 'Tarjeta'"
+                (click)="setMethod('Tarjeta')"
+              >
+                <svg class="method-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                  <line x1="1" y1="10" x2="23" y2="10"></line>
+                </svg>
+                <span class="method-label">Tarjeta</span>
+              </button>
+
+              <!-- Transferencia -->
+              <button
+                type="button"
+                class="method-card"
+                [class.active]="selectedMethod() === 'Transferencia'"
+                (click)="setMethod('Transferencia')"
+              >
+                <svg class="method-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="17 1 21 5 17 9"></polyline>
+                  <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                  <polyline points="7 23 3 19 7 15"></polyline>
+                  <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                </svg>
+                <span class="method-label">Transferencia</span>
+              </button>
+            </div>
+
+            <!-- FORMULARIO EFECTIVO -->
+            @if (selectedMethod() === 'Efectivo') {
+              <div class="cash-received-section">
+                <div class="cash-received-header">
+                  <label for="posAmountReceived">Efectivo recibido</label>
+                  <button
+                    type="button"
+                    class="btn-pos-outline btn-40"
+                    (click)="isCalculatorOpen.update(v => !v)"
+                    title="Calculadora (F3)"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                      <line x1="8" y1="6" x2="16" y2="6"></line>
+                      <line x1="16" y1="14" x2="16" y2="18"></line>
+                      <path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"></path>
+                    </svg>
+                    <span>Calculadora [F3]</span>
+                  </button>
+                </div>
+
+                <div class="pos-money-input-56">
+                  <div class="money-prefix-block">RD$</div>
+                  <input
+                    #amountReceivedInput
+                    id="posAmountReceived"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="money-input-field-22"
+                    [ngModel]="amountReceived()"
+                    (ngModelChange)="amountReceived.set($event)"
+                    (keydown.enter)="processQuickSale()"
+                    placeholder="0.00"
+                  />
+                  @if (amountReceived() > 0) {
+                    <button
+                      type="button"
+                      class="btn-clear-amount-received"
+                      (click)="clearAmountReceived()"
+                      title="Limpiar monto recibido"
+                    >
+                      ✕
+                    </button>
+                  }
+                </div>
+
+                <!-- Botón Monto Exacto (Acelera cobro sin teclear) -->
+                <div class="fast-cash-exact-bar">
+                  <button
+                    type="button"
+                    class="fast-cash-exact-chip"
+                    [class.active]="amountReceived() === netPayable() && netPayable() > 0"
+                    (click)="applyQuickCash('exact')"
+                    title="Cobrar el monto exacto de la venta"
+                  >
+                    <span>⚡ Monto Exacto: RD$ {{ netPayable() | number:'1.2-2' }}</span>
+                  </button>
+                </div>
+
+                <!-- Montos rápidos 3x2 (color de texto principal neutro #0F172A para todos, ¡500 NO en rojo!) -->
+                <div class="fast-cash-grid">
+                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 100" (click)="applyQuickCash(100)">100</button>
+                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 200" (click)="applyQuickCash(200)">200</button>
+                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 500" (click)="applyQuickCash(500)">500</button>
+                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 1000" (click)="applyQuickCash(1000)">1,000</button>
+                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 2000" (click)="applyQuickCash(2000)">2,000</button>
+                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 50" (click)="applyQuickCash(50)">50</button>
+                </div>
+              </div>
+            }
+
+            <!-- FORMULARIO TARJETA -->
+            @if (selectedMethod() === 'Tarjeta') {
+              <div style="background-color: var(--cuadre-bg-subtle); border: 1px solid var(--cuadre-border-color); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; gap: 8px;">
+                  <div style="flex: 1;">
+                    <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">Tipo Tarjeta</label>
+                    <select class="pos-category-select" style="width: 100%; height: 40px;" [ngModel]="cardType()" (ngModelChange)="cardType.set($event)">
+                      <option value="DEBIT">Tarjeta Débito</option>
+                      <option value="CREDIT">Tarjeta Crédito</option>
+                    </select>
+                  </div>
+                  <div style="flex: 1;">
+                    <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">Últimos 4 Dígitos</label>
+                    <input type="text" maxlength="4" placeholder="Ej. 4281" style="height: 40px; border: 1px solid var(--cuadre-border-input); border-radius: 10px; padding: 0 10px; width: 100%; box-sizing: border-box; font-variant-numeric: tabular-nums; text-align: center;" [(ngModel)]="cardLastFour" />
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">No. Autorización / Voucher</label>
+                  <input type="text" placeholder="Ej. 091823" style="height: 40px; border: 1px solid var(--cuadre-border-input); border-radius: 10px; padding: 0 10px; width: 100%; box-sizing: border-box;" [(ngModel)]="cardAuthVoucher" />
+                </div>
+              </div>
+            }
+
+            <!-- FORMULARIO TRANSFERENCIA CON QR Y DATOS BANCARIOS -->
+            @if (selectedMethod() === 'Transferencia') {
+              <div class="pc-bank-transfer-container">
+                <div class="pc-bank-header-row">
+                  <label class="pc-bank-section-title">Cuenta de la Empresa Destino:</label>
+                  <button type="button" class="btn-pos-outline pc-add-bank-btn" (click)="openAddBankModal()">
+                    + Agregar banco
+                  </button>
+                </div>
+
+                <!-- Chips de Bancos Disponibles -->
+                <div class="pc-bank-chips-grid">
+                  @for (bank of bankChannels(); track bank.id) {
+                    <button
+                      type="button"
+                      class="category-chip"
+                      [class.active]="selectedBankChannel() === bank.id"
+                      (click)="selectBankChannel(bank.id)"
+                    >
+                      <span>{{ bank.icon }}</span>
+                      <span>{{ bank.name }}</span>
+                    </button>
+                  }
+                </div>
+
+                <!-- Tarjeta de Información Bancaria con Copiar 1-Clic -->
+                <div class="pc-bank-account-card">
+                  <div class="pc-bank-card-top">
+                    <span class="pc-bank-brand">{{ currentBankProfile().icon }} {{ currentBankProfile().name }} · {{ currentBankProfile().type }}</span>
+                    <span class="pc-bank-currency-badge">{{ currentBankProfile().currency || 'DOP' }}</span>
+                  </div>
+                  <div class="pc-bank-holder-info">
+                    Titular: <strong>{{ currentBankProfile().holderName || 'Empresa' }}</strong>
+                    @if (currentBankProfile().holderRnc) {
+                      <span class="ms-1">· RNC: {{ currentBankProfile().holderRnc }}</span>
+                    }
+                  </div>
+                  <div class="pc-bank-number-row">
+                    <div class="pc-bank-account-val">
+                      <span class="pc-bank-label">No. Cuenta:</span>
+                      <strong>{{ currentBankProfile().account }}</strong>
+                    </div>
+                    <button
+                      type="button"
+                      class="pc-copy-account-btn"
+                      (click)="copyBankAccountNumber()"
+                      title="Copiar número de cuenta al portapapeles"
+                    >
+                      @if (isBankCopied()) {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span>¡Copiado!</span>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                        </svg>
+                        <span>Copiar</span>
+                      }
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Botones de Acción: Mostrar QR al Cliente y Pantalla Completa Mostrador -->
+                <div class="pc-bank-actions-row">
+                  <button
+                    type="button"
+                    class="pc-action-qr-btn"
+                    [class.active]="isBankQrOpen()"
+                    (click)="isBankQrOpen.set(!isBankQrOpen())"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="5" height="5" x="3" y="3" rx="1"/>
+                      <rect width="5" height="5" x="16" y="3" rx="1"/>
+                      <rect width="5" height="5" x="3" y="16" rx="1"/>
+                      <path d="M21 16h-3a2 2 0 0 0-2 2v3"/>
+                      <path d="M21 21v.01"/>
+                      <path d="M12 7v3a2 2 0 0 1-2 2H7"/>
+                    </svg>
+                    <span>{{ isBankQrOpen() ? 'Ocultar QR' : 'Mostrar QR al Cliente' }}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="pc-action-fullscreen-btn"
+                    (click)="isCustomerQrModalOpen.set(true)"
+                    title="Abrir QR en vista de mostrador para el cliente"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="15 3 21 3 21 9"></polyline>
+                      <polyline points="9 21 3 21 3 15"></polyline>
+                      <line x1="21" y1="3" x2="14" y2="10"></line>
+                      <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                    <span>Pantalla Cliente</span>
+                  </button>
+                </div>
+
+                <!-- Preview Inline de QR para el Cajero y Mostrador -->
+                @if (isBankQrOpen()) {
+                  <div class="pc-bank-qr-preview-box">
+                    <span class="pc-qr-instruction">Muestra este código al cliente para pagar desde su app de banco:</span>
+                    <div class="pc-qr-code-wrapper">
+                      <img [src]="bankTransferQrUrl()" alt="QR Transferencia Bancaria" class="pc-qr-image" />
+                    </div>
+                    <div class="pc-qr-amount-indicator">
+                      Monto exacto: <strong class="text-primary font-monospace">RD$ {{ netPayable() | number:'1.2-2' }}</strong>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn-pos-outline pc-qr-modal-launch-btn"
+                      (click)="isCustomerQrModalOpen.set(true)"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                      </svg>
+                      <span>Abrir Pantalla Completa para Cliente</span>
+                    </button>
+                  </div>
+                }
+
+                <!-- Campo de Referencia Bancaria -->
+                <div class="pc-reference-field">
+                  <label class="pc-reference-label">No. Confirmación / Ref Bancaria *</label>
+                  <input
+                    type="text"
+                    class="pc-reference-input"
+                    placeholder="Ej. AUT-894120 / Comprobante"
+                    [(ngModel)]="transferReference"
+                  />
+                </div>
+              </div>
+            }
+
+            <!-- TOTALES -->
+            <div class="checkout-totals-section">
+              <div class="total-line-item">
+                <span class="total-label">Subtotal</span>
+                <span class="total-val">RD$ {{ subtotal() | number:'1.2-2' }}</span>
+              </div>
+              <div class="total-line-item">
+                <span class="total-label">Descuento</span>
+                <span class="total-val discount-val">− RD$ {{ discountAmount() | number:'1.2-2' }}</span>
+              </div>
+              <div class="total-line-item">
+                <span class="total-label">Impuestos (ITBIS 18%)</span>
+                <span class="total-val">RD$ {{ itbis() | number:'1.2-2' }}</span>
+              </div>
+              <div class="main-total-row">
+                <span class="main-total-label">Total a cobrar</span>
+                <span class="main-total-amount">RD$ {{ netPayable() | number:'1.2-2' }}</span>
+              </div>
+            </div>
+
+            <!-- TARJETA CAMBIO (solo si el método es Efectivo) -->
+            @if (selectedMethod() === 'Efectivo') {
+              @if (cashShortage() > 0) {
+                <div class="pos-cambio-card shortage">
+                  <div class="cambio-left">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span class="cambio-label">Faltan</span>
+                  </div>
+                  <span class="cambio-amount">RD$ {{ cashShortage() | number:'1.2-2' }}</span>
+                </div>
+              } @else {
+                <div class="pos-cambio-card">
+                  <div class="cambio-left">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                      <circle cx="12" cy="12" r="2"></circle>
+                      <path d="M6 12h.01M18 12h.01"></path>
+                    </svg>
+                    <span class="cambio-label">Cambio</span>
+                  </div>
+                  <span class="cambio-amount">RD$ {{ change() | number:'1.2-2' }}</span>
+                </div>
+              }
+            }
+
+            <!-- BOTÓN COBRAR Y FACTURAR · F12 (56px) -->
+            <button
+              type="button"
+              class="btn-checkout-56"
+              [disabled]="isSubmitting() || isLoading() || !isStep1Valid()"
+              (click)="processQuickSale()"
+            >
+              @if (isSubmitting() || isLoading()) {
+                <c-spinner size="sm"></c-spinner>
+                <span>Procesando Cobro...</span>
+              } @else {
+                <div class="d-flex align-items-center justify-content-between w-100 px-1">
+                  <span class="btn-checkout-kbd">F12</span>
+                  <span class="fw-bold">Cobrar (F12)</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </div>
+              }
+            </button>
+
+            <!-- ENLACE A PASO 2 (Configurar comprobante fiscal / cliente) -->
+            <button
+              type="button"
+              class="step2-link"
+              [disabled]="!isStep1Valid()"
+              (click)="goToStep(2)"
+            >
+              Configurar comprobante fiscal / cliente (paso 2)
+            </button>
+          }
+
+          <!-- PASO 2: FACTURA (OPCIONAL) -->
+          @if (checkoutStep() === 2) {
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div>
+                <h3 style="font-size: 14px; font-weight: 700; color: var(--cuadre-text-main); margin-bottom: 8px;">Tipo de Comprobante Fiscal (DGII)</h3>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="category-chip" style="height: auto; padding: 10px 12px; justify-content: flex-start; cursor: pointer;" [class.active]="invoiceType() === 'B02'">
+                    <input type="radio" name="ncfType" value="B02" style="margin-right: 8px;" [ngModel]="invoiceType()" (ngModelChange)="invoiceType.set($event)" />
+                    <div>
+                      <strong style="display: block; font-size: 13px; color: var(--cuadre-text-main);">B02 - Factura de Consumo</strong>
+                      <small style="font-size: 11px; color: var(--cuadre-text-muted);">Consumidor final (Sin crédito fiscal)</small>
+                    </div>
+                  </label>
+                  <label class="category-chip" style="height: auto; padding: 10px 12px; justify-content: flex-start; cursor: pointer;" [class.active]="invoiceType() === 'B01'">
+                    <input type="radio" name="ncfType" value="B01" style="margin-right: 8px;" [ngModel]="invoiceType()" (ngModelChange)="invoiceType.set($event)" />
+                    <div>
+                      <strong style="display: block; font-size: 13px; color: var(--cuadre-text-main);">B01 - Crédito Fiscal</strong>
+                      <small style="font-size: 11px; color: var(--cuadre-text-muted);">Para deducir ITBIS y gastos (Requiere RNC)</small>
+                    </div>
+                  </label>
+                  <label class="category-chip" style="height: auto; padding: 10px 12px; justify-content: flex-start; cursor: pointer;" [class.active]="invoiceType() === 'B15'">
+                    <input type="radio" name="ncfType" value="B15" style="margin-right: 8px;" [ngModel]="invoiceType()" (ngModelChange)="invoiceType.set($event)" />
+                    <div>
+                      <strong style="display: block; font-size: 13px; color: var(--cuadre-text-main);">B15 - Comprobante Gubernamental</strong>
+                      <small style="font-size: 11px; color: var(--cuadre-text-muted);">Para entidades del Estado Dominicano</small>
+                    </div>
+                  </label>
+                  <label class="category-chip" style="height: auto; padding: 10px 12px; justify-content: flex-start; cursor: pointer;" [class.active]="invoiceType() === 'TICKET'">
+                    <input type="radio" name="ncfType" value="TICKET" style="margin-right: 8px;" [ngModel]="invoiceType()" (ngModelChange)="invoiceType.set($event)" />
+                    <div>
+                      <strong style="display: block; font-size: 13px; color: var(--cuadre-text-main);">Ticket Simple</strong>
+                      <small style="font-size: 11px; color: var(--cuadre-text-muted);">Recibo de caja sin secuencia fiscal DGII</small>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">Seleccionar Cliente</label>
+                <select class="pos-category-select" style="width: 100%; height: 40px; margin-bottom: 8px;" [(ngModel)]="selectedCustomerId">
+                  <option [ngValue]="null">Consumidor final</option>
+                  @for (c of customers(); track c.id) {
+                    <option [ngValue]="c.id">
+                      {{ c.name }} {{ c.identification ? '(' + c.identification + ')' : '' }}
+                    </option>
+                  }
+                </select>
+
+                @if (invoiceType() === 'B01' || invoiceType() === 'B15') {
+                  <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <div style="flex: 1;">
+                      <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">RNC / Cédula *</label>
+                      <input type="text" style="height: 40px; border: 1px solid var(--cuadre-border-input); border-radius: 10px; padding: 0 10px; width: 100%; box-sizing: border-box; font-variant-numeric: tabular-nums;" placeholder="Ej. 132-94812-1" [(ngModel)]="fiscalRnc" />
+                    </div>
+                    <div style="flex: 1;">
+                      <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">Razón Social *</label>
+                      <input type="text" style="height: 40px; border: 1px solid var(--cuadre-border-input); border-radius: 10px; padding: 0 10px; width: 100%; box-sizing: border-box;" placeholder="Nombre Empresa" [(ngModel)]="fiscalBusinessName" />
+                    </div>
+                  </div>
+                }
+
+                <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">Notas de la Factura</label>
+                <textarea rows="2" style="border: 1px solid var(--cuadre-border-input); border-radius: 10px; padding: 8px 10px; width: 100%; box-sizing: border-box; font-size: 13px;" placeholder="Observaciones impresas en la factura..." [(ngModel)]="invoiceNotes"></textarea>
+              </div>
+
+              <div style="display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--cuadre-border-color);">
+                <button type="button" class="btn-pos-outline btn-40" (click)="goToStep(1)">
+                  &lt; Volver a Cobro
+                </button>
+                <button
+                  type="button"
+                  class="btn-pos-blue-solid btn-40"
+                  style="flex: 1;"
+                  [disabled]="isSubmitting() || isLoading() || !isStep1Valid()"
+                  (click)="goToStep(3)"
+                >
+                  Cobrar y Emitir Comprobante (F4) &gt;
+                </button>
+              </div>
+            </div>
+          }
+
+          <!-- PASO 3: COMPROBANTE -->
+          @if (checkoutStep() === 3) {
+            <div style="display: flex; flex-direction: column; gap: 12px; text-align: center;">
+              <div style="width: 52px; height: 52px; border-radius: 50%; background-color: var(--cuadre-color-success-light); color: var(--cuadre-color-success-text); display: inline-flex; align-items: center; justify-content: center; margin: 0 auto;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <h3 style="font-size: 16px; font-weight: 700; color: var(--cuadre-color-success-text); margin: 0;">¡Venta Completada con Éxito!</h3>
+              <p style="font-size: 12px; color: var(--cuadre-text-muted); margin: 0;">La operación comercial y el movimiento de caja han sido registrados.</p>
+
+              <div style="background-color: var(--cuadre-bg-subtle); border: 1px solid var(--cuadre-border-color); border-radius: 10px; padding: 12px; text-align: left; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--cuadre-border-color);">
+                  <span style="color: var(--cuadre-text-muted);">Comprobante:</span>
+                  <strong style="color: var(--cuadre-text-main);">{{ lastCompletedSale()?.invoiceNumber }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--cuadre-border-color);">
+                  <span style="color: var(--cuadre-text-muted);">Fecha y Hora:</span>
+                  <span>{{ lastCompletedSale()?.date | date:'dd/MM/yyyy hh:mm a' }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--cuadre-border-color);">
+                  <span style="color: var(--cuadre-text-muted);">Cliente:</span>
+                  <span>{{ lastCompletedSale()?.customerName }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--cuadre-border-color);">
+                  <span style="color: var(--cuadre-text-muted);">Método:</span>
+                  <span>{{ lastCompletedSale()?.paymentMethod }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--cuadre-border-color);">
+                  <span style="color: var(--cuadre-text-muted);">Total Pagado:</span>
+                  <strong style="color: var(--cuadre-color-success-text); font-size: 15px; font-variant-numeric: tabular-nums;">RD$ {{ lastCompletedSale()?.total | number:'1.2-2' }}</strong>
+                </div>
+                @if (lastCompletedSale()?.change) {
+                  <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                    <span style="color: var(--cuadre-text-muted);">Cambio entregado:</span>
+                    <strong style="color: var(--cuadre-color-primary); font-variant-numeric: tabular-nums;">RD$ {{ lastCompletedSale()?.change | number:'1.2-2' }}</strong>
+                  </div>
+                }
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="btn-pos-outline btn-40" style="flex: 1;" (click)="printTicket()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                      <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    <span>Ticket (F8)</span>
+                  </button>
+                  <button type="button" class="btn-pos-outline btn-40" style="flex: 1;" (click)="isSaleCompletedModalOpen = true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <span>Factura / PDF</span>
+                  </button>
+                </div>
+
+                <button type="button" class="btn-pos-outline btn-40" (click)="sendReceiptWhatsApp()">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                  </svg>
+                  <span>Compartir por WhatsApp</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="btn-pos-blue-solid btn-44"
+                  (click)="startNewSale()"
+                >
+                  Nueva Venta (Enter / F4)
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: CALCULADORA RÁPIDA REDISEÑADA (F3) -->
+  @if (isCalculatorOpen()) {
+    <div class="custom-modal-backdrop" (click)="isCalculatorOpen.set(false)">
+      <div class="pos-calc-dialog" (click)="$event.stopPropagation()">
+        <!-- Header con icono, título y atajo F3 -->
+        <div class="pos-calc-dialog-header">
+          <div class="pos-calc-header-title">
+            <div class="pos-calc-icon-badge">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                <line x1="8" y1="6" x2="16" y2="6"></line>
+                <line x1="16" y1="14" x2="16" y2="18"></line>
+              </svg>
+            </div>
+            <span class="pos-calc-modal-label">Calculadora de Caja</span>
+            <span class="pos-calc-kicker-tag">F3</span>
+          </div>
+          <button type="button" class="pos-calc-close-btn" (click)="isCalculatorOpen.set(false)" aria-label="Cerrar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Pantalla Digital OLED con Sub-fórmula y Monto Principal -->
+        <div class="pos-calc-screen-wrap">
+          <div class="pos-calc-formula-line">
+            {{ calculatorFormula() || '&nbsp;' }}
+          </div>
+          <div class="pos-calc-main-value">
+            {{ calculatorDisplay() }}
+          </div>
+          <div class="pos-calc-badge-row">
+            <span class="pos-calc-currency-tag">RD$</span>
+            <span class="pos-calc-status-hint">EFECTIVO / CAJA</span>
+          </div>
+        </div>
+
+        <!-- Teclado Táctil Ergonómico -->
+        <div class="pos-calc-grid">
+          <!-- Fila 1: Control y Operaciones -->
+          <button type="button" class="pos-calc-btn pos-calc-btn-clear" (click)="calcClear()" title="Limpiar todo (Delete / C)">C</button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-backspace" (click)="calcBackspace()" title="Borrar último dígito (Backspace)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+              <line x1="18" y1="9" x2="12" y2="15"></line>
+              <line x1="12" y1="9" x2="18" y2="15"></line>
+            </svg>
+          </button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-op" (click)="calcPress('/')" title="Dividir (/)">÷</button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-op" (click)="calcPress('*')" title="Multiplicar (*)">×</button>
+
+          <!-- Fila 2: 7, 8, 9, Resta -->
+          <button type="button" class="pos-calc-btn pos-calc-btn-num" (click)="calcPress('7')">7</button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-num" (click)="calcPress('8')">8</button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-num" (click)="calcPress('9')">9</button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-op" (click)="calcPress('-')" title="Restar (-)">−</button>
+
+          <!-- Fila 3: 4, 5, 6, Suma -->
+          <button type="button" class="pos-calc-btn pos-calc-btn-num" (click)="calcPress('4')">4</button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-num" (click)="calcPress('5')">5</button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-num" (click)="calcPress('6')">6</button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-op" (click)="calcPress('+')" title="Sumar (+)">+</button>
+
+          <!-- Fila 4: 1, 2, 3, Igual -->
+          <button type="button" class="pos-calc-btn pos-calc-btn-num" (click)="calcPress('1')">1</button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-num" (click)="calcPress('2')">2</button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-num" (click)="calcPress('3')">3</button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-eval" (click)="calcEval()" title="Calcular total (=)">=</button>
+
+          <!-- Fila 5: 0, 00, Punto, Aplicar -->
+          <button type="button" class="pos-calc-btn pos-calc-btn-num" (click)="calcPress('0')">0</button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-num" (click)="calcPress('00')">00</button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-num" (click)="calcPress('.')">.</button>
+          <button type="button" class="pos-calc-btn pos-calc-btn-apply" (click)="calcApply()" title="Aplicar al efectivo">✓</button>
+        </div>
+
+        <div class="pos-calc-dialog-footer">
+          <button type="button" class="btn-pos-blue-solid pos-calc-confirm-btn" (click)="calcApply()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Aplicar Monto al Efectivo Recibido (Enter)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: QR DE TRANSFERENCIA PARA MOSTRAR AL CLIENTE (PANTALLA COMPLETA / MOSTRADOR) -->
+  @if (isCustomerQrModalOpen()) {
+    <div class="custom-modal-backdrop" (click)="isCustomerQrModalOpen.set(false)">
+      <div class="customer-qr-dialog" (click)="$event.stopPropagation()">
+        <div class="customer-qr-header">
+          <div class="customer-qr-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="14" x="2" y="5" rx="2"/>
+              <line x1="2" x2="22" y1="10" y2="10"/>
+            </svg>
+            <span>PAGO POR TRANSFERENCIA BANCARIA</span>
+          </div>
+          <button type="button" class="customer-qr-close-btn" (click)="isCustomerQrModalOpen.set(false)" aria-label="Cerrar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="customer-qr-body">
+          <div class="customer-bank-pill">
+            <span class="customer-bank-icon">{{ currentBankProfile().icon }}</span>
+            <span class="customer-bank-title">{{ currentBankProfile().name }}</span>
+            <span class="customer-bank-tag">{{ currentBankProfile().type }}</span>
+          </div>
+
+          <div class="customer-qr-card">
+            <img [src]="bankTransferQrUrl()" alt="Código QR Transferencia Bancaria" class="customer-qr-image" />
+            <div class="customer-qr-scan-hint">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="5" height="5" x="3" y="3" rx="1"/>
+                <rect width="5" height="5" x="16" y="3" rx="1"/>
+                <rect width="5" height="5" x="3" y="16" rx="1"/>
+                <path d="M21 16h-3a2 2 0 0 0-2 2v3"/>
+                <path d="M21 21v.01"/>
+                <path d="M12 7v3a2 2 0 0 1-2 2H7"/>
+              </svg>
+              <span>Escanea con la app de tu banco (Popular, Banreservas, BHD, Qik)</span>
+            </div>
+          </div>
+
+          <div class="customer-qr-amount-box">
+            <span class="customer-qr-amount-title">Monto Exacto a Transferir:</span>
+            <strong class="customer-qr-amount-number">RD$ {{ netPayable() | number:'1.2-2' }}</strong>
+          </div>
+
+          <div class="customer-qr-details-grid">
+            <div class="customer-qr-detail-item">
+              <span class="detail-label">Número de Cuenta:</span>
+              <div class="detail-val-row">
+                <strong class="detail-value font-monospace">{{ currentBankProfile().account }}</strong>
+                <button type="button" class="btn-copy-mini" (click)="copyBankAccountNumber()" title="Copiar cuenta">
+                  {{ isBankCopied() ? '¡Copiado!' : 'Copiar' }}
+                </button>
+              </div>
+            </div>
+            <div class="customer-qr-detail-item">
+              <span class="detail-label">Titular:</span>
+              <strong class="detail-value">{{ currentBankProfile().holderName || 'CuadreEnv Soluciones' }}</strong>
+            </div>
+            @if (currentBankProfile().holderRnc) {
+              <div class="customer-qr-detail-item">
+                <span class="detail-label">RNC / Cédula:</span>
+                <strong class="detail-value font-monospace">{{ currentBankProfile().holderRnc }}</strong>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="customer-qr-footer">
+          <button type="button" class="btn-pos-blue-solid customer-qr-done-btn" (click)="isCustomerQrModalOpen.set(false)">
+            Listo, Comprobante Enviado / Cerrar (Esc)
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- COMPLETED SALE RECEIPT MODAL -->
+@if (isSaleCompletedModalOpen && lastCompletedSale()) {
+  <app-sale-completed-modal
+    [visible]="isSaleCompletedModalOpen"
+    [saleData]="lastCompletedSale()"
+    (visibleChange)="isSaleCompletedModalOpen = $event"
+    (closed)="onSaleModalClosed()"
+  ></app-sale-completed-modal>
+}
+
+<!-- HELD SALES (VENTAS EN ESPERA) MODAL -->
+@if (isHeldSalesModalOpen()) {
+  <div class="custom-modal-backdrop" (click)="closeHeldSalesModal()">
+    <div class="custom-modal-content" style="max-width: 580px;" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header">
+        <h3 style="font-size: 15px; font-weight: 700; color: var(--cuadre-text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+            <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+          </svg>
+          <span>Ventas en Espera</span>
+          <span class="cuadre-badge badge-info" style="font-size: 11px; padding: 1px 6px;">{{ draftStorageService.heldCount() }}</span>
+        </h3>
+        <button type="button" class="btn-pos-outline" style="height: 28px; width: 28px; padding: 0;" (click)="closeHeldSalesModal()" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="custom-modal-body" style="max-height: 380px; overflow-y: auto;">
+        @if (cartItems().length > 0) {
+          <div style="margin-bottom: 12px; padding: 10px 12px; background-color: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 13px; font-weight: 600; color: #1D4ED8;">
+              Tienes {{ cartItems().length }} producto(s) en el carrito actual (RD$ {{ total() | number:'1.2-2' }})
+            </div>
+            <button
+              type="button"
+              class="btn-pos-blue-solid btn-40"
+              style="padding: 0 12px; font-size: 13px;"
+              (click)="holdCurrentSale()"
+            >
+              Pausar Venta Actual
+            </button>
+          </div>
+        }
+        @for (held of draftStorageService.heldSales(); track held.id) {
+          <div style="background-color: var(--cuadre-bg-subtle); border: 1px solid var(--cuadre-border-color); border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div>
+              <div style="font-weight: 700; font-size: 14px; color: var(--cuadre-text-main);">{{ held.label }}</div>
+              <div style="font-size: 12px; color: var(--cuadre-text-muted);">
+                {{ held.itemCount }} producto(s) &bull; Guardado: {{ held.heldAt | date:'shortTime' }}
+              </div>
+              <div style="font-weight: 700; color: var(--cuadre-color-primary); font-variant-numeric: tabular-nums; margin-top: 4px;">
+                RD$ {{ held.totalAmount | number:'1.2-2' }}
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button
+                type="button"
+                class="btn-pos-blue-solid btn-40"
+                style="padding: 0 14px;"
+                (click)="resumeHeldSale(held)"
+              >
+                Cargar Venta
+              </button>
+              <button
+                type="button"
+                class="btn-pos-danger-outline"
+                style="width: 40px; padding: 0;"
+                (click)="dismissHeldSale(held.id)"
+                title="Descartar"
+                aria-label="Descartar venta"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        } @empty {
+          <div style="text-align: center; padding: 32px 16px; color: var(--cuadre-text-muted); font-size: 13px;">
+            No hay ventas puestas en espera actualmente.
+          </div>
+        }
+      </div>
+
+      <div class="custom-modal-footer">
+        <button type="button" class="btn-pos-outline btn-40" (click)="closeHeldSalesModal()">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- KEYBOARD SHORTCUTS HELP MODAL (F1) -->
+@if (isShortcutsModalOpen()) {
+  <div class="custom-modal-backdrop" (click)="isShortcutsModalOpen.set(false)">
+    <div class="custom-modal-content" style="max-width: 520px;" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header">
+        <h3 style="font-size: 15px; font-weight: 700; color: var(--cuadre-text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+            <line x1="6" y1="8" x2="6.01" y2="8"></line>
+            <line x1="10" y1="8" x2="10.01" y2="8"></line>
+            <line x1="14" y1="8" x2="14.01" y2="8"></line>
+            <line x1="18" y1="8" x2="18.01" y2="8"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+          </svg>
+          <span>Atajos de Teclado del Cajero</span>
+        </h3>
+        <button type="button" class="btn-pos-outline" style="height: 28px; width: 28px; padding: 0;" (click)="isShortcutsModalOpen.set(false)" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="custom-modal-body" style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background-color: var(--cuadre-bg-subtle); border: 1px solid var(--cuadre-border-color); border-radius: 8px;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--cuadre-text-body);">Buscar Producto / Enfoque Escáner</span>
+          <span class="kbd-pill">F2</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background-color: var(--cuadre-bg-subtle); border: 1px solid var(--cuadre-border-color); border-radius: 8px;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--cuadre-text-body);">Calculadora de Caja</span>
+          <span class="kbd-pill">F3</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background-color: var(--cuadre-bg-subtle); border: 1px solid var(--cuadre-border-color); border-radius: 8px;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--cuadre-text-body);">Cobrar y Facturar / Avanzar</span>
+          <span class="kbd-pill">F4</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background-color: var(--cuadre-bg-subtle); border: 1px solid var(--cuadre-border-color); border-radius: 8px;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--cuadre-text-body);">Limpiar Carrito / Cancelar</span>
+          <span class="kbd-pill">F5</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background-color: var(--cuadre-bg-subtle); border: 1px solid var(--cuadre-border-color); border-radius: 8px;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--cuadre-text-body);">Poner Venta Actual en Espera</span>
+          <span class="kbd-pill">F8</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background-color: var(--cuadre-bg-subtle); border: 1px solid var(--cuadre-border-color); border-radius: 8px;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--cuadre-text-body);">Ver Ventas en Espera Guardadas</span>
+          <span class="kbd-pill">F9</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background-color: var(--cuadre-bg-subtle); border: 1px solid var(--cuadre-border-color); border-radius: 8px;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--cuadre-text-body);">Cobro en Efectivo Exacto / Procesar</span>
+          <span class="kbd-pill">Enter</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background-color: var(--cuadre-bg-subtle); border: 1px solid var(--cuadre-border-color); border-radius: 8px;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--cuadre-text-body);">Cerrar Modales / Descartar</span>
+          <span class="kbd-pill">Esc</span>
+        </div>
+      </div>
+
+      <div class="custom-modal-footer">
+        <button type="button" class="btn-pos-blue-solid btn-40" style="padding: 0 20px;" (click)="isShortcutsModalOpen.set(false)">
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- QUICK ADD BANK ACCOUNT MODAL -->
+@if (isAddBankModalOpen()) {
+  <div class="custom-modal-backdrop" (click)="closeAddBankModal()">
+    <div class="custom-modal-content" style="max-width: 480px;" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header">
+        <h3 style="font-size: 15px; font-weight: 700; color: var(--cuadre-text-main); margin: 0;">Agregar Cuenta de Banco de la Empresa</h3>
+        <button type="button" class="btn-pos-outline" style="height: 28px; width: 28px; padding: 0;" (click)="closeAddBankModal()" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="custom-modal-body" style="display: flex; flex-direction: column; gap: 10px;">
+        <div>
+          <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">Nombre del Banco *</label>
+          <input
+            type="text"
+            style="height: 40px; border: 1px solid var(--cuadre-border-input); border-radius: 10px; padding: 0 10px; width: 100%; box-sizing: border-box;"
+            placeholder="Ej. Banco BHD, Banreservas, Scotiabank, Qik..."
+            [ngModel]="newBankName()"
+            (ngModelChange)="newBankName.set($event)"
+          />
+        </div>
+        <div>
+          <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">Número de Cuenta *</label>
+          <input
+            type="text"
+            style="height: 40px; border: 1px solid var(--cuadre-border-input); border-radius: 10px; padding: 0 10px; width: 100%; box-sizing: border-box; font-variant-numeric: tabular-nums;"
+            placeholder="Ej. 1234567890"
+            [ngModel]="newBankAccount()"
+            (ngModelChange)="newBankAccount.set($event)"
+          />
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <div style="flex: 1;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">Tipo de Cuenta</label>
+            <select
+              class="pos-category-select"
+              style="width: 100%; height: 40px;"
+              [ngModel]="newBankType()"
+              (ngModelChange)="newBankType.set($event)"
+            >
+              <option value="Cta. Corriente">Cta. Corriente</option>
+              <option value="Cta. Ahorros">Cta. Ahorros</option>
+              <option value="Cta. Digital">Cta. Digital</option>
+              <option value="ACH Inmediato">ACH Inmediato</option>
+            </select>
+          </div>
+          <div style="flex: 1;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">RNC o Cédula Titular</label>
+            <input
+              type="text"
+              style="height: 40px; border: 1px solid var(--cuadre-border-input); border-radius: 10px; padding: 0 10px; width: 100%; box-sizing: border-box; font-variant-numeric: tabular-nums;"
+              placeholder="Ej. 132-94812-1"
+              [ngModel]="newBankRnc()"
+              (ngModelChange)="newBankRnc.set($event)"
+            />
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">Nombre del Titular / Beneficiario</label>
+          <input
+            type="text"
+            style="height: 40px; border: 1px solid var(--cuadre-border-input); border-radius: 10px; padding: 0 10px; width: 100%; box-sizing: border-box;"
+            placeholder="Nombre de la empresa o propietario"
+            [ngModel]="newBankHolder()"
+            (ngModelChange)="newBankHolder.set($event)"
+          />
+        </div>
+      </div>
+      <div class="custom-modal-footer">
+        <button type="button" class="btn-pos-outline btn-40" (click)="closeAddBankModal()">Cancelar</button>
+        <button type="button" class="btn-pos-blue-solid btn-40" (click)="saveNewBankAccount()">
+          Guardar Cuenta
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MEASUREMENT / PACKAGING MODAL (PC POS) -->
+@if (isMeasurementModalOpen() && selectedProductForMeasurement()) {
+  <div class="custom-modal-backdrop" (click)="closeMeasurementModal()">
+    <div class="custom-modal-content" style="max-width: 520px;" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header">
+        <div>
+          <h3 style="font-size: 15px; font-weight: 700; color: var(--cuadre-text-main); margin: 0;">
+            {{ selectedProductForMeasurement()?.description }}
+          </h3>
+          <div style="font-size: 11px; color: var(--cuadre-text-muted); font-variant-numeric: tabular-nums;">
+            Unidad Base: {{ getProductUnitSymbol(selectedProductForMeasurement()!) }} • Stock: {{ getProductAvailableStock(selectedProductForMeasurement()!.id!) }} {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}
+          </div>
+        </div>
+        <button type="button" class="btn-pos-outline" style="height: 28px; width: 28px; padding: 0;" (click)="closeMeasurementModal()" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="custom-modal-body">
+        <label style="font-size: 12px; font-weight: 700; color: var(--cuadre-text-muted); text-transform: uppercase; margin-bottom: 6px; display: block;">Modalidad de Venta</label>
+        <div style="display: flex; gap: 6px; margin-bottom: 14px;">
+          <!-- Modo 1: Al Detalle -->
+          <button
+            type="button"
+            class="category-chip"
+            style="flex: 1; height: 50px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px;"
+            [class.active]="measurementMode() === 'detail'"
+            (click)="setMeasurementMode('detail')"
+          >
+            <span style="font-weight: 700; font-size: 13px;">Al Detalle</span>
+            <span style="font-size: 11px; opacity: 0.8;">Por {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</span>
+          </button>
+
+          <!-- Modo 2: Por Empaque -->
+          @if (activeProductPackaging()?.hasPackaging) {
+            <button
+              type="button"
+              class="category-chip"
+              style="flex: 1; height: 50px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px;"
+              [class.active]="measurementMode() === 'package'"
+              (click)="setMeasurementMode('package')"
+            >
+              <span style="font-weight: 700; font-size: 13px;">{{ activeProductPackaging()?.packageUnitName || 'Empaque' }}</span>
+              <span style="font-size: 11px; opacity: 0.8;">{{ activeProductPackaging()?.packageUnitsCount }} {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</span>
+            </button>
+          }
+
+          <!-- Modo 3: Individual -->
+          @if (activeProductPackaging()?.hasIndividualUnit) {
+            <button
+              type="button"
+              class="category-chip"
+              style="flex: 1; height: 50px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px;"
+              [class.active]="measurementMode() === 'individual'"
+              (click)="setMeasurementMode('individual')"
+            >
+              <span style="font-weight: 700; font-size: 13px;">{{ activeProductPackaging()?.individualUnitName || 'Pieza' }}</span>
+              <span style="font-size: 11px; opacity: 0.8;">Aprox. {{ activeProductPackaging()?.individualUnitWeight }} {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</span>
+            </button>
+          }
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label style="font-size: 13px; font-weight: 700; color: var(--cuadre-text-main); margin: 0;">
+              Cantidad a Vender ({{ getEffectiveUnitLabel() }})
+            </label>
+            <span class="cuadre-badge badge-neutral" style="font-variant-numeric: tabular-nums;">
+              Precio: RD$ {{ getEffectiveUnitPrice() | number:'1.2-2' }}
+            </span>
+          </div>
+
+          <div class="pos-money-input-56" style="margin-bottom: 10px;">
+            <input
+              type="number"
+              class="money-input-field-22"
+              style="text-align: center;"
+              [step]="isProductMeasurable(selectedProductForMeasurement()!) && measurementMode() === 'detail' ? '0.01' : '1'"
+              min="0.01"
+              [ngModel]="measurementQuantity()"
+              (ngModelChange)="measurementQuantity.set($event)"
+              placeholder="1"
+            />
+            <div class="money-prefix-block">{{ getEffectiveUnitLabel() }}</div>
+          </div>
+
+          <!-- Presets y Balanza -->
+          @if (measurementMode() === 'detail') {
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted);">Pesaje rápido:</span>
+              <button
+                type="button"
+                class="btn-pos-outline btn-40"
+                style="height: 32px; font-size: 12px; color: var(--cuadre-color-success-text); border-color: var(--cuadre-color-success-border); background-color: var(--cuadre-color-success-light);"
+                (click)="readWeightFromScale()"
+                [disabled]="isReadingScale()"
+                title="Capturar peso desde USB"
+              >
+                @if (isReadingScale()) {
+                  <span>Leyendo...</span>
+                } @else {
+                  <span>Leer Balanza (USB)</span>
+                }
+              </button>
+            </div>
+            <!-- Venta al Detalle por Dinero Exacto (RD$ 10, RD$ 25, RD$ 50, etc.) -->
+            <div class="mt-2 mb-2 p-2 rounded-3" style="background-color: var(--cuadre-bg-subtle); border: 1px dashed var(--cuadre-border-color);">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span style="font-size: 11px; font-weight: 700; color: var(--cuadre-color-primary);">💵 Venta por Dinero (Pesos):</span>
+                <span style="font-size: 10px; color: var(--cuadre-text-muted);">Calcula cantidad exacta según precio</span>
+              </div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 12px; font-weight: 700; padding: 0 10px;" (click)="setDetailSaleByMoney(10)">RD$ 10</button>
+                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 12px; font-weight: 700; padding: 0 10px;" (click)="setDetailSaleByMoney(25)">RD$ 25</button>
+                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 12px; font-weight: 700; padding: 0 10px;" (click)="setDetailSaleByMoney(50)">RD$ 50</button>
+                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 12px; font-weight: 700; padding: 0 10px;" (click)="setDetailSaleByMoney(100)">RD$ 100</button>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(0.25)">¼ {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(0.5)">½ {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(1)">1 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(2)">2 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(3)">3 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(5)">5 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+            </div>
+          } @else {
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(1)">1 unid.</button>
+              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(2)">2 unid.</button>
+              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(3)">3 unid.</button>
+              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(5)">5 unid.</button>
+            </div>
+          }
+        </div>
+
+        <div style="background-color: var(--cuadre-bg-subtle); border: 1px solid var(--cuadre-border-color); border-radius: 10px; padding: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; color: var(--cuadre-text-muted);">Total a cobrar:</span>
+            <span style="font-size: 18px; font-weight: 700; color: var(--cuadre-color-success-text); font-variant-numeric: tabular-nums;">
+              RD$ {{ (measurementQuantity() * getEffectiveUnitPrice()) | number:'1.2-2' }}
+            </span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--cuadre-text-muted); border-top: 1px solid var(--cuadre-border-color); padding-top: 4px; margin-top: 4px;">
+            <span>Deducción de inventario:</span>
+            <span style="font-weight: 600; color: var(--cuadre-text-body); font-variant-numeric: tabular-nums;">
+              {{ getInventoryDeduction() }} {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="custom-modal-footer">
+        <button type="button" class="btn-pos-outline btn-40" (click)="closeMeasurementModal()">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn-pos-blue-solid btn-40"
+          (click)="confirmMeasurementModal()"
+        >
+          Agregar a la Venta
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL DE ESCÁNER DE CÓDIGOS CON CÁMARA (PC / WEBCAM) -->
+@if (isCameraScannerOpen()) {
+  <div class="pc-camera-modal-backdrop" (click)="closeCameraScanner()">
+    <div class="pc-camera-modal-card" (click)="$event.stopPropagation()">
+      <div class="pc-camera-modal-header">
+        <div class="d-flex align-items-center gap-2">
+          <span class="scanner-live-dot"></span>
+          <div>
+            <h3 class="scanner-title mb-0">Lector de Códigos por Cámara (PC)</h3>
+            <span class="scanner-subtitle">Apunta el código de barras o QR hacia la cámara web</span>
+          </div>
+        </div>
+        <button type="button" class="btn-scanner-close" (click)="closeCameraScanner()" aria-label="Cerrar escáner">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="pc-scanner-viewport-wrap" [class.flash-success]="cameraScanFlash()">
+        <video id="pcCameraScannerVideo" autoplay playsinline muted></video>
+        <div class="pc-scanner-target-reticle">
+          <div class="laser-scanner-line"></div>
+          <div class="corner-top-left"></div>
+          <div class="corner-top-right"></div>
+          <div class="corner-bottom-left"></div>
+          <div class="corner-bottom-right"></div>
+        </div>
+
+        <!-- Toast de último producto escaneado dentro del viewport -->
+        @if (cameraLastScannedItem(); as item) {
+          <div class="pc-scanner-last-item-toast">
+            <span class="badge-icon">✓</span>
+            <div class="toast-content">
+              <span class="prod-name">{{ item.name }}</span>
+              <span class="prod-meta">RD$ {{ item.price.toFixed(2) }} • {{ item.time }}</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="pc-camera-modal-footer">
+        <div class="scanner-stats">
+          <span class="stats-badge">{{ cameraBurstScannedCount() }} artículos escaneados</span>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-secondary px-3" (click)="closeCameraScanner()">
+            Cerrar (Esc)
+          </button>
+          <button type="button" class="btn btn-primary px-4 fw-semibold" (click)="closeCameraScanner()">
+            Finalizar Escaneo ({{ cartItems().length }} en Carrito)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================================================= -->
+<!-- 3. MODAL DE VENTAS RECIENTES & ANULACIÓN RÁPIDA (REVERSIÓN STOCK + CAJA)  -->
+<!-- ========================================================================= -->
+@if (isRecentSalesModalOpen()) {
+  <div class="pos-modal-backdrop" (click)="isRecentSalesModalOpen.set(false)">
+    <div class="pos-modal-card pos-modal-wide" (click)="$event.stopPropagation()">
+      <div class="pos-modal-header">
+        <div class="d-flex align-items-center gap-2">
+          <div class="modal-icon-badge danger-subtle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <div>
+            <h3 class="pos-modal-title mb-0">Historial de Ventas Recientes & Anulaciones</h3>
+            <span class="pos-modal-subtitle">Anula ventas con reversión automática a inventario y resta del monto en el cuadre de caja</span>
+          </div>
+        </div>
+        <button type="button" class="btn-pos-close" (click)="isRecentSalesModalOpen.set(false)" aria-label="Cerrar modal">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="pos-modal-body">
+        @if (isLoadingRecentSales()) {
+          <div class="text-center py-5">
+            <c-spinner color="primary"></c-spinner>
+            <div class="mt-2 text-muted" style="font-size: 13px;">Cargando ventas recientes de la caja...</div>
+          </div>
+        } @else if (recentSales().length === 0) {
+          <div class="text-center py-5 text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" class="mb-2">
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <line x1="6" y1="8" x2="6.01" y2="8"></line>
+            </svg>
+            <p class="mb-0 fw-semibold">No hay ventas registradas en esta sesión.</p>
+          </div>
+        } @else {
+          <div class="table-responsive recent-sales-table-wrap">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Factura / NCF</th>
+                  <th>Fecha</th>
+                  <th>Cliente</th>
+                  <th>Método</th>
+                  <th class="text-end">Total</th>
+                  <th class="text-center">Estado</th>
+                  <th class="text-end">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (sale of recentSales(); track sale.id) {
+                  <tr [class.table-light-cancelled]="sale.isCancelled">
+                    <td>
+                      <span class="fw-bold font-monospace" style="color: var(--cuadre-primary);">
+                        {{ sale.invoiceNumber || ('VTA-' + sale.id) }}
+                      </span>
+                    </td>
+                    <td style="font-size: 12px; color: var(--cuadre-text-muted);">
+                      {{ sale.creationDate ? (sale.creationDate | date:'short':'':'es-DO') : (sale.createdAt | date:'short':'':'es-DO') }}
+                    </td>
+                    <td>
+                      <span class="text-truncate d-inline-block" style="max-width: 140px;" [title]="sale.customerName || 'Consumidor final'">
+                        {{ sale.customerName || 'Consumidor final' }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-dark border" style="font-size: 11px;">
+                        {{ sale.paymentMethod || 'Efectivo' }}
+                      </span>
+                    </td>
+                    <td class="text-end fw-bold">
+                      RD$ {{ sale.total | number:'1.2-2' }}
+                    </td>
+                    <td class="text-center">
+                      @if (sale.isCancelled) {
+                        <span class="cuadre-badge badge-bad" [title]="sale.cancellationReason || 'Venta anulada'">
+                          <span class="badge-dot"></span>
+                          <span>Anulada</span>
+                        </span>
+                      } @else {
+                        <span class="cuadre-badge badge-ok">
+                          <span class="badge-dot"></span>
+                          <span>Completada</span>
+                        </span>
+                      }
+                    </td>
+                    <td class="text-end">
+                      @if (!sale.isCancelled) {
+                        <button
+                          type="button"
+                          class="btn-pos-danger-sm"
+                          (click)="openCancelSaleDialog(sale, $event)"
+                          title="Anular venta y revertir inventario"
+                        >
+                          ✕ Anular
+                        </button>
+                      } @else {
+                        <span class="text-muted small" [title]="sale.cancellationReason || 'Anulada'">
+                          {{ sale.cancellationReason || 'Revertida' }}
+                        </span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+      <div class="pos-modal-footer">
+        <span class="text-muted small">Mostrando las últimas 20 transacciones registradas</span>
+        <button type="button" class="btn btn-secondary px-4" (click)="isRecentSalesModalOpen.set(false)">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- SUB-MODAL DE CONFIRMACIÓN DE ANULACIÓN CON MOTIVO OBLIGATORIO -->
+@if (cancellingSale(); as targetSale) {
+  <div class="pos-modal-backdrop sub-backdrop" (click)="closeCancelSaleDialog()">
+    <div class="pos-modal-card pos-modal-sm" (click)="$event.stopPropagation()">
+      <div class="pos-modal-header danger-header">
+        <div class="d-flex align-items-center gap-2">
+          <span style="font-size: 20px;">⚠️</span>
+          <div>
+            <h4 class="pos-modal-title mb-0 text-danger">Anular Factura {{ targetSale.invoiceNumber || targetSale.id }}</h4>
+            <span class="pos-modal-subtitle">Esta acción es irreversible y deja auditoría para el dueño</span>
+          </div>
+        </div>
+        <button type="button" class="btn-pos-close" (click)="closeCancelSaleDialog()">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="pos-modal-body">
+        <div class="alert alert-danger mb-3" style="font-size: 13px;">
+          <strong>Efectos automáticos de esta anulación:</strong>
+          <ul class="mb-0 mt-1 ps-3">
+            <li>Reversión de stock de todos los artículos al almacén.</li>
+            <li>Ajuste negativo al turno de caja (resta RD$ {{ targetSale.total | number:'1.2-2' }} del cuadre).</li>
+            <li>Alerta de auditoría en El Guardián para el administrador.</li>
+          </ul>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label fw-bold" for="cancelReasonInput">
+            Motivo Obligatorio de Anulación <span class="text-danger">*</span>
+          </label>
+          <textarea
+            id="cancelReasonInput"
+            class="form-control"
+            rows="3"
+            placeholder="Ej: Cliente devolvió el artículo antes de salir / Error de cajero al marcar método de pago..."
+            [ngModel]="cancelReason()"
+            (ngModelChange)="cancelReason.set($event)"
+            required
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="pos-modal-footer">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeCancelSaleDialog()" [disabled]="isCancelling()">
+          Regresar
+        </button>
+        <button
+          type="button"
+          class="btn btn-danger fw-semibold"
+          (click)="confirmCancelSale()"
+          [disabled]="isCancelling() || cancelReason().trim().length < 3"
+        >
+          @if (isCancelling()) {
+            <c-spinner size="sm"></c-spinner>
+            <span class="ms-1">Anulando...</span>
+          } @else {
+            <span>Confirmar Anulación</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================================================= -->
+<!-- 5. MODAL DE CONFIGURACIÓN DE DATOS DEL NEGOCIO PARA EL TICKET TÉRMICO     -->
+<!-- ========================================================================= -->
+@if (isBusinessTicketModalOpen()) {
+  <div class="pos-modal-backdrop" (click)="isBusinessTicketModalOpen.set(false)">
+    <div class="pos-modal-card" style="max-width: 580px;" (click)="$event.stopPropagation()">
+      <div class="pos-modal-header">
+        <div class="d-flex align-items-center gap-2">
+          <div class="modal-icon-badge primary-subtle">🏷️</div>
+          <div>
+            <h3 class="pos-modal-title mb-0">Datos del Negocio en el Ticket Térmico</h3>
+            <span class="pos-modal-subtitle">Personaliza la cabecera y el pie de los tickets de mostrador (58mm / 80mm)</span>
+          </div>
+        </div>
+        <button type="button" class="btn-pos-close" (click)="isBusinessTicketModalOpen.set(false)" aria-label="Cerrar modal">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="pos-modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="ticketCompanyName">Nombre de la Empresa</label>
+            <input
+              id="ticketCompanyName"
+              type="text"
+              class="form-control"
+              placeholder="Ej: Colmado La Esperanza SRL"
+              [ngModel]="ticketCompanyName()"
+              (ngModelChange)="ticketCompanyName.set($event)"
+            />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="ticketCommercialName">Nombre Comercial</label>
+            <input
+              id="ticketCommercialName"
+              type="text"
+              class="form-control"
+              placeholder="Ej: La Esperanza Market"
+              [ngModel]="ticketCommercialName()"
+              (ngModelChange)="ticketCommercialName.set($event)"
+            />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="ticketRnc">RNC / Cédula</label>
+            <input
+              id="ticketRnc"
+              type="text"
+              class="form-control"
+              placeholder="132-94812-1"
+              [ngModel]="ticketRnc()"
+              (ngModelChange)="ticketRnc.set($event)"
+            />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="ticketPhone">Teléfono / WhatsApp</label>
+            <input
+              id="ticketPhone"
+              type="text"
+              class="form-control"
+              placeholder="809-555-0123"
+              [ngModel]="ticketPhone()"
+              (ngModelChange)="ticketPhone.set($event)"
+            />
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold" for="ticketAddress">Dirección del Establecimiento</label>
+            <input
+              id="ticketAddress"
+              type="text"
+              class="form-control"
+              placeholder="Calle Principal #45, Ensanche La Fe, D.N."
+              [ngModel]="ticketAddress()"
+              (ngModelChange)="ticketAddress.set($event)"
+            />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="ticketPaperSize">Ancho de Papel de Impresora</label>
+            <select
+              id="ticketPaperSize"
+              class="form-select"
+              [ngModel]="ticketPaperSize()"
+              (ngModelChange)="ticketPaperSize.set($event)"
+            >
+              <option value="80mm">80 mm (Estándar Punto de Venta)</option>
+              <option value="58mm">58 mm (Mini Portátil / Bluetooth)</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold" for="ticketFooterPhrase">Mensaje al Pie del Ticket</label>
+            <textarea
+              id="ticketFooterPhrase"
+              class="form-control"
+              rows="2"
+              placeholder="Ej: ¡Gracias por su compra! No aceptamos devoluciones sin ticket después de 48h."
+              [ngModel]="ticketFooterPhrase()"
+              (ngModelChange)="ticketFooterPhrase.set($event)"
+            ></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="pos-modal-footer">
+        <button type="button" class="btn btn-outline-primary" (click)="printTestTicket()">
+          🖨️ Probar Ticket Térmico
+        </button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-secondary" (click)="isBusinessTicketModalOpen.set(false)">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary fw-semibold"
+            (click)="saveBusinessTicketSettings()"
+            [disabled]="isSavingTicketSettings()"
+          >
+            @if (isSavingTicketSettings()) {
+              <c-spinner size="sm"></c-spinner>
+              <span class="ms-1">Guardando...</span>
+            } @else {
+              <span>Guardar Configuración</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================================================= -->
+<!-- 6. MODAL DE GENERADOR & DESCARGA DE PLANILLA DE CÓDIGOS DE BARRA          -->
+<!-- ========================================================================= -->
+@if (isBarcodeSheetModalOpen()) {
+  <div class="pos-modal-backdrop" (click)="isBarcodeSheetModalOpen.set(false)">
+    <div class="pos-modal-card" style="max-width: 600px;" (click)="$event.stopPropagation()">
+      <div class="pos-modal-header">
+        <div class="d-flex align-items-center gap-2">
+          <div class="modal-icon-badge success-subtle">📊</div>
+          <div>
+            <h3 class="pos-modal-title mb-0">Planilla de Códigos de Barra para Imprimir</h3>
+            <span class="pos-modal-subtitle">Descarga o imprime etiquetas autoadhesivas listas para tus productos</span>
+          </div>
+        </div>
+        <button type="button" class="btn-pos-close" (click)="isBarcodeSheetModalOpen.set(false)" aria-label="Cerrar modal">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="pos-modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="barcodeFormatSelect">Formato de Salida</label>
+            <select
+              id="barcodeFormatSelect"
+              class="form-select"
+              [ngModel]="barcodeSheetFormat()"
+              (ngModelChange)="barcodeSheetFormat.set($event)"
+            >
+              <option value="grid">📄 Planilla A4 / Carta (Stickers Adhesivos)</option>
+              <option value="roll">📜 Rollo Continuo Térmico (58mm / 80mm)</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="barcodeFilterSelect">Productos a Incluir</label>
+            <select
+              id="barcodeFilterSelect"
+              class="form-select"
+              [ngModel]="barcodeFilterType()"
+              (ngModelChange)="barcodeFilterType.set($event)"
+            >
+              <option value="all">Todos los productos ({{ products().length }})</option>
+              <option value="favorites">Solo Favoritos Estrella ({{ favoriteProducts().length }})</option>
+              <option value="with-barcode">Solo productos con código asignado</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <div class="p-3 rounded border bg-light">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="fw-semibold text-dark">Resumen de Generación:</span>
+                <span class="badge bg-primary fs-6">{{ getBarcodeItemsToExport().length }} etiquetas</span>
+              </div>
+              <p class="small text-muted mb-0">
+                Cada etiqueta incluye código de barras en vector SVG de alta resolución, descripción del producto y precio en RD$. Los productos sin código previo recibirán automáticamente un código EAN-13 estándar dominicano.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pos-modal-footer">
+        <button type="button" class="btn btn-outline-secondary" (click)="isBarcodeSheetModalOpen.set(false)">
+          Cerrar
+        </button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-primary" (click)="printBarcodeSheet()">
+            🖨️ Vista Previa & Imprimir
+          </button>
+          <button type="button" class="btn btn-primary fw-semibold" (click)="downloadBarcodeSheetHtml()">
+            ⬇️ Descargar Archivo para Imprenta
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL DE DETALLE DE PRODUCTO CON FOTO Y CÓDIGO DE BARRA LITERAL -->
+@if (selectedProductForPhotoModal(); as prodPhoto) {
+  <div class="custom-modal-backdrop" (click)="closeProductPhotoPreviewModal()">
+    <div class="custom-modal-content" style="max-width: 480px;" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white;">
+        <div class="d-flex align-items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+          <h4 style="margin: 0; font-size: 15px; font-weight: 700;">Detalle Visual del Producto</h4>
+        </div>
+        <button type="button" class="btn-close btn-close-white" (click)="closeProductPhotoPreviewModal()" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="custom-modal-body p-3 text-center">
+        <!-- Foto en alta resolución -->
+        @if (prodPhoto.imageUrl || prodPhoto.photoUrl) {
+          <div class="mb-3 rounded-3 overflow-hidden border shadow-sm bg-white p-2 d-flex justify-content-center align-items-center" style="max-height: 240px;">
+            <img [src]="prodPhoto.imageUrl || prodPhoto.photoUrl" [alt]="prodPhoto.description" style="max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 6px;" />
+          </div>
+        }
+
+        <h5 class="fw-bold text-dark mb-1">{{ prodPhoto.description }}</h5>
+        <div class="badge bg-light text-secondary border font-monospace mb-3">
+          SKU / Ref: {{ prodPhoto.barcode || prodPhoto.reference || ('PROD-' + prodPhoto.id) }}
+        </div>
+
+        <!-- Código de barras literal (SVG) -->
+        <div class="p-3 mb-3 rounded-3 bg-white border d-flex flex-column align-items-center">
+          <div class="small fw-bold text-uppercase text-secondary mb-2" style="font-size: 11px; letter-spacing: 0.05em;">Código de Barras Oficial (EAN / Code128)</div>
+          <div class="p-2 bg-light rounded-3 border border-dashed mb-2 w-100 d-flex justify-content-center overflow-hidden">
+            <div [innerHTML]="getBarcodeSvgForProduct(prodPhoto.barcode || prodPhoto.reference || ('PROD-' + prodPhoto.id))"></div>
+          </div>
+          <div class="font-monospace fw-bold text-dark" style="letter-spacing: 0.18em; font-size: 13px;">
+            {{ prodPhoto.barcode || prodPhoto.reference || ('PROD-' + prodPhoto.id) }}
+          </div>
+        </div>
+
+        <!-- Ficha técnica rápida para el cajero/dependiente -->
+        <div class="row g-2 text-start small">
+          <div class="col-6">
+            <div class="p-2 rounded bg-light border">
+              <span class="text-secondary d-block">Precio al Público:</span>
+              <strong class="text-primary fs-6 font-monospace">RD$ {{ (prodPhoto.cost || 100) | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-2 rounded bg-light border">
+              <span class="text-secondary d-block">Stock en Almacén:</span>
+              <strong class="text-dark fs-6 font-monospace">{{ getProductAvailableStock(prodPhoto.id!) }} {{ getProductUnitSymbol(prodPhoto) }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="custom-modal-footer">
+        <button type="button" class="btn btn-outline-secondary w-100" (click)="closeProductPhotoPreviewModal()">
+          Entendido / Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Send WhatsApp Modal Component -->
+<app-send-whatsapp-modal #sendWhatsAppModal></app-send-whatsapp-modal>

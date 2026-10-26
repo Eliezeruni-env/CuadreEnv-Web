@@ -1,0 +1,48 @@
+<nav class="admin-navbar navbar navbar-expand-lg px-3 px-md-4 border-bottom bg-white shadow-sm">
+  <div class="container-fluid p-0 d-flex align-items-center justify-content-between">
+    <!-- Left Section: Toggle & Title -->
+    <div class="d-flex align-items-center gap-3">
+      <button
+        type="button"
+        class="btn btn-icon btn-light border rounded-circle d-flex align-items-center justify-content-center p-2"
+        (click)="toggleSidebar.emit()"
+        aria-label="Toggle Sidebar"
+      >
+        <svg cIcon name="cilMenu" style="width: 20px; height: 20px;"></svg>
+      </button>
+
+      <div class="d-none d-sm-block">
+        <h5 class="mb-0 fw-bold text-dark">{{ pageTitle || 'Sistema de Gestión ERP' }}</h5>
+        <span class="small text-secondary font-monospace">{{ companyName || 'Mi Empresa' }}</span>
+      </div>
+    </div>
+
+    <!-- Right Section: Actions & User Profile -->
+    <div class="d-flex align-items-center gap-2 gap-md-3">
+      <!-- Quick POS Button -->
+      <a [routerLink]="['/cash-register']" class="btn btn-sm btn-outline-primary fw-semibold d-none d-md-inline-flex align-items-center gap-1 px-3 py-1-5 rounded-pill shadow-xs">
+        <svg cIcon name="cilCalculator" style="width: 14px; height: 14px;"></svg>
+        <span>Punto de Venta</span>
+      </a>
+
+      <!-- Notifications Bell -->
+      <button type="button" class="btn btn-icon btn-light border rounded-circle position-relative p-2" aria-label="Notificaciones">
+        <svg cIcon name="cilBell" style="width: 18px; height: 18px;"></svg>
+        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+          <span class="visually-hidden">Notificaciones</span>
+        </span>
+      </button>
+
+      <!-- User Avatar / Dropdown -->
+      <div class="d-flex align-items-center gap-2 ps-2 border-start">
+        <div class="user-avatar rounded-circle bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center">
+          {{ userInitials || 'AD' }}
+        </div>
+        <div class="d-none d-lg-block text-start lh-1">
+          <div class="fw-semibold text-dark small">{{ userName || 'Administrador' }}</div>
+          <small class="text-secondary font-size-xs">{{ userRole || 'Admin' }}</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>

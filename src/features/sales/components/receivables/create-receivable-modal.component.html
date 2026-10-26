@@ -1,0 +1,892 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="close()">
+    <div
+      class="custom-modal-content receivable-modal-container"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Header -->
+      <div class="custom-modal-header">
+        <div class="d-flex align-items-center gap-3">
+          <div class="modal-header-icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="header-svg"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <div>
+            <h5 class="modal-main-title mb-0">Nueva Venta por Cobrar / Sistema de Apartado</h5>
+            <div class="modal-sub-title">Registra créditos a clientes o reservas de mercancía con control de almacén y cuotas</div>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="modal-close-btn"
+          (click)="close()"
+          aria-label="Close"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Stepper Navigation (Wizard) -->
+      <div class="wizard-stepper-container">
+        <div class="stepper-nav">
+          <div class="stepper-progress-track">
+            <div
+              class="stepper-progress-bar"
+              [style.width]="currentStep() === 1 ? '0%' : currentStep() === 2 ? '50%' : '100%'"
+            ></div>
+          </div>
+
+          <!-- Step 1 Node -->
+          <button
+            type="button"
+            class="step-node"
+            [class.active]="currentStep() === 1"
+            [class.completed]="currentStep() > 1"
+            (click)="goToStep(1)"
+          >
+            <div class="step-circle">
+              @if (currentStep() > 1) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              } @else {
+                <span>1</span>
+              }
+            </div>
+            <span class="step-label">1. Cliente y Concepto</span>
+          </button>
+
+          <!-- Step 2 Node -->
+          <button
+            type="button"
+            class="step-node"
+            [class.active]="currentStep() === 2"
+            [class.completed]="currentStep() > 2"
+            (click)="goToStep(2)"
+          >
+            <div class="step-circle">
+              @if (currentStep() > 2) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              } @else {
+                <span>2</span>
+              }
+            </div>
+            <span class="step-label">2. Productos y Almacén</span>
+          </button>
+
+          <!-- Step 3 Node -->
+          <button
+            type="button"
+            class="step-node"
+            [class.active]="currentStep() === 3"
+            (click)="goToStep(3)"
+          >
+            <div class="step-circle">
+              <span>3</span>
+            </div>
+            <span class="step-label">3. Valores y Plan de Cuotas</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="custom-modal-body">
+        <form cForm [formGroup]="receivableForm">
+          <!-- CASO / PASO 1 (Imagen 1): Información del Cliente + Concepto y Valores -->
+          @if (currentStep() === 1) {
+            <div class="wizard-step-pane">
+              <!-- Top Row: Client & Sale Details (2 Columns) -->
+              <div class="row g-3">
+            <!-- Section 1: Información del cliente -->
+            <div class="col-lg-6">
+              <div class="executive-card h-100">
+                <div class="card-section-header">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="step-badge">01</span>
+                    <h6 class="section-title mb-0">Información del Cliente</h6>
+                  </div>
+                  <button
+                    type="button"
+                    class="client-mode-btn"
+                    [class.active]="isQuickCustomer()"
+                    (click)="toggleQuickCustomer()"
+                  >
+                    @if (isQuickCustomer()) {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                      <span>Buscar en lista</span>
+                    } @else {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                      <span>Nuevo cliente rápido</span>
+                    }
+                  </button>
+                </div>
+
+                @if (!isQuickCustomer()) {
+                  <!-- Cliente Search / Select Row -->
+                  <div class="mb-3">
+                    <label class="custom-form-label required-label">Seleccionar Cliente Existente</label>
+                    <div class="input-group elegant-input-group">
+                      <span class="input-group-text addon-icon">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="15"
+                          height="15"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <circle cx="11" cy="11" r="8"></circle>
+                          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                      </span>
+                      <select
+                        cSelect
+                        formControlName="customerId"
+                        class="elegant-select border-start-0"
+                        (change)="onCustomerSelect($event)"
+                      >
+                        <option value="">Buscar cliente registrado...</option>
+                        @for (c of customers(); track c.id) {
+                          <option [value]="c.id">
+                            {{ c.name }} {{ c.identification ? '(' + c.identification + ')' : '' }}
+                          </option>
+                        }
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Phone & Email 2-column info -->
+                  <div class="row g-2">
+                    <div class="col-sm-6">
+                      <label class="custom-form-label">Teléfono de Contacto</label>
+                      <input
+                        type="text"
+                        cFormControl
+                        class="elegant-input font-monospace"
+                        formControlName="customerPhone"
+                        placeholder="809-000-0000"
+                      />
+                    </div>
+                    <div class="col-sm-6">
+                      <label class="custom-form-label">Correo Electrónico</label>
+                      <input
+                        type="email"
+                        cFormControl
+                        class="elegant-input"
+                        formControlName="customerEmail"
+                        placeholder="cliente@correo.com"
+                      />
+                    </div>
+                  </div>
+                } @else {
+                  <!-- Quick Customer Form: Nombre, Cédula, Teléfono -->
+                  <div class="quick-client-box mb-1">
+                    <div class="quick-client-header">
+                      <span class="quick-icon-pill">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                      </span>
+                      <span class="quick-title">Registro Rápido de Cliente</span>
+                    </div>
+
+                    <div class="mb-2">
+                      <label class="custom-form-label required-label small mb-1">Nombre del Cliente</label>
+                      <input
+                        type="text"
+                        cFormControl
+                        class="elegant-input form-control-sm"
+                        formControlName="quickCustomerName"
+                        placeholder="ej. Roberto Gómez Sánchez"
+                      />
+                    </div>
+
+                    <div class="row g-2 mb-2">
+                      <div class="col-sm-6">
+                        <label class="custom-form-label required-label small mb-1">Cédula / RNC</label>
+                        <input
+                          type="text"
+                          cFormControl
+                          class="elegant-input form-control-sm font-monospace"
+                          formControlName="quickCustomerIdentification"
+                          placeholder="001-0000000-0"
+                        />
+                      </div>
+                      <div class="col-sm-6">
+                        <label class="custom-form-label required-label small mb-1">Teléfono</label>
+                        <input
+                          type="text"
+                          cFormControl
+                          class="elegant-input form-control-sm font-monospace"
+                          formControlName="quickCustomerPhone"
+                          placeholder="809-000-0000"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary py-1 px-2.5"
+                        (click)="toggleQuickCustomer()"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-primary-custom py-1 px-3 d-flex align-items-center gap-1.5"
+                        [disabled]="isSavingCustomer() || !receivableForm.get('quickCustomerName')?.value"
+                        (click)="saveQuickCustomer()"
+                      >
+                        @if (isSavingCustomer()) {
+                          <c-spinner size="sm"></c-spinner>
+                        }
+                        <span>✓ Guardar Cliente</span>
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Section 2: Concepto Comercial & Resumen de Flujo -->
+            <div class="col-lg-5">
+              <div class="executive-card h-100 d-flex flex-column justify-content-between">
+                <div>
+                  <div class="card-section-header">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="step-badge">02</span>
+                      <h6 class="section-title mb-0">Concepto Comercial</h6>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="custom-form-label required-label">Descripción / Motivo de la Venta</label>
+                    <input
+                      type="text"
+                      cFormControl
+                      class="elegant-input"
+                      formControlName="description"
+                      placeholder="Ej. Venta a crédito de mercancía / Apartado con cuotas"
+                    />
+                    <div class="form-text text-muted mt-1" style="font-size: 0.75rem;">
+                      Si lo dejas en blanco, se autogenerará con los productos que selecciones en el siguiente paso.
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Workflow Guidance Notice -->
+                <div class="p-3 rounded-3" style="background: #f8fafc; border: 1px dashed #cbd5e1;">
+                  <div class="d-flex align-items-start gap-2">
+                    <div style="color: #4f46e5; margin-top: 1px;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </div>
+                    <div style="font-size: 0.78rem; color: #475569; line-height: 1.4;">
+                      <strong>Flujo de Venta:</strong> En el siguiente paso seleccionarás los productos del almacén. El <strong>Monto Total</strong> se calculará automáticamente antes de definir el abono y las cuotas de pago.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+          <!-- CASO / PASO 2 (Imagen 2): Asignar Productos & Almacén de Despacho -->
+          @if (currentStep() === 2) {
+            <div class="wizard-step-pane">
+              <!-- Section 3: Artículos / Productos a Financiar o Apartar & Almacén -->
+              <div class="executive-card mb-2">
+            <div class="card-section-header flex-wrap gap-2">
+              <div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="step-badge">03</span>
+                  <h6 class="section-title mb-0">Asignar Productos & Almacén de Despacho</h6>
+                </div>
+                <div class="section-subtitle">Gestiona el inventario por almacén y añade los artículos a reservar o financiar</div>
+              </div>
+
+              <!-- Stock Deduction Toggle Switch -->
+              <div class="stock-toggle-badge">
+                <div class="form-check form-switch m-0 d-flex align-items-center gap-2">
+                  <input
+                    class="form-check-input switch-input"
+                    type="checkbox"
+                    role="switch"
+                    id="deductStockCheck"
+                    formControlName="deductStock"
+                  />
+                  <label class="form-check-label switch-label" for="deductStockCheck">
+                    Descontar de almacén inmediatamente
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Warehouse Selector & Active Warehouse Banner -->
+            <div class="warehouse-control-strip mb-3">
+              <div class="d-flex align-items-center gap-2 flex-grow-1">
+                <div class="warehouse-icon-box">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 21h18"></path>
+                    <path d="M19 21v-4"></path>
+                    <path d="M19 17l-7-5-7 5"></path>
+                    <path d="M5 21v-4"></path>
+                    <path d="M5 10l7-5 7 5"></path>
+                    <path d="M9 21v-6h6v6"></path>
+                  </svg>
+                </div>
+                <div class="flex-grow-1">
+                  <div class="d-flex align-items-center gap-2">
+                    <label class="custom-form-label mb-0 fw-bold text-dark">Almacén de Inventario / Despacho:</label>
+                    <span class="badge bg-indigo-subtle text-indigo border border-indigo-subtle px-2 py-0.5">
+                      {{ getSelectedWarehouseName() }}
+                    </span>
+                  </div>
+                  <div class="small text-muted">Las existencias mostradas y los descargos automáticos aplicarán a este almacén</div>
+                </div>
+              </div>
+
+              <div class="warehouse-select-wrap">
+                <select
+                  cSelect
+                  class="elegant-select warehouse-select"
+                  formControlName="warehouseId"
+                  (change)="onWarehouseChange($event)"
+                >
+                  @for (w of warehouses(); track w.id) {
+                    <option [value]="w.id">
+                      {{ w.name }} {{ w.isMain ? '★ [Principal]' : '' }} {{ w.code ? '(' + w.code + ')' : '' }}
+                    </option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <!-- Mode selector tabs: Inventario vs Personalizado -->
+            <div class="product-mode-tabs mb-3">
+              <button
+                type="button"
+                class="mode-tab-btn"
+                [class.active]="productMode() === 'catalog'"
+                (click)="setProductMode('catalog')"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                <span>Del Inventario / Almacén</span>
+              </button>
+              <button
+                type="button"
+                class="mode-tab-btn"
+                [class.active]="productMode() === 'custom'"
+                (click)="setProductMode('custom')"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                <span>Producto Libre / Personalizado</span>
+              </button>
+            </div>
+
+            <!-- Product Selection Row -->
+            <div class="product-entry-grid mb-3">
+              @if (productMode() === 'catalog') {
+                <div class="col-item-catalog">
+                  <label class="custom-form-label small mb-1">Producto del Catálogo</label>
+                  <select
+                    cSelect
+                    class="elegant-select form-select-sm"
+                    [value]="tempProductId() || ''"
+                    (change)="onProductSelectChange($event)"
+                  >
+                    <option value="">-- Buscar producto del inventario --</option>
+                    @for (p of products(); track p.id) {
+                      <option [value]="p.id">
+                        {{ p.description }} {{ p.barcode ? '[' + p.barcode + ']' : '' }} · Stock en {{ getSelectedWarehouseName() }}: {{ getProductStock(p.id) }} un.
+                      </option>
+                    }
+                  </select>
+                </div>
+              } @else {
+                <div class="col-item-catalog">
+                  <label class="custom-form-label small mb-1">Nombre / Concepto del Producto o Servicio</label>
+                  <input
+                    type="text"
+                    cFormControl
+                    class="elegant-input form-control-sm"
+                    placeholder="ej. Nevera Samsung 14 pies, Juego de sala, etc."
+                    [ngModel]="tempProductName()"
+                    (ngModelChange)="tempProductName.set($event)"
+                    [ngModelOptions]="{standalone: true}"
+                  />
+                </div>
+              }
+
+              <div class="col-item-qty">
+                <label class="custom-form-label small mb-1">Cantidad</label>
+                <input
+                  type="number"
+                  min="1"
+                  cFormControl
+                  class="elegant-input form-control-sm font-monospace text-center"
+                  [ngModel]="tempQuantity()"
+                  (ngModelChange)="tempQuantity.set($event)"
+                  [ngModelOptions]="{standalone: true}"
+                />
+              </div>
+
+              <div class="col-item-price">
+                <label class="custom-form-label small mb-1">Precio Unitario (RD$)</label>
+                <div class="input-group input-group-sm elegant-input-group">
+                  <span class="input-group-text currency-addon py-0">RD$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    cFormControl
+                    class="elegant-input form-control-sm font-monospace"
+                    [ngModel]="tempUnitPrice()"
+                    (ngModelChange)="tempUnitPrice.set($event)"
+                    [ngModelOptions]="{standalone: true}"
+                  />
+                </div>
+              </div>
+
+              <div class="col-item-btn">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-primary-custom w-100 d-flex align-items-center justify-content-center gap-1.5 py-1.5"
+                  (click)="addProduct()"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Agregar Producto</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Table of Selected Items with Multi-Product Support -->
+            @if (selectedItems().length > 0) {
+              <div class="items-table-container mb-1">
+                <table class="table table-sm table-hover mb-0 align-middle">
+                  <thead>
+                    <tr>
+                      <th class="ps-3">Producto / Mercancía Asignada</th>
+                      <th class="text-center" style="width: 140px;">Cantidad</th>
+                      <th class="text-end" style="width: 130px;">Precio Unit.</th>
+                      <th class="text-end" style="width: 140px;">Subtotal</th>
+                      <th class="text-center pe-3" style="width: 50px;"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of selectedItems(); track item.productId; let idx = $index) {
+                      <tr>
+                        <td class="ps-3">
+                          <div class="d-flex align-items-center gap-2">
+                            <span class="item-icon-tag">📦</span>
+                            <div>
+                              <div class="fw-semibold text-dark">{{ item.productName }}</div>
+                              <div class="d-flex align-items-center gap-2">
+                                @if (item.barCode) {
+                                  <span class="badge bg-light text-secondary border font-monospace py-0.5 px-1.5" style="font-size: 0.72rem;">
+                                    {{ item.barCode }}
+                                  </span>
+                                } @else {
+                                  <span class="badge bg-secondary-subtle text-secondary py-0.5 px-1.5" style="font-size: 0.72rem;">
+                                    Personalizado
+                                  </span>
+                                }
+                                <span class="text-muted" style="font-size: 0.73rem;">
+                                  • Almacén: {{ getSelectedWarehouseName() }}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="text-center">
+                          <div class="qty-stepper-wrap">
+                            <button
+                              type="button"
+                              class="stepper-btn"
+                              (click)="decrementItemQty(idx)"
+                              title="Restar 1"
+                            >
+                              −
+                            </button>
+                            <span class="stepper-val font-monospace">
+                              {{ item.quantity }}
+                            </span>
+                            <button
+                              type="button"
+                              class="stepper-btn"
+                              (click)="incrementItemQty(idx)"
+                              title="Sumar 1"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </td>
+                        <td class="text-end font-monospace text-secondary">
+                          RD$ {{ item.unitPrice | number:'1.2-2' }}
+                        </td>
+                        <td class="text-end font-monospace fw-bold text-primary">
+                          RD$ {{ item.subtotal | number:'1.2-2' }}
+                        </td>
+                        <td class="text-center pe-3">
+                          <button
+                            type="button"
+                            class="delete-item-btn"
+                            title="Quitar producto de la venta"
+                            (click)="removeProduct(idx)"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="15"
+                              height="15"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            >
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colspan="3" class="text-end fw-semibold ps-3 text-muted">
+                        Total Productos ({{ selectedItems().length }} ítems asignados):
+                      </td>
+                      <td class="text-end fw-bold font-monospace text-primary fs-6">
+                        RD$ {{ receivableForm.get('totalAmount')?.value | number:'1.2-2' }}
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            } @else {
+              <div class="empty-product-state">
+                <div class="empty-product-icon">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="26"
+                    height="26"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="9" cy="21" r="1"></circle>
+                    <circle cx="20" cy="21" r="1"></circle>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                  </svg>
+                </div>
+                <div class="empty-product-title">No has asignado productos a esta venta aún</div>
+                <div class="empty-product-desc">
+                  Puedes seleccionar productos del catálogo o agregar artículos libres arriba. Se descontarán automáticamente del almacén <strong>{{ getSelectedWarehouseName() }}</strong>.
+                </div>
+              </div>
+            }
+            </div>
+          </div>
+        }
+
+          <!-- CASO / PASO 3: Valores de la Venta, Abono Inicial y Plan de Cuotas -->
+          @if (currentStep() === 3) {
+            <div class="wizard-step-pane">
+              <div class="row g-3">
+                <!-- Subsección: Valores de la Venta & Abono Inicial -->
+                <div class="col-lg-6">
+                  <div class="executive-card h-100">
+                    <div class="card-section-header">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="step-badge">03</span>
+                        <h6 class="section-title mb-0">Valores de la Venta y Abono</h6>
+                      </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                      <div class="col-sm-6">
+                        <label class="custom-form-label required-label">Monto Total de Venta</label>
+                        <div class="input-group elegant-input-group">
+                          <span class="input-group-text currency-addon fw-bold text-primary">RD$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            cFormControl
+                            class="elegant-input fw-bold font-monospace text-primary"
+                            formControlName="totalAmount"
+                            placeholder="0.00"
+                            (input)="calculateInstallments()"
+                          />
+                        </div>
+                        @if (selectedItems().length > 0) {
+                          <div class="form-text text-muted mt-1" style="font-size: 0.72rem;">
+                            ✓ Calculado de {{ selectedItems().length }} producto(s) asignado(s)
+                          </div>
+                        }
+                      </div>
+                      <div class="col-sm-6">
+                        <label class="custom-form-label text-success fw-bold">Abono Inicial / Apartado</label>
+                        <div class="input-group elegant-input-group">
+                          <span class="input-group-text currency-addon fw-bold text-success">RD$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            cFormControl
+                            class="elegant-input fw-bold font-monospace text-success border-success"
+                            formControlName="downPayment"
+                            placeholder="0.00"
+                            (input)="calculateInstallments()"
+                          />
+                        </div>
+                        <div class="form-text text-muted mt-1" style="font-size: 0.72rem;">
+                          Monto entregado hoy por el cliente
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Financial Balance Summary Bar -->
+                    <div class="balance-summary-bar">
+                      <div class="balance-item">
+                        <span class="balance-label">Total Venta</span>
+                        <span class="balance-val font-monospace">RD$ {{ (receivableForm.get('totalAmount')?.value || 0) | number:'1.2-2' }}</span>
+                      </div>
+                      <div class="balance-divider">−</div>
+                      <div class="balance-item">
+                        <span class="balance-label text-success">Abono Hoy</span>
+                        <span class="balance-val text-success font-monospace">RD$ {{ (receivableForm.get('downPayment')?.value || 0) | number:'1.2-2' }}</span>
+                      </div>
+                      <div class="balance-divider">=</div>
+                      <div class="balance-item highlight">
+                        <span class="balance-label text-indigo">Saldo a Financiar</span>
+                        <span class="balance-val text-indigo font-monospace fw-bold">RD$ {{ remainingBalance() | number:'1.2-2' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Subsección: Plan de Financiamiento y Cuotas -->
+                <div class="col-lg-6">
+                  <div class="executive-card payment-plan-card h-100">
+                    <div class="card-section-header">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="step-badge">04</span>
+                        <h6 class="section-title mb-0">Plan de Financiamiento y Cuotas</h6>
+                      </div>
+                      <span class="badge bg-indigo text-white px-2.5 py-1 font-monospace fw-bold" style="font-size: 0.78rem;">
+                        Saldo: RD$ {{ remainingBalance() | number:'1.2-2' }}
+                      </span>
+                    </div>
+
+                    <!-- Installment Amount & Quantity -->
+                    <div class="row g-2 mb-3">
+                      <div class="col-sm-6">
+                        <label class="custom-form-label required-label">Monto por Cuota (Calculada)</label>
+                        <div class="input-group elegant-input-group">
+                          <span class="input-group-text currency-addon fw-semibold">RD$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            cFormControl
+                            class="elegant-input font-monospace fw-bold text-primary"
+                            formControlName="installmentAmount"
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+                      <div class="col-sm-6">
+                        <label class="custom-form-label required-label">Cantidad de Cuotas</label>
+                        <div class="input-group elegant-input-group">
+                          <input
+                            type="number"
+                            min="1"
+                            cFormControl
+                            class="elegant-input font-monospace fw-bold"
+                            formControlName="totalInstallments"
+                            placeholder="1"
+                            (input)="calculateInstallments()"
+                          />
+                          <span class="input-group-text addon-icon text-muted">Cuotas</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Start Date & Frequency -->
+                    <div class="row g-2 mb-3">
+                      <div class="col-sm-6">
+                        <label class="custom-form-label required-label">Fecha 1er Vencimiento</label>
+                        <input
+                          type="date"
+                          cFormControl
+                          class="elegant-input"
+                          formControlName="startDate"
+                        />
+                      </div>
+                      <div class="col-sm-6">
+                        <label class="custom-form-label required-label">Frecuencia de Pago</label>
+                        <select cSelect class="elegant-select" formControlName="frequency">
+                          <option value="Semanal">Semanal</option>
+                          <option value="Quincenal">Quincenal</option>
+                          <option value="Mensual">Mensual</option>
+                          <option value="Diaria">Diaria</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Info Notice Box -->
+                    <div class="plan-info-alert">
+                      <div class="info-alert-icon-box">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="16" x2="12" y2="12"></line>
+                          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                      </div>
+                      <div class="info-alert-text">
+                        @if (receivableForm.get('downPayment')?.value > 0) {
+                          Abono inicial de <strong>RD$ {{ receivableForm.get('downPayment')?.value | number:'1.2-2' }}</strong>. Cuotas de <strong>RD$ {{ (receivableForm.get('installmentAmount')?.value || 0) | number:'1.2-2' }}</strong> para el saldo de <strong>RD$ {{ remainingBalance() | number:'1.2-2' }}</strong>.
+                        } @else {
+                          Plan con cuotas fijas de <strong>RD$ {{ (receivableForm.get('installmentAmount')?.value || 0) | number:'1.2-2' }}</strong> para saldar el total de <strong>RD$ {{ (receivableForm.get('totalAmount')?.value || 0) | number:'1.2-2' }}</strong>.
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+      </form>
+      </div>
+
+      <!-- Footer -->
+      <div class="custom-modal-footer d-flex align-items-center justify-content-between">
+        <div>
+          @if (currentStep() === 1) {
+            <button
+              type="button"
+              class="btn btn-outline-secondary px-4 py-2"
+              (click)="close()"
+            >
+              Cancelar
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="btn btn-outline-secondary px-4 py-2 d-flex align-items-center gap-1.5"
+              (click)="prevStep()"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+              <span>{{ currentStep() === 2 ? 'Volver a Cliente' : 'Volver a Productos' }}</span>
+            </button>
+          }
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          @if (currentStep() === 1) {
+            <button
+              type="button"
+              class="btn btn-primary-custom px-4 py-2 d-flex align-items-center gap-1.5"
+              (click)="nextStep()"
+            >
+              <span>Continuar a Productos</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+          }
+
+          @if (currentStep() === 2) {
+            <button
+              type="button"
+              class="btn btn-primary-custom px-4 py-2 d-flex align-items-center gap-1.5"
+              (click)="nextStep()"
+            >
+              <span>Continuar a Valores y Cuotas</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+          }
+
+          @if (currentStep() === 3) {
+            <button
+              type="button"
+              class="btn btn-primary-custom px-4 py-2"
+              [disabled]="isLoading() || receivableForm.invalid"
+              (click)="saveReceivable()"
+            >
+              @if (isLoading()) {
+                <c-spinner size="sm" class="me-2"></c-spinner>
+                <span>Guardando...</span>
+              } @else {
+                <span class="d-flex align-items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Confirmar y Crear Venta / Apartado</span>
+                </span>
+              }
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}

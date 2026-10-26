@@ -1,0 +1,93 @@
+<div class="receipt-container p-3 border rounded bg-white font-monospace text-dark shadow-sm">
+  <!-- Header -->
+  <div class="text-center mb-3 border-bottom pb-2">
+    <h5 class="fw-bold mb-0 text-uppercase">{{ companyName || 'Mi Empresa SRL' }}</h5>
+    <div class="small text-secondary">RNC: {{ companyRnc || '1-30-12345-6' }}</div>
+    <div class="fw-bold my-1">COMPROBANTE DE ARQUEO Y CUADRE</div>
+    <small class="text-secondary d-block">Fecha Cierre: {{ (closedAt || date) | date:'dd/MM/yyyy HH:mm' }}</small>
+  </div>
+
+  <!-- Meta Info -->
+  <div class="receipt-body small">
+    <div class="d-flex justify-content-between mb-1">
+      <span>Cajero:</span>
+      <span class="fw-semibold">{{ cashierName }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-1">
+      <span>Sesión / Turno:</span>
+      <span class="fw-bold">#{{ registerId }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-1">
+      <span>Apertura:</span>
+      <span>{{ openedAt ? (openedAt | date:'dd/MM/yyyy HH:mm') : 'N/A' }}</span>
+    </div>
+
+    <div class="border-top my-2"></div>
+
+    <!-- Opening Fund & Sales Breakdown -->
+    <div class="d-flex justify-content-between mb-1">
+      <span>(+) Fondo Inicial:</span>
+      <span class="font-monospace">RD$ {{ initialAmount | number:'1.2-2' }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-1">
+      <span>(+) Ventas Efectivo:</span>
+      <span class="font-monospace text-success">RD$ {{ cashSales | number:'1.2-2' }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-1">
+      <span>Ventas Tarjeta:</span>
+      <span class="font-monospace">RD$ {{ cardSales | number:'1.2-2' }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-1">
+      <span>Transferencias:</span>
+      <span class="font-monospace">RD$ {{ transferSales | number:'1.2-2' }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-1">
+      <span>Cheques:</span>
+      <span class="font-monospace">RD$ {{ chequeSales | number:'1.2-2' }}</span>
+    </div>
+
+    <!-- Movements -->
+    <div class="d-flex justify-content-between mb-1">
+      <span>(+) Entradas Manuales:</span>
+      <span class="font-monospace text-success">RD$ {{ cashInTotal | number:'1.2-2' }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-1">
+      <span>(-) Retiros / Salidas:</span>
+      <span class="font-monospace text-danger">RD$ {{ cashOutTotal | number:'1.2-2' }}</span>
+    </div>
+
+    <div class="border-top border-2 my-2"></div>
+
+    <!-- Totals & Reconciliation -->
+    <div class="d-flex justify-content-between fw-bold mb-1">
+      <span>Efectivo Esperado:</span>
+      <span class="font-monospace">RD$ {{ expectedAmount | number:'1.2-2' }}</span>
+    </div>
+    <div class="d-flex justify-content-between fw-bold mb-1">
+      <span>Efectivo Contado:</span>
+      <span class="font-monospace text-primary">RD$ {{ actualAmount | number:'1.2-2' }}</span>
+    </div>
+    <div class="d-flex justify-content-between fw-bold pt-1 border-top">
+      <span>Diferencia:</span>
+      <span class="font-monospace" [class.text-danger]="difference < 0" [class.text-success]="difference > 0">
+        RD$ {{ difference | number:'1.2-2' }}
+        ({{ difference === 0 ? 'Exacto' : (difference > 0 ? 'Sobrante' : 'Faltante') }})
+      </span>
+    </div>
+  </div>
+
+  <!-- Signatures -->
+  <div class="receipt-footer mt-4 pt-3 text-center">
+    <div class="d-flex justify-content-around">
+      <div>
+        <div class="signature-line mx-auto mb-1 border-top" style="width: 100px;"></div>
+        <small class="text-secondary d-block">Firma Cajero</small>
+      </div>
+      <div>
+        <div class="signature-line mx-auto mb-1 border-top" style="width: 100px;"></div>
+        <small class="text-secondary d-block">Firma Supervisor</small>
+      </div>
+    </div>
+    <div class="text-secondary small mt-3">-- Fin del Comprobante --</div>
+  </div>
+</div>

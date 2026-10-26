@@ -45,12 +45,7 @@ export class ColorsComponent implements OnInit, AfterViewInit {
 
 @Component({
   selector: 'app-theme-color',
-  template: `
-    <c-col xl="2" md="4" sm="6" xs="12" class="my-4 ms-4">
-      <div [class]="colorClasses()" style="padding-top: 75%;"></div>
-      <ng-content />
-    </c-col>
-  `,
+  templateUrl: './theme-color.component.html',
   imports: [ColComponent],
   host: {
     style: 'display: contents;'

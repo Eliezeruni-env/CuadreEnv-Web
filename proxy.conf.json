@@ -1,13 +1,29 @@
 {
-    "/auth": {
-        "target": "https://localhost:44324",
-        "secure": false,
-        "changeOrigin": true,
-        "logLevel": "debug"
-    },
-    "/hc": {
-        "target": "https://localhost:44324",
-        "secure": false,
-        "changeOrigin": true
-    }
+  "/v1": {
+    "target": "http://127.0.0.1:8080",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api": {
+    "target": "http://127.0.0.1:8080",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/auth": {
+    "target": "http://127.0.0.1:8080",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/hubs": {
+    "target": "http://127.0.0.1:8080",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true
+  },
+  "/hc": {
+    "target": "http://127.0.0.1:8080",
+    "secure": false,
+    "changeOrigin": true
+  }
 }

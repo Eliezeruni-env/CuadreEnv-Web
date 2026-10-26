@@ -1,204 +1,570 @@
-<c-container breakpoint="lg" class="py-4">
+<div class="dashboard-page py-2">
   <!-- Alerts -->
   @if (errorMessage()) {
-    <c-alert color="danger" class="mb-4 shadow-sm border-0">
+    <c-alert color="danger" class="mb-4 shadow-sm border-0 rounded-3">
       {{ errorMessage() }}
     </c-alert>
   }
 
-  <!-- Header -->
-  <div class="mb-4">
-    <h2 class="fw-bold text-dark mb-1">{{ translationService.t('dashboard.title') }}</h2>
-    <p class="text-body-secondary mb-0">{{ translationService.t('dashboard.subtitle') }}</p>
+  <!-- Header & Date Filter Bar -->
+  <div class="dashboard-header-card card border-0 rounded-4 p-4 mb-4">
+    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-start align-items-xl-center gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <div class="header-icon-box text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 52px; height: 52px;">
+          <svg cIcon name="cilSpeedometer" style="width: 26px; height: 26px;"></svg>
+        </div>
+        <div>
+          <div class="d-inline-flex align-items-center gap-1.5 px-2.5 py-0.5 rounded-pill fw-bold text-uppercase mb-1" style="font-size: 0.68rem; letter-spacing: 0.5px; background: rgba(15, 23, 42, 0.08); color: #0f172a; border: 1px solid rgba(15, 23, 42, 0.12);">
+            <span class="live-dot-pulse"></span>
+            <span>MONITOREO EN VIVO • CUADRE OPERATIVO</span>
+          </div>
+          <h4 class="fw-bold text-dark mb-1" style="letter-spacing: -0.02em;">Centro de Control Operativo</h4>
+          <p class="text-secondary mb-0 small">
+            Supervisión continua de ventas en caja, arqueos estimados, stock crítico y alertas de cobranza del día.
+          </p>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center flex-wrap gap-2">
+        <!-- Date Range Filter Box -->
+        <div class="date-filter-dropdown d-flex align-items-center gap-2 px-3 py-2 bg-white rounded-3 shadow-2xs">
+          <svg cIcon name="cilCalendar" class="text-dark" style="width: 16px; height: 16px;"></svg>
+          <span class="small fw-semibold text-secondary">Rango:</span>
+          <div class="d-flex align-items-center text-dark" style="font-size: 0.8rem;">
+            <input type="date" class="border-0 bg-transparent p-0 m-0" style="width: 105px;" [ngModel]="startDate()" (ngModelChange)="startDate.set($event); onDateChange()" />
+            <span class="mx-1 text-muted">-</span>
+            <input type="date" class="border-0 bg-transparent p-0 m-0" style="width: 105px;" [ngModel]="endDate()" (ngModelChange)="endDate.set($event); onDateChange()" />
+          </div>
+        </div>
+
+        <!-- Quick Presets Pill Group -->
+        <div class="btn-group preset-pill-group rounded-3 shadow-2xs" role="group">
+          <button type="button" class="btn" [class.active-preset]="selectedPreset() === 'today'" (click)="setPreset('today')">Hoy</button>
+          <button type="button" class="btn" [class.active-preset]="selectedPreset() === '7days'" (click)="setPreset('7days')">7 días</button>
+          <button type="button" class="btn" [class.active-preset]="selectedPreset() === 'thisMonth'" (click)="setPreset('thisMonth')">30 días</button>
+          <button type="button" class="btn" [class.active-preset]="selectedPreset() === 'all'" (click)="setPreset('all')">Todo</button>
+        </div>
+
+        <!-- Refresh Button -->
+        <button type="button" class="btn btn-white border d-flex align-items-center justify-content-center p-2 rounded-3 shadow-2xs text-dark btn-reload-animated" title="Refrescar datos en vivo" (click)="loadDashboardData()">
+          <svg cIcon name="cilReload" style="width: 16px; height: 16px;"></svg>
+        </button>
+
+        <!-- Access to Detailed Global Metrics -->
+        <a *hasModule="'Reports'" routerLink="/metrics" class="btn btn-outline-dark border-secondary-subtle d-flex align-items-center gap-1.5 px-3 py-2 rounded-3 shadow-2xs fw-semibold small text-decoration-none" title="Ver análisis histórico y financiero">
+          <svg cIcon name="cilChartPie" style="width: 15px; height: 15px;"></svg>
+          <span>Métricas Globales →</span>
+        </a>
+      </div>
+    </div>
   </div>
 
   <!-- Loading State -->
-  @if (isLoading() && productsCount() === 0) {
-    <div class="py-5 text-center">
-      <c-spinner color="primary" class="mb-3"></c-spinner>
-      <p class="text-body-secondary mb-0">{{ translationService.t('dashboard.loading') }}</p>
+  @if (isLoading() && todaySalesCount() === 0 && productsCount() === 0) {
+    <div class="py-5 text-center card border-0 shadow-sm rounded-4 bg-white my-4">
+      <div class="py-4">
+        <c-spinner color="primary" class="mb-3"></c-spinner>
+        <p class="text-secondary small mb-0">Sincronizando operaciones en tiempo real...</p>
+      </div>
     </div>
   } @else {
-    <!-- Metrics Row -->
-    <c-row class="g-4 mb-4">
-      <!-- Products Count -->
-      <c-col sm="6" lg="3">
-        <c-card class="shadow-xs border-0 border-top-primary h-100">
-          <c-card-body class="p-4 d-flex align-items-center justify-content-between">
-            <div>
-              <div class="text-uppercase text-secondary font-size-xs fw-bold mb-1">{{ translationService.t('dashboard.productsCount') }}</div>
-              <h2 class="fw-bold text-dark mb-0">{{ productsCount() }}</h2>
+    <!-- Main Operational KPIs Row (6 Cards Grid - Modern Fintech Style) -->
+    <div class="row g-3 mb-4">
+      
+      <!-- 1. Ventas del Día -->
+      <div *hasModule="'Sales'" class="col-12 col-sm-6 col-md-4 col-xxl-2">
+        <div class="card p-3 kpi-grid-card kpi-accent-success h-100 rounded-4">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="kpi-icon-glow kpi-icon-success">
+              <svg cIcon name="cilDollar" style="width: 20px; height: 20px;"></svg>
             </div>
-            <div class="p-3 rounded bg-primary-subtle text-primary">
-              <svg cIcon name="cilStorage" style="width: 24px; height: 24px;"></svg>
-            </div>
-          </c-card-body>
-        </c-card>
-      </c-col>
+            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5" style="font-size: 0.68rem; font-weight: 600;">
+              {{ todaySalesCount() }} tickets
+            </span>
+          </div>
+          <div class="text-uppercase text-secondary fw-bold text-truncate mb-1" style="font-size: 0.65rem; letter-spacing: 0.6px;">VENTAS DE HOY</div>
+          <div class="kpi-amount text-dark mb-1" title="RD$ {{ todaySalesTotal() | number:'1.2-2' }}">
+            RD$ {{ todaySalesTotal() | number:'1.2-2' }}
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
+            <span class="text-secondary" style="font-size: 0.72rem;">Facturado en turno</span>
+            <small class="text-success fw-bold" style="font-size: 0.7rem;">● En vivo</small>
+          </div>
+        </div>
+      </div>
 
-      <!-- Warehouses Count -->
-      <c-col sm="6" lg="3">
-        <c-card class="shadow-xs border-0 border-top-success h-100">
-          <c-card-body class="p-4 d-flex align-items-center justify-content-between">
-            <div>
-              <div class="text-uppercase text-secondary font-size-xs fw-bold mb-1">{{ translationService.t('dashboard.warehousesCount') }}</div>
-              <h2 class="fw-bold text-dark mb-0">{{ warehousesCount() }}</h2>
+      <!-- 2. Ticket Promedio -->
+      <div *hasModule="'Sales'" class="col-12 col-sm-6 col-md-4 col-xxl-2">
+        <div class="card p-3 kpi-grid-card kpi-accent-info h-100 rounded-4">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="kpi-icon-glow kpi-icon-info">
+              <svg cIcon name="cilTags" style="width: 20px; height: 20px;"></svg>
             </div>
-            <div class="p-3 rounded bg-success-subtle text-success">
-              <svg cIcon name="cilBuilding" style="width: 24px; height: 24px;"></svg>
-            </div>
-          </c-card-body>
-        </c-card>
-      </c-col>
+            <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2 py-0.5" style="font-size: 0.68rem; font-weight: 600;">
+              Promedio
+            </span>
+          </div>
+          <div class="text-uppercase text-secondary fw-bold text-truncate mb-1" style="font-size: 0.65rem; letter-spacing: 0.6px;">TICKET PROMEDIO</div>
+          <div class="kpi-amount text-dark mb-1" title="RD$ {{ todayAverageTicket() | number:'1.2-2' }}">
+            RD$ {{ todayAverageTicket() | number:'1.2-2' }}
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
+            <span class="text-secondary" style="font-size: 0.72rem;">Por compra del día</span>
+            <small class="text-muted" style="font-size: 0.7rem;">Eficiencia</small>
+          </div>
+        </div>
+      </div>
 
-      <!-- Low Stock Alerts Count -->
-      <c-col sm="6" lg="3">
-        <c-card class="shadow-xs border-0 border-top-danger h-100">
-          <c-card-body class="p-4 d-flex align-items-center justify-content-between">
-            <div>
-              <div class="text-uppercase text-secondary font-size-xs fw-bold mb-1">{{ translationService.t('dashboard.lowStockCount') }}</div>
-              <h2 class="fw-bold mb-0" [ngClass]="lowStockCount() > 0 ? 'text-danger fw-bold' : 'text-dark'">
-                {{ lowStockCount() }}
-              </h2>
+      <!-- 3. Cajas Activas -->
+      <div *hasModule="'CashRegister'" class="col-12 col-sm-6 col-md-4 col-xxl-2">
+        <div class="card p-3 kpi-grid-card kpi-accent-purple h-100 rounded-4">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="kpi-icon-glow kpi-icon-purple">
+              <svg cIcon name="cilCalculator" style="width: 20px; height: 20px;"></svg>
             </div>
-            <div class="p-3 rounded" [ngClass]="lowStockCount() > 0 ? 'bg-danger-subtle text-danger' : 'bg-light text-secondary'">
-              <svg cIcon name="cilWarning" style="width: 24px; height: 24px;"></svg>
-            </div>
-          </c-card-body>
-        </c-card>
-      </c-col>
+            <span class="badge rounded-pill px-2 py-0.5 border" [ngClass]="activeCashRegistersCount() > 0 ? 'bg-success-subtle text-success border-success-subtle' : 'bg-warning-subtle text-warning border-warning-subtle'" style="font-size: 0.68rem; font-weight: 600;">
+              {{ activeCashRegistersCount() > 0 ? 'Turno en curso' : 'Sin turnos' }}
+            </span>
+          </div>
+          <div class="text-uppercase text-secondary fw-bold text-truncate mb-1" style="font-size: 0.65rem; letter-spacing: 0.6px;">CAJAS ABIERTAS</div>
+          <div class="kpi-amount text-dark mb-1">
+            {{ activeCashRegistersCount() }}
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
+            <span class="text-secondary" style="font-size: 0.72rem;">Terminales POS</span>
+            <a routerLink="/cash-register" class="text-decoration-none small text-primary fw-semibold" style="font-size: 0.72rem;">Turnos →</a>
+          </div>
+        </div>
+      </div>
 
-      <!-- Team Members Count -->
-      <c-col sm="6" lg="3">
-        <c-card class="shadow-xs border-0 border-top-info h-100">
-          <c-card-body class="p-4 d-flex align-items-center justify-content-between">
-            <div>
-              <div class="text-uppercase text-secondary font-size-xs fw-bold mb-1">{{ translationService.t('dashboard.teamSize') }}</div>
-              <h2 class="fw-bold text-dark mb-0">{{ usersCount() }}</h2>
+      <!-- 4. Efectivo en Gaveta Estimado -->
+      <div *hasModule="'CashRegister'" class="col-12 col-sm-6 col-md-4 col-xxl-2">
+        <div class="card p-3 kpi-grid-card kpi-accent-primary h-100 rounded-4">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="kpi-icon-glow kpi-icon-primary">
+              <svg cIcon name="cilCreditCard" style="width: 20px; height: 20px;"></svg>
             </div>
-            <div class="p-3 rounded bg-info-subtle text-info">
-              <svg cIcon name="cilPeople" style="width: 24px; height: 24px;"></svg>
-            </div>
-          </c-card-body>
-        </c-card>
-      </c-col>
-    </c-row>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0.5" style="font-size: 0.68rem; font-weight: 600;">
+              Arqueo
+            </span>
+          </div>
+          <div class="text-uppercase text-secondary fw-bold text-truncate mb-1" style="font-size: 0.65rem; letter-spacing: 0.6px;">EFECTIVO EN GAVETA</div>
+          <div class="kpi-amount text-dark mb-1" title="RD$ {{ activeCashEstimatedCash() | number:'1.2-2' }}">
+            RD$ {{ activeCashEstimatedCash() | number:'1.2-2' }}
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
+            <span class="text-secondary" style="font-size: 0.72rem;">Saldo estimado</span>
+            <small class="text-primary fw-bold" style="font-size: 0.7rem;">Gaveta</small>
+          </div>
+        </div>
+      </div>
 
-    <!-- Layout Grid -->
-    <c-row class="g-4">
-      <!-- Left Column: Quick Actions & Alerts -->
-      <c-col md="6" lg="5">
-        <!-- Quick Action CTA Modals -->
-        <c-card class="shadow-xs border-0 mb-4 bg-light border-0">
-          <c-card-body class="p-4">
-            <h5 class="fw-bold text-dark mb-3">{{ translationService.t('dashboard.quickOps') }}</h5>
-            <div class="d-grid gap-2">
-              @if (authService.hasRole(['Admin', 'Manager'])) {
-                <button cButton color="primary" class="py-2.5 d-flex align-items-center justify-content-start text-white border-0 shadow-sm" routerLink="/inventory">
-                  <svg cIcon name="cilPlus" class="me-3" style="width: 18px; height: 18px;"></svg>
-                  {{ translationService.t('dashboard.regStock') }}
-                </button>
-                <button cButton color="light" class="py-2.5 d-flex align-items-center justify-content-start border" routerLink="/products">
-                  <svg cIcon name="cilStorage" class="me-3 text-secondary" style="width: 18px; height: 18px;"></svg>
-                  {{ translationService.t('dashboard.addProduct') }}
-                </button>
-              }
-              @if (authService.hasRole(['Admin'])) {
-                <button cButton color="light" class="py-2.5 d-flex align-items-center justify-content-start border" routerLink="/users">
-                  <svg cIcon name="cilUserFollow" class="me-3 text-secondary" style="width: 18px; height: 18px;"></svg>
-                  {{ translationService.t('dashboard.inviteTeam') }}
-                </button>
-              }
+      <!-- 5. Cobros Vencidos (CxC) -->
+      <div *hasModule="'Receivables'" class="col-12 col-sm-6 col-md-4 col-xxl-2">
+        <div class="card p-3 kpi-grid-card kpi-accent-danger h-100 rounded-4">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="kpi-icon-glow" [ngClass]="overdueAccountsCount() > 0 ? 'kpi-icon-danger' : 'kpi-icon-success'">
+              <svg cIcon name="cilWarning" style="width: 20px; height: 20px;"></svg>
             </div>
-          </c-card-body>
-        </c-card>
+            <span class="badge rounded-pill px-2 py-0.5 border" [ngClass]="overdueAccountsCount() > 0 ? 'bg-danger-subtle text-danger border-danger-subtle' : 'bg-success-subtle text-success border-success-subtle'" style="font-size: 0.68rem; font-weight: 600;">
+              {{ overdueAccountsCount() > 0 ? 'Por cobrar' : 'Al día' }}
+            </span>
+          </div>
+          <div class="text-uppercase text-secondary fw-bold text-truncate mb-1" style="font-size: 0.65rem; letter-spacing: 0.6px;">COBROS VENCIDOS</div>
+          <div class="kpi-amount mb-1" [ngClass]="overdueAccountsCount() > 0 ? 'text-danger' : 'text-dark'">
+            {{ overdueAccountsCount() }}
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
+            <span class="text-danger small fw-semibold text-truncate" style="font-size: 0.72rem;" title="RD$ {{ overdueAccountsTotal() | number:'1.2-2' }}">
+              RD$ {{ overdueAccountsTotal() | number:'1.0-0' }}
+            </span>
+            <a routerLink="/receivables" class="text-decoration-none small text-danger fw-semibold" style="font-size: 0.72rem;">Cobrar →</a>
+          </div>
+        </div>
+      </div>
 
-        <!-- Current Alerts summary box -->
-        <c-card class="shadow-xs border-0 mb-4">
-          <c-card-body class="p-4">
-            <h5 class="fw-bold text-dark mb-3">{{ translationService.t('dashboard.criticalLimits') }}</h5>
-            @if (lowStockCount() === 0) {
-              <div class="py-4 text-center text-success small border border-dashed rounded bg-light">
-                <svg cIcon name="cilCheckCircle" size="lg" class="mb-2" style="width: 24px; height: 24px;"></svg>
-                <div>{{ translationService.t('dashboard.stocksOk') }}</div>
+      <!-- 6. Alertas de Stock Bajo -->
+      <div *hasModule="'Inventory'" class="col-12 col-sm-6 col-md-4 col-xxl-2">
+        <div class="card p-3 kpi-grid-card kpi-accent-warning h-100 rounded-4">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="kpi-icon-glow" [ngClass]="lowStockCount() > 0 ? 'kpi-icon-warning' : 'kpi-icon-success'">
+              <svg cIcon name="cilStorage" style="width: 20px; height: 20px;"></svg>
+            </div>
+            <span class="badge rounded-pill px-2 py-0.5 border" [ngClass]="lowStockCount() > 0 ? 'bg-warning-subtle text-warning border-warning-subtle' : 'bg-success-subtle text-success border-success-subtle'" style="font-size: 0.68rem; font-weight: 600;">
+              {{ lowStockCount() > 0 ? 'Por reponer' : 'Al día' }}
+            </span>
+          </div>
+          <div class="text-uppercase text-secondary fw-bold text-truncate mb-1" style="font-size: 0.65rem; letter-spacing: 0.6px;">STOCK CRÍTICO</div>
+          <div class="kpi-amount mb-1" [ngClass]="lowStockCount() > 0 ? 'text-warning' : 'text-dark'">
+            {{ lowStockCount() }}
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
+            <span class="text-secondary small" style="font-size: 0.72rem;">Catálogo</span>
+            <a routerLink="/inventory" class="text-decoration-none small text-primary fw-semibold" style="font-size: 0.72rem;">Stock →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Operations Toolbar (Carousel with Nav Arrows) -->
+    <div class="card border-0 rounded-4 p-2.5 px-3 mb-4 quick-actions-toolbar">
+      <div class="d-flex align-items-center gap-2">
+        <!-- Title / Icon Label -->
+        <div class="d-flex align-items-center gap-2 flex-shrink-0 pe-3 border-end">
+          <div class="rounded-2 p-1 d-flex align-items-center justify-content-center" style="background: #0f172a; color: #38bdf8;">
+            <svg cIcon name="cilBolt" style="width: 18px; height: 18px;"></svg>
+          </div>
+          <span class="fw-bold text-dark small text-uppercase tracking-wider text-nowrap d-none d-sm-inline" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+            Accesos Rápidos:
+          </span>
+        </div>
+
+        <!-- Left Arrow Button -->
+        <button
+          type="button"
+          class="btn rounded-circle p-0 carousel-nav-btn shadow-2xs"
+          (click)="scrollQuickActions(-240)"
+          title="Ver opciones anteriores"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+        </button>
+
+        <!-- Scrollable Button Row (No wrap, hidden scrollbar, smooth scroll) -->
+        <div #quickActionsContainer class="quick-actions-scroll-container flex-grow-1 py-1">
+          <!-- 1. Nueva Venta POS (Hero button with glow) -->
+          <a *hasModule="'Sales'" routerLink="/pos" class="btn btn-quick-sale-hero d-flex align-items-center gap-2 px-3.5 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
+            <svg cIcon name="cilDollar" style="width: 16px; height: 16px;"></svg>
+            <span>Nueva Venta</span>
+            <span class="badge bg-white text-primary rounded-pill px-1.5 py-0.5" style="font-size: 0.65rem; font-weight: 700;">F2</span>
+          </a>
+
+          <!-- 2. Turno de Caja -->
+          <a *hasModule="'CashRegister'" routerLink="/cash-register" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
+            <svg cIcon name="cilCalculator" class="text-primary" style="width: 16px; height: 16px;"></svg>
+            <span>Turno de Caja</span>
+          </a>
+
+          <!-- 3. Entrada Rápida Almacén -->
+          <a *hasModule="'Inventory'" routerLink="/inventory/entries" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
+            <svg cIcon name="cilStorage" class="text-info" style="width: 16px; height: 16px;"></svg>
+            <span>Entrada de Mercancía</span>
+          </a>
+
+          <!-- 4. Catálogo de Productos -->
+          <a *hasModule="'Inventory'" routerLink="/products" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
+            <svg cIcon name="cilLayers" class="text-secondary" style="width: 16px; height: 16px;"></svg>
+            <span>Productos</span>
+          </a>
+
+          <!-- 5. Clientes -->
+          <a *hasModule="'Customers'" routerLink="/customers" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
+            <svg cIcon name="cilPeople" class="text-secondary" style="width: 16px; height: 16px;"></svg>
+            <span>Clientes</span>
+          </a>
+
+          <!-- 6. Cuentas por Cobrar -->
+          <a *hasModule="'Receivables'" routerLink="/receivables" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
+            <svg cIcon name="cilCreditCard" class="text-danger" style="width: 16px; height: 16px;"></svg>
+            <span>Cuentas por Cobrar</span>
+          </a>
+
+          <!-- 7. POS Móvil -->
+          <a routerLink="/mobile" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
+            <svg cIcon name="cilMobile" class="text-success" style="width: 16px; height: 16px;"></svg>
+            <span>POS Móvil</span>
+          </a>
+
+          <!-- 8. Transferencias -->
+          <a *hasModule="'Inventory'" routerLink="/inventory/transfers" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
+            <svg cIcon name="cilSwapHorizontal" class="text-warning" style="width: 16px; height: 16px;"></svg>
+            <span>Transferencias</span>
+          </a>
+        </div>
+
+        <!-- Right Arrow Button -->
+        <button
+          type="button"
+          class="btn rounded-circle p-0 carousel-nav-btn shadow-2xs"
+          (click)="scrollQuickActions(240)"
+          title="Ver más opciones"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content Layout (Left: Critical Stock & Debt Alarms | Right: Live Activity Stream) -->
+    <div class="row g-4">
+      
+      <!-- Left Column: Critical Alarms (Stock Agotado & CxC Vencidas) -->
+      <div class="col-lg-4 col-xl-4">
+        
+        <!-- Stock Crítico Panel -->
+        <div *hasModule="'Inventory'" class="card border-0 rounded-4 p-4 mb-4 alarm-panel-card bg-white">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="rounded-circle p-1.5 bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                <svg cIcon name="cilWarning" style="width: 16px; height: 16px;"></svg>
               </div>
-            } @else {
-              <div class="alert-list-scrollable" style="max-height: 280px; overflow-y: auto;">
-                <div class="d-flex flex-column gap-2">
-                  <div class="p-2 border-left-danger bg-danger-subtle rounded small d-flex justify-content-between align-items-center">
-                    <div>
-                      <span class="fw-bold text-danger">{{ translationService.t('dashboard.productsBelowMin', { count: lowStockCount() }) }}</span>
+              <h6 class="fw-bold text-dark mb-0">Stock Crítico o Agotado</h6>
+            </div>
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+              {{ lowStockCount() }} Alertas
+            </span>
+          </div>
+
+          @if (lowStockCount() === 0) {
+            <div class="text-center text-success small py-4 my-auto">
+              <svg cIcon name="cilCheck" class="mb-2 text-success" style="width: 28px; height: 28px;"></svg>
+              <div class="fw-semibold">Todos los productos cuentan con inventario</div>
+              <p class="text-muted small mb-0">No hay productos en nivel crítico.</p>
+            </div>
+          } @else {
+            <div class="d-flex flex-column gap-2.5" style="max-height: 290px; overflow-y: auto;">
+              @for (prod of lowStockProducts(); track prod.id) {
+                <div class="d-flex align-items-center justify-content-between p-2.5 rounded-3 alarm-item-row">
+                  <div class="d-flex align-items-center gap-2 text-truncate" style="max-width: 65%;">
+                    <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 24px; height: 24px; font-size: 0.7rem; font-weight: bold;">
+                      !
                     </div>
-                    <button cButton color="danger" size="sm" class="py-0 px-2 text-white border-0" routerLink="/inventory">
-                      {{ translationService.t('common.view') }}
-                    </button>
+                    <div class="text-truncate">
+                      <div class="fw-semibold text-dark text-truncate" style="font-size: 0.82rem;">{{ prod.description }}</div>
+                      <small class="text-danger fw-bold" style="font-size: 0.72rem;">Quedan: {{ prod.stock != null ? prod.stock : ($any(prod).quantity || 0) }} unds.</small>
+                    </div>
                   </div>
+                  <a routerLink="/inventory/entries" class="btn btn-sm btn-outline-primary py-1 px-2.5 rounded-pill fw-semibold text-nowrap shadow-2xs" style="font-size: 0.72rem;">
+                    + Reponer
+                  </a>
                 </div>
-              </div>
-            }
-          </c-card-body>
-        </c-card>
-      </c-col>
+              }
+            </div>
+            <div class="text-end mt-3">
+              <a routerLink="/inventory/stock" class="text-decoration-none small fw-semibold" style="color: #0f172a;">Ver catálogo completo →</a>
+            </div>
+          }
+        </div>
 
-      <!-- Right Column: Recent Activity Timeline -->
-      <c-col md="6" lg="7">
-        <c-card class="shadow-xs border-0 h-100">
-          <c-card-body class="p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-              <h5 class="fw-bold text-dark mb-0">{{ translationService.t('dashboard.activityLedger') }}</h5>
-              <button cButton color="link" size="sm" class="text-decoration-none px-0" routerLink="/inventory">
-                {{ translationService.t('dashboard.viewAllMovements') }}
-              </button>
+        <!-- Cuentas por Cobrar Vencidas Panel -->
+        <div *hasModule="'Receivables'" class="card border-0 rounded-4 p-4 alarm-panel-card bg-white">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="rounded-circle p-1.5 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; background: rgba(245, 158, 11, 0.12); color: #d97706;">
+                <svg cIcon name="cilDollar" style="width: 16px; height: 16px;"></svg>
+              </div>
+              <h6 class="fw-bold text-dark mb-0">Cobros Pendientes Hoy</h6>
+            </div>
+            <span class="badge rounded-pill px-2.5 py-1 border" [ngClass]="overdueAccountsCount() > 0 ? 'bg-danger-subtle text-danger border-danger-subtle' : 'bg-success-subtle text-success border-success-subtle'" style="font-size: 0.72rem; font-weight: 600;">
+              {{ overdueAccountsCount() }} Facturas
+            </span>
+          </div>
+
+          @if (overdueAccountsCount() === 0) {
+            <div class="text-center text-success small py-3">
+              <svg cIcon name="cilCheck" class="mb-2 text-success" style="width: 24px; height: 24px;"></svg>
+              <div class="fw-semibold">Sin facturas vencidas</div>
+              <p class="text-muted small mb-0">La cartera de clientes está al día.</p>
+            </div>
+          } @else {
+            <div class="p-3 rounded-3 mb-3 border" style="background-color: #fff1f2; border-color: #fecdd3 !important;">
+              <div class="small fw-bold mb-1" style="color: #9f1239;">Monto Pendiente por Cobrar:</div>
+              <h5 class="fw-bold mb-0 font-monospace" style="color: #9f1239; letter-spacing: -0.02em;">RD$ {{ overdueAccountsTotal() | number:'1.2-2' }}</h5>
             </div>
 
-            @if (recentMovements().length === 0) {
-              <div class="py-5 text-center px-4 border border-dashed rounded bg-light">
-                <svg cIcon name="cilList" size="xl" class="text-body-secondary mb-3" style="width: 48px; height: 48px;"></svg>
-                <h6 class="fw-bold text-dark">{{ translationService.t('dashboard.noEvents') }}</h6>
-                <p class="text-body-secondary small mb-0">{{ translationService.t('dashboard.noEventsSub') }}</p>
+            <div class="d-flex flex-column gap-2 mb-3" style="max-height: 180px; overflow-y: auto;">
+              @for (acc of overdueAccountsList().slice(0, 4); track acc.id) {
+                <div class="d-flex align-items-center justify-content-between p-2 rounded-2 border bg-light">
+                  <div class="text-truncate me-2" style="font-size: 0.8rem;">
+                    <div class="fw-semibold text-dark text-truncate">{{ acc.customerName || acc.description || ('Cliente #' + acc.id) }}</div>
+                    <small class="text-muted font-monospace">{{ acc.invoiceNumber || ('DOC-' + acc.id) }}</small>
+                  </div>
+                  <strong class="text-danger font-monospace text-nowrap" style="font-size: 0.82rem;">
+                    RD$ {{ (acc.pendingAmount != null ? acc.pendingAmount : (acc.totalAmount - (acc.paidAmount || 0))) | number:'1.2-2' }}
+                  </strong>
+                </div>
+              }
+            </div>
+
+            <a routerLink="/receivables" class="btn w-100 rounded-3 py-2 fw-semibold small text-white text-decoration-none shadow-sm" style="background: #0f172a; border: 1px solid #0f172a;">
+              Gestionar Cobranzas →
+            </a>
+          }
+        </div>
+      </div>
+
+      <!-- Right Column: Live Activity Feed (Ventas de Hoy vs Movimientos de Almacén) -->
+      <div class="col-lg-8 col-xl-8">
+        <div class="card border-0 rounded-4 p-4 bg-white alarm-panel-card h-100">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4 pb-3 border-bottom">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <div class="rounded-circle p-1.5 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; background: rgba(15, 23, 42, 0.08); color: #0f172a;">
+                <svg cIcon name="cilList" style="width: 16px; height: 16px;"></svg>
+              </div>
+              <h5 class="fw-bold text-dark mb-0">Actividad en Vivo de Hoy</h5>
+              <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1.5 ms-1" style="font-size: 0.72rem; font-weight: 600;">
+                <span class="pulse-dot"></span> EN VIVO
+              </span>
+              @if (liveEventsCount() > 0) {
+                <span class="badge text-white rounded-pill px-2 py-0.5" style="font-size: 0.68rem; background-color: #0f172a !important;">
+                  +{{ liveEventsCount() }} en vivo
+                </span>
+              }
+            </div>
+
+            <!-- Tab Switcher (Ventas vs Inventario) & Quick Refresh -->
+            <div class="d-flex align-items-center gap-2">
+              <button
+                type="button"
+                class="btn btn-sm btn-light border rounded-pill px-2.5 py-1 text-muted d-flex align-items-center gap-1 shadow-2xs"
+                (click)="refreshLiveFeed()"
+                title="Actualizar actividad en tiempo real"
+              >
+                <span>🔄</span>
+                <span class="small font-size-xs d-none d-md-inline">Sincronizar</span>
+              </button>
+
+              <div class="btn-group btn-group-sm p-1 bg-light rounded-pill border" role="group">
+                <button 
+                  type="button" 
+                  class="btn rounded-pill border-0 px-3 fw-semibold"
+                  [class.btn-dark]="activeActivityTab() === 'sales'"
+                  [class.btn-light]="activeActivityTab() !== 'sales'"
+                  (click)="activeActivityTab.set('sales')"
+                >
+                  Ventas Emitidas
+                </button>
+                <button 
+                  type="button" 
+                  class="btn rounded-pill border-0 px-3 fw-semibold"
+                  [class.btn-dark]="activeActivityTab() === 'inventory'"
+                  [class.btn-light]="activeActivityTab() !== 'inventory'"
+                  (click)="activeActivityTab.set('inventory')"
+                >
+                  Movimientos Stock
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 1: Ventas Emitidas Hoy -->
+          @if (activeActivityTab() === 'sales') {
+            @if (todayRecentSales().length === 0) {
+              <div class="py-5 text-center px-4 my-auto">
+                <svg cIcon name="cilCart" class="text-muted mb-2" style="width: 36px; height: 36px;"></svg>
+                <h6 class="fw-bold text-dark mb-1">Aún no hay ventas registradas hoy</h6>
+                <p class="text-muted small mb-3">Registra tu primera venta presionando el botón rápido o presiona F2.</p>
+                <a routerLink="/sales" class="btn btn-sm btn-dark rounded-pill px-3 shadow-2xs" style="background: #0f172a; border-color: #0f172a;">
+                  + Registrar Venta
+                </a>
               </div>
             } @else {
-              <!-- Vertical Timeline Ledger -->
-              <div class="saas-timeline">
-                @for (movement of recentMovements(); track movement.id; let idx = $index) {
-                  <div class="saas-timeline-item">
-                    <div class="saas-timeline-badge" [ngClass]="{
-                      'bg-success-subtle text-success': movement.type === 'Inbound',
-                      'bg-danger-subtle text-danger': movement.type === 'Outbound',
-                      'bg-primary-subtle text-primary': movement.type === 'Transfer'
-                    }">
-                      @if (movement.type === 'Inbound') {
-                        <svg cIcon name="cilArrowThickFromBottom" style="width: 14px; height: 14px;"></svg>
-                      } @else if (movement.type === 'Outbound') {
-                        <svg cIcon name="cilArrowThickToBottom" style="width: 14px; height: 14px;"></svg>
-                      } @else {
-                        <svg cIcon name="cilSwapHorizontal" style="width: 14px; height: 14px;"></svg>
-                      }
-                    </div>
-                    <div class="saas-timeline-content">
-                      <div class="d-flex justify-content-between align-items-baseline">
-                        <span class="fw-semibold text-dark">{{ movement.type === 'Inbound' ? translationService.t('inventory.inbound') : (movement.type === 'Outbound' ? translationService.t('inventory.outbound') : translationService.t('inventory.adjustment')) }}</span>
-                        <span class="text-secondary small font-size-xs">{{ getDaysAgoMock(idx) }}</span>
-                      </div>
-                      <p class="text-body-secondary small mb-1 mt-0.5">
-                        {{ translationService.t('dashboard.moved', { qty: movement.quantity, product: getProductName(movement.productId) }) }}
-                        @if (movement.type === 'Inbound') {
-                          (-> <span class="fw-semibold">{{ getWarehouseName(movement.toWarehouseId) }}</span>).
-                        } @else if (movement.type === 'Outbound') {
-                          (<- <span class="fw-semibold">{{ getWarehouseName(movement.fromWarehouseId) }}</span>).
-                        } @else {
-                          (<span class="fw-semibold">{{ getWarehouseName(movement.fromWarehouseId) }}</span> -> <span class="fw-semibold">{{ getWarehouseName(movement.toWarehouseId) }}</span>).
-                        }
-                      </p>
-                      <span class="text-secondary small font-monospace font-size-xs">TX #{{ movement.id }}</span>
-                    </div>
-                  </div>
-                }
+              <div class="table-responsive">
+                <table class="table table-hover table-borderless align-middle mb-0 table-activity">
+                  <thead class="text-secondary small border-bottom">
+                    <tr>
+                      <th scope="col" class="pb-2 fw-semibold">Comprobante / ID</th>
+                      <th scope="col" class="pb-2 fw-semibold">Método</th>
+                      <th scope="col" class="pb-2 fw-semibold text-end">Total (RD$)</th>
+                      <th scope="col" class="pb-2 fw-semibold text-end">Hora</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (sale of todayRecentSales(); track sale.id) {
+                      <tr class="border-bottom" [class.live-feed-highlight]="$any(sale).isLiveEvent">
+                        <td class="py-3">
+                          <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 28px; height: 28px; font-size: 0.75rem; background: rgba(15, 23, 42, 0.08); color: #0f172a;">
+                              #{{ sale.id }}
+                            </div>
+                            <div>
+                              <div class="d-flex align-items-center gap-1.5">
+                                <span class="fw-semibold text-dark small d-block">Venta #{{ sale.id }}</span>
+                                @if ($any(sale).isLiveEvent) {
+                                  <span class="badge bg-success text-white rounded-pill font-monospace" style="font-size: 0.6rem;">NUEVO</span>
+                                }
+                              </div>
+                              <small class="text-secondary" style="font-size: 0.72rem;">{{ sale.details.length || 1 }} artículo(s) · {{ $any(sale).customerName || 'Consumidor Final' }}</small>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="py-3">
+                          <span class="badge rounded-pill px-2.5 py-1" [ngClass]="getPaymentMethodBadgeClass($any(sale).paymentMethod || 'Efectivo')" style="font-size: 0.72rem;">
+                            {{ $any(sale).paymentMethod || 'Efectivo' }}
+                          </span>
+                        </td>
+                        <td class="py-3 text-end font-monospace fw-bold text-dark">
+                          RD$ {{ (sale.total || $any(sale).totalAmount || 0) | number:'1.2-2' }}
+                        </td>
+                        <td class="py-3 text-end text-secondary small">
+                          {{ formatSaleTime(sale) }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mt-3 pt-2">
+                <small class="text-muted">Mostrando las últimas 10 ventas del día</small>
+                <a routerLink="/sales" class="text-decoration-none small fw-semibold" style="color: #0f172a;">Ver todas las ventas →</a>
               </div>
             }
-          </c-card-body>
-        </c-card>
-      </c-col>
-    </c-row>
+          }
+
+          <!-- TAB 2: Movimientos de Inventario -->
+          @if (activeActivityTab() === 'inventory') {
+            @if (recentMovements().length === 0 && auditMovements().length === 0) {
+              <div class="py-5 text-center px-4 my-auto">
+                <svg cIcon name="cilStorage" class="text-muted mb-2" style="width: 36px; height: 36px;"></svg>
+                <h6 class="fw-bold text-dark mb-1">No hay movimientos de inventario registrados</h6>
+                <p class="text-muted small mb-0">Las entradas y salidas de mercancía aparecerán aquí.</p>
+              </div>
+            } @else {
+              <div class="table-responsive">
+                <table class="table table-hover table-borderless align-middle mb-0">
+                  <thead class="text-secondary small border-bottom">
+                    <tr>
+                      <th scope="col" class="pb-2 fw-semibold">Tipo</th>
+                      <th scope="col" class="pb-2 fw-semibold">Detalle</th>
+                      <th scope="col" class="pb-2 fw-semibold text-end">Cantidad</th>
+                      <th scope="col" class="pb-2 fw-semibold text-end">Hora</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (m of (recentMovements().length > 0 ? recentMovements() : auditMovements()); track m.id) {
+                      <tr class="border-bottom">
+                        <td class="py-3">
+                          <span class="badge bg-light text-dark border rounded-pill px-2 py-0.5" style="font-size: 0.72rem;">
+                            {{ getMovementTypeLabel(m.type) }}
+                          </span>
+                        </td>
+                        <td class="py-3">
+                          <span class="text-dark small fw-medium text-truncate d-block" style="max-width: 240px;">
+                            {{ getProductName(m.productId) }}
+                          </span>
+                        </td>
+                        <td class="py-3 text-end font-monospace fw-bold text-dark">
+                          {{ m.quantity }}
+                        </td>
+                        <td class="py-3 text-end text-secondary small">
+                          {{ formatMovementTime(m) }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mt-3 pt-2">
+                <small class="text-muted">Movimientos recientes del almacén</small>
+                <a routerLink="/inventory" class="text-decoration-none small fw-semibold" style="color: #0f172a;">Ver inventario completo →</a>
+              </div>
+            }
+          }
+        </div>
+      </div>
+    </div>
   }
-</c-container>
+</div>
+

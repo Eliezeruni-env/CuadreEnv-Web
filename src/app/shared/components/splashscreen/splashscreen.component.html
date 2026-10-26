@@ -1,0 +1,12 @@
+@if (visible) {
+  <div class="splashscreen-overlay d-flex flex-column align-items-center justify-content-center">
+    <div class="splash-card text-center p-4 rounded-4 shadow-lg bg-white">
+      <img src="assets/brand/cuadreEnv-logo.png" alt="Logo" class="splash-logo mb-3" />
+      <h5 class="fw-bold text-dark mb-1">{{ message || 'Cargando Sistema...' }}</h5>
+      <p class="text-secondary small mb-3">Preparando entorno empresarial y módulos</p>
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+    </div>
+  </div>
+}

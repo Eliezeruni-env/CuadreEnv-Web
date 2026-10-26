@@ -1,0 +1,102 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="close()">
+    <div class="custom-modal-content modal-lg" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header">
+        <h5 class="fw-bold">{{ translationService.t('sales.modal.createTitle') }}</h5>
+        <button type="button" class="btn-close" (click)="close()" aria-label="Close"></button>
+      </div>
+      <div class="custom-modal-body">
+        <form cForm [formGroup]="saleForm">
+          <c-row>
+            <c-col md="6" class="mb-3">
+              <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('sales.modal.selectCustomer') }}</label>
+              <select cSelect formControlName="customerId">
+                <option value="">Público General</option>
+                @for (c of customers(); track c.id) {
+                  <option [value]="c.id">{{ c.name }}</option>
+                }
+              </select>
+            </c-col>
+
+            <c-col md="6" class="mb-3">
+              <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('cashRegister.title') }}</label>
+              <select cSelect formControlName="cashRegisterId">
+                <option value="">{{ translationService.t('common.select') }}</option>
+                @for (r of registers(); track r.id) {
+                  <option [value]="r.id">{{ r.name }}</option>
+                }
+              </select>
+            </c-col>
+          </c-row>
+
+          <!-- Items Section -->
+          <div class="mb-4 mt-2">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="fw-bold text-dark mb-0">{{ translationService.t('sales.modal.addProduct') }}</h6>
+              <button type="button" cButton color="primary" size="sm" class="py-1" (click)="addItem()">
+                {{ translationService.t('common.add') }}
+              </button>
+            </div>
+
+            <div class="border rounded bg-light p-2" style="max-height: 375px; overflow-y: auto; overflow-x: hidden;">
+              @if (items.length === 0) {
+                <div class="text-center py-3 text-secondary small">{{ translationService.t('common.noResults') }}</div>
+              } @else {
+                <div formArrayName="items">
+                  @for (item of items.controls; track $index; let idx = $index) {
+                    <div [formGroupName]="idx" class="row g-2 mb-2 align-items-end">
+                      <div class="col-md-5">
+                        <label class="small text-secondary mb-1">{{ translationService.t('products.table.product') }} *</label>
+                        <select cSelect formControlName="productId">
+                          <option value="" disabled selected>{{ translationService.t('common.select') }}</option>
+                          @for (p of products(); track p.id) {
+                            <option [value]="p.id">{{ p.description }}</option>
+                          }
+                        </select>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="small text-secondary mb-1">{{ translationService.t('sales.modal.quantity') }} *</label>
+                        <input type="number" formControlName="quantity" cFormControl />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="small text-secondary mb-1">{{ translationService.t('sales.modal.unitPrice') }} (Bloqueado)</label>
+                        <input type="number" formControlName="unitPrice" cFormControl readonly style="background-color: var(--cui-tertiary-bg, #f1f5f9); cursor: not-allowed;" title="El precio unitario solo se puede editar en el módulo de Productos" />
+                      </div>
+                      <div class="col-md-1 text-center">
+                        <button type="button" cButton color="danger" size="sm" variant="ghost" class="mb-1" (click)="removeItem(idx)">
+                          <svg cIcon name="cilTrash"></svg>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <c-row class="border-top pt-3 mt-3 align-items-center">
+            <c-col md="6">
+              <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('sales.table.paid') }} *</label>
+              <input type="number" formControlName="paidAmount" cFormControl />
+            </c-col>
+            <c-col md="6" class="text-end">
+              <div class="text-secondary small">{{ translationService.t('sales.modal.grandTotal') }}</div>
+              <h2 class="fw-bold text-dark mb-0">RD$ {{ calculateTotal() | number:'1.2-2' }}</h2>
+            </c-col>
+          </c-row>
+        </form>
+      </div>
+      <div class="custom-modal-footer">
+        <button cButton color="light" class="border" (click)="close()">{{ translationService.t('common.cancel') }}</button>
+        <button cButton color="primary" [disabled]="isLoading() || saleForm.invalid || items.length === 0" (click)="saveSale()">
+          @if (isLoading()) {
+            <c-spinner size="sm" class="me-2"></c-spinner>
+            {{ translationService.t('common.loading') }}
+          } @else {
+            {{ translationService.t('sales.modal.saveSale') }}
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

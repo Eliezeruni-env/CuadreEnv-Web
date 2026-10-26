@@ -1,0 +1,105 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="cancel.emit()">
+    <div class="custom-modal-content" (click)="$event.stopPropagation()">
+      <div
+        class="custom-modal-header d-flex align-items-center justify-content-between p-3 border-bottom"
+        [ngClass]="form.value.type === 'ENTRY' ? 'bg-success-subtle' : 'bg-danger-subtle'"
+      >
+        <div class="d-flex align-items-center gap-2">
+          <svg
+            cIcon
+            [name]="form.value.type === 'ENTRY' ? 'cilArrowBottom' : 'cilArrowTop'"
+            [class.text-success]="form.value.type === 'ENTRY'"
+            [class.text-danger]="form.value.type === 'WITHDRAWAL'"
+            style="width: 22px; height: 22px;"
+          ></svg>
+          <h5 class="mb-0 fw-bold text-dark">
+            {{ form.value.type === 'ENTRY' ? 'Entrada Manual de Efectivo' : 'Retiro / Salida de Efectivo' }}
+          </h5>
+        </div>
+        <button type="button" class="btn-close" (click)="cancel.emit()" aria-label="Close"></button>
+      </div>
+
+      <div class="custom-modal-body p-4">
+        <form [formGroup]="form">
+          <!-- Type Toggle -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">Tipo de Movimiento</label>
+            <div class="btn-group w-100" role="group">
+              <button
+                type="button"
+                class="btn py-2 fw-semibold"
+                [class.btn-success]="form.value.type === 'ENTRY'"
+                [class.btn-outline-secondary]="form.value.type !== 'ENTRY'"
+                (click)="setType('ENTRY')"
+              >
+                Entrada (+)
+              </button>
+              <button
+                type="button"
+                class="btn py-2 fw-semibold"
+                [class.btn-danger]="form.value.type === 'WITHDRAWAL'"
+                [class.btn-outline-secondary]="form.value.type !== 'WITHDRAWAL'"
+                (click)="setType('WITHDRAWAL')"
+              >
+                Retiro / Salida (-)
+              </button>
+            </div>
+          </div>
+
+          <!-- Amount -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">Monto (RD$) *</label>
+            <input
+              type="number"
+              formControlName="amount"
+              class="form-control form-control-lg text-end font-monospace fw-bold"
+              placeholder="0.00"
+              step="0.01"
+            />
+          </div>
+
+          <!-- Concept -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">Concepto / Motivo *</label>
+            <input
+              type="text"
+              formControlName="concept"
+              class="form-control"
+              placeholder="Ej: Aporte inicial extra, pago de flete, retiro de seguridad..."
+            />
+          </div>
+
+          <!-- Observations -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">Observaciones (Opcional)</label>
+            <textarea
+              formControlName="observations"
+              class="form-control"
+              rows="2"
+              placeholder="Detalles adicionales del movimiento..."
+            ></textarea>
+          </div>
+        </form>
+      </div>
+
+      <div class="custom-modal-footer d-flex align-items-center justify-content-end gap-2 p-3 border-top bg-light">
+        <button type="button" class="btn btn-light border px-3" (click)="cancel.emit()">Cancelar</button>
+        <button
+          type="button"
+          class="btn px-4 fw-semibold text-white"
+          [ngClass]="form.value.type === 'ENTRY' ? 'btn-success' : 'btn-danger'"
+          [disabled]="form.invalid || isLoading"
+          (click)="confirmMovement()"
+        >
+          @if (isLoading) {
+            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            Registrando...
+          } @else {
+            {{ form.value.type === 'ENTRY' ? 'Registrar Entrada' : 'Registrar Retiro' }}
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

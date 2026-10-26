@@ -1,0 +1,81 @@
+.distribution-container {
+  min-height: calc(100vh - 120px);
+}
+
+.header-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+.metric-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 1.15rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+  }
+}
+
+.metric-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metric-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.03em;
+}
+
+.metric-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.route-item {
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  border-left: 4px solid transparent;
+
+  &:hover {
+    background-color: #f8fafc;
+  }
+
+  &.active-route {
+    background-color: #eff6ff;
+    border-left-color: #2563eb;
+  }
+}
+
+.smaller {
+  font-size: 0.75rem;
+}

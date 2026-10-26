@@ -1,0 +1,312 @@
+<div class="roles-container fade-in">
+  <!-- Page Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+          Seguridad & Acceso
+        </span>
+        <span class="text-secondary small">· {{ roles().length }} roles definidos</span>
+      </div>
+      <h2 class="fw-bold text-dark mb-1 fs-4">Gestión de Roles y Permisos</h2>
+      <p class="text-secondary mb-0 small">
+        Administra los roles de acceso disponibles para los colaboradores de tu empresa y personaliza qué puede hacer cada perfil.
+      </p>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="d-flex align-items-center gap-2">
+      <button
+        type="button"
+        class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2 px-3 shadow-2xs rounded-3 fw-medium"
+        (click)="goToMatrix()"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="3" y1="9" x2="21" y2="9"></line>
+          <line x1="3" y1="15" x2="21" y2="15"></line>
+          <line x1="9" y1="3" x2="9" y2="21"></line>
+          <line x1="15" y1="3" x2="15" y2="21"></line>
+        </svg>
+        <span>Matriz de Permisos</span>
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-primary btn-sm d-flex align-items-center gap-2 px-3 shadow-sm rounded-3 fw-medium"
+        (click)="openCreateModal()"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Nuevo Rol</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Cards Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-4">
+      <div class="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <span class="text-secondary small fw-medium">Roles Activos</span>
+            <h3 class="fw-bold text-dark mt-1 mb-0 fs-4">{{ roles().length }}</h3>
+            <span class="text-muted" style="font-size: 0.72rem;">Roles configurados en la empresa</span>
+          </div>
+          <div class="p-3 bg-primary-subtle text-primary rounded-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-4">
+      <div class="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <span class="text-secondary small fw-medium">Colaboradores Asignados</span>
+            <h3 class="fw-bold text-success mt-1 mb-0 fs-4">{{ totalCollaborators() }}</h3>
+            <span class="text-muted" style="font-size: 0.72rem;">Usuarios con roles vinculados</span>
+          </div>
+          <div class="p-3 bg-success-subtle text-success rounded-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-4">
+      <div class="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <span class="text-secondary small fw-medium">Control de Permisos</span>
+            <h3 class="fw-bold text-info mt-1 mb-0 fs-4">Granular RBAC</h3>
+            <span class="text-muted" style="font-size: 0.72rem;">9 módulos · 6 acciones operativas</span>
+          </div>
+          <div class="p-3 bg-info-subtle text-info rounded-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search and Main Table Card -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+    <!-- Toolbar -->
+    <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div class="input-group input-group-sm" style="max-width: 320px;">
+        <span class="input-group-text bg-light border-end-0 text-secondary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </span>
+        <input
+          type="text"
+          class="form-control bg-light border-start-0 ps-0"
+          placeholder="Buscar rol por nombre..."
+          [(ngModel)]="searchTerm"
+        />
+      </div>
+
+      <div class="text-secondary small">
+        Mostrando <span class="fw-semibold text-dark">{{ roles().length }}</span> rol(es)
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-secondary small text-uppercase fw-semibold" style="font-size: 0.74rem;">
+          <tr>
+            <th class="ps-3" style="width: 28%;">Rol</th>
+            <th style="width: 30%;">Descripción</th>
+            <th class="text-center" style="width: 14%;">Colaboradores</th>
+            <th class="text-center" style="width: 14%;">Permisos Activos</th>
+            <th class="text-end pe-3" style="width: 14%;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="border-top-0">
+          @for (role of roles(); track role.id) {
+            <tr>
+              <!-- Role Name & Badge -->
+              <td class="ps-3 py-3">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="role-icon-box p-2 rounded-3 text-primary bg-primary-subtle d-flex align-items-center justify-content-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="fw-bold text-dark d-inline-flex align-items-center gap-2 flex-wrap">
+                      <span>{{ role.name }}</span>
+                      @if (role.isSystem) {
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill fw-normal" style="font-size: 0.65rem;">
+                          Sistema
+                        </span>
+                      } @else {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill fw-normal" style="font-size: 0.65rem;">
+                          Personalizado
+                        </span>
+                      }
+                    </div>
+                    <small class="text-muted d-block" style="font-size: 0.72rem;">ID: #{{ role.id }}</small>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Description -->
+              <td>
+                <span class="text-secondary small">
+                  {{ role.description || 'Sin descripción detallada' }}
+                </span>
+              </td>
+
+              <!-- Assigned Collaborators -->
+              <td class="text-center">
+                <div class="d-flex align-items-center justify-content-center gap-1.5">
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.75rem;">
+                    {{ role.userCount || 0 }}
+                  </span>
+                  <span class="text-secondary small" style="font-size: 0.74rem;">
+                    {{ (role.userCount === 1) ? 'colaborador' : 'colaboradores' }}
+                  </span>
+                </div>
+              </td>
+
+              <!-- Permissions count -->
+              <td class="text-center">
+                <div class="d-flex align-items-center justify-content-center gap-1.5">
+                  <span class="badge bg-light text-dark border rounded-pill px-2.5 py-1 small fw-medium" style="font-size: 0.75rem;">
+                    {{ getPermissionCount(role) }} permisos
+                  </span>
+                </div>
+              </td>
+
+              <!-- Actions -->
+              <td class="text-end pe-3">
+                <div class="d-inline-flex align-items-center justify-content-end gap-1.5">
+                  <!-- Button to go to Permission Matrix for this specific role -->
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-light border text-secondary role-action-btn"
+                    title="Configurar permisos en Matriz"
+                    (click)="goToMatrix(role)"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="3" y1="9" x2="21" y2="9"></line>
+                      <line x1="3" y1="15" x2="21" y2="15"></line>
+                      <line x1="9" y1="3" x2="9" y2="21"></line>
+                      <line x1="15" y1="3" x2="15" y2="21"></line>
+                    </svg>
+                  </button>
+
+                  <!-- Edit Role -->
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-light border text-secondary role-action-btn"
+                    title="Editar información del rol"
+                    (click)="openEditModal(role)"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                  </button>
+
+                  <!-- Delete Custom Role -->
+                  @if (!role.isSystem) {
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-light border text-danger role-action-btn"
+                      title="Eliminar rol"
+                      (click)="promptDeleteRole(role)"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="text-center py-5 text-secondary">
+                <div class="d-flex flex-column align-items-center justify-content-center">
+                  <div class="p-3 bg-light rounded-circle mb-2 text-muted">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                  </div>
+                  <h6 class="fw-semibold mb-1">No se encontraron roles</h6>
+                  <p class="text-muted small mb-3">No hay roles que coincidan con tu búsqueda actual.</p>
+                  <button type="button" class="btn btn-sm btn-primary" (click)="openCreateModal()">
+                    + Crear Nuevo Rol
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Crear / Editar Rol -->
+<app-role-modal
+  [visible]="isModalVisible()"
+  (visibleChange)="isModalVisible.set($event)"
+  (saved)="ngOnInit()"
+  #modal
+></app-role-modal>
+
+<!-- Modal de Confirmación de Eliminación -->
+@if (roleToDelete()) {
+  <div class="custom-modal-backdrop" (click)="cancelDelete()">
+    <div class="custom-modal-content delete-confirm-dialog" (click)="$event.stopPropagation()">
+      <div class="p-4 text-center">
+        <div class="delete-icon-box bg-danger-subtle text-danger mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 54px; height: 54px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </div>
+        <h5 class="fw-bold text-dark mb-1">¿Eliminar rol "{{ roleToDelete()?.name }}"?</h5>
+        <p class="text-secondary small mb-4">
+          Esta acción removerá el rol del catálogo de tu empresa. Los colaboradores que lo tengan asignado perderán los permisos asociados.
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary px-3" (click)="cancelDelete()" [disabled]="isDeleting()">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-sm btn-danger px-3 d-flex align-items-center gap-1.5" (click)="confirmDelete()" [disabled]="isDeleting()">
+            @if (isDeleting()) {
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              <span>Eliminando...</span>
+            } @else {
+              <span>Sí, Eliminar Rol</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

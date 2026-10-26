@@ -1,0 +1,84 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="cancel.emit()">
+    <div class="custom-modal-content" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header d-flex align-items-center justify-content-between p-3 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+          <div class="p-2 bg-primary-subtle text-primary rounded-circle">
+            <svg cIcon name="cilLockUnlocked" style="width: 20px; height: 20px;"></svg>
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold text-dark">Apertura de Turno de Caja</h5>
+            <small class="text-secondary">Inicio de operaciones financieras y cobros</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="cancel.emit()" aria-label="Close"></button>
+      </div>
+
+      <div class="custom-modal-body p-4">
+        <form [formGroup]="form">
+          <!-- Select Cashier -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">Cajero Asignado *</label>
+            <select class="form-select" formControlName="cashierId">
+              <option [ngValue]="null" disabled>Seleccionar Cajero...</option>
+              @for (c of cashiers; track c.id) {
+                <option [ngValue]="c.id">{{ c.firstName }} {{ c.lastName }} ({{ c.code }})</option>
+              }
+            </select>
+          </div>
+
+          <!-- Opening Amount -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">Monto Inicial en Efectivo (RD$) *</label>
+            <input
+              type="number"
+              formControlName="openingAmount"
+              class="form-control form-control-lg text-end font-monospace fw-bold"
+              placeholder="0.00"
+              step="0.01"
+            />
+          </div>
+
+          <!-- PIN (Optional) -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">PIN / Clave de Acceso (Opcional)</label>
+            <input
+              type="password"
+              formControlName="pin"
+              class="form-control"
+              placeholder="••••"
+            />
+          </div>
+
+          <!-- Notes -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">Observaciones de Apertura</label>
+            <textarea
+              formControlName="notes"
+              class="form-control"
+              rows="2"
+              placeholder="Detalles sobre billetes o desglose inicial..."
+            ></textarea>
+          </div>
+        </form>
+      </div>
+
+      <div class="custom-modal-footer d-flex align-items-center justify-content-end gap-2 p-3 border-top bg-light">
+        <button type="button" class="btn btn-light border px-3" (click)="cancel.emit()">Cancelar</button>
+        <button
+          type="button"
+          class="btn btn-primary px-4 fw-semibold"
+          [disabled]="form.invalid || isLoading"
+          (click)="confirmOpen()"
+        >
+          @if (isLoading) {
+            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            Aperturando...
+          } @else {
+            Aperturar Caja
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

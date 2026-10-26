@@ -1,0 +1,29 @@
+<div class="pos-home-shell d-flex flex-column min-vh-100 bg-light">
+  <!-- POS Top Bar -->
+  <header class="pos-topbar bg-dark text-white px-3 py-2 d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <a [routerLink]="['/dashboard']" class="btn btn-sm btn-outline-light d-flex align-items-center gap-1">
+        <svg cIcon name="cilArrowLeft" style="width: 14px; height: 14px;"></svg>
+        <span>Volver al ERP</span>
+      </a>
+      <span class="fw-bold text-white fs-5">Terminal Punto de Venta</span>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <a [routerLink]="['/pos/waiting']" class="btn btn-sm btn-outline-warning">
+        Tickets en Espera
+      </a>
+      <a [routerLink]="['/pos/return']" class="btn btn-sm btn-outline-danger">
+        Devoluciones
+      </a>
+      <a [routerLink]="['/pos/search-sale']" class="btn btn-sm btn-outline-info">
+        Buscar Comprobante
+      </a>
+    </div>
+  </header>
+
+  <!-- POS Main Content -->
+  <main class="flex-grow-1 p-3">
+    <router-outlet></router-outlet>
+  </main>
+</div>

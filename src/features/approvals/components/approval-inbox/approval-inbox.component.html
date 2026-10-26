@@ -1,0 +1,294 @@
+<div class="approval-container fade-in">
+  <!-- Header -->
+  <div class="approval-page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1 rounded-pill fw-semibold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+          Auditoría & Trazabilidad
+        </span>
+        @if (pendingCount() > 0) {
+          <span class="badge bg-danger text-white rounded-pill px-2 py-0.5" style="font-size: 0.7rem;">
+            {{ pendingCount() }} pendientes
+          </span>
+        }
+      </div>
+      <h2 class="fw-bold text-dark mb-1 fs-4">Bandeja de Aprobaciones de Borrado</h2>
+      <p class="text-secondary mb-0 small">
+        Revisa, aprueba o rechaza solicitudes de eliminación crítica emitidas por auditores para mantener el cumplimiento fiscal y contable.
+      </p>
+    </div>
+
+    <!-- Tab Toggle Buttons -->
+    <div class="approval-tabs d-flex bg-light p-1 rounded-3 border">
+      <button
+        type="button"
+        class="btn btn-sm rounded-2 px-3 fw-medium d-flex align-items-center gap-2"
+        [ngClass]="activeTab() === 'pending' ? 'btn-white shadow-xs text-primary' : 'text-secondary border-0'"
+        (click)="setTab('pending')"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span>Pendientes</span>
+        @if (pendingCount() > 0) {
+          <span class="badge bg-danger rounded-pill px-1.5 py-0.5 text-white" style="font-size: 0.65rem;">
+            {{ pendingCount() }}
+          </span>
+        }
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-sm rounded-2 px-3 fw-medium d-flex align-items-center gap-2"
+        [ngClass]="activeTab() === 'history' ? 'btn-white shadow-xs text-primary' : 'text-secondary border-0'"
+        (click)="setTab('history')"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v5h5"></path>
+          <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path>
+          <path d="M12 7v5l4 2"></path>
+        </svg>
+        <span>Historial ({{ historyList().length }})</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Content: Pending Tab -->
+  @if (activeTab() === 'pending') {
+    @if (pendingList().length > 0) {
+      <div class="row g-3">
+        @for (item of pendingList(); track item.id) {
+          <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4 p-3.5 bg-white approval-card transition-all">
+              <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                <!-- Entity Info -->
+                <div class="d-flex align-items-start gap-3 flex-grow-1">
+                  <div class="entity-avatar p-2.5 bg-danger-subtle text-danger rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 mt-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                      <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill small" style="font-size: 0.72rem;">
+                        {{ item.entityType }}
+                      </span>
+                      <h5 class="fw-bold text-dark mb-0 fs-6 font-monospace">
+                        {{ item.entityCode }}
+                      </h5>
+                      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill" style="font-size: 0.68rem;">
+                        Pendiente de Aprobación
+                      </span>
+                    </div>
+
+                    <!-- Requester Meta -->
+                    <div class="text-secondary small d-flex align-items-center gap-2 mb-2" style="font-size: 0.75rem;">
+                      <span class="fw-medium text-dark">{{ item.requestedByUserName }}</span>
+                      <span>·</span>
+                      <span>Solicitado el {{ formatDate(item.requestedAt) }}</span>
+                    </div>
+
+                    <!-- Auditor Reason Box -->
+                    <div class="reason-box p-2.5 rounded-3 bg-light border text-dark small">
+                      <div class="fw-semibold text-secondary mb-1" style="font-size: 0.7rem; text-transform: uppercase;">
+                        Motivo expuesto por el Auditor:
+                      </div>
+                      <p class="mb-0 text-secondary-emphasis" style="font-size: 0.8rem; line-height: 1.45;">
+                        "{{ item.reason }}"
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="approval-actions d-flex align-items-center gap-2 align-self-center mt-2 mt-md-0">
+                  <button
+                    type="button"
+                    class="btn btn-outline-danger btn-sm px-3 rounded-3 d-flex align-items-center gap-1.5 fw-medium"
+                    (click)="promptReject(item)"
+                    [disabled]="isProcessing()"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    <span>Rechazar</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn btn-success btn-sm px-3 rounded-3 d-flex align-items-center gap-1.5 text-white fw-medium shadow-2xs"
+                    (click)="promptApprove(item)"
+                    [disabled]="isProcessing()"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Aprobar Borrado</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <!-- Empty State Pending -->
+      <div class="card approval-empty-state border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+        <div class="mx-auto p-3 bg-success-subtle text-success rounded-circle mb-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <h5 class="fw-bold text-dark mb-1">¡Bandeja de Aprobaciones al Día!</h5>
+        <p class="text-secondary small mb-0" style="max-width: 420px; margin: 0 auto;">
+          No hay solicitudes de borrado pendientes en este momento. Las solicitudes emitidas por el equipo de auditoría aparecerán aquí.
+        </p>
+      </div>
+    }
+  }
+
+  <!-- Content: History Tab -->
+  @if (activeTab() === 'history') {
+    <div class="card approval-history-card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light text-secondary small text-uppercase fw-semibold" style="font-size: 0.74rem;">
+            <tr>
+              <th class="ps-3" style="width: 20%;">Elemento</th>
+              <th style="width: 30%;">Motivo</th>
+              <th style="width: 15%;">Solicitante</th>
+              <th style="width: 15%;">Resolución</th>
+              <th class="text-end pe-3" style="width: 20%;">Revisado Por</th>
+            </tr>
+          </thead>
+          <tbody class="border-top-0">
+            @for (item of historyList(); track item.id) {
+              <tr>
+                <td class="ps-3 py-3">
+                  <div class="fw-bold text-dark font-monospace" style="font-size: 0.85rem;">
+                    {{ item.entityCode }}
+                  </div>
+                  <small class="text-muted" style="font-size: 0.72rem;">{{ item.entityType }}</small>
+                </td>
+
+                <td>
+                  <span class="text-secondary small" style="font-size: 0.78rem;">
+                    {{ item.reason }}
+                  </span>
+                  @if (item.rejectionReason) {
+                    <div class="text-danger small mt-0.5" style="font-size: 0.72rem;">
+                      <strong>Nota de rechazo:</strong> {{ item.rejectionReason }}
+                    </div>
+                  }
+                </td>
+
+                <td>
+                  <div class="text-dark small fw-medium">{{ item.requestedByUserName }}</div>
+                  <small class="text-muted" style="font-size: 0.7rem;">{{ formatDate(item.requestedAt) }}</small>
+                </td>
+
+                <td>
+                  @if (item.status === 'APPROVED') {
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">
+                      ✓ Borrado Aprobado
+                    </span>
+                  } @else {
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">
+                      ✕ Rechazado
+                    </span>
+                  }
+                </td>
+
+                <td class="text-end pe-3">
+                  <div class="text-dark small fw-semibold">{{ item.reviewedByUserName || 'Administrador' }}</div>
+                  <small class="text-muted" style="font-size: 0.7rem;">{{ formatDate(item.reviewedAt) }}</small>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="text-center py-5 text-secondary">
+                  No hay registros históricos de solicitudes de borrado.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Modal Confirmar Aprobación -->
+@if (selectedItemForApprove()) {
+  <div class="custom-modal-backdrop" (click)="cancelApprove()">
+    <div class="custom-modal-content confirm-dialog" (click)="$event.stopPropagation()">
+      <div class="p-4 text-center">
+        <div class="bg-success-subtle text-success mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <h5 class="fw-bold text-dark mb-1">¿Aprobar eliminación de {{ selectedItemForApprove()?.entityCode }}?</h5>
+        <p class="text-secondary small mb-4">
+          Al autorizar esta acción, el registro será eliminado de forma definitiva o marcado como anulado según las políticas de trazabilidad del sistema.
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary px-3" (click)="cancelApprove()" [disabled]="isProcessing()">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-sm btn-success text-white px-3 d-flex align-items-center gap-1.5" (click)="confirmApprove()" [disabled]="isProcessing()">
+            @if (isProcessing()) {
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              <span>Procesando...</span>
+            } @else {
+              <span>Confirmar y Aprobar</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal Rechazar Solicitud -->
+@if (selectedItemForReject()) {
+  <div class="custom-modal-backdrop" (click)="cancelReject()">
+    <div class="custom-modal-content confirm-dialog text-start" (click)="$event.stopPropagation()">
+      <div class="modal-header py-2.5 px-3 border-bottom bg-white d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold text-dark mb-0">Rechazar Solicitud de Borrado</h6>
+        <button type="button" class="btn-close" (click)="cancelReject()"></button>
+      </div>
+      <div class="p-3">
+        <p class="text-secondary small mb-2">
+          Indica el motivo por el cual no procede la eliminación de <strong>{{ selectedItemForReject()?.entityCode }}</strong>:
+        </p>
+        <textarea
+          class="form-control form-control-sm mb-3"
+          rows="3"
+          placeholder="ej. El documento ya fue declarado en el período fiscal actual y debe emitirse una Nota de Crédito en su lugar."
+          [ngModel]="rejectionReason()"
+          (ngModelChange)="rejectionReason.set($event)"
+        ></textarea>
+        <div class="d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary px-3" (click)="cancelReject()" [disabled]="isProcessing()">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-sm btn-danger px-3 d-flex align-items-center gap-1.5" (click)="confirmReject()" [disabled]="isProcessing()">
+            @if (isProcessing()) {
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              <span>Rechazando...</span>
+            } @else {
+              <span>Rechazar Borrado</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

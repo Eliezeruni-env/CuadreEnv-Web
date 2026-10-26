@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { IconDirective } from '@coreui/icons-angular';
 
 export interface SectionNavItem {
@@ -14,6 +14,7 @@ export interface SectionNavItem {
   standalone: true,
   templateUrl: './section-nav.component.html',
   styleUrl: './section-nav.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, IconDirective],
 })
 export class SectionNavComponent {

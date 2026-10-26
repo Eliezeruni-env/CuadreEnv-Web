@@ -1,0 +1,223 @@
+<div class="card border shadow-xs rounded-3 p-3 bg-white mb-3">
+  <div class="row g-2 align-items-end">
+    <!-- Search / Barcode Input -->
+    <div class="col-md-5">
+      <label class="form-label small fw-semibold text-secondary">
+        Buscar Producto / Escanear Código
+      </label>
+      <div class="input-group input-group-sm">
+        <span class="input-group-text bg-light text-secondary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </span>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Escriba nombre o pase el lector de código..."
+          [(ngModel)]="searchTerm"
+          (input)="onSearchInput()"
+        />
+      </div>
+    </div>
+
+    <!-- Packaging Mode Toggle (if product has packaging) -->
+    @if (selectedProduct && currentPackaging && currentPackaging.hasPackaging && currentPackaging.packageUnitsCount > 0) {
+      <div class="col-12 mt-2 mb-1">
+        <div class="d-flex align-items-center justify-content-between p-2 rounded-2 bg-light border">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-warning text-dark fw-bold">📦 Empaque Configurado</span>
+            <span class="small text-secondary">
+              1 {{ currentPackaging.packageUnitName || 'Empaque' }} = <strong>{{ currentPackaging.packageUnitsCount }} {{ unitSymbol }}</strong>
+            </span>
+          </div>
+          <div class="btn-group btn-group-sm" role="group">
+            <button
+              type="button"
+              class="btn btn-sm py-1 px-3 fw-semibold"
+              [ngClass]="entryMode === 'package' ? 'btn-primary' : 'btn-outline-secondary'"
+              (click)="setEntryMode('package')"
+            >
+              📦 Por {{ currentPackaging.packageUnitName || 'Empaque' }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm py-1 px-3 fw-semibold"
+              [ngClass]="entryMode === 'base' ? 'btn-primary' : 'btn-outline-secondary'"
+              (click)="setEntryMode('base')"
+            >
+              ⚖️ Por {{ unitSymbol }} (Base)
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Quantity & Cost Inputs -->
+    @if (entryMode === 'package' && currentPackaging && currentPackaging.hasPackaging) {
+      <!-- Package Count Input -->
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold text-primary">
+          Cant. {{ currentPackaging.packageUnitName || 'Sacos' }}
+        </label>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          class="form-control form-control-sm text-center font-monospace fw-bold border-primary"
+          [(ngModel)]="packageCount"
+          (ngModelChange)="onPackageValuesChange()"
+        />
+      </div>
+
+      <!-- Cost per Package -->
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold text-secondary">
+          {{ mode === 'entry' ? 'Costo x ' + (currentPackaging.packageUnitName || 'Saco') : 'Precio x ' + (currentPackaging.packageUnitName || 'Saco') }}
+        </label>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          class="form-control form-control-sm text-end font-monospace"
+          [(ngModel)]="packageCost"
+          (ngModelChange)="onPackageValuesChange()"
+        />
+      </div>
+    } @else {
+      <!-- Base Quantity Input -->
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold text-secondary">
+          Cantidad ({{ unitSymbol }})
+        </label>
+        <input
+          type="number"
+          min="0.01"
+          step="any"
+          class="form-control form-control-sm text-center font-monospace fw-bold"
+          [(ngModel)]="quantity"
+        />
+      </div>
+
+      <!-- Unit Cost (for Entries) or Price -->
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold text-secondary">
+          {{ mode === 'entry' ? 'Costo x ' + unitSymbol : 'Precio x ' + unitSymbol }}
+        </label>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          class="form-control form-control-sm text-end font-monospace"
+          [(ngModel)]="cost"
+        />
+      </div>
+    }
+
+    <!-- Action Button -->
+    <div class="col-md-3 d-flex gap-2">
+      <button
+        type="button"
+        class="btn btn-primary btn-sm w-100 fw-semibold d-flex align-items-center justify-content-center gap-1 shadow-xs"
+        [disabled]="!selectedProduct || quantity <= 0"
+        (click)="submitProduct()"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        {{ detailToEdit ? 'Actualizar' : 'Agregar' }}
+      </button>
+
+      @if (selectedProduct || detailToEdit) {
+        <button
+          type="button"
+          class="btn btn-light btn-sm border text-secondary"
+          (click)="resetSelection()"
+          title="Cancelar selección"
+        >
+          ✕
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Live Packaging Conversion Note -->
+  @if (selectedProduct && entryMode === 'package' && currentPackaging && currentPackaging.hasPackaging) {
+    <div class="alert alert-info py-2 px-3 mt-2 mb-0 d-flex align-items-center justify-content-between small">
+      <div>
+        <strong>Conversión Automática:</strong>
+        {{ packageCount }} {{ currentPackaging.packageUnitName || 'Saco' }}(s) × {{ currentPackaging.packageUnitsCount }} {{ unitSymbol }} =
+        <span class="badge bg-primary text-white font-monospace fs-6">+{{ quantity }} {{ unitSymbol }}</span>
+        al almacén base.
+      </div>
+      <div class="text-secondary font-monospace">
+        Costo base equivalente: <strong>RD$ {{ cost | number:'1.2-4' }} / {{ unitSymbol }}</strong>
+      </div>
+    </div>
+  }
+
+  <!-- Product Search Dropdown Results -->
+  @if (searchTerm.trim() && !selectedProduct) {
+    <div class="search-dropdown-results border rounded-3 mt-2 overflow-hidden shadow-sm">
+      <div class="table-responsive" style="max-height: 220px;">
+        <table class="table table-hover table-sm align-middle mb-0 small">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Producto</th>
+              <th>Código</th>
+              <th class="text-end">Costo</th>
+              <th class="text-center">Stock Almacén</th>
+              <th class="text-center pe-3">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of filteredProducts; track p.id) {
+              <tr (click)="selectProduct(p)" style="cursor: pointer;">
+                <td class="ps-3 fw-semibold text-dark">{{ p.description }}</td>
+                <td class="font-monospace text-secondary">{{ p.barcode || '-' }}</td>
+                <td class="text-end font-monospace">RD$ {{ (p.cost || 0) | number:'1.2-2' }}</td>
+                <td class="text-center">
+                  <span
+                    class="badge"
+                    [ngClass]="p.stockInWarehouse > 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'"
+                  >
+                    {{ p.stockInWarehouse }} uds
+                  </span>
+                </td>
+                <td class="text-center pe-3">
+                  <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2">
+                    Elegir
+                  </button>
+                </td>
+              </tr>
+            }
+            @if (filteredProducts.length === 0) {
+              <tr>
+                <td colspan="5" class="text-center py-3 text-secondary">
+                  No se encontraron productos coincidentes.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- Selected Product Card Banner -->
+  @if (selectedProduct) {
+    <div class="selected-banner mt-2 p-2 px-3 rounded-2 bg-primary-subtle border border-primary-subtle d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-primary text-white">Seleccionado</span>
+        <strong class="text-dark">{{ selectedProduct.description }}</strong>
+        <span class="text-secondary font-monospace small">({{ selectedProduct.barcode || 'Sin código' }})</span>
+      </div>
+      <div class="d-flex align-items-center gap-3 small">
+        <span>Stock en Almacén: <strong class="font-monospace text-dark">{{ selectedProduct.stockInWarehouse }} uds</strong></span>
+        <span>Subtotal Renglón: <strong class="font-monospace text-primary">RD$ {{ (quantity * cost) | number:'1.2-2' }}</strong></span>
+      </div>
+    </div>
+  }
+</div>

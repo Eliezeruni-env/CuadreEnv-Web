@@ -1,151 +1,1262 @@
-<c-container breakpoint="lg" class="py-4">
+<c-container [fluid]="true" class="py-3 px-2 px-md-3 px-xl-4 cash-register-page w-100">
+  <!-- Alerts -->
   @if (errorMessage()) {
-  <c-alert color="danger" dismissible class="mb-4">
-    {{ errorMessage() }}
-  </c-alert>
+    <c-alert color="danger" dismissible class="mb-4">
+      {{ errorMessage() }}
+    </c-alert>
   }
 
-  <div
-    class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 mb-4">
-    <div>
-      <h2 class="fw-bold text-dark mb-1">{{ translationService.t('cashRegister.title') }}</h2>
-      <p class="text-body-secondary mb-0">{{ translationService.t('cashRegister.subtitle') }}</p>
-    </div>
-    <div class="d-flex gap-2">
-      @if (activeTab() === 'registers' && authService.hasRole(['Admin'])) {
-      <button cButton color="primary" class="d-flex align-items-center py-2 px-3 shadow-sm border-0"
-        (click)="openRegisterModal()">
-        <svg cIcon name="cilPlus" class="me-2"></svg>
-        {{ translationService.t('cashRegister.openSession') }}
-      </button>
-      }
-      @if (activeTab() === 'movements' && authService.hasRole(['Admin', 'Manager'])) {
-      <button cButton color="primary" class="d-flex align-items-center py-2 px-3 shadow-sm border-0"
-        (click)="openMovementModal()">
-        <svg cIcon name="cilTransfer" class="me-2"></svg>
-        {{ translationService.t('cashRegister.registerEntry') }}
-      </button>
-      }
-    </div>
-  </div>
+  <!-- STATE A: NO ACTIVE CASH REGISTER SESSION (GATE / APERTURA DE CAJA) -->
+  @if (!activeSession()) {
+    <div class="caja-closed-hero-card text-center">
+      <div class="caja-closed-icon-bubble">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="36"
+          height="36"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+          <path d="M7 15h0M2 9.5h20"></path>
+          <circle cx="12" cy="14" r="2"></circle>
+        </svg>
+      </div>
 
-  <app-section-nav [items]="sectionItems" [activeValue]="activeTab()" ariaLabel="Cash register section navigation"
-    (selectionChange)="setTab($event)"></app-section-nav>
+      <h3 class="fw-bold text-body mb-2">No hay una sesión de caja activa</h3>
+      <p class="text-muted mb-4 px-md-4">
+        Para poder registrar ventas rápidas, cobros y movimientos de efectivo,
+        debes aperturar un turno indicando el fondo inicial en caja.
+      </p>
 
-  <!-- TAB CONTENTS -->
-  <div>
-    <!-- 1. Registers Tab -->
-    @if (activeTab() === 'registers') {
-    <c-card class="shadow-sm border-0 mb-4">
-      <c-card-body class="p-0">
-        @if (isLoading() && registers().length === 0) {
-        <div class="py-5 text-center">
-          <c-spinner color="primary" class="mb-3"></c-spinner>
-          <p class="text-body-secondary mb-0">Loading registers list...</p>
-        </div>
-        } @else if (registers().length === 0) {
-        <div class="py-5 text-center px-4">
-          <svg cIcon name="cilCalculator" size="xl" class="text-body-secondary mb-3"
-            style="width: 48px; height: 48px;"></svg>
-          <h4 class="fw-bold text-dark">No cash registers</h4>
-          <p class="text-body-secondary mt-1">Start by opening your first cash register box.</p>
-        </div>
-        } @else {
-        <app-table [columns]="[
-            { field: 'id', label: 'Register ID' },
-            { field: 'name', label: 'Name' },
-            { field: 'status', label: 'Status' },
-            { field: 'balance', label: 'Balance' },
-            { field: 'actions', label: 'Actions' }
-          ]" [rows]="registers()" [loading]="isLoading()" [emptyMessage]="'No cash registers'"
-          [rowTemplate]="registerRowTpl">
-        </app-table>
+      <!-- Formulario de Apertura -->
+      <form cForm [formGroup]="openSessionForm" class="text-start mb-3">
+        <div class="mb-3 opening-amount-section">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="form-label fw-bold text-body mb-0"
+              >Monto inicial de apertura (Fondo de caja) *</label
+            >
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-primary fw-semibold d-flex align-items-center gap-1"
+              (click)="toggleOpenDenominations()"
+            >
+              <span>💼 Billetera visual</span>
+              <span class="small">{{ showOpenDenominations() ? '▲' : '▼' }}</span>
+            </button>
+          </div>
 
-        <ng-template #registerRowTpl let-r>
-          <tr>
-            <td class="ps-4 font-monospace small">#{{ r.id }}</td>
-            <td class="fw-semibold text-dark">{{ r.name }}</td>
-            <td>
-              <span
-                [ngClass]="r.isOpen ? 'badge bg-success-subtle text-success border border-success' : 'badge bg-secondary-subtle text-secondary border border-secondary'">
-                {{ r.isOpen ? 'OPEN' : 'CLOSED' }}
-              </span>
-            </td>
-            <td class="text-end fw-bold text-dark">\${{ r.balance | number:'1.2-2' }}</td>
-            <td class="text-center pe-4 action-cell">
-              <div class="desktop-actions d-flex justify-content-center gap-1">
-                @if (r.isOpen && authService.hasRole(['Admin', 'Manager'])) {
-                <button cButton color="danger" size="sm" class="border py-1 px-3" (click)="openCloseModal(r)">
-                  Close Register
-                </button>
-                } @else {
-                <span class="text-muted small">-</span>
+          <div class="input-group">
+            <span class="input-group-text fw-semibold bg-light">RD$</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              cFormControl
+              formControlName="initialAmount"
+              placeholder="10000.00"
+              class="form-control-lg fw-bold font-monospace"
+            />
+          </div>
+          @if (
+            openSessionForm.get('initialAmount')?.touched &&
+            openSessionForm.get('initialAmount')?.invalid
+          ) {
+            <div class="text-danger small mt-1">
+              El monto inicial debe ser mayor o igual a cero.
+            </div>
+          }
+
+          <!-- Billetera Visual Desplegable (Conteo Rápido Táctil) -->
+          @if (showOpenDenominations()) {
+            <div class="card opening-wallet-panel border rounded-3 p-3 mt-2 bg-light-subtle shadow-xs">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="small fw-bold text-dark text-uppercase">Efectivo dominicano <span class="text-secondary fw-normal text-lowercase">· conteo rápido</span></span>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success-subtle text-success border font-monospace">
+                    Total: RD$ {{ openDenominationSum() | number:'1.2-2' }}
+                  </span>
+                  <button
+                    type="button"
+                    class="btn btn-sm text-secondary p-0 border-0"
+                    (click)="clearOpenDenominations()"
+                    title="Reiniciar a 0"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+
+              <!-- Billetes -->
+              <div class="row g-2 mb-2 denomination-grid denomination-bills">
+                @for (d of openBills(); track d.value; let idx = $index) {
+                  <div class="col-6 col-sm-4 col-md-2">
+                    <div class="card denomination-card h-100 border p-2 text-center bg-white shadow-2xs rounded-3">
+                      <div class="fw-bold text-dark small font-monospace">RD$ {{ d.value | number:'1.0-0' }}</div>
+                      <div class="my-1 d-flex align-items-center justify-content-center gap-1">
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-light border py-0 px-2 fw-bold"
+                          (click)="addOpenDenominationCount(idx, -1)"
+                        >-</button>
+                        <span class="fw-bold font-monospace px-1">{{ d.count }}</span>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-light border py-0 px-2 fw-bold"
+                          (click)="addOpenDenominationCount(idx, 1)"
+                        >+</button>
+                      </div>
+                      <div class="text-secondary small font-monospace" style="font-size: 0.7rem;">
+                        = RD$ {{ d.subtotal | number:'1.0-0' }}
+                      </div>
+                    </div>
+                  </div>
                 }
               </div>
 
-              <details class="mobile-actions">
-                <summary class="btn btn-light btn-sm">⋯</summary>
-                <div class="mobile-actions-menu">
-                  @if (r.isOpen && authService.hasRole(['Admin', 'Manager'])) {
-                  <button cButton color="danger" size="sm" class="border w-100" (click)="openCloseModal(r)">
-                    Close Register
-                  </button>
-                  } @else {
-                  <div class="text-muted small p-2">-</div>
-                  }
-                </div>
-              </details>
-            </td>
-          </tr>
-        </ng-template>
-        }
-      </c-card-body>
-    </c-card>
-    }
+              <!-- Monedas -->
+              <div class="row g-2 denomination-grid denomination-coins">
+                @for (d of openCoins(); track d.value; let idx = $index) {
+                  <div class="col-6 col-sm-3 col-md-3">
+                    <div class="card denomination-card h-100 border p-2 text-center bg-white shadow-2xs rounded-3">
+                      <div class="fw-bold text-secondary small font-monospace">RD$ {{ d.value }} (Moneda)</div>
+                      <div class="my-1 d-flex align-items-center justify-content-center gap-1">
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-light border py-0 px-2 fw-bold"
+                          (click)="addOpenDenominationCount(idx + 6, -1)"
+                        >-</button>
+                        <span class="fw-bold font-monospace px-1">{{ d.count }}</span>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-light border py-0 px-2 fw-bold"
+                          (click)="addOpenDenominationCount(idx + 6, 1)"
+                        >+</button>
+                      </div>
+                      <div class="text-secondary small font-monospace" style="font-size: 0.7rem;">
+                        = RD$ {{ d.subtotal | number:'1.0-0' }}
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
 
-    <!-- 2. Movements Tab -->
-    @if (activeTab() === 'movements') {
-    <c-card class="shadow-sm border-0 mb-4">
-      <c-card-body class="p-0">
-        @if (isLoading() && movements().length === 0) {
-        <div class="py-5 text-center">
-          <c-spinner color="primary" class="mb-3"></c-spinner>
-          <p class="text-body-secondary mb-0">Loading movements list...</p>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label text-muted small fw-semibold"
+              >Nombre de la Caja / Turno</label
+            >
+            <input
+              type="text"
+              cFormControl
+              formControlName="name"
+              placeholder="Ej. Caja Principal 01"
+            />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small fw-semibold"
+              >Cajero responsable *</label
+            >
+            <select cSelect formControlName="cashierName">
+              @for (c of cashiers(); track c.email) {
+                <option [value]="c.name">{{ c.name }} ({{ c.email }})</option>
+              }
+            </select>
+          </div>
         </div>
-        } @else if (movements().length === 0) {
-        <div class="py-5 text-center px-4">
-          <svg cIcon name="cilList" size="xl" class="text-body-secondary mb-3" style="width: 48px; height: 48px;"></svg>
-          <h4 class="fw-bold text-dark">No cash movements logged</h4>
-          <p class="text-body-secondary mt-1">Manual cash adjustments, additions, and exits will be displayed here.</p>
+
+        <div class="mb-4">
+          <label class="form-label text-muted small fw-semibold"
+            >Notas de apertura (opcional)</label
+          >
+          <input
+            type="text"
+            cFormControl
+            formControlName="notes"
+            placeholder="Ej. Fondo para turno de la mañana..."
+          />
         </div>
+
+        <button
+          type="button"
+          cButton
+          class="btn-aperturar-grande w-100 d-flex align-items-center justify-content-center gap-2"
+          [disabled]="isLoading() || openSessionForm.invalid"
+          (click)="initiateOpenSession()"
+        >
+          @if (isLoading()) {
+            <c-spinner size="sm"></c-spinner>
+            Aperturando Caja...
+          } @else {
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+            </svg>
+            Aperturar Caja y Comenzar Turno
+          }
+        </button>
+      </form>
+    </div>
+
+    <!-- Historial de Turnos y Cuadres Anteriores -->
+    @if (sessionHistory().length > 0) {
+      <div class="mt-5">
+        <h5 class="fw-bold text-body mb-3">Historial de Turnos Anteriores</h5>
+        <div class="movements-table-card">
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead>
+                <tr>
+                  <th># Turno</th>
+                  <th>Caja</th>
+                  <th>Cajero</th>
+                  <th>Apertura</th>
+                  <th>Cierre</th>
+                  <th class="text-end">Fondo Inicial</th>
+                  <th class="text-end">Monto Cierre</th>
+                  <th class="text-end">Diferencia</th>
+                  <th class="text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (h of pagedHistory(); track h.id) {
+                  <tr>
+                    <td class="font-monospace small fw-bold">#{{ h.id }}</td>
+                    <td class="fw-semibold text-body">{{ h.name }}</td>
+                    <td>{{ h.cashierName }}</td>
+                    <td class="small text-muted">{{ h.openedAt }}</td>
+                    <td class="small text-muted">{{ h.closedAt || '-' }}</td>
+                    <td class="text-end">
+                      RD$ {{ h.initialAmount | number: '1.2-2' }}
+                    </td>
+                    <td class="text-end fw-bold text-body">
+                      RD$ {{ (h.closingAmount || 0) | number: '1.2-2' }}
+                    </td>
+                    <td class="text-end">
+                      @if (h.difference === 0) {
+                        <span class="badge bg-success-subtle text-success border"
+                          >Cuadrado</span
+                        >
+                      } @else if ((h.difference || 0) < 0) {
+                        <span class="badge bg-danger-subtle text-danger border"
+                          >- RD$ {{ Math.abs(h.difference || 0) | number: '1.2-2' }}</span
+                        >
+                      } @else {
+                        <span class="badge bg-primary-subtle text-primary border"
+                          >+ RD$ {{ (h.difference || 0) | number: '1.2-2' }}</span
+                        >
+                      }
+                    </td>
+                    <td class="text-center">
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary btn-xs py-1 px-2.5 rounded-2 d-inline-flex align-items-center gap-1 shadow-2xs font-size-xs"
+                        (click)="openSessionDetail(h)"
+                        title="Ver detalle completo de ventas, productos y movimientos de este turno"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <span>Detalle</span>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <app-list-pagination
+            [currentPage]="historyPage()"
+            [pageSize]="historyPageSize()"
+            [totalItems]="sessionHistory().length"
+            label="turnos anteriores"
+            (pageChange)="onHistoryPageChange($event)"
+          ></app-list-pagination>
+        </div>
+      </div>
+    }
+  }
+
+  <!-- STATE B: ACTIVE CASH REGISTER SESSION (DASHBOARD MATCHING IMAGE 2) -->
+  @if (activeSession()) {
+    <!-- 1. Header Toolbar -->
+    <div
+      class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4"
+    >
+      <div>
+        <h2 class="page-title mb-0">Caja</h2>
+        <p class="text-muted mb-0">
+          Controla los movimientos de efectivo de tu negocio
+        </p>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <!-- Date Badge -->
+        <div class="date-badge">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>{{ currentDateFormatted() }}</span>
+        </div>
+
+        <!-- Botón Auditoría Antirrobo oculto temporalmente
+        <a
+          [routerLink]="['/cash-register/fraud-guardian']"
+          class="btn btn-outline-danger fw-bold d-flex align-items-center gap-1 shadow-xs px-3"
+          title="Ver alertas de prevención de pérdidas y auditoría de cajeros"
+        >
+          <span>🛡️ Auditoría Antirrobo</span>
+        </a>
+        -->
+
+        <!-- Pausar / Reanudar Caja Button -->
+        @if (activeSession()?.status !== 'PAUSED') {
+          <button
+            type="button"
+            cButton
+            color="secondary"
+            variant="outline"
+            class="d-flex align-items-center gap-1"
+            (click)="openPauseModal()"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+              <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+            </svg>
+            Pausar caja
+          </button>
         } @else {
-        <div class="table-responsive">
-          <app-table
-            [columns]="[{ field: 'id', label: 'Movement ID' }, { field: 'date', label: 'Date' }, { field: 'register', label: 'Register' }, { field: 'description', label: 'Description' }, { field: 'amount', label: 'Amount' }, { field: 'type', label: 'Type' }]"
-            [rows]="movements()" [rowTemplate]="movementRowTpl"></app-table>
-
-          <ng-template #movementRowTpl let-m>
-            <tr>
-              <td class="ps-4 font-monospace small">#{{ m.id }}</td>
-              <td>{{ m.creationDate | date:'short' }}</td>
-              <td class="fw-semibold text-dark">{{ getRegisterName(m.cashRegisterId) }}</td>
-              <td>{{ m.description || '-' }}</td>
-              <td class="text-end fw-bold text-dark">\${{ m.amount | number:'1.2-2' }}</td>
-              <td class="text-center pe-4">
-                <span
-                  [ngClass]="m.type === 'In' ? 'badge bg-success-subtle text-success border border-success' : 'badge bg-danger-subtle text-danger border border-danger'">{{
-                  m.type === 'In' ? 'CASH IN' : 'CASH OUT' }}</span>
-              </td>
-            </tr>
-          </ng-template>
-        </div>
+          <button
+            type="button"
+            cButton
+            color="warning"
+            class="d-flex align-items-center gap-1 text-dark fw-bold"
+            (click)="initiateResumeSession()"
+            [disabled]="isLoading()"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            Reanudar caja
+          </button>
         }
-      </c-card-body>
-    </c-card>
+
+        <!-- Cerrar Caja Button -->
+        <button
+          type="button"
+          cButton
+          class="btn-cerrar-caja"
+          [disabled]="activeSession()?.status === 'PAUSED'"
+          (click)="initiateCloseSession()"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          Cerrar caja
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Pause State Banner -->
+    @if (activeSession()?.status === 'PAUSED') {
+      <div class="alert alert-warning border-warning shadow-sm d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 p-3 mb-4 rounded-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-2 bg-warning-subtle text-warning-emphasis rounded-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+              <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+            </svg>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-1 text-warning-emphasis">Caja en Pausa temporal</h5>
+            <p class="mb-0 small text-body-secondary">
+              <strong>Motivo:</strong> {{ activeSession()?.pauseReason || 'Receso' }}
+              @if (activeSession()?.pauseNotes) {
+                <span> — <em>"{{ activeSession()?.pauseNotes }}"</em></span>
+              }
+              <span class="ms-2">({{ activeSession()?.pausedAt ? 'Pausada a las: ' + activeSession()?.pausedAt : 'En receso' }})</span>
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          cButton
+          color="warning"
+          class="fw-bold px-4 py-2 text-dark shadow-sm d-flex align-items-center gap-2"
+          (click)="initiateResumeSession()"
+          [disabled]="isLoading()"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          Reanudar Operaciones
+        </button>
+      </div>
     }
-  </div>
+
+    <!-- 2. Stat Cards (4 in a row) -->
+    <div class="row g-3 mb-4">
+      <!-- Card 1: Saldo inicial -->
+      <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+          <div class="stat-icon-wrapper icon-blue">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <circle cx="12" cy="12" r="2"></circle>
+              <path d="M6 12h.01M18 12h.01"></path>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Saldo inicial</span>
+            <span class="stat-value"
+              >RD$ {{ activeSession()?.initialAmount | number: '1.2-2' }}</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Entradas -->
+      <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+          <div class="stat-icon-wrapper icon-green">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Entradas</span>
+            <span class="stat-value"
+              >RD$ {{ totalEntradas() | number: '1.2-2' }}</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Salidas -->
+      <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+          <div class="stat-icon-wrapper icon-red">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Salidas</span>
+            <span class="stat-value"
+              >RD$ {{ totalSalidas() | number: '1.2-2' }}</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 4: Saldo actual -->
+      <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+          <div class="stat-icon-wrapper icon-amber">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 6v12M15 9.5a3.5 3.5 0 0 0-7 0c0 2 1.5 3 3.5 3.5s3.5 1.5 3.5 3.5a3.5 3.5 0 0 1-7 0"></path>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Saldo actual</span>
+            <span class="stat-value"
+              >RD$ {{ currentCalculatedBalance() | number: '1.2-2' }}</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Sub-Navigation Tabs & Actions -->
+    <div class="caja-nav-toolbar">
+      <div class="caja-tabs">
+        <button
+          type="button"
+          class="caja-tab-btn d-inline-flex align-items-center gap-1.5"
+          [class.active]="activeTab() === 'movimientos'"
+          (click)="setTab('movimientos')"
+        >
+          <span>Movimientos</span>
+          <span class="badge rounded-pill bg-secondary-subtle text-secondary border font-size-xs">
+            {{ movements().length }}
+          </span>
+        </button>
+        <button
+          type="button"
+          class="caja-tab-btn d-inline-flex align-items-center gap-1.5"
+          [class.active]="activeTab() === 'ventas'"
+          (click)="setTab('ventas')"
+        >
+          <span>Ventas en efectivo</span>
+          <span class="badge rounded-pill bg-success-subtle text-success border font-size-xs">
+            {{ totalVentasCount() }}
+          </span>
+        </button>
+        <button
+          type="button"
+          class="caja-tab-btn d-inline-flex align-items-center gap-1.5"
+          [class.active]="activeTab() === 'ingresos'"
+          (click)="setTab('ingresos')"
+        >
+          <span>Ingresos</span>
+          <span class="badge rounded-pill bg-success-subtle text-success border font-size-xs">
+            RD$ {{ totalEntradas() | number: '1.0-0' }}
+          </span>
+        </button>
+        <button
+          type="button"
+          class="caja-tab-btn d-inline-flex align-items-center gap-1.5"
+          [class.active]="activeTab() === 'egresos'"
+          (click)="setTab('egresos')"
+        >
+          <span>Egresos</span>
+          <span class="badge rounded-pill bg-danger-subtle text-danger border font-size-xs">
+            RD$ {{ totalSalidas() | number: '1.0-0' }}
+          </span>
+        </button>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="d-flex gap-2">
+        <a
+          routerLink="/pos"
+          class="btn btn-primary d-flex align-items-center gap-2 fw-semibold shadow-xs"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+            <line x1="2" y1="10" x2="22" y2="10"></line>
+          </svg>
+          Punto de Venta (POS)
+        </a>
+
+        <div class="btn-group">
+          <button
+            type="button"
+            class="btn btn-outline-secondary d-flex align-items-center gap-1 dropdown-toggle"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            (click)="toggleMovementMenu()"
+          >
+            <span>Movimientos de Caja</span>
+          </button>
+
+          @if (showMovementMenu()) {
+            <div class="custom-movement-dropdown-menu shadow">
+              <a
+                routerLink="/pos"
+                class="dropdown-item py-2 fw-semibold text-primary"
+                (click)="showMovementMenu.set(false)"
+              >
+                🏪 Abrir Punto de Venta (POS)
+              </a>
+              <button
+                type="button"
+                class="dropdown-item py-2"
+                (click)="openManualMovementModal('Entrada')"
+              >
+                🟢 Registrar Ingreso Manual
+              </button>
+              <button
+                type="button"
+                class="dropdown-item py-2 text-danger"
+                (click)="openManualMovementModal('Salida')"
+              >
+                🔴 Registrar Salida / Gasto
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Movements Table -->
+    <div class="movements-table-card">
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>Fecha y hora</th>
+              <th>Tipo</th>
+              <th>Descripción</th>
+              <th>Categoría</th>
+              <th class="text-end">Entrada</th>
+              <th class="text-end">Salida</th>
+              <th class="text-end">Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of pagedMovements(); track m.id) {
+              <tr>
+                <td class="small text-muted">{{ m.date }}</td>
+                <td>
+                  @if (m.type === 'Saldo inicial') {
+                    <span class="badge-saldo-inicial">Saldo inicial</span>
+                  } @else if (m.type === 'Entrada') {
+                    <span class="badge-entrada">Entrada</span>
+                  } @else {
+                    <span class="badge-salida">Salida</span>
+                  }
+                </td>
+                <td>
+                  <div class="fw-semibold text-body">{{ m.description }}</div>
+                  @if (m.reference) {
+                    <span class="badge bg-light text-secondary border font-size-2xs">
+                      Ref: {{ m.reference }}
+                    </span>
+                  }
+                </td>
+                <td>
+                  <span class="category-badge cat-{{ (m.category || 'ajuste').toLowerCase() }}">
+                    @if (m.category === 'Ventas') {
+                      🛒 Ventas
+                    } @else if (m.category === 'Cobros') {
+                      🧾 Cobro CxC
+                    } @else if (m.category === 'Apertura') {
+                      💼 Apertura
+                    } @else if (m.category === 'Ingresos') {
+                      📥 Ingreso
+                    } @else if (m.category === 'Gastos') {
+                      ⚡ Gasto
+                    } @else if (m.category === 'Retiro') {
+                      📤 Retiro
+                    } @else if (m.category === 'Compras') {
+                      📦 Compra
+                    } @else {
+                      ⚙️ {{ m.category }}
+                    }
+                  </span>
+                </td>
+                <td class="text-end fw-semibold text-success">
+                  {{
+                    m.inAmount
+                      ? 'RD$ ' + (m.inAmount | number: '1.2-2')
+                      : '-'
+                  }}
+                </td>
+                <td class="text-end fw-semibold text-danger">
+                  {{
+                    m.outAmount
+                      ? 'RD$ ' + (m.outAmount | number: '1.2-2')
+                      : '-'
+                  }}
+                </td>
+                <td class="text-end fw-bold text-body">
+                  RD$ {{ m.balance | number: '1.2-2' }}
+                </td>
+              </tr>
+            }
+            @if (filteredMovements().length === 0) {
+              <tr>
+                <td colspan="7" class="text-center py-5 text-muted small">
+                  No hay movimientos registrados en la pestaña de <strong>{{ activeTabLabel() }}</strong>.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-list-pagination
+        [currentPage]="movementsPage()"
+        [pageSize]="movementsPageSize()"
+        [totalItems]="filteredMovements().length"
+        label="movimientos"
+        (pageChange)="onMovementsPageChange($event)"
+      ></app-list-pagination>
+    </div>
+
+    <!-- 5. Bottom Summary Bar (4 columns with calculated balance) -->
+    <div class="bottom-summary-box mb-4">
+      <div class="row align-items-center text-center text-md-start g-3">
+        <!-- Total Entradas -->
+        <div class="col-sm-6 col-lg-3 border-divider summary-col">
+          <div class="summary-title">Total entradas</div>
+          <h4 class="summary-val text-green">
+            RD$ {{ totalEntradas() | number: '1.2-2' }}
+          </h4>
+        </div>
+
+        <!-- Total Salidas -->
+        <div class="col-sm-6 col-lg-3 border-divider summary-col">
+          <div class="summary-title">Total salidas</div>
+          <h4 class="summary-val text-red">
+            RD$ {{ totalSalidas() | number: '1.2-2' }}
+          </h4>
+        </div>
+
+        <!-- Saldo actual en caja -->
+        <div class="col-sm-6 col-lg-3 border-divider summary-col">
+          <div class="summary-title">Saldo en caja</div>
+          <h4 class="summary-val text-dark">
+            RD$ {{ currentCalculatedBalance() | number: '1.2-2' }}
+          </h4>
+        </div>
+
+        <!-- Transacciones -->
+        <div class="col-sm-6 col-lg-3 summary-col">
+          <div class="summary-title">Transacciones</div>
+          <h4 class="summary-val text-indigo">
+            {{ totalTransacciones() }}
+          </h4>
+        </div>
+      </div>
+    </div>
+  }
 </c-container>
 
-<!-- Decoupled Cash Register Modal Component -->
-<app-cash-register-modal #registerModal [(visible)]="isModalOpen" (saved)="loadData()">
-</app-cash-register-modal>
+<!-- Modals -->
+
+<app-manual-movement-modal
+  #manualMovementModal
+  [(visible)]="isManualMovementModalOpen"
+  (saved)="loadData()"
+></app-manual-movement-modal>
+
+<app-close-register-modal
+  #closeRegisterModal
+  [(visible)]="isCloseModalOpen"
+  [session]="activeSession()"
+  (closed)="onRegisterClosed()"
+></app-close-register-modal>
+
+<!-- Sale Completed / Invoice Printable Receipt Modal -->
+<app-sale-completed-modal
+  #saleCompletedModal
+  [(visible)]="isSaleCompletedModalOpen"
+  [saleData]="lastCompletedSale"
+  (newSaleRequested)="openQuickSaleModal()"
+  (closed)="loadData()"
+></app-sale-completed-modal>
+
+<!-- POS Authentication Modal -->
+<app-auth-pos-modal
+  #authPosModal
+  (authenticated)="onPosAuthenticated($event)"
+></app-auth-pos-modal>
+
+<!-- Pause Register Modal -->
+@if (isPauseModalOpen()) {
+  <div class="custom-modal-backdrop" (click)="closePauseModal()">
+    <div class="custom-modal-content" (click)="$event.stopPropagation()" style="max-width: 480px;">
+      <div class="custom-modal-header border-0 pb-0">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-2 bg-warning-subtle text-warning-emphasis rounded-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+              <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+            </svg>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0 text-body">Pausar Turno de Caja</h5>
+            <span class="text-muted small">Suspender temporalmente las operaciones</span>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="closePauseModal()" aria-label="Close"></button>
+      </div>
+
+      <div class="custom-modal-body pt-3">
+        <p class="text-muted small mb-3">
+          La caja quedará bloqueada temporalmente para operaciones mientras tomas tu receso o almuerzo. Podrás reanudarla en cualquier momento.
+        </p>
+
+        <form cForm [formGroup]="pauseForm">
+          <div class="mb-3">
+            <label class="form-label required-label">Motivo de la pausa *</label>
+            <select cSelect formControlName="reason">
+              <option value="Almuerzo / Receso">Almuerzo / Comida</option>
+              <option value="Receso corto / Break">Receso corto / Break</option>
+              <option value="Cambio de turno / Relevo">Cambio de turno / Relevo</option>
+              <option value="Reunión de personal">Reunión de personal</option>
+              <option value="Mantenimiento / Falla de sistema">Mantenimiento / Falla de sistema</option>
+              <option value="Otro">Otro motivo</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Notas u observaciones (opcional)</label>
+            <textarea
+              cFormControl
+              formControlName="notes"
+              rows="3"
+              placeholder="Ej. Regreso a las 2:00 PM..."
+            ></textarea>
+          </div>
+        </form>
+      </div>
+
+      <div class="custom-modal-footer">
+        <button cButton color="light" class="border px-4" (click)="closePauseModal()">
+          Cancelar
+        </button>
+        <button
+          cButton
+          color="warning"
+          class="fw-bold px-4 text-dark"
+          [disabled]="isLoading() || pauseForm.invalid"
+          (click)="confirmPause()"
+        >
+          @if (isLoading()) {
+            <c-spinner size="sm" class="me-2"></c-spinner>
+            Pausando...
+          } @else {
+            Confirmar Pausa
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL: DETALLE COMPLETO DE TURNO ANTERIOR -->
+@if (isSessionDetailModalOpen()) {
+  <div class="custom-modal-backdrop" (click)="closeSessionDetailModal()">
+    <div class="custom-modal-content modal-lg shadow-lg session-detail-dialog" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="custom-modal-header bg-white border-bottom px-4 py-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-2 bg-primary-subtle text-primary rounded-3 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <h5 class="fw-bold mb-0 text-dark fs-5">
+                Turno #{{ selectedSessionDetail()?.session?.id }} · {{ selectedSessionDetail()?.session?.name }}
+              </h5>
+              <span class="badge bg-secondary-subtle text-secondary border px-2 py-0.5 rounded-pill font-size-xs">Cerrado</span>
+            </div>
+            <div class="text-secondary small mt-0.5 d-flex align-items-center gap-2 flex-wrap">
+              <span>Cajero: <strong class="text-dark">{{ selectedSessionDetail()?.session?.cashierName || 'Administrador' }}</strong></span>
+              <span class="text-muted">·</span>
+              <span>Apertura: <strong>{{ selectedSessionDetail()?.session?.openedAt }}</strong></span>
+              <span class="text-muted">·</span>
+              <span>Cierre: <strong>{{ selectedSessionDetail()?.session?.closedAt || '-' }}</strong></span>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="closeSessionDetailModal()" aria-label="Close"></button>
+      </div>
+
+      <!-- Segmented Pills Tab Bar -->
+      <div class="px-4 py-2.5 bg-light-subtle border-bottom">
+        <div class="nav-segment-bar d-flex gap-1">
+          <button
+            type="button"
+            class="nav-segment-btn flex-fill d-flex align-items-center justify-content-center gap-1.5"
+            [class.active]="sessionDetailTab() === 'resumen'"
+            (click)="setSessionDetailTab('resumen')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+            <span>Resumen Financiero</span>
+          </button>
+          <button
+            type="button"
+            class="nav-segment-btn flex-fill d-flex align-items-center justify-content-center gap-1.5"
+            [class.active]="sessionDetailTab() === 'ventas'"
+            (click)="setSessionDetailTab('ventas')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            <span>Ventas ({{ selectedSessionDetail()?.sales?.length || 0 }})</span>
+          </button>
+          <button
+            type="button"
+            class="nav-segment-btn flex-fill d-flex align-items-center justify-content-center gap-1.5"
+            [class.active]="sessionDetailTab() === 'productos'"
+            (click)="setSessionDetailTab('productos')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            <span>Productos ({{ selectedSessionDetail()?.productSummary?.length || 0 }})</span>
+          </button>
+          <button
+            type="button"
+            class="nav-segment-btn flex-fill d-flex align-items-center justify-content-center gap-1.5"
+            [class.active]="sessionDetailTab() === 'movimientos'"
+            (click)="setSessionDetailTab('movimientos')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span>Movimientos ({{ selectedSessionDetail()?.movements?.length || 0 }})</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body (Controlled scrolling, NO horizontal overflow) -->
+      <div class="custom-modal-body p-4" style="max-height: 68vh; overflow-y: auto; overflow-x: hidden;">
+        @if (isLoadingSessionDetail()) {
+          <div class="text-center py-5">
+            <c-spinner size="sm" class="text-primary mb-2"></c-spinner>
+            <div class="small text-secondary">Cargando datos detallados del turno...</div>
+          </div>
+        } @else {
+          <!-- TAB 1: RESUMEN FINANCIERO -->
+          @if (sessionDetailTab() === 'resumen') {
+            <!-- Top 4 KPI Metrics -->
+            <div class="row g-3 mb-4">
+              <div class="col-6 col-md-3">
+                <div class="session-kpi-card h-100">
+                  <div class="kpi-title">Fondo Inicial</div>
+                  <div class="kpi-value text-dark font-monospace">
+                    RD$ {{ (selectedSessionDetail()?.session?.initialAmount || 0) | number: '1.2-2' }}
+                  </div>
+                  <small class="text-secondary" style="font-size: 0.7rem;">Apertura de turno</small>
+                </div>
+              </div>
+
+              <div class="col-6 col-md-3">
+                <div class="session-kpi-card h-100 border-success-subtle bg-success-subtle bg-opacity-10">
+                  <div class="kpi-title text-success">Ventas Totales</div>
+                  <div class="kpi-value text-success font-monospace">
+                    RD$ {{ (selectedSessionDetail()?.totals?.totalSales || 0) | number: '1.2-2' }}
+                  </div>
+                  <small class="text-success" style="font-size: 0.7rem;">{{ selectedSessionDetail()?.sales?.length || 0 }} transacciones</small>
+                </div>
+              </div>
+
+              <div class="col-6 col-md-3">
+                <div class="session-kpi-card h-100">
+                  <div class="kpi-title">Monto Cierre (Contado)</div>
+                  <div class="kpi-value text-dark font-monospace">
+                    RD$ {{ (selectedSessionDetail()?.session?.closingAmount || 0) | number: '1.2-2' }}
+                  </div>
+                  <small class="text-secondary" style="font-size: 0.7rem;">Efectivo físico auditado</small>
+                </div>
+              </div>
+
+              <div class="col-6 col-md-3">
+                <div class="session-kpi-card h-100" [ngClass]="(selectedSessionDetail()?.session?.difference || 0) < 0 ? 'border-danger-subtle bg-danger-subtle bg-opacity-10' : (selectedSessionDetail()?.session?.difference || 0) > 0 ? 'border-primary-subtle bg-primary-subtle bg-opacity-10' : 'border-success-subtle bg-success-subtle bg-opacity-10'">
+                  <div class="kpi-title" [ngClass]="(selectedSessionDetail()?.session?.difference || 0) < 0 ? 'text-danger' : (selectedSessionDetail()?.session?.difference || 0) > 0 ? 'text-primary' : 'text-success'">
+                    Diferencia / Cuadre
+                  </div>
+                  <div class="kpi-value font-monospace" [ngClass]="(selectedSessionDetail()?.session?.difference || 0) < 0 ? 'text-danger' : (selectedSessionDetail()?.session?.difference || 0) > 0 ? 'text-primary' : 'text-success'">
+                    @if (selectedSessionDetail()?.session?.difference === 0) {
+                      RD$ 0.00
+                    } @else if ((selectedSessionDetail()?.session?.difference || 0) < 0) {
+                      - RD$ {{ Math.abs(selectedSessionDetail()?.session?.difference || 0) | number: '1.2-2' }}
+                    } @else {
+                      + RD$ {{ (selectedSessionDetail()?.session?.difference || 0) | number: '1.2-2' }}
+                    }
+                  </div>
+                  <span class="badge" [ngClass]="(selectedSessionDetail()?.session?.difference || 0) === 0 ? 'bg-success-subtle text-success border' : (selectedSessionDetail()?.session?.difference || 0) < 0 ? 'bg-danger-subtle text-danger border' : 'bg-primary-subtle text-primary border'" style="font-size: 0.68rem;">
+                    {{ (selectedSessionDetail()?.session?.difference || 0) === 0 ? 'Cuadrado Exacto' : (selectedSessionDetail()?.session?.difference || 0) < 0 ? 'Faltante de Caja' : 'Sobrante de Caja' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Breakdown Section: Métodos de Pago y Operaciones de Caja -->
+            <div class="row g-3">
+              <!-- Left Card: Métodos de Pago -->
+              <div class="col-md-7">
+                <div class="p-3.5 bg-light rounded-3 border h-100">
+                  <div class="d-flex align-items-center justify-content-between mb-2.5 pb-2 border-bottom">
+                    <div class="fw-bold text-dark small text-uppercase tracking-wider">Desglose de Ventas por Método</div>
+                    <span class="badge bg-white text-secondary border font-size-2xs">Total: RD$ {{ (selectedSessionDetail()?.totals?.totalSales || 0) | number: '1.2-2' }}</span>
+                  </div>
+
+                  <div class="d-flex flex-column gap-2">
+                    <div class="p-2.5 bg-white rounded-2 border d-flex justify-content-between align-items-center">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="p-1.5 bg-success-subtle text-success rounded-2 fs-6">💵</span>
+                        <span class="small fw-semibold text-dark">Efectivo en Caja</span>
+                      </div>
+                      <strong class="text-dark font-monospace">RD$ {{ (selectedSessionDetail()?.totals?.cashSales || 0) | number: '1.2-2' }}</strong>
+                    </div>
+
+                    <div class="p-2.5 bg-white rounded-2 border d-flex justify-content-between align-items-center">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="p-1.5 bg-primary-subtle text-primary rounded-2 fs-6">💳</span>
+                        <span class="small fw-semibold text-dark">Tarjetas de Débito / Crédito</span>
+                      </div>
+                      <strong class="text-dark font-monospace">RD$ {{ (selectedSessionDetail()?.totals?.cardSales || 0) | number: '1.2-2' }}</strong>
+                    </div>
+
+                    <div class="p-2.5 bg-white rounded-2 border d-flex justify-content-between align-items-center">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="p-1.5 bg-info-subtle text-info rounded-2 fs-6">🏦</span>
+                        <span class="small fw-semibold text-dark">Transferencias Bancarias</span>
+                      </div>
+                      <strong class="text-dark font-monospace">RD$ {{ (selectedSessionDetail()?.totals?.transferSales || 0) | number: '1.2-2' }}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Card: Movimientos de Caja -->
+              <div class="col-md-5">
+                <div class="p-3.5 bg-light rounded-3 border h-100">
+                  <div class="d-flex align-items-center justify-content-between mb-2.5 pb-2 border-bottom">
+                    <div class="fw-bold text-dark small text-uppercase tracking-wider">Movimientos de Caja</div>
+                    <span class="badge bg-white text-secondary border font-size-2xs">{{ selectedSessionDetail()?.movements?.length || 0 }} reg.</span>
+                  </div>
+
+                  <div class="d-flex flex-column gap-2">
+                    <div class="p-2.5 bg-white rounded-2 border d-flex justify-content-between align-items-center">
+                      <div>
+                        <span class="small fw-semibold text-success d-block">+ Entradas Manuales</span>
+                        <small class="text-secondary" style="font-size: 0.68rem;">Cobro deudas / depósitos</small>
+                      </div>
+                      <strong class="text-success font-monospace">RD$ {{ (selectedSessionDetail()?.totals?.cashIn || 0) | number: '1.2-2' }}</strong>
+                    </div>
+
+                    <div class="p-2.5 bg-white rounded-2 border d-flex justify-content-between align-items-center">
+                      <div>
+                        <span class="small fw-semibold text-danger d-block">- Salidas / Retiros</span>
+                        <small class="text-secondary" style="font-size: 0.68rem;">Gastos / entregas</small>
+                      </div>
+                      <strong class="text-danger font-monospace">RD$ {{ (selectedSessionDetail()?.totals?.cashOut || 0) | number: '1.2-2' }}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            @if (selectedSessionDetail()?.session?.closingNotes) {
+              <div class="alert alert-info py-2 px-3 small mt-3 mb-0 rounded-3 border d-flex align-items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span><strong>Observaciones de Cierre:</strong> {{ selectedSessionDetail()?.session?.closingNotes }}</span>
+              </div>
+            }
+          }
+
+          <!-- TAB 2: VENTAS REALIZADAS -->
+          @if (sessionDetailTab() === 'ventas') {
+            @if (!selectedSessionDetail()?.sales || selectedSessionDetail()?.sales?.length === 0) {
+              <div class="text-center py-5 text-muted small">
+                <div class="fs-1 mb-2">🛒</div>
+                <div class="fw-semibold text-dark mb-1">Sin ventas en este turno</div>
+                <div>No se registraron ventas enlazadas a esta sesión de caja.</div>
+              </div>
+            } @else {
+              <div class="table-responsive rounded-3 border">
+                <table class="table table-hover align-middle mb-0 session-detail-table">
+                  <thead>
+                    <tr>
+                      <th># Ticket</th>
+                      <th>Hora</th>
+                      <th>Cliente</th>
+                      <th>Método</th>
+                      <th class="text-end">Total Pagado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (s of selectedSessionDetail()?.sales; track s.id) {
+                      <tr>
+                        <td class="font-monospace fw-bold text-primary">#{{ s.id }}</td>
+                        <td class="text-secondary">{{ s.creationDate ? (s.creationDate | date: 'shortTime') : '-' }}</td>
+                        <td class="fw-medium text-dark">{{ s.customer?.name || s.customerName || 'Consumidor Final' }}</td>
+                        <td>
+                          <span class="badge bg-light text-secondary border">{{ s.paymentMethod || 'Efectivo' }}</span>
+                        </td>
+                        <td class="text-end fw-bold font-monospace text-dark">
+                          RD$ {{ (s.total || s.paidAmount || 0) | number: '1.2-2' }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
+
+          <!-- TAB 3: PRODUCTOS VENDIDOS -->
+          @if (sessionDetailTab() === 'productos') {
+            @if (!selectedSessionDetail()?.productSummary || selectedSessionDetail()?.productSummary?.length === 0) {
+              <div class="text-center py-5 text-muted small">
+                <div class="fs-1 mb-2">📦</div>
+                <div class="fw-semibold text-dark mb-1">Sin productos registrados</div>
+                <div>No hay desglose de productos vendidos disponible para este turno.</div>
+              </div>
+            } @else {
+              <div class="table-responsive rounded-3 border">
+                <table class="table table-hover align-middle mb-0 session-detail-table">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Código</th>
+                      <th class="text-center">Cant. Vendida</th>
+                      <th class="text-end">Total Generado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (p of selectedSessionDetail()?.productSummary; track p.name) {
+                      <tr>
+                        <td class="fw-semibold text-dark">{{ p.name }}</td>
+                        <td class="font-monospace text-secondary small">{{ p.code }}</td>
+                        <td class="text-center">
+                          <span class="badge bg-light text-dark border px-2 py-1 font-monospace fw-bold">{{ p.quantity }}</span>
+                        </td>
+                        <td class="text-end fw-bold font-monospace text-dark">
+                          RD$ {{ p.total | number: '1.2-2' }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
+
+          <!-- TAB 4: MOVIMIENTOS DE CAJA -->
+          @if (sessionDetailTab() === 'movimientos') {
+            @if (!selectedSessionDetail()?.movements || selectedSessionDetail()?.movements?.length === 0) {
+              <div class="text-center py-5 text-muted small">
+                <div class="fs-1 mb-2">💸</div>
+                <div class="fw-semibold text-dark mb-1">Sin movimientos manuales</div>
+                <div>No se registraron entradas ni salidas extraordinarias durante este turno.</div>
+              </div>
+            } @else {
+              <div class="table-responsive rounded-3 border">
+                <table class="table table-hover align-middle mb-0 session-detail-table">
+                  <thead>
+                    <tr>
+                      <th>Hora</th>
+                      <th>Tipo</th>
+                      <th>Motivo / Concepto</th>
+                      <th class="text-end">Monto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (m of selectedSessionDetail()?.movements; track m.id) {
+                      <tr>
+                        <td class="text-secondary font-monospace small">{{ m.creationDate ? (m.creationDate | date: 'shortTime') : '-' }}</td>
+                        <td>
+                          <span class="badge" [ngClass]="m.type === 1 || m.type === 'CashIn' || m.type === 4 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'">
+                            {{ m.type === 1 || m.type === 'CashIn' ? '＋ Entrada' : m.type === 2 || m.type === 'CashOut' ? '－ Salida' : m.type === 3 ? 'Venta' : 'Cobro' }}
+                          </span>
+                        </td>
+                        <td class="small text-dark">{{ m.reason || m.description || 'Movimiento de caja' }}</td>
+                        <td class="text-end fw-bold font-monospace" [ngClass]="m.type === 2 || m.type === 'CashOut' ? 'text-danger' : 'text-success'">
+                          {{ m.type === 2 || m.type === 'CashOut' ? '-' : '+' }} RD$ {{ (Math.abs(m.amount || 0)) | number: '1.2-2' }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
+        }
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="custom-modal-footer bg-light px-4 py-3 border-top d-flex align-items-center justify-content-between">
+        <span class="small text-secondary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+          Auditoría de Turno Completada
+        </span>
+        <button type="button" class="btn btn-primary px-4 fw-semibold" (click)="closeSessionDetailModal()">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+}

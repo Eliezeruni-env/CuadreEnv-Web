@@ -1,0 +1,32 @@
+.splashscreen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+}
+
+.splash-card {
+  max-width: 380px;
+  width: 85%;
+  animation: splashPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.splash-logo {
+  height: 52px;
+  width: auto;
+}
+
+@keyframes splashPop {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

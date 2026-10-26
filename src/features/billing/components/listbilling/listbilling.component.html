@@ -1,0 +1,497 @@
+<div class="container-fluid py-3 list-billing-container">
+  <!-- Top Bar -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded shadow-sm">
+    <div class="d-flex align-items-center gap-2">
+      <div>
+        <h4 class="fw-bold mb-0 text-dark">Facturación Empresarial (Billing & Invoices)</h4>
+        <small class="text-muted">Registro de facturas emitidas, comprobantes fiscales (NCF) y control contable</small>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-secondary d-flex align-items-center gap-1" (click)="loadBillings()">
+        Recargar
+      </button>
+      <button class="btn btn-primary fw-bold shadow-sm d-flex align-items-center gap-2" (click)="goToCreate()">
+        <span>+ Nueva Factura</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Alertas de Secuencias y Agotamiento DGII -->
+  <app-ncf-alert-banner></app-ncf-alert-banner>
+
+  <!-- Filtros Genéricos -->
+  <app-generic-filters (filtersChange)="onFiltersChange($event)"></app-generic-filters>
+
+  <!-- Master-Detail Table Card -->
+  <div class="card shadow-sm border-0 mb-3 billing-table-card">
+    <div class="card-body p-0">
+      @if (isLoading()) {
+        <div class="text-center py-5 text-muted">
+          <div class="spinner-border text-primary mb-2" role="status"></div>
+          <p class="small mb-0">Cargando facturas...</p>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 master-detail-table">
+            <thead class="table-light text-secondary text-uppercase font-size-xs">
+              <tr>
+                <th style="width: 40px;" class="ps-3"></th>
+                <th>No. Factura</th>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Cliente</th>
+                <th>Comprobante Fiscal</th>
+                <th class="text-end">Monto Total</th>
+                <th class="text-center">Estatus</th>
+                <th class="text-center pe-3" style="width: 130px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (pagedBillings().length === 0) {
+                <tr>
+                  <td colspan="9" class="text-center py-5 text-muted">
+                    <span class="fw-semibold">No se encontraron facturas con los filtros aplicados</span>
+                  </td>
+                </tr>
+              } @else {
+                @for (b of pagedBillings(); track b.id) {
+                  <!-- Fila Master Principal -->
+                  <tr [class.table-active]="b.showDetail" class="master-row">
+                    <td class="ps-3 text-center">
+                      <button
+                        class="btn btn-sm btn-light border expand-btn"
+                        type="button"
+                        (click)="toggleDetail(b)"
+                        [title]="b.showDetail ? 'Colapsar detalle' : 'Expandir detalle'"
+                      >
+                        {{ b.showDetail ? '−' : '+' }}
+                      </button>
+                    </td>
+                    <td>
+                      <span class="fw-bold text-dark font-monospace">
+                        {{ b.billingNumber || 'FAC-' + b.id }}
+                      </span>
+                    </td>
+                    <td class="text-muted small">
+                      {{ b.creationDate | date:'dd/MM/yyyy HH:mm' }}
+                    </td>
+                    <td>
+                      <span class="badge" [ngClass]="b.billingTypeId === 1 ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'">
+                        {{ b.billingTypeName || (b.billingTypeId === 1 ? 'Contado' : 'Crédito') }}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="fw-semibold text-dark">{{ b.clientName || 'Consumidor Final' }}</div>
+                      <small class="text-muted">{{ b.clientRnc || '000-0000000-0' }}</small>
+                    </td>
+                    <td>
+                      @if (b.ncf) {
+                        <span class="badge bg-secondary-subtle text-secondary font-monospace border">
+                          {{ b.ncf }}
+                        </span>
+                      } @else {
+                        <span class="text-muted small">Sin NCF</span>
+                      }
+                    </td>
+                    <td class="text-end fw-bold text-dark">
+                      RD$ {{ b.amountTotal | number:'1.2-2' }}
+                    </td>
+                    <td class="text-center">
+                      @if (b.hasAFullCreditNote || b.statusId === 3) {
+                        <span class="badge status-badge-danger px-2.5 py-1 rounded-pill">Devuelta / NC</span>
+                      } @else if (b.statusId === 1) {
+                        <span class="badge status-badge-success px-2.5 py-1 rounded-pill">Emitida</span>
+                      } @else {
+                        <span class="badge status-badge-warning px-2.5 py-1 rounded-pill">Pendiente</span>
+                      }
+                    </td>
+                    <td class="text-center pe-3">
+                      <div class="d-flex align-items-center justify-content-center gap-1">
+                        <!-- Ver Factura & Acciones Rápidas -->
+                        <button
+                          class="btn btn-sm btn-light border text-primary"
+                          type="button"
+                          (click)="viewInvoice(b)"
+                          title="Ver Factura Completa y Acciones"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                        </button>
+                        <!-- Imprimir comprobante directo -->
+                        <button
+                          class="btn btn-sm btn-light border text-secondary"
+                          type="button"
+                          (click)="printInvoice(b); triggerBrowserPrint()"
+                          title="Imprimir Factura Directamente"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                            <rect x="6" y="14" width="12" height="8"></rect>
+                          </svg>
+                        </button>
+                        <!-- Nota de Crédito / Devolución -->
+                        <button
+                          class="btn btn-sm btn-light border text-danger"
+                          type="button"
+                          [disabled]="b.hasAFullCreditNote"
+                          (click)="createCreditNote(b)"
+                          title="Crear Nota de Crédito / Devolución"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 14 4 9 9 4"></polyline>
+                            <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+                          </svg>
+                        </button>
+                        <!-- Solicitar Anulación (Alerta de Seguridad Inmediata) -->
+                        <button
+                          class="btn btn-sm btn-light border text-danger"
+                          type="button"
+                          (click)="requestInvoiceCancellation(b)"
+                          title="Solicitar Anulación de Factura (Notifica al Administrador)"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- Fila Detail Expandible (Subtabla) -->
+                  @if (b.showDetail) {
+                    <tr class="detail-row bg-light">
+                      <td colspan="9" class="p-3">
+                        <div class="card border border-secondary-subtle shadow-xs">
+                          <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                            <span class="fw-bold small text-secondary text-uppercase">
+                              Detalle de Artículos Facturados ({{ (b.productDetails || b.details || []).length }} ítems)
+                            </span>
+                            <div class="small">
+                              <span class="text-muted me-3">Subtotal: <strong>RD$ {{ b.amountSubTotal | number:'1.2-2' }}</strong></span>
+                              <span class="text-muted me-3">ITBIS: <strong>RD$ {{ b.amountItbis | number:'1.2-2' }}</strong></span>
+                              <span class="text-success fw-bold">Total: RD$ {{ b.amountTotal | number:'1.2-2' }}</span>
+                            </div>
+                                             <div class="card-body p-0">
+                            @if ((b.productDetails || b.details || []).length === 0) {
+                              <div class="text-center py-4 text-muted small">
+                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                <span>Consultando artículos facturados...</span>
+                              </div>
+                            } @else {
+                              <table class="table table-sm table-bordered mb-0 align-middle">
+                                <thead class="table-light text-muted font-size-xs">
+                                  <tr>
+                                    <th class="ps-2">Código</th>
+                                    <th>Descripción</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th class="text-end">Precio Unit.</th>
+                                    <th class="text-center">Desc.</th>
+                                    <th class="text-end">Subtotal</th>
+                                    <th class="text-end">ITBIS</th>
+                                    <th class="text-end pe-2">Importe Total</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  @for (item of (b.productDetails || b.details || []); track $index) {
+                                    <tr>
+                                      <td class="ps-2 font-monospace small">{{ item.barCode || 'PROD-' + item.productId }}</td>
+                                      <td class="fw-semibold">{{ item.productName }}</td>
+                                      <td class="text-center font-monospace">{{ item.quantity }}</td>
+                                      <td class="text-end">RD$ {{ item.price | number:'1.2-2' }}</td>
+                                      <td class="text-center">
+                                        {{ item.discountPercentage > 0 ? (item.discountPercentage + '%') : '-' }}
+                                      </td>
+                                      <td class="text-end">RD$ {{ (item.subTotal || (item.quantity * item.price)) | number:'1.2-2' }}</td>
+                                      <td class="text-end">RD$ {{ (item.itbisAmount || 0) | number:'1.2-2' }}</td>
+                                      <td class="text-end pe-2 fw-bold text-success">RD$ {{ (item.totalAmount || (item.subTotal + item.itbisAmount)) | number:'1.2-2' }}</td>
+                                    </tr>
+                                  }
+                                </tbody>
+                              </table>
+                            }
+                          </div>          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginador -->
+        <kt-paginator
+          [totalItems]="filteredBillings().length"
+          [pageSize]="pageSize"
+          [currentPage]="currentPage"
+          (pageChange)="onPageChange($event)"
+        ></kt-paginator>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- Printable & Viewing Modal (Hybrid Design) -->
+@if (selectedInvoiceToPrint) {
+  <div class="custom-modal-backdrop" (click)="selectedInvoiceToPrint = null">
+    <div class="custom-modal-content invoice-modal-container" (click)="$event.stopPropagation()">
+      <!-- Top Action Bar (Hidden on Print) -->
+      <div class="modal-top-bar d-flex flex-wrap justify-content-between align-items-center p-3 border-bottom bg-white">
+        <div class="d-flex align-items-center gap-2">
+          <div class="doc-type-badge bg-primary text-white rounded-2 px-2 py-1 small fw-bold font-monospace">
+            {{ selectedInvoiceToPrint.billingNumber || ('FAC-' + selectedInvoiceToPrint.id) }}
+          </div>
+          <span class="badge" [ngClass]="selectedInvoiceToPrint.statusId === 1 ? 'bg-success text-white' : selectedInvoiceToPrint.statusId === 3 ? 'bg-danger text-white' : 'bg-warning text-dark'">
+            {{ selectedInvoiceToPrint.statusId === 1 ? 'Emitida' : selectedInvoiceToPrint.statusId === 3 ? 'Anulada' : 'Pendiente' }}
+          </span>
+          @if (selectedInvoiceToPrint.ncf) {
+            <span class="badge bg-secondary-subtle text-secondary font-monospace border">
+              NCF: {{ selectedInvoiceToPrint.ncf }}
+            </span>
+          }
+        </div>
+
+        <!-- Quick Actions Panel -->
+        <div class="d-flex align-items-center gap-2 mt-2 mt-sm-0">
+          <button
+            type="button"
+            class="btn btn-primary btn-sm d-flex align-items-center gap-1.5 fw-bold shadow-sm"
+            (click)="triggerBrowserPrint()"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            Imprimir Factura
+          </button>
+
+          @if (selectedInvoiceToPrint.ncf) {
+            <button
+              type="button"
+              class="btn btn-light btn-sm border d-flex align-items-center gap-1 text-secondary"
+              (click)="copyNcf(selectedInvoiceToPrint.ncf)"
+              title="Copiar NCF"
+            >
+              Copiar NCF
+            </button>
+          }
+
+          <button
+            type="button"
+            class="btn btn-light btn-sm border d-flex align-items-center gap-1 text-secondary"
+            (click)="sendEmail(selectedInvoiceToPrint)"
+            title="Enviar por Correo"
+          >
+            Email
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-light btn-sm border d-flex align-items-center gap-1 text-danger"
+            [disabled]="selectedInvoiceToPrint.hasAFullCreditNote"
+            (click)="createCreditNote(selectedInvoiceToPrint)"
+            title="Generar Devolución / Nota de Crédito"
+          >
+            Devolución
+          </button>
+
+          <button
+            type="button"
+            class="btn-close ms-2"
+            (click)="selectedInvoiceToPrint = null"
+            aria-label="Cerrar"
+          ></button>
+        </div>
+      </div>
+
+      <!-- Printable Invoice Document Sheet (Only this prints) -->
+      <div class="custom-modal-body p-3 p-md-4 overflow-auto bg-light-subtle" style="max-height: calc(88vh - 70px);">
+        <div id="billingPrintArea" class="invoice-sheet card border shadow-sm p-4 bg-white mx-auto" style="max-width: 820px;">
+          <!-- Invoice Header -->
+          <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+            <div class="d-flex align-items-center gap-3">
+              @if (companyService.currentSettings().logoUrl) {
+                <img [src]="companyService.currentSettings().logoUrl" alt="Logo" style="max-height: 48px; max-width: 140px; object-fit: contain;" />
+              } @else {
+                <div class="invoice-logo-badge bg-primary text-white d-flex align-items-center justify-content-center rounded-3 fw-bold font-monospace" style="width: 44px; height: 44px; font-size: 1.1rem;">
+                  FAC
+                </div>
+              }
+              <div>
+                <h5 class="fw-bold mb-0 text-dark">{{ companyService.currentSettings().companyName || 'CuadreEnv Dominicana SRL' }}</h5>
+                <div class="text-secondary small">RNC: {{ companyService.currentSettings().rnc || '1-01-00000-0' }} · Tel: {{ companyService.currentSettings().phone || '(809) 555-0199' }}</div>
+                <div class="text-secondary small">{{ companyService.currentSettings().address || 'Santo Domingo, República Dominicana' }}</div>
+              </div>
+            </div>
+
+            <div class="text-end">
+              <div class="fw-bold text-dark font-monospace small">FACTURA DE VENTA</div>
+              <div class="fw-bold text-primary font-monospace fs-5">
+                {{ selectedInvoiceToPrint.billingNumber || ('FAC-' + selectedInvoiceToPrint.id) }}
+              </div>
+              <div class="text-secondary small font-monospace">
+                {{ selectedInvoiceToPrint.creationDate | date:'dd/MM/yyyy hh:mm a' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Comprobante Fiscal & Client Details -->
+          <div class="row g-3 mb-3 small">
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded-3 border h-100">
+                <div class="text-secondary small fw-semibold mb-1">Datos del Cliente</div>
+                <div class="fw-bold text-dark fs-6">{{ selectedInvoiceToPrint.clientName || 'Consumidor Final' }}</div>
+                <div class="text-secondary font-monospace">RNC / Cédula: {{ selectedInvoiceToPrint.clientRnc || '000-0000000-0' }}</div>
+                <div class="text-secondary">Condición de Venta: <strong>{{ selectedInvoiceToPrint.billingTypeName || 'Contado' }}</strong></div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded-3 border h-100">
+                <div class="text-secondary small fw-semibold mb-1">Comprobante Fiscal (DGII)</div>
+                <div class="fw-bold text-dark font-monospace fs-6">
+                  NCF: {{ selectedInvoiceToPrint.ncf || 'B0200000000' }}
+                </div>
+                <div class="text-secondary small">Tipo NCF: Factura de Consumo / Crédito Fiscal</div>
+                <div class="text-secondary small font-monospace">Válido hasta: 31/12/2026</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <div class="table-responsive border rounded-3 mb-3">
+            <table class="table table-sm align-middle mb-0 small">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3" style="width: 30px;">#</th>
+                  <th>Descripción del Producto / Servicio</th>
+                  <th>Código</th>
+                  <th class="text-center" style="width: 70px;">Cant.</th>
+                  <th class="text-end" style="width: 110px;">Precio Unit.</th>
+                  <th class="text-center" style="width: 70px;">Desc.</th>
+                  <th class="text-end" style="width: 100px;">ITBIS</th>
+                  <th class="text-end pe-3" style="width: 120px;">Importe</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of (selectedInvoiceToPrint.productDetails || selectedInvoiceToPrint.details || []); track $index; let idx = $index) {
+                  <tr>
+                    <td class="ps-3 text-secondary font-monospace">{{ idx + 1 }}</td>
+                    <td class="fw-semibold text-dark">{{ item.productName }}</td>
+                    <td class="text-secondary font-monospace" style="font-size: 0.75rem;">
+                      {{ item.barCode || ('PROD-' + item.productId) }}
+                    </td>
+                    <td class="text-center font-monospace">{{ item.quantity }}</td>
+                    <td class="text-end font-monospace">RD$ {{ item.price | number:'1.2-2' }}</td>
+                    <td class="text-center font-monospace text-secondary">
+                      {{ item.discountPercentage > 0 ? (item.discountPercentage + '%') : '-' }}
+                    </td>
+                    <td class="text-end font-monospace text-secondary">
+                      RD$ {{ (item.itbisAmount || 0) | number:'1.2-2' }}
+                    </td>
+                    <td class="text-end pe-3 font-monospace fw-bold text-dark">
+                      RD$ {{ (item.totalAmount || (item.subTotal + (item.itbisAmount || 0))) | number:'1.2-2' }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Financial Summary & Notes -->
+          <div class="row g-3 pt-2">
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded-3 border h-100 small">
+                <div class="fw-semibold text-secondary mb-1">Forma de Pago & Observaciones</div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">
+                    ✓ Pagado / {{ selectedInvoiceToPrint.billingTypeName || 'Efectivo' }}
+                  </span>
+                </div>
+                <div class="text-muted" style="font-size: 0.75rem;">
+                  {{ selectedInvoiceToPrint.notes || 'Esta factura constituye un título valor conforme a la ley mercantil vigente.' }}
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded-3 border">
+                <div class="d-flex justify-content-between py-1 small">
+                  <span class="text-secondary">Subtotal (Excl. Impuestos):</span>
+                  <span class="font-monospace fw-semibold text-dark">
+                    RD$ {{ selectedInvoiceToPrint.amountSubTotal | number:'1.2-2' }}
+                  </span>
+                </div>
+                @if (selectedInvoiceToPrint.amountDesc && selectedInvoiceToPrint.amountDesc > 0) {
+                  <div class="d-flex justify-content-between py-1 small text-danger">
+                    <span>Descuento Aplicado:</span>
+                    <span class="font-monospace fw-semibold">
+                      - RD$ {{ selectedInvoiceToPrint.amountDesc | number:'1.2-2' }}
+                    </span>
+                  </div>
+                }
+                <div class="d-flex justify-content-between py-1 small">
+                  <span class="text-secondary">ITBIS Trasladado (18%):</span>
+                  <span class="font-monospace fw-semibold text-dark">
+                    RD$ {{ selectedInvoiceToPrint.amountItbis | number:'1.2-2' }}
+                  </span>
+                </div>
+                <div class="d-flex justify-content-between py-2 border-top mt-1 align-items-center">
+                  <strong class="text-dark fs-6">TOTAL A PAGAR:</strong>
+                  <strong class="text-primary font-monospace fs-5">
+                    RD$ {{ selectedInvoiceToPrint.amountTotal | number:'1.2-2' }}
+                  </strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Legal Footer -->
+          <div class="text-center text-secondary small pt-4 mt-3 border-top">
+            <div class="fw-semibold text-dark">
+              "{{ companyService.currentSettings().invoiceFooterPhrase || '¡Gracias por preferir nuestros servicios!' }}"
+            </div>
+            <div class="text-muted" style="font-size: 0.72rem;">
+              Documento tributario emitido en cumplimiento con el Reglamento de Comprobantes Fiscales de la DGII.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Send Email Modal Component -->
+@if (selectedInvoiceForEmail) {
+  <app-send-invoice-email-modal
+    [visible]="isEmailModalOpen"
+    (visibleChange)="onEmailModalVisibleChange($event)"
+    [invoiceData]="{
+      saleId: selectedInvoiceForEmail.id,
+      invoiceNumber: selectedInvoiceForEmail.billingNumber || ('FAC-' + selectedInvoiceForEmail.id),
+      customerName: selectedInvoiceForEmail.clientName || 'Consumidor Final',
+      customerEmail: '',
+      customerRnc: selectedInvoiceForEmail.clientRnc || '',
+      totalAmount: selectedInvoiceForEmail.amountTotal || 0,
+      subtotal: selectedInvoiceForEmail.amountSubTotal || selectedInvoiceForEmail.amountTotal || 0,
+      itbis: selectedInvoiceForEmail.amountItbis || 0,
+      discount: selectedInvoiceForEmail.amountDesc || 0,
+      ncf: selectedInvoiceForEmail.ncf,
+      companyName: companyService.currentSettings().companyName || 'CuadreEnv, SRL',
+      commercialName: companyService.currentSettings().commercialName || 'Soluciones de Facturación & Control',
+      companyRnc: companyService.currentSettings().rnc || '1-01-00000-0',
+      companyAddress: companyService.currentSettings().address || 'Santo Domingo, República Dominicana',
+      companyPhone: companyService.currentSettings().phone || '(809) 555-0199',
+      invoiceFooterPhrase: companyService.currentSettings().invoiceFooterPhrase || '¡Gracias por su preferencia!'
+    }"
+  ></app-send-invoice-email-modal>
+}

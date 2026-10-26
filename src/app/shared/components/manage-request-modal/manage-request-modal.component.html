@@ -1,0 +1,58 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="cancel.emit()">
+    <div class="custom-modal-content" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header d-flex align-items-center justify-content-between p-3 border-bottom bg-info-subtle">
+        <div class="d-flex align-items-center gap-2">
+          <svg cIcon name="cilShieldAlt" class="text-info-emphasis" style="width: 22px; height: 22px;"></svg>
+          <h5 class="mb-0 fw-bold text-dark">{{ requestTitle || 'Solicitud de Permiso Especial' }}</h5>
+        </div>
+        <button type="button" class="btn-close" (click)="cancel.emit()" aria-label="Close"></button>
+      </div>
+
+      <div class="custom-modal-body p-4">
+        <p class="text-secondary small mb-3">
+          Esta acción requiere aprobación o registro de motivo antes de proceder.
+        </p>
+
+        <form [formGroup]="form">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">Motivo / Justificación *</label>
+            <textarea
+              formControlName="reason"
+              class="form-control"
+              rows="3"
+              placeholder="Explique la razón de la solicitud..."
+            ></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">Código de Supervisor / PIN (Opcional)</label>
+            <input
+              type="password"
+              formControlName="supervisorPin"
+              class="form-control"
+              placeholder="••••"
+            />
+          </div>
+        </form>
+      </div>
+
+      <div class="custom-modal-footer d-flex align-items-center justify-content-end gap-2 p-3 border-top bg-light">
+        <button type="button" class="btn btn-light border px-3" (click)="cancel.emit()">Cancelar</button>
+        <button
+          type="button"
+          class="btn btn-primary px-4 fw-semibold"
+          [disabled]="form.invalid || isLoading"
+          (click)="confirmRequest()"
+        >
+          @if (isLoading) {
+            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            Enviando...
+          } @else {
+            Enviar Solicitud
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

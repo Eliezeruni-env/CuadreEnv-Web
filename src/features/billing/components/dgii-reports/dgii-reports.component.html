@@ -1,0 +1,260 @@
+<c-container fluid class="px-4 py-3">
+  <!-- Header de Sección -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold mb-1 d-flex align-items-center gap-2">
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 fs-6">DGII</span>
+        Reportes y Formatos Tributarios Oficiales
+      </h3>
+      <p class="text-secondary mb-0 small">
+        Generación, previsualización y exportación de archivos fiscales (606, 607 y 608) para la Oficina Virtual de la DGII.
+      </p>
+    </div>
+
+    <!-- Acciones Principales -->
+    <div class="d-flex align-items-center gap-2">
+      <button
+        cButton
+        color="success"
+        class="text-white d-flex align-items-center gap-2 shadow-sm"
+        [disabled]="isLoading() || isDownloading() || !reportData() || reportData()?.totalRecords === 0"
+        (click)="downloadTxt()"
+      >
+        @if (isDownloading()) {
+          <c-spinner size="sm"></c-spinner>
+          <span>Descargando...</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+          </svg>
+          <span>Descargar TXT para DGII</span>
+        }
+      </button>
+    </div>
+  </div>
+
+  <!-- Pestañas de Reportes -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-3">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <!-- Botones de Tipo de Formato -->
+        <div class="btn-group shadow-sm" role="group">
+          <button
+            type="button"
+            class="btn"
+            [class.btn-primary]="activeReport() === '607'"
+            [class.btn-outline-primary]="activeReport() !== '607'"
+            (click)="setReportType('607')"
+          >
+            <strong>Formato 607</strong> (Ventas e Ingresos)
+          </button>
+          <button
+            type="button"
+            class="btn"
+            [class.btn-primary]="activeReport() === '606'"
+            [class.btn-outline-primary]="activeReport() !== '606'"
+            (click)="setReportType('606')"
+          >
+            <strong>Formato 606</strong> (Compras y Gastos)
+          </button>
+          <button
+            type="button"
+            class="btn"
+            [class.btn-primary]="activeReport() === '608'"
+            [class.btn-outline-primary]="activeReport() !== '608'"
+            (click)="setReportType('608')"
+          >
+            <strong>Formato 608</strong> (Anulaciones NCF)
+          </button>
+        </div>
+
+        <!-- Filtros de Período -->
+        <div class="d-flex align-items-center gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <label class="small fw-semibold text-secondary mb-0">Mes:</label>
+            <select
+              class="form-select form-select-sm"
+              style="width: 140px;"
+              [ngModel]="selectedMonth()"
+              (ngModelChange)="selectedMonth.set(+$event); loadReport()"
+            >
+              @for (m of months; track m.value) {
+                <option [value]="m.value">{{ m.label }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <label class="small fw-semibold text-secondary mb-0">Año:</label>
+            <select
+              class="form-select form-select-sm"
+              style="width: 100px;"
+              [ngModel]="selectedYear()"
+              (ngModelChange)="selectedYear.set(+$event); loadReport()"
+            >
+              @for (y of years; track y) {
+                <option [value]="y">{{ y }}</option>
+              }
+            </select>
+          </div>
+
+          <button
+            cButton
+            color="light"
+            class="border d-flex align-items-center gap-1 shadow-sm"
+            [disabled]="isLoading()"
+            (click)="loadReport()"
+          >
+            @if (isLoading()) {
+              <c-spinner size="sm"></c-spinner>
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+              </svg>
+            }
+            <span class="small fw-semibold">Consultar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumen de Métricas del Período -->
+  <c-row class="g-3 mb-4">
+    <c-col [xs]="12" [md]="4">
+      <div class="card border-0 shadow-sm bg-body-tertiary">
+        <div class="card-body p-3">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <span class="text-secondary small fw-semibold text-uppercase">Total Registros</span>
+              <h3 class="fw-bold mt-1 mb-0">{{ reportData()?.totalRecords || 0 }}</h3>
+              <small class="text-muted">Líneas en período {{ periodLabel() }}</small>
+            </div>
+            <div class="p-3 rounded-circle bg-primary-subtle text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                <path d="M4 4h8v2H4V4zm0 3h8v1H4V7zm0 2h8v1H4V9zm0 2h8v1H4v-1z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </c-col>
+
+    <c-col [xs]="12" [md]="4">
+      <div class="card border-0 shadow-sm bg-body-tertiary">
+        <div class="card-body p-3">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <span class="text-secondary small fw-semibold text-uppercase">Monto Total Reportado</span>
+              <h3 class="fw-bold mt-1 mb-0 text-success">
+                RD$ {{ (reportData()?.totalAmount || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 }) }}
+              </h3>
+              <small class="text-muted">Base de operaciones del mes</small>
+            </div>
+            <div class="p-3 rounded-circle bg-success-subtle text-success">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M4 10.781c.148 1.667 1.513 2.85 3.591 3.003V15h1.043v-1.216c2.27-.179 3.678-1.438 3.678-3.3 0-1.59-.947-2.51-2.956-3.028l-.722-.187V3.467c1.122.11 1.879.714 2.07 1.616h1.47c-.166-1.6-1.54-2.748-3.54-2.875V1H7.591v1.233c-1.939.23-3.27 1.472-3.27 3.156 0 1.454.966 2.483 2.661 2.917l.61.162v4.031c-1.149-.17-1.94-.8-2.131-1.718H4zm3.391-3.836c-1.043-.263-1.6-.825-1.6-1.616 0-.944.704-1.641 1.8-1.828v3.495l-.2-.051zm1.191 1.258c1.259.324 1.815.864 1.815 1.765 0 1.052-.72 1.748-1.936 1.918V8.203h.121z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </c-col>
+
+    <c-col [xs]="12" [md]="4">
+      <div class="card border-0 shadow-sm bg-body-tertiary">
+        <div class="card-body p-3">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <span class="text-secondary small fw-semibold text-uppercase">ITBIS Facturado / Retenido</span>
+              <h3 class="fw-bold mt-1 mb-0 text-info">
+                RD$ {{ (reportData()?.totalItbis || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 }) }}
+              </h3>
+              <small class="text-muted">Impuesto transferido formal</small>
+            </div>
+            <div class="p-3 rounded-circle bg-info-subtle text-info">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M12 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h8zM4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4z"/>
+                <path d="m7.247 4.86-1.572 3.14a.5.5 0 0 0 .447.74h2.756a.5.5 0 0 0 .447-.74L7.753 4.86a.5.5 0 0 0-.894 0zM5.5 10a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </c-col>
+  </c-row>
+
+  <!-- Tabla de Previsualización -->
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-transparent border-0 pt-3 px-4 d-flex justify-content-between align-items-center">
+      <h5 class="fw-bold mb-0">Previsualización de Registros Oficiales ({{ activeReport() }})</h5>
+      <span class="badge bg-secondary-subtle text-secondary font-monospace">DGII Período: {{ selectedYear() }}{{ selectedMonth() < 10 ? '0' + selectedMonth() : selectedMonth() }}</span>
+    </div>
+
+    <div class="card-body p-0">
+      @if (isLoading()) {
+        <div class="text-center py-5">
+          <c-spinner color="primary"></c-spinner>
+          <p class="text-secondary mt-2 mb-0 small">Consultando registros oficiales en el backend...</p>
+        </div>
+      } @else if (!reportData() || reportData()?.records?.length === 0) {
+        <div class="text-center py-5">
+          <p class="text-muted mb-1 fs-5">No existen operaciones fiscales registradas en este período.</p>
+          <small class="text-secondary">Selecciona otro mes o emite comprobantes fiscales para generar este reporte.</small>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small text-uppercase text-secondary">
+              <tr>
+                <th class="ps-4">Línea</th>
+                <th>RNC / Cédula</th>
+                <th>NCF Emitido</th>
+                <th>Fecha</th>
+                @if (activeReport() === '608') {
+                  <th>Motivo Anulación</th>
+                } @else {
+                  <th class="text-end">Monto Facturado</th>
+                  <th class="text-end">ITBIS</th>
+                  <th class="text-end pe-4">Forma de Pago / Retención</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of reportData()?.records; track $index) {
+                <tr>
+                  <td class="ps-4 text-muted small">{{ row.line || ($index + 1) }}</td>
+                  <td>
+                    <span class="font-monospace fw-semibold">{{ row.rncOrCedula || row.rnc || 'Consumidor Final' }}</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">
+                      {{ row.ncf }}
+                    </span>
+                  </td>
+                  <td class="small text-secondary">{{ row.invoiceDate || row.date || row.cancellationDate || 'N/A' }}</td>
+                  @if (activeReport() === '608') {
+                    <td class="small text-danger fw-semibold">{{ row.cancellationReason || 'Anulación de comprobante' }}</td>
+                  } @else {
+                    <td class="text-end fw-semibold">
+                      RD$ {{ (row.totalInvoiced || row.total || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 }) }}
+                    </td>
+                    <td class="text-end text-secondary small">
+                      RD$ {{ (row.invoicedItbis || row.itbis || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 }) }}
+                    </td>
+                    <td class="text-end pe-4 small text-secondary">
+                      {{ row.cashAmount ? 'Efectivo' : (row.cardAmount ? 'Tarjeta' : (row.creditAmount ? 'A Crédito' : 'Mixto/Otro')) }}
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+</c-container>

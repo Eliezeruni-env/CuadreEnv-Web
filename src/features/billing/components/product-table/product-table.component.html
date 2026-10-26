@@ -1,0 +1,152 @@
+<div class="card shadow-sm border-0 mb-3 product-table-card">
+  <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-2">
+      <div class="icon-circle bg-info-subtle text-info">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"></line>
+          <line x1="8" y1="12" x2="21" y2="12"></line>
+          <line x1="8" y1="18" x2="21" y2="18"></line>
+          <line x1="3" y1="6" x2="3.01" y2="6"></line>
+          <line x1="3" y1="12" x2="3.01" y2="12"></line>
+          <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+      </div>
+      <div>
+        <h6 class="fw-bold mb-0 text-dark">3. Detalle de Ítems Facturados</h6>
+        <small class="text-muted">{{ details.length }} producto(s) en la factura</small>
+      </div>
+    </div>
+    @if (details.length > 0) {
+      <button class="btn btn-sm btn-outline-danger" type="button" (click)="clearAll()">
+        Vaciar lista
+      </button>
+    }
+  </div>
+
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-secondary text-uppercase font-size-xs">
+          <tr>
+            <th class="ps-3" style="width: 40px;">#</th>
+            <th>Código</th>
+            <th>Producto</th>
+            <th class="text-center" style="width: 100px;">Cant.</th>
+            <th class="text-end" style="width: 120px;">Precio Unit.</th>
+            <th class="text-center" style="width: 90px;">Desc.</th>
+            <th class="text-end" style="width: 120px;">Subtotal</th>
+            <th class="text-end" style="width: 110px;">ITBIS</th>
+            <th class="text-end" style="width: 130px;">Total</th>
+            <th class="text-center pe-3" style="width: 90px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (details.length === 0) {
+            <tr>
+              <td colspan="10" class="text-center py-5 text-muted">
+                <div class="py-3">
+                  <span class="fw-semibold">No has agregado productos a esta factura</span>
+                  <p class="small text-secondary mb-0">Utiliza el buscador superior para agregar ítems</p>
+                </div>
+              </td>
+            </tr>
+          } @else {
+            @for (item of details; track $index) {
+              <tr>
+                <td class="ps-3 text-muted small fw-bold">{{ $index + 1 }}</td>
+                <td>
+                  <span class="badge bg-light text-secondary border font-monospace">
+                    {{ item.barCode || 'PROD-' + item.productId }}
+                  </span>
+                </td>
+                <td>
+                  <span class="fw-semibold text-dark">{{ item.productName }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-secondary-subtle text-secondary px-2 py-1 fs-6">
+                    {{ item.quantity }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  RD$ {{ item.price | number:'1.2-2' }}
+                </td>
+                <td class="text-center">
+                  @if (item.discountPercentage > 0) {
+                    <span class="badge bg-danger-subtle text-danger">
+                      {{ item.discountPercentage }}%
+                    </span>
+                  } @else {
+                    <span class="text-muted small">-</span>
+                  }
+                </td>
+                <td class="text-end fw-semibold">
+                  RD$ {{ item.subTotal | number:'1.2-2' }}
+                </td>
+                <td class="text-end text-muted small">
+                  RD$ {{ item.itbisAmount | number:'1.2-2' }}
+                </td>
+                <td class="text-end fw-bold text-success">
+                  RD$ {{ item.totalAmount | number:'1.2-2' }}
+                </td>
+                <td class="text-center pe-3">
+                  <button
+                    class="btn btn-sm btn-light border text-primary me-1"
+                    type="button"
+                    (click)="onEdit($index)"
+                    title="Editar línea"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  <button
+                    class="btn btn-sm btn-light border text-danger"
+                    type="button"
+                    (click)="onDelete($index)"
+                    title="Eliminar línea"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Totales / Consolidado Reactivo -->
+    @if (details.length > 0) {
+      <div class="totals-summary-container bg-light p-3 border-top">
+        <div class="row justify-content-end">
+          <div class="col-md-5 col-lg-4">
+            <div class="d-flex justify-content-between py-1">
+              <span class="text-muted">Subtotal Neto:</span>
+              <span class="fw-semibold">RD$ {{ totals.subtotalAmount | number:'1.2-2' }}</span>
+            </div>
+            @if (totals.totalDiscount > 0) {
+              <div class="d-flex justify-content-between py-1 text-danger">
+                <span>Descuento Total:</span>
+                <span class="fw-semibold">- RD$ {{ totals.totalDiscount | number:'1.2-2' }}</span>
+              </div>
+            }
+            <div class="d-flex justify-content-between py-1">
+              <span class="text-muted">ITBIS / IVA (18%):</span>
+              <span class="fw-semibold">RD$ {{ totals.totalItbis | number:'1.2-2' }}</span>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-top border-2 mt-2 align-items-center">
+              <span class="fw-bold fs-5 text-dark">Total a Facturar:</span>
+              <span class="fw-bold fs-4 text-success">
+                RD$ {{ totals.totalAmount | number:'1.2-2' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>

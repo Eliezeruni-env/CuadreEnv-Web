@@ -1,0 +1,308 @@
+@if (isOpen()) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+        
+        <!-- Header -->
+        <div class="modal-header bg-dark text-white border-0 py-3 px-4 d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-3">
+            <div>
+              <h5 class="modal-title fw-bold mb-0 text-white">Importador Inteligente & Catálogos Pre-cargados</h5>
+              <p class="small text-white-50 mb-0">Comienza a facturar en menos de 15 minutos sin digitar productos a mano</p>
+            </div>
+          </div>
+          <button type="button" class="btn-close btn-close-white" (click)="close()" [disabled]="isImporting()"></button>
+        </div>
+
+        <!-- Body -->
+        <div class="modal-body p-4 bg-light">
+          
+          <!-- Navigation Tabs -->
+          <div class="d-flex gap-2 p-1 bg-white rounded-3 border shadow-xs mb-4">
+            <button
+              type="button"
+              class="btn flex-grow-1 fw-bold py-2 rounded-2 d-flex align-items-center justify-content-center gap-2"
+              [ngClass]="activeTab() === 'preloaded' ? 'btn-primary text-white shadow-xs' : 'btn-light text-secondary'"
+              (click)="activeTab.set('preloaded')"
+            >
+              <span>Catálogos Listos por Rubro (1 Clic)</span>
+            </button>
+            <button
+              type="button"
+              class="btn flex-grow-1 fw-bold py-2 rounded-2 d-flex align-items-center justify-content-center gap-2"
+              [ngClass]="activeTab() === 'upload' ? 'btn-primary text-white shadow-xs' : 'btn-light text-secondary'"
+              (click)="activeTab.set('upload')"
+            >
+              <span>Subir mi propio Excel / CSV</span>
+            </button>
+          </div>
+
+          <!-- TAB 1: PRELOADED CATALOGS -->
+          @if (activeTab() === 'preloaded') {
+            @if (isLoadingCatalogs()) {
+              <div class="text-center py-4 bg-white rounded-4 border mb-3">
+                <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                <div class="small text-secondary">Cargando plantillas de catálogo...</div>
+              </div>
+            } @else {
+              <div class="row g-3 mb-3">
+                @for (cat of catalogs(); track cat.id) {
+                  <div class="col-md-6 col-lg-3">
+                    <div
+                      class="card h-100 border-2 rounded-4 p-3 cursor-pointer transition-all shadow-xs"
+                      [ngClass]="selectedCatalog()?.id === cat.id ? 'border-' + cat.color + ' bg-white ring-select' : 'border bg-white'"
+                      (click)="selectCatalog(cat)"
+                    >
+                      <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="fs-2">{{ cat.icon }}</span>
+                        <span class="badge bg-{{ cat.color }}-subtle text-{{ cat.color }} border font-monospace">
+                          {{ cat.items.length }} ítems
+                        </span>
+                      </div>
+                      <h6 class="fw-bold text-dark mb-1">{{ cat.name }}</h6>
+                      <p class="small text-secondary mb-3 flex-grow-1" style="font-size: 0.78rem;">
+                        {{ cat.tagline }}
+                      </p>
+                      <button
+                        type="button"
+                        class="btn btn-sm w-100 fw-semibold"
+                        [ngClass]="selectedCatalog()?.id === cat.id ? 'btn-' + cat.color + ' text-white' : 'btn-outline-secondary'"
+                        (click)="selectCatalog(cat); $event.stopPropagation()"
+                      >
+                        {{ selectedCatalog()?.id === cat.id ? '✓ Seleccionado' : 'Ver Detalles' }}
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Selected Catalog Preview -->
+            @if (selectedCatalog(); as curCat) {
+              <div class="card border rounded-4 shadow-sm bg-white p-3 mb-2">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                      <span>{{ curCat.icon }} Previsualización de {{ curCat.name }}</span>
+                      <span class="badge bg-light text-secondary border">{{ curCat.items.length }} productos pre-configurados</span>
+                    </h6>
+                    <small class="text-secondary">Valores típicos de costo, venta e inventario inicial en República Dominicana</small>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary d-flex align-items-center gap-2 shadow-xs"
+                      (click)="downloadTemplateCsv(curCat)"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                      </svg>
+                      <span>Descargar Plantilla CSV</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-success fw-bold text-white d-flex align-items-center gap-2 shadow-sm px-3"
+                      [disabled]="isImporting()"
+                      (click)="importSelectedPreloadedCatalog()"
+                    >
+                      <span>Cargar Esta Plantilla Ahora Mismo</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Table Preview -->
+                <div class="table-responsive rounded-3 border" style="max-height: 280px;">
+                  <table class="table table-hover align-middle mb-0 font-size-sm">
+                    <thead class="table-light sticky-top">
+                      <tr>
+                        <th class="ps-3">Código</th>
+                        <th>Descripción</th>
+                        <th>Categoría</th>
+                        <th class="text-end">Costo (RD$)</th>
+                        <th class="text-end">Precio (RD$)</th>
+                        <th class="text-center">Margen</th>
+                        <th class="text-end pe-3">Stock Inicial</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (item of curCat.items; track item.barcode) {
+                        <tr>
+                          <td class="ps-3 font-monospace text-secondary small">{{ item.barcode }}</td>
+                          <td class="fw-semibold text-dark">{{ item.description }}</td>
+                          <td><span class="badge bg-light text-dark border">{{ item.category }}</span></td>
+                          <td class="text-end font-monospace">RD$ {{ item.cost | number:'1.2-2' }}</td>
+                          <td class="text-end font-monospace fw-bold text-success">RD$ {{ item.price | number:'1.2-2' }}</td>
+                          <td class="text-center">
+                            <span class="badge bg-success-subtle text-success border">
+                              +{{ ((item.price - item.cost) / (item.cost || 1) * 100) | number:'1.0-0' }}%
+                            </span>
+                          </td>
+                          <td class="text-end pe-3 font-monospace">{{ item.stock }} uds</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            }
+          }
+
+          <!-- TAB 2: UPLOAD CSV / EXCEL FILE -->
+          @if (activeTab() === 'upload') {
+            <!-- Drag and Drop Box -->
+            <div
+              class="card border-2 border-dashed rounded-4 p-4 text-center mb-3 bg-white cursor-pointer dropzone transition-all"
+              (dragover)="onDragOver($event)"
+              (drop)="onFileDropped($event)"
+              (click)="fileInput.click()"
+            >
+              <input
+                #fileInput
+                type="file"
+                class="d-none"
+                accept=".csv,.txt"
+                (change)="onFileSelected($event)"
+              />
+              <div class="mb-2">
+                <span class="fs-1 text-primary">📄</span>
+              </div>
+              <h6 class="fw-bold text-dark mb-1">
+                @if (fileName()) {
+                  Archivo seleccionado: <span class="text-primary">{{ fileName() }}</span>
+                } @else {
+                  Arrastra tu archivo CSV / Excel aquí o haz clic para explorar
+                }
+              </h6>
+              <p class="small text-secondary mb-2">
+                Compatible con archivos exportados desde Excel o Google Sheets (.csv delimitado por comas o punto y coma)
+              </p>
+              <div class="d-flex justify-content-center gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  (click)="downloadTemplateCsv(); $event.stopPropagation()"
+                >
+                 Descargar Plantilla Base en Blanco
+                </button>
+              </div>
+            </div>
+
+            <!-- Parsed Data Preview -->
+            @if (parsedRows().length > 0) {
+              <div class="card border rounded-4 shadow-sm bg-white p-3 mb-2">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-0">Previsualización de Filas Analizadas</h6>
+                    <small class="text-secondary">
+                      Total: {{ parsedRows().length }} productos | Válidos: 
+                      <strong class="text-success">{{ parsedRows().filter(r => r.isValid).length }}</strong>
+                    </small>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-primary fw-bold text-white d-flex align-items-center gap-2 shadow-sm px-4"
+                    [disabled]="isImporting() || parsedRows().filter(r => r.isValid).length === 0"
+                    (click)="executeBatchImport()"
+                  >
+                    <span>Importar {{ parsedRows().filter(r => r.isValid).length }} Productos</span>
+                  </button>
+                </div>
+
+                <div class="table-responsive rounded-3 border" style="max-height: 280px;">
+                  <table class="table table-hover align-middle mb-0 font-size-sm">
+                    <thead class="table-light sticky-top">
+                      <tr>
+                        <th class="ps-3">#</th>
+                        <th>Estado</th>
+                        <th>Código</th>
+                        <th>Descripción</th>
+                        <th>Categoría</th>
+                        <th class="text-end">Costo</th>
+                        <th class="text-end">Precio</th>
+                        <th class="text-end pe-3">Stock</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of parsedRows(); track row.rowNumber) {
+                        <tr [class.table-danger]="!row.isValid">
+                          <td class="ps-3 font-monospace text-secondary small">{{ row.rowNumber }}</td>
+                          <td>
+                            @if (row.isValid) {
+                              <span class="badge bg-success-subtle text-success border">✓ Listo</span>
+                            } @else {
+                              <span class="badge bg-danger text-white">{{ row.validationError }}</span>
+                            }
+                          </td>
+                          <td class="font-monospace small">{{ row.barcode || '-' }}</td>
+                          <td class="fw-semibold">{{ row.description }}</td>
+                          <td><span class="badge bg-light text-dark border">{{ row.categoryName }}</span></td>
+                          <td class="text-end font-monospace">RD$ {{ row.cost | number:'1.2-2' }}</td>
+                          <td class="text-end font-monospace fw-bold text-success">RD$ {{ row.price | number:'1.2-2' }}</td>
+                          <td class="text-end pe-3 font-monospace">{{ row.stock }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            }
+          }
+
+          <!-- IMPORT PROGRESS BAR -->
+          @if (isImporting()) {
+            <div class="card border-0 rounded-4 p-4 shadow-sm bg-primary text-white mt-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-bold d-flex align-items-center gap-2">
+                  <span class="spinner-border spinner-border-sm" role="status"></span>
+                  Importando catálogo al inventario...
+                </span>
+                <span class="fw-bold font-monospace">{{ importProgress() }}%</span>
+              </div>
+              <div class="progress bg-white bg-opacity-25" style="height: 10px;">
+                <div
+                  class="progress-bar bg-white"
+                  role="progressbar"
+                  [style.width.%]="importProgress()"
+                ></div>
+              </div>
+              <small class="text-white-50 mt-2">Creando referencias, categorías y existencias en la base de datos...</small>
+            </div>
+          }
+
+          <!-- IMPORT SUMMARY STATS -->
+          @if (importStats(); as stats) {
+            <div class="alert alert-success d-flex align-items-center justify-content-between rounded-4 shadow-xs mt-3 mb-0">
+              <div class="d-flex align-items-center gap-3">
+                <span class="fs-3">🎉</span>
+                <div>
+                  <h6 class="fw-bold mb-0 text-success">¡Importación Completada con Éxito!</h6>
+                  <p class="small text-success-emphasis mb-0">
+                    Se crearon {{ stats.success }} productos en el catálogo de tu empresa. Ya puedes facturarlos en la caja.
+                  </p>
+                </div>
+              </div>
+              <button type="button" class="btn btn-sm btn-success px-3 fw-bold" (click)="close()">
+                Ver Productos
+              </button>
+            </div>
+          }
+
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer bg-white border-0 py-3 px-4 d-flex justify-content-between">
+          <span class="small text-secondary">
+            Los productos importados estarán inmediatamente disponibles en el Punto de Venta (POS).
+          </span>
+          <button type="button" class="btn btn-secondary px-4 fw-semibold" (click)="close()" [disabled]="isImporting()">
+            Cerrar
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,74 @@
+<div class="card border-0 shadow-sm rounded-3 p-4 max-w-lg mx-auto" style="max-width: 540px;">
+  <h4 class="fw-bold text-dark mb-3">Procesar Cobro POS</h4>
+
+  <div class="alert alert-primary py-3 d-flex justify-content-between align-items-center mb-4">
+    <span class="fw-semibold">Monto Total a Cobrar:</span>
+    <span class="fs-4 fw-bold font-monospace">RD$ {{ totalToPay | number:'1.2-2' }}</span>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label small fw-semibold text-secondary mb-1">Método de Pago</label>
+    <div class="btn-group w-100" role="group">
+      <button
+        type="button"
+        class="btn py-2"
+        [class.btn-primary]="selectedMethod === 'CASH'"
+        [class.btn-outline-secondary]="selectedMethod !== 'CASH'"
+        (click)="selectedMethod = 'CASH'"
+      >
+        Efectivo
+      </button>
+      <button
+        type="button"
+        class="btn py-2"
+        [class.btn-primary]="selectedMethod === 'CARD'"
+        [class.btn-outline-secondary]="selectedMethod !== 'CARD'"
+        (click)="selectedMethod = 'CARD'"
+      >
+        Tarjeta
+      </button>
+      <button
+        type="button"
+        class="btn py-2"
+        [class.btn-primary]="selectedMethod === 'TRANSFER'"
+        [class.btn-outline-secondary]="selectedMethod !== 'TRANSFER'"
+        (click)="selectedMethod = 'TRANSFER'"
+      >
+        Transferencia
+      </button>
+    </div>
+  </div>
+
+  @if (selectedMethod === 'CASH') {
+    <div class="mb-3">
+      <label class="form-label small fw-semibold text-secondary mb-1">Efectivo Recibido (RD$)</label>
+      <input
+        type="number"
+        class="form-control form-control-lg text-end font-monospace fw-bold"
+        placeholder="0.00"
+        [value]="receivedCash"
+        (input)="onCashInput($event)"
+      />
+      @if (receivedCash >= totalToPay && totalToPay > 0) {
+        <div class="d-flex justify-content-between pt-2 text-success fw-bold">
+          <span>Cambio / Devuelta:</span>
+          <span class="font-monospace">RD$ {{ (receivedCash - totalToPay) | number:'1.2-2' }}</span>
+        </div>
+      }
+    </div>
+  }
+
+  <div class="d-grid gap-2 mt-4">
+    <button
+      type="button"
+      class="btn btn-success btn-lg fw-bold py-2 shadow-sm"
+      [disabled]="selectedMethod === 'CASH' && receivedCash < totalToPay"
+      (click)="finalizePayment()"
+    >
+      Confirmar Cobro e Imprimir Ticket
+    </button>
+    <a [routerLink]="['/pos']" class="btn btn-outline-secondary">
+      Volver al Ticket
+    </a>
+  </div>
+</div>

@@ -1,0 +1,438 @@
+.detail-modal-container {
+  max-width: 820px;
+  width: min(96vw, 820px);
+  max-height: 92vh;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  margin: auto;
+
+  .custom-modal-header {
+    flex-shrink: 0;
+    padding: 1rem 1.25rem 0.6rem;
+  }
+
+  .custom-modal-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(92vh - 135px);
+    padding: 0.75rem 1.25rem 1rem;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.25);
+      border-radius: 4px;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.45);
+    }
+  }
+
+  .custom-modal-footer {
+    flex-shrink: 0;
+    padding: 0.75rem 1.25rem;
+    background: var(--cui-body-bg, #ffffff);
+    border-top: 1px solid var(--cui-border-color, #e2e8f0);
+    z-index: 5;
+  }
+}
+.modal-pay-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(79, 70, 229, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.client-summary-card {
+  background: var(--cui-tertiary-bg, #f8fafc);
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+.client-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.text-dark-indigo {
+  color: #4338ca;
+}
+.text-amber {
+  color: #d97706;
+}
+.badge-financial {
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+}
+.badge-pagada {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+.badge-parcial {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+.badge-pendiente {
+  background: #fefce8;
+  color: #a16207;
+  border: 1px solid #fef08a;
+}
+.badge-vencida {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+.nav-tabs-custom {
+  display: flex;
+  border-bottom: 1.5px solid var(--cui-border-color, #e2e8f0);
+  gap: 1.25rem;
+  overflow-x: auto;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 0.6rem 0.2rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--cui-secondary-color, #64748b);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.tab-btn:hover {
+  color: var(--cui-body-color, #1e293b);
+}
+.tab-btn.active {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+}
+.section-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--cui-body-color, #1e293b);
+  margin-bottom: 0.75rem;
+}
+.required-label::after {
+  content: ' *';
+  color: #ef4444;
+}
+.form-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--cui-secondary-color, #64748b);
+  margin-bottom: 0.3rem;
+}
+.currency-addon {
+  background-color: var(--cui-tertiary-bg, #f8fafc);
+  color: var(--cui-secondary-color, #475569);
+  font-size: 0.85rem;
+}
+.payment-history-table-box, .installments-table-box {
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.payment-history-table-box th, .installments-table-box th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--cui-tertiary-bg, #f8fafc);
+  color: var(--cui-secondary-color, #64748b);
+  font-weight: 600;
+}
+.btn-icon-action {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  transition: all 0.15s ease-in-out;
+}
+.btn-action-edit {
+  color: #4f46e5;
+}
+.btn-action-edit:hover {
+  background: rgba(79, 70, 229, 0.1);
+  color: #4338ca;
+}
+.btn-action-delete {
+  color: #ef4444;
+}
+.btn-action-delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+.badge-este-pago {
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 0.2rem 0.45rem;
+}
+.metrics-summary-bar {
+  background: var(--cui-tertiary-bg, #f8fafc);
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+  border-radius: 12px;
+  padding: 0.85rem 1.1rem;
+}
+.metrics-label {
+  font-size: 0.75rem;
+  color: var(--cui-secondary-color, #64748b);
+  display: block;
+}
+.metrics-val {
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+.progress-thin {
+  height: 6px;
+  border-radius: 4px;
+  background-color: rgba(79, 70, 229, 0.12);
+}
+.border-end-md {
+  border-right: 1px solid var(--cui-border-color, #e2e8f0);
+}
+@media (max-width: 767px) {
+  .border-end-md {
+    border-right: none;
+    border-bottom: 1px solid var(--cui-border-color, #e2e8f0);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+}
+.btn-primary-custom {
+  background: #4f46e5 !important;
+  border-color: #4f46e5 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+}
+.btn-primary-custom:hover {
+  background: #4338ca !important;
+  border-color: #4338ca !important;
+}
+
+// TIMELINE / ACTIVIDAD STYLES
+.timeline-container-card, .cuotas-breakdown-card {
+  background: var(--cui-card-bg, #ffffff);
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+  border-radius: 14px;
+}
+.timeline-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--cui-body-color, #0f172a);
+}
+.timeline-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+.timeline-list::before {
+  content: '';
+  position: absolute;
+  top: 22px;
+  bottom: 22px;
+  left: 21px;
+  width: 2px;
+  background: var(--cui-border-color, #e2e8f0);
+  z-index: 1;
+}
+.timeline-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 1.1rem;
+  z-index: 2;
+}
+.timeline-icon-bubble {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 3px solid var(--cui-card-bg, #ffffff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  &.icon-purple {
+    background: #ede9fe;
+    color: #6366f1;
+  }
+  &.icon-green {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+  &.icon-amber {
+    background: #ffedd5;
+    color: #ea580c;
+  }
+  &.icon-red {
+    background: #fee2e2;
+    color: #ef4444;
+  }
+}
+.timeline-content {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-top: 0.25rem;
+  gap: 0.75rem;
+}
+.timeline-item-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--cui-body-color, #1e293b);
+  margin-bottom: 0.15rem;
+}
+.timeline-item-subtitle {
+  font-size: 0.82rem;
+  color: var(--cui-secondary-color, #64748b);
+  margin-bottom: 0;
+}
+.timeline-item-date {
+  font-size: 0.8rem;
+  color: var(--cui-secondary-color, #64748b);
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.extra-small {
+  font-size: 0.72rem;
+}
+
+/* Voucher Upload Card */
+.voucher-upload-card {
+  background: var(--cui-tertiary-bg, #f8fafc);
+  border: 1.5px dashed var(--cui-border-color, #cbd5e1);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, 0.03);
+  }
+}
+
+.uploaded-voucher-preview {
+  background: var(--cui-card-bg, #ffffff);
+  border: 1px solid #10b981;
+}
+
+.voucher-icon-badge {
+  font-size: 1.15rem;
+  background: rgba(16, 185, 129, 0.12);
+  border-radius: 6px;
+  padding: 0.2rem 0.4rem;
+}
+
+.voucher-msg-pill {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+}
+
+/* Custom Cash Register Toggle Switch */
+.custom-cash-toggle {
+  background: var(--cui-tertiary-bg, #f8fafc);
+  border-color: var(--cui-border-color, #e2e8f0);
+
+  .form-check-input:checked {
+    background-color: #10b981;
+    border-color: #10b981;
+  }
+}
+
+/* Voucher Preview Modal */
+.preview-backdrop {
+  z-index: 1060;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.voucher-preview-dialog {
+  max-width: 650px;
+  width: 90%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.voucher-preview-img {
+  max-height: 60vh;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.voucher-preview-pdf {
+  height: 60vh;
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+}
+
+@media (max-width: 768px) {
+  .detail-modal-container {
+    width: 98vw;
+    max-height: 96vh;
+    border-radius: 12px;
+
+    .custom-modal-header {
+      padding: 0.75rem 1rem 0.4rem;
+    }
+
+    .custom-modal-body {
+      max-height: calc(96vh - 120px);
+      padding: 0.5rem 0.85rem 0.75rem;
+    }
+
+    .custom-modal-footer {
+      padding: 0.5rem 0.85rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+
+      button {
+        flex: 1 1 auto;
+      }
+    }
+  }
+
+  .client-summary-card {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .nav-tabs-custom {
+    gap: 0.6rem;
+  }
+}
+

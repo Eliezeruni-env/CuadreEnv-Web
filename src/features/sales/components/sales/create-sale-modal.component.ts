@@ -16,7 +16,7 @@ import {
   FormDirective,
   RowComponent,
   SpinnerComponent,
-  FormSelectDirective
+  FormSelectDirective,
 } from '@coreui/angular';
 
 @Component({
@@ -32,112 +32,9 @@ import {
     ColComponent,
     SpinnerComponent,
     FormSelectDirective,
-    IconDirective
+    IconDirective,
   ],
-  template: `
-    @if (visible) {
-      <div class="custom-modal-backdrop" (click)="close()">
-        <div class="custom-modal-content modal-lg" (click)="$event.stopPropagation()">
-          <div class="custom-modal-header">
-            <h5 class="fw-bold">{{ translationService.t('sales.modal.createTitle') }}</h5>
-            <button type="button" class="btn-close" (click)="close()" aria-label="Close"></button>
-          </div>
-          <div class="custom-modal-body">
-            <form cForm [formGroup]="saleForm">
-              <c-row>
-                <c-col md="6" class="mb-3">
-                  <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('sales.modal.selectCustomer') }}</label>
-                  <select cSelect formControlName="customerId">
-                    <option value="">General Public</option>
-                    @for (c of customers(); track c.id) {
-                      <option [value]="c.id">{{ c.name }}</option>
-                    }
-                  </select>
-                </c-col>
-
-                <c-col md="6" class="mb-3">
-                  <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('cashRegister.title') }}</label>
-                  <select cSelect formControlName="cashRegisterId">
-                    <option value="">{{ translationService.t('common.select') }}</option>
-                    @for (r of registers(); track r.id) {
-                      <option [value]="r.id">{{ r.name }}</option>
-                    }
-                  </select>
-                </c-col>
-              </c-row>
-
-              <!-- Items Section -->
-              <div class="mb-4 mt-2">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <h6 class="fw-bold text-dark mb-0">{{ translationService.t('sales.modal.addProduct') }}</h6>
-                  <button type="button" cButton color="primary" size="sm" class="py-1" (click)="addItem()">
-                    {{ translationService.t('common.add') }}
-                  </button>
-                </div>
-
-                <div class="border rounded bg-light p-2">
-                  @if (items.length === 0) {
-                    <div class="text-center py-3 text-secondary small">{{ translationService.t('common.noResults') }}</div>
-                  } @else {
-                    <div formArrayName="items">
-                      @for (item of items.controls; track $index; let idx = $index) {
-                        <div [formGroupName]="idx" class="row g-2 mb-2 align-items-end">
-                          <div class="col-md-5">
-                            <label class="small text-secondary mb-1">{{ translationService.t('products.table.product') }} *</label>
-                            <select cSelect formControlName="productId">
-                              <option value="" disabled selected>{{ translationService.t('common.select') }}</option>
-                              @for (p of products(); track p.id) {
-                                <option [value]="p.id">{{ p.description }}</option>
-                              }
-                            </select>
-                          </div>
-                          <div class="col-md-3">
-                            <label class="small text-secondary mb-1">{{ translationService.t('sales.modal.quantity') }} *</label>
-                            <input type="number" formControlName="quantity" cFormControl />
-                          </div>
-                          <div class="col-md-3">
-                            <label class="small text-secondary mb-1">{{ translationService.t('sales.modal.unitPrice') }} *</label>
-                            <input type="number" formControlName="unitPrice" cFormControl />
-                          </div>
-                          <div class="col-md-1 text-center">
-                            <button type="button" cButton color="danger" size="sm" variant="ghost" class="mb-1" (click)="removeItem(idx)">
-                              <svg cIcon name="cilTrash"></svg>
-                            </button>
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-              </div>
-
-              <c-row class="border-top pt-3 mt-3 align-items-center">
-                <c-col md="6">
-                  <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('sales.table.paid') }} *</label>
-                  <input type="number" formControlName="paidAmount" cFormControl />
-                </c-col>
-                <c-col md="6" class="text-end">
-                  <div class="text-secondary small">{{ translationService.t('sales.modal.grandTotal') }}</div>
-                  <h2 class="fw-bold text-dark mb-0">\${{ calculateTotal() | number:'1.2-2' }}</h2>
-                </c-col>
-              </c-row>
-            </form>
-          </div>
-          <div class="custom-modal-footer">
-            <button cButton color="light" class="border" (click)="close()">{{ translationService.t('common.cancel') }}</button>
-            <button cButton color="primary" [disabled]="isLoading() || saleForm.invalid || items.length === 0" (click)="saveSale()">
-              @if (isLoading()) {
-                <c-spinner size="sm" class="me-2"></c-spinner>
-                {{ translationService.t('common.loading') }}
-              } @else {
-                {{ translationService.t('sales.modal.saveSale') }}
-              }
-            </button>
-          </div>
-        </div>
-      </div>
-    }
-  `
+  templateUrl: './create-sale-modal.component.html',
 })
 export class CreateSaleModalComponent implements OnInit {
   readonly translationService = inject(TranslationService);
@@ -158,61 +55,35 @@ export class CreateSaleModalComponent implements OnInit {
     private registerService: CashRegisterService,
     private saleService: SaleService,
     private notificationService: NotificationService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
   ) {
     this.saleForm = this.fb.group({
       customerId: [''],
       cashRegisterId: [''],
       paidAmount: [0, [Validators.required, Validators.min(0)]],
-      items: this.fb.array([])
+      items: this.fb.array([], [Validators.required]),
     });
-  }
-
-  ngOnInit() {
-    this.loadMetadata();
   }
 
   get items(): FormArray {
     return this.saleForm.get('items') as FormArray;
   }
 
-  addItem() {
-    const itemGroup = this.fb.group({
-      productId: ['', Validators.required],
-      quantity: [1, [Validators.required, Validators.min(1)]],
-      unitPrice: [0, [Validators.required, Validators.min(0)]]
-    });
-
-    itemGroup.get('productId')?.valueChanges.subscribe(pId => {
-      const prod = this.products().find(p => p.id === parseInt(pId || '', 10));
-      if (prod) {
-        itemGroup.patchValue({ unitPrice: prod.cost * 1.3 });
-      }
-    });
-
-    this.items.push(itemGroup);
+  ngOnInit() {
+    this.loadInitialData();
   }
 
-  removeItem(index: number) {
-    this.items.removeAt(index);
-  }
-
-  calculateTotal(): number {
-    return this.items.controls.reduce((acc, ctrl) => {
-      const quantity = ctrl.get('quantity')?.value || 0;
-      const price = ctrl.get('unitPrice')?.value || 0;
-      return acc + (quantity * price);
-    }, 0);
-  }
-
-  async loadMetadata() {
+  async loadInitialData() {
     try {
       const pRes = await this.productService.getPagedProducts(1, 100);
       if (pRes.success && pRes.data) {
         this.products.set(pRes.data.items || []);
       }
 
-      const cRes = await this.customerService.getCustomers();
+      const cRes = await this.customerService.getCustomers({
+        pageNumber: 1,
+        pageSize: 100,
+      });
       if (cRes.success && cRes.data) {
         this.customers.set(cRes.data);
       }
@@ -221,24 +92,75 @@ export class CreateSaleModalComponent implements OnInit {
       if (rRes.success && rRes.data) {
         this.registers.set(rRes.data);
       }
-    } catch (e) {
-      console.error('Failed to load modal metadata', e);
+    } catch (e: any) {
+      console.error('Failed to load modal dependencies:', e?.message || e);
     }
   }
 
-  reset() {
-    this.saleForm.reset({
-      customerId: '',
-      cashRegisterId: '',
-      paidAmount: 0
-    });
-    this.items.clear();
-    this.addItem();
+  open() {
+    this.visible = true;
+    this.visibleChange.emit(true);
   }
 
   close() {
     this.visible = false;
     this.visibleChange.emit(false);
+    this.resetForm();
+  }
+
+  addItem() {
+    const itemGroup = this.fb.group({
+      productId: ['', Validators.required],
+      quantity: [1, [Validators.required, Validators.min(1)]],
+      unitPrice: [0, [Validators.required, Validators.min(0)]],
+    });
+
+    itemGroup.get('productId')?.valueChanges.subscribe((prodId) => {
+      const p = this.products().find((x) => x.id === Number(prodId));
+      if (p) {
+        const price = p.cost ? p.cost * 1.3 : 0;
+        itemGroup.patchValue({ unitPrice: price }, { emitEvent: false });
+        this.recalculatePaid();
+      }
+    });
+
+    itemGroup.get('quantity')?.valueChanges.subscribe(() => {
+      this.recalculatePaid();
+    });
+
+    itemGroup.get('unitPrice')?.valueChanges.subscribe(() => {
+      this.recalculatePaid();
+    });
+
+    this.items.push(itemGroup);
+  }
+
+  removeItem(index: number) {
+    this.items.removeAt(index);
+    this.recalculatePaid();
+  }
+
+  calculateTotal(): number {
+    let total = 0;
+    for (const control of this.items.controls) {
+      const q = control.get('quantity')?.value || 0;
+      const p = control.get('unitPrice')?.value || 0;
+      total += q * p;
+    }
+    return total;
+  }
+
+  recalculatePaid() {
+    this.saleForm.patchValue({ paidAmount: this.calculateTotal() });
+  }
+
+  resetForm() {
+    this.saleForm.reset({
+      customerId: '',
+      cashRegisterId: '',
+      paidAmount: 0,
+    });
+    this.items.clear();
   }
 
   async saveSale() {
@@ -248,34 +170,29 @@ export class CreateSaleModalComponent implements OnInit {
     }
 
     this.isLoading.set(true);
-    const formVal = this.saleForm.value;
+
+    const val = this.saleForm.value;
     const total = this.calculateTotal();
 
-    const saleDetails = formVal.items.map((i: any) => ({
-      productId: parseInt(i.productId, 10),
-      quantity: i.quantity,
-      unitPrice: i.unitPrice
-    }));
+    const payload = {
+      customerId: val.customerId ? Number(val.customerId) : null,
+      cashRegisterId: val.cashRegisterId ? Number(val.cashRegisterId) : null,
+      total: total,
+      paidAmount: Number(val.paidAmount),
+      details: val.items.map((i: any) => ({
+        productId: Number(i.productId),
+        quantity: Number(i.quantity),
+        unitPrice: Number(i.unitPrice),
+      })),
+    };
 
     try {
-      const res = await this.saleService.createSale({
-        customerId: formVal.customerId ? parseInt(formVal.customerId, 10) : null,
-        cashRegisterId: formVal.cashRegisterId ? parseInt(formVal.cashRegisterId, 10) : null,
-        total,
-        paidAmount: formVal.paidAmount,
-        dueDate: null,
-        details: saleDetails
-      });
-
-      if (res.success) {
-        this.notificationService.success('Sale registered successfully!');
-        this.saved.emit();
-        this.close();
-      } else {
-        this.notificationService.error(res.message || 'Failed to create sale.');
-      }
+      await this.saleService.createSale(payload);
+      this.notificationService.success(this.translationService.t('sales.modal.createdSuccess'));
+      this.saved.emit();
+      this.close();
     } catch (e: any) {
-      this.notificationService.error(e?.response?.data?.message || e?.message || 'Error saving sale.');
+      this.notificationService.showApiError(e);
     } finally {
       this.isLoading.set(false);
     }

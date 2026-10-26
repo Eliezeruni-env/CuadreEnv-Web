@@ -1,115 +1,198 @@
-<c-container breakpoint="lg" class="py-4">
+<div class="container-fluid py-3 list-users-container">
   <!-- Alerts -->
   @if (errorMessage()) {
-  <c-alert color="danger" dismissible class="mb-4">
-    {{ errorMessage() }}
-  </c-alert>
+    <c-alert color="danger" dismissible class="mb-3">
+      {{ errorMessage() }}
+    </c-alert>
   }
   @if (successMessage()) {
-  <c-alert color="success" dismissible class="mb-4">
-    {{ successMessage() }}
-  </c-alert>
+    <c-alert color="success" dismissible class="mb-3">
+      {{ successMessage() }}
+    </c-alert>
   }
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <!-- Top Bar -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
     <div>
-      <h2 class="fw-bold text-dark mb-1">{{ translationService.t('users.title') }}</h2>
-      <p class="text-body-secondary mb-0">{{ translationService.t('users.subtitle') }}</p>
+      <div class="d-flex align-items-center gap-2">
+        <h4 class="fw-bold mb-0 text-dark">Equipo de Trabajo</h4>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill font-size-sm">
+          🏢 {{ activeCompanyName() }}
+        </span>
+      </div>
+      <small class="text-secondary">Gestión de usuarios y personal autorizados para {{ activeCompanyName() }}</small>
     </div>
-    @if (authService.hasRole(['Admin'])) {
-    <button cButton color="primary" class="d-flex align-items-center py-2 px-3 shadow-sm border-0"
-      (click)="openInviteModal()">
-      <svg cIcon name="cilPlus" class="me-2"></svg>
-      {{ translationService.t('users.new') }}
-    </button>
-    }
+
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadUsers()">
+        Recargar
+      </button>
+
+      @if (authService.hasRole(['Admin'])) {
+        <button class="btn btn-cuadre-primary fw-semibold shadow-xs d-flex align-items-center gap-1.5 px-3" (click)="openInviteModal()">
+          Invitar por Enlace
+        </button>
+        <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openEmployeeModal()">
+          <span>+ Nuevo Empleado</span>
+        </button>
+      }
+    </div>
   </div>
 
-  <app-filter-panel [title]="translationService.t('users.filterTitle')" [config]="filterConfig" [values]="filters()"
-    (filtersChange)="onFiltersChange($event)"></app-filter-panel>
+  <!-- Filter Panel -->
+  <app-filter-panel
+    [title]="translationService.t('users.filterTitle')"
+    [config]="filterConfig()"
+    [values]="filters()"
+    (filtersChange)="onFiltersChange($event)"
+  ></app-filter-panel>
 
-  <c-card class="shadow-sm border-0 mb-4">
-    <c-card-body class="p-0">
+  <!-- Users Table Card -->
+  <div class="card shadow-sm border-0 mb-3 billing-table-card rounded-4 overflow-hidden">
+    <div class="card-body p-0">
       @if (isLoading() && users().length === 0) {
-      <div class="py-5 text-center">
-        <c-spinner color="primary" class="mb-3"></c-spinner>
-        <p class="text-body-secondary mb-0">{{ translationService.t('common.loading') }}</p>
-      </div>
+        <div class="py-5 text-center text-muted">
+          <c-spinner color="primary" class="mb-2"></c-spinner>
+          <p class="small mb-0">{{ translationService.t('common.loading') }}</p>
+        </div>
       } @else if (users().length === 0) {
-      <!-- Empty State -->
-      <div class="py-5 text-center px-4">
-        <svg cIcon name="cilPeople" size="xl" class="text-body-secondary mb-3" style="width: 48px; height: 48px;"></svg>
-        <h4 class="fw-bold text-dark">{{ translationService.t('users.emptyTitle') }}</h4>
-        <p class="text-body-secondary mt-1">{{ translationService.t('users.emptyBody') }}</p>
-      </div>
+        <div class="py-5 text-center px-4">
+          <h5 class="fw-bold text-dark">No hay empleados registrados en {{ activeCompanyName() }}</h5>
+          <p class="text-secondary small max-width-320 mx-auto">Comienza agregando los miembros de tu equipo para que accedan al sistema con su rol correspondiente.</p>
+          @if (authService.hasRole(['Admin'])) {
+            <button class="btn btn-cuadre-primary mt-2 px-4" (click)="openEmployeeModal()">
+              + Registrar Primer Empleado
+            </button>
+          }
+        </div>
       } @else {
-      <app-table [columns]="columns" [rows]="getFilteredUsers()" [loading]="isLoading()"
-        [emptyMessage]="translationService.t('users.emptyBody')" [rowTemplate]="userRowTpl">
-      </app-table>
-
-      <ng-template #userRowTpl let-u>
-        <tr>
-          <td class="ps-4 font-monospace small">#{{ u.id }}</td>
-          <td>
-            <div class="fw-semibold text-dark">{{ u.firstName || '-' }} {{ u.lastName || '' }}</div>
-            <div class="text-body-secondary small">Username: {{ u.userName || 'Not set' }}</div>
-          </td>
-          <td>{{ u.email }}</td>
-          <td>
-            @if (authService.hasRole(['Admin']) && u.id !== authService.currentUser()?.id) {
-            <select cSelect size="sm" class="form-select-sm" (change)="changeUserRole(u, $event)">
-              <option value="Admin" [selected]="u.role === 'Admin'">Admin</option>
-              <option value="Manager" [selected]="u.role === 'Manager'">Manager</option>
-              <option value="Employee" [selected]="u.role === 'Employee'">Employee</option>
-            </select>
-            } @else {
-            <span class="badge bg-light text-dark border">{{ u.role }}</span>
-            }
-          </td>
-          <td class="text-center">
-            <span
-              [ngClass]="u.active ? 'badge bg-success-subtle text-success border border-success' : 'badge bg-danger-subtle text-danger border border-danger'">
-              {{ u.active ? 'Active' : 'Inactive' }}
-            </span>
-          </td>
-          <td class="text-center pe-4 action-cell">
-            <div class="desktop-actions d-flex justify-content-center gap-1">
-              @if (authService.hasRole(['Admin']) && u.id !== authService.currentUser()?.id) {
-              <button cButton [color]="u.active ? 'danger' : 'success'" size="sm" class="py-1 px-3 border-0 text-white"
-                (click)="toggleDeactivation(u)">
-                {{ u.active ? 'Deactivate' : 'Reactivate' }}
-              </button>
-              } @else {
-              <span class="text-muted small">-</span>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 master-detail-table">
+            <thead class="table-light text-secondary text-uppercase font-size-xs">
+              <tr>
+                <th class="ps-3" style="width: 60px;">ID</th>
+                <th>Colaborador / Empleado</th>
+                <th>Contacto</th>
+                <th>Rol en la Empresa</th>
+                <th class="text-center">Estado</th>
+                <th class="text-center pe-3" style="width: 240px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (u of pagedUsers(); track u.id) {
+                <tr class="master-row">
+                  <td class="ps-3 font-monospace text-muted small">#{{ u.id }}</td>
+                  <td>
+                    <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                      <span class="fw-bold text-dark">{{ u.firstName || '-' }} {{ u.lastName || '' }}</span>
+                      @if (u.isSuperUser) {
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-monospace" style="font-size: 0.7rem;">SuperUser</span>
+                      }
+                    </div>
+                    @if (u.userName) {
+                      <div class="text-muted small font-monospace">@{{ u.userName }}</div>
+                    }
+                  </td>
+                  <td>
+                    <div class="text-dark small">{{ u.email }}</div>
+                    @if (u.phoneNumber) {
+                      <div class="text-muted small font-monospace">{{ u.phoneNumber }}</div>
+                    }
+                  </td>
+                  <td>
+                    @if (u.roles && u.roles.length > 1) {
+                      <div class="d-flex flex-wrap gap-1" style="max-width: 170px;">
+                        @for (r of u.roles; track r) {
+                          <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill" style="font-size: 0.68rem;">
+                            {{ r }}
+                          </span>
+                        }
+                      </div>
+                    } @else if (authService.hasRole(['Admin']) && u.id !== authService.currentUser()?.id) {
+                      <select class="form-select form-select-sm" style="max-width: 140px;" (change)="changeUserRole(u, $event)">
+                        <option value="Employee" [selected]="u.role === 'Employee'">Empleado</option>
+                        <option value="Vendedor" [selected]="u.role === 'Vendedor'">Vendedor</option>
+                        <option value="Cajero" [selected]="u.role === 'Cajero'">Cajero</option>
+                        <option value="Supervisor" [selected]="u.role === 'Supervisor'">Supervisor</option>
+                        <option value="Manager" [selected]="u.role === 'Manager'">Manager</option>
+                        <option value="Admin" [selected]="u.role === 'Admin'">Admin</option>
+                      </select>
+                    } @else {
+                      <span class="badge px-2.5 py-1 rounded-pill" [ngClass]="u.role === 'Admin' ? 'status-badge-primary' : 'status-badge-neutral'">
+                        {{ u.role === 'Employee' ? 'Empleado' : (u.role || 'Empleado') }}
+                      </span>
+                    }
+                  </td>
+                  <td class="text-center">
+                    <span
+                      class="badge px-2.5 py-1 rounded-pill"
+                      [ngClass]="u.active !== false ? 'status-badge-success' : 'status-badge-danger'">
+                      {{ u.active !== false ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </td>
+                  <td class="text-center pe-3">
+                    @if (authService.hasRole(['Admin']) && u.id !== authService.currentUser()?.id) {
+                      <div class="d-flex align-items-center justify-content-center gap-1">
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-secondary py-0.5 px-2"
+                          title="Editar colaborador"
+                          (click)="editUser(u)"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm py-0.5 px-2"
+                          [ngClass]="u.active !== false ? 'btn-outline-warning' : 'btn-outline-success'"
+                          [title]="u.active !== false ? 'Desactivar usuario' : 'Reactivar usuario'"
+                          (click)="toggleDeactivation(u)"
+                        >
+                          {{ u.active !== false ? 'Desactivar' : 'Activar' }}
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-info py-0.5 px-2"
+                          title="Restablecer contraseña"
+                          (click)="resetUserPassword(u)"
+                        >
+                          Clave
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-danger py-0.5 px-2"
+                          title="Eliminar usuario"
+                          (click)="deleteUser(u)"
+                        >
+                          Borrar
+                        </button>
+                      </div>
+                    } @else {
+                      <span class="badge bg-light text-muted border">Tu cuenta</span>
+                    }
+                  </td>
+                </tr>
               }
-            </div>
+            </tbody>
+          </table>
+        </div>
 
-            <details class="mobile-actions">
-              <summary class="btn btn-light btn-sm">⋯</summary>
-              <div class="mobile-actions-menu">
-                @if (authService.hasRole(['Admin']) && u.id !== authService.currentUser()?.id) {
-                <button cButton [color]="u.active ? 'danger' : 'success'" size="sm"
-                  class="py-1 px-3 mb-1 w-100 text-white" (click)="toggleDeactivation(u)">
-                  {{ u.active ? 'Deactivate' : 'Reactivate' }}
-                </button>
-                } @else {
-                <div class="text-muted small p-2">-</div>
-                }
-              </div>
-            </details>
-          </td>
-        </tr>
-      </ng-template>
+        <!-- Paginador Moderno -->
+        <kt-paginator
+          [currentPage]="currentPage()"
+          [totalItems]="totalItems()"
+          [pageSize]="pageSize"
+          (pageChange)="onPageChange($event)"
+        ></kt-paginator>
       }
-    </c-card-body>
-  </c-card>
+    </div>
+  </div>
+</div>
 
-  @if (!isLoading() && getFilteredUsersCount() > 0) {
-  <app-list-pagination [currentPage]="currentPage()" [totalItems]="getFilteredUsersCount()" [pageSize]="pageSize"
-    [label]="'usuarios'" (pageChange)="onPageChange($event)"></app-list-pagination>
-  }
-</c-container>
-
-<!-- Custom Decoupled Invite Modal component -->
+<!-- Modal de Invitación por Enlace -->
 <app-invite-modal #inviteModal [(visible)]="isModalOpen" (saved)="loadUsers()">
 </app-invite-modal>
+
+<!-- Modal de Creación de Empleados Directo -->
+<app-employee-modal #employeeModal [(visible)]="isEmployeeModalOpen" (saved)="loadUsers()">
+</app-employee-modal>

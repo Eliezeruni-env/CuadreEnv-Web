@@ -1,5 +1,5 @@
 <div class="table-skeleton" *ngIf="loading">
-    <div class="skeleton-row" *ngFor="let n of [1,2,3,4]"></div>
+    <div class="skeleton-row" *ngFor="let n of [1,2,3,4]; trackBy: trackByIndex"></div>
 </div>
 
 <div class="empty-state text-center p-4" *ngIf="!loading && rows.length === 0">
@@ -11,17 +11,17 @@
     <table cTable hover class="mb-0 border-0">
         <thead class="table-light text-uppercase font-size-xs fw-bold text-secondary">
             <tr>
-                <th *ngFor="let col of columns" scope="col">{{ col.label }}</th>
+                <th *ngFor="let col of columns; trackBy: trackByField" scope="col" [class]="col.align ? 'text-' + col.align : ''">{{ col.label }}</th>
             </tr>
         </thead>
         <tbody>
-            <ng-container *ngFor="let row of rows">
+            <ng-container *ngFor="let row of rows; trackBy: trackById">
                 <ng-container *ngIf="rowTemplate; else defaultRow">
                     <ng-container *ngTemplateOutlet="rowTemplate; context: { $implicit: row }"></ng-container>
                 </ng-container>
                 <ng-template #defaultRow>
                     <tr>
-                        <td *ngFor="let col of columns">{{ row[col.field] }}</td>
+                        <td *ngFor="let col of columns; trackBy: trackByField">{{ row[col.field] }}</td>
                     </tr>
                 </ng-template>
             </ng-container>

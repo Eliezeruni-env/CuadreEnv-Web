@@ -1,0 +1,130 @@
+/**
+ * CuadreEnv & USM Design System Tokens (Shared Standard)
+ * Compatible with Angular (SCSS/CSS Custom Properties) and React (Tailwind/CSS Modules).
+ * WCAG AA Compliant Contrast (> 4.5:1 for normal text, > 3:1 for large UI components).
+ */
+
+:root {
+  /* ==========================================================================
+     1. Color Palette: Primary & Accents
+     ========================================================================== */
+  --cuadre-color-primary: #2563eb;          /* Blue 600 */
+  --cuadre-color-primary-hover: #1d4ed8;    /* Blue 700 */
+  --cuadre-color-primary-light: #eff6ff;    /* Blue 50 */
+  --cuadre-color-primary-border: #bfdbfe;   /* Blue 200 */
+
+  --cuadre-color-success: #10b981;          /* Emerald 500 */
+  --cuadre-color-success-hover: #059669;    /* Emerald 600 */
+  --cuadre-color-success-light: #ecfdf5;    /* Emerald 50 */
+  --cuadre-color-success-border: #a7f3d0;   /* Emerald 200 */
+
+  --cuadre-color-warning: #f59e0b;          /* Amber 500 */
+  --cuadre-color-warning-hover: #d97706;    /* Amber 600 */
+  --cuadre-color-warning-light: #fffbeb;    /* Amber 50 */
+  --cuadre-color-warning-border: #fde68a;   /* Amber 200 */
+
+  --cuadre-color-danger: #ef4444;           /* Red 500 */
+  --cuadre-color-danger-hover: #dc2626;     /* Red 600 */
+  --cuadre-color-danger-light: #fef2f2;     /* Red 50 */
+  --cuadre-color-danger-border: #fecaca;    /* Red 200 */
+
+  /* ==========================================================================
+     2. Neutral & High-Contrast Typography (WCAG AA Compliant)
+     ========================================================================== */
+  --cuadre-text-main: #0f172a;              /* Slate 900 - Contrast 16:1 against #ffffff */
+  --cuadre-text-body: #1e293b;              /* Slate 800 - Contrast 12.5:1 against #ffffff */
+  --cuadre-text-muted: #475569;             /* Slate 600 - Contrast 5.5:1 against #ffffff (WCAG AA PASS) */
+  --cuadre-text-inverse: #ffffff;
+
+  --cuadre-bg-body: #f8fafc;                /* Slate 50 */
+  --cuadre-bg-surface: #ffffff;
+  --cuadre-bg-subtle: #f1f5f9;              /* Slate 100 */
+
+  --cuadre-border-color: #e2e8f0;           /* Slate 200 */
+  --cuadre-border-color-focus: #3b82f6;     /* Blue 500 */
+
+  /* ==========================================================================
+     3. Ergonomics & Tap Targets (Minimum 44px for Touch Screens & POS Keypads)
+     ========================================================================== */
+  --cuadre-tap-target-min: 44px;
+  --cuadre-tap-target-lg: 48px;
+  --cuadre-keypad-btn-height: 52px;
+
+  /* ==========================================================================
+     4. Spacing Scale (8pt Grid System)
+     ========================================================================== */
+  --cuadre-space-1: 0.25rem;  /* 4px */
+  --cuadre-space-2: 0.5rem;   /* 8px */
+  --cuadre-space-3: 0.75rem;  /* 12px */
+  --cuadre-space-4: 1rem;     /* 16px */
+  --cuadre-space-5: 1.25rem;  /* 20px */
+  --cuadre-space-6: 1.5rem;   /* 24px */
+  --cuadre-space-8: 2rem;     /* 32px */
+
+  /* ==========================================================================
+     5. Border Radius & Elevation
+     ========================================================================== */
+  --cuadre-radius-sm: 0.25rem; /* 4px */
+  --cuadre-radius-md: 0.5rem;  /* 8px */
+  --cuadre-radius-lg: 0.75rem; /* 12px */
+  --cuadre-radius-xl: 1rem;    /* 16px */
+
+  --cuadre-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --cuadre-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --cuadre-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* Deep Space Navy & Silicon Valley Glass Palette */
+  --cuadre-navy-950: #020617;
+  --cuadre-navy-900: #0f172a;
+  --cuadre-navy-800: #1e293b;
+  --cuadre-navy-700: #334155;
+  --cuadre-glass-bg: rgba(255, 255, 255, 0.82);
+  --cuadre-glass-border: rgba(15, 23, 42, 0.08);
+  --cuadre-glass-blur: blur(16px);
+  --cuadre-card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --cuadre-card-shadow-hover: 0 12px 30px -4px rgba(15, 23, 42, 0.1), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+
+  /* ==========================================================================
+     6. CuadreEnv Mobile SaaS Flat Tokens (Stripe / Linear Native Standard)
+     ========================================================================== */
+  --cuadre-color-navy: #0F172A;
+  --cuadre-color-success-text: #047857;
+  --cuadre-color-warning-text: #B45309;
+  --cuadre-color-danger-text: #B91C1C;
+  --cuadre-color-info-text: #1D4ED8;
+  --cuadre-color-info-light: #EFF6FF;
+
+  --cuadre-bg-canvas: #F8FAFC;
+  --cuadre-bg-card: #FFFFFF;
+  --cuadre-border-input: #CBD5E1;
+
+  --cuadre-radius-card: 14px;
+  --cuadre-radius-btn: 12px;
+  --cuadre-radius-input: 12px;
+  --cuadre-radius-chip: 10px;
+  --cuadre-radius-sheet: 20px;
+  --cuadre-radius-badge: 999px;
+
+  --cuadre-card-shadow-flat: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --cuadre-font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Dark mode theme token overrides */
+[data-coreui-theme='dark'],
+.dark-theme {
+  --cuadre-text-main: #f8fafc;
+  --cuadre-text-body: #e2e8f0;
+  --cuadre-text-muted: #94a3b8; /* Slate 400 - Contrast 6.1:1 on #0f172a (WCAG AA PASS) */
+  --cuadre-bg-body: #090d16;
+  --cuadre-bg-canvas: #090d16;
+  --cuadre-bg-surface: #0f172a;
+  --cuadre-bg-card: #0f172a;
+  --cuadre-bg-subtle: #1e293b;
+  --cuadre-border-color: #1e293b;
+  --cuadre-border-input: #334155;
+  --cuadre-glass-bg: rgba(15, 23, 42, 0.85);
+  --cuadre-glass-border: rgba(255, 255, 255, 0.09);
+  --cuadre-card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.35);
+  --cuadre-card-shadow-hover: 0 12px 36px -4px rgba(0, 0, 0, 0.5);
+  --cuadre-card-shadow-flat: 0 1px 2px rgba(0, 0, 0, 0.4);
+}

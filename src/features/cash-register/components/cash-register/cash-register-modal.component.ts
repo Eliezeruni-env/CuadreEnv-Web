@@ -29,123 +29,7 @@ import {
     SpinnerComponent,
     FormSelectDirective
   ],
-  template: `
-    @if (visible) {
-      <div class="custom-modal-backdrop" (click)="close()">
-        <div class="custom-modal-content" (click)="$event.stopPropagation()">
-          
-          <!-- 1. Open Register Modal Header -->
-          @if (mode === 'open') {
-            <div class="custom-modal-header">
-              <h5 class="fw-bold">{{ translationService.t('cashRegister.modal.openTitle') }}</h5>
-              <button type="button" class="btn-close" (click)="close()" aria-label="Close"></button>
-            </div>
-            <div class="custom-modal-body">
-              <form cForm [formGroup]="registerForm">
-                <div class="mb-3">
-                  <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('common.name') }} *</label>
-                  <input formControlName="name" cFormControl [placeholder]="translationService.t('common.name')" />
-                </div>
-              </form>
-            </div>
-            <div class="custom-modal-footer">
-              <button cButton color="light" class="border" (click)="close()">{{ translationService.t('common.cancel') }}</button>
-              <button cButton color="primary" [disabled]="isLoading() || registerForm.invalid" (click)="openRegister()">
-                @if (isLoading()) {
-                  <c-spinner size="sm" class="me-2"></c-spinner>
-                  {{ translationService.t('common.loading') }}
-                } @else {
-                  {{ translationService.t('cashRegister.openSession') }}
-                }
-              </button>
-            </div>
-          }
-
-          <!-- 2. Close Register Modal Header -->
-          @if (mode === 'close' && selectedRegister) {
-            <div class="custom-modal-header">
-              <h5 class="fw-bold">{{ translationService.t('cashRegister.modal.closeTitle') }}</h5>
-              <button type="button" class="btn-close" (click)="close()" aria-label="Close"></button>
-            </div>
-            <div class="custom-modal-body">
-              <form cForm [formGroup]="closeForm">
-                <div class="mb-3">
-                  <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('cashRegister.modal.actualCash') }} *</label>
-                  <input type="number" formControlName="finalBalance" cFormControl />
-                </div>
-              </form>
-            </div>
-            <div class="custom-modal-footer">
-              <button cButton color="light" class="border" (click)="close()">{{ translationService.t('common.cancel') }}</button>
-              <button cButton color="danger" class="text-white border-0" [disabled]="isLoading() || closeForm.invalid" (click)="closeRegister()">
-                @if (isLoading()) {
-                  <c-spinner size="sm" class="me-2"></c-spinner>
-                  {{ translationService.t('common.loading') }}
-                } @else {
-                  {{ translationService.t('cashRegister.closeSession') }}
-                }
-              </button>
-            </div>
-          }
-
-          <!-- 3. Record Movement Modal Header -->
-          @if (mode === 'movement') {
-            <div class="custom-modal-header">
-              <h5 class="fw-bold">{{ translationService.t('cashRegister.modal.entryTitle') }}</h5>
-              <button type="button" class="btn-close" (click)="close()" aria-label="Close"></button>
-            </div>
-            <div class="custom-modal-body">
-              <form cForm [formGroup]="movementForm">
-                <div class="mb-3">
-                  <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('cashRegister.title') }} *</label>
-                  <select cSelect formControlName="cashRegisterId">
-                    <option value="" disabled selected>{{ translationService.t('common.select') }}</option>
-                    @for (r of registers(); track r.id) {
-                      @if (r.isOpen) {
-                        <option [value]="r.id">{{ r.name }}</option>
-                      }
-                    }
-                  </select>
-                </div>
-
-                <c-row>
-                  <c-col md="6" class="mb-3">
-                    <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('cashRegister.modal.amount') }} *</label>
-                    <input type="number" formControlName="amount" cFormControl />
-                  </c-col>
-
-                  <c-col md="6" class="mb-3">
-                    <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('common.type') }} *</label>
-                    <select cSelect formControlName="type">
-                      <option value="In">{{ translationService.t('cashRegister.cashIn') }}</option>
-                      <option value="Out">{{ translationService.t('cashRegister.cashOut') }}</option>
-                    </select>
-                  </c-col>
-                </c-row>
-
-                <div class="mb-3">
-                  <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('cashRegister.modal.reason') }}</label>
-                  <input formControlName="description" cFormControl [placeholder]="translationService.t('cashRegister.modal.reason')" />
-                </div>
-              </form>
-            </div>
-            <div class="custom-modal-footer">
-              <button cButton color="light" class="border" (click)="close()">{{ translationService.t('common.cancel') }}</button>
-              <button cButton color="primary" [disabled]="isLoading() || movementForm.invalid" (click)="saveMovement()">
-                @if (isLoading()) {
-                  <c-spinner size="sm" class="me-2"></c-spinner>
-                  {{ translationService.t('common.loading') }}
-                } @else {
-                  {{ translationService.t('common.save') }}
-                }
-              </button>
-            </div>
-          }
-          
-        </div>
-      </div>
-    }
-  `
+  templateUrl: './cash-register-modal.component.html',
 })
 export class CashRegisterModalComponent implements OnInit {
   readonly translationService = inject(TranslationService);
@@ -194,8 +78,8 @@ export class CashRegisterModalComponent implements OnInit {
       if (res.success && res.data) {
         this.registers.set(res.data);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error('Failed to load cash registers:', e?.message || e);
     }
   }
 
@@ -246,14 +130,14 @@ export class CashRegisterModalComponent implements OnInit {
     try {
       const res = await this.cashRegisterService.openCashRegister(name);
       if (res.success) {
-        this.notificationService.success(`Cash register "${name}" opened successfully!`);
+        this.notificationService.success(`Caja registradora "${name}" abierta exitosamente.`);
         this.saved.emit();
         this.close();
       } else {
-        this.notificationService.error(res.message || 'Failed to open register.');
+        this.notificationService.error(res.message || 'Error al abrir caja.');
       }
     } catch (e: any) {
-      this.notificationService.error(e?.response?.data?.message || e?.message || 'Error opening register.');
+      this.notificationService.showApiError(e);
     } finally {
       this.isLoading.set(false);
     }
@@ -270,11 +154,11 @@ export class CashRegisterModalComponent implements OnInit {
 
     try {
       await this.cashRegisterService.closeCashRegister(this.selectedRegister.id!, balance);
-      this.notificationService.success('Cash register closed successfully!');
+      this.notificationService.success('Caja registradora cerrada exitosamente.');
       this.saved.emit();
       this.close();
     } catch (e: any) {
-      this.notificationService.error(e?.response?.data?.message || e?.message || 'Error closing register.');
+      this.notificationService.showApiError(e);
     } finally {
       this.isLoading.set(false);
     }
@@ -296,11 +180,11 @@ export class CashRegisterModalComponent implements OnInit {
         type: val.type,
         description: val.description || null
       });
-      this.notificationService.success('Cash movement registered successfully!');
+      this.notificationService.success('Movimiento de caja registrado exitosamente.');
       this.saved.emit();
       this.close();
     } catch (e: any) {
-      this.notificationService.error(e?.response?.data?.message || e?.message || 'Error recording cash movement.');
+      this.notificationService.showApiError(e);
     } finally {
       this.isLoading.set(false);
     }

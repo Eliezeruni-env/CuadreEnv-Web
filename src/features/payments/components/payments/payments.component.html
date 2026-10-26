@@ -6,21 +6,91 @@
   </c-alert>
   }
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <!-- Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
-      <h2 class="fw-bold text-dark mb-1">{{ translationService.t('payments.title') }}</h2>
-      <p class="text-body-secondary mb-0">{{ translationService.t('payments.subtitle') }}</p>
+      <h2 class="fw-bold text-dark mb-1">Gestión de Pagos y Cuentas por Pagar</h2>
+      <p class="text-body-secondary mb-0">Control de abonos a proveedores, saldos de facturas de compras y métodos de pago.</p>
     </div>
     @if (authService.hasRole(['Admin', 'Manager'])) {
     <button cButton color="primary" class="d-flex align-items-center py-2 px-3 shadow-sm border-0"
       (click)="openCreateModal()">
       <svg cIcon name="cilPlus" class="me-2"></svg>
-      {{ translationService.t('payments.new') }}
+      Registrar Pago Directo
     </button>
     }
   </div>
 
-  <app-filter-panel [title]="translationService.t('payments.filterTitle')" [config]="filterConfig" [values]="filters()"
+  <!-- KPI Cards for Accounts Payable -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-3 h-100 bg-white border-start border-4 border-success">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <span class="text-muted small fw-semibold text-uppercase">Total Pagado a Proveedores</span>
+            <h3 class="fw-bold text-success mb-0 mt-1">RD$ {{ totalPaidToSuppliers() | number:'1.2-2' }}</h3>
+            <span class="text-muted small">{{ supplierPayments().length }} transacciones registradas</span>
+          </div>
+          <div class="p-3 bg-success bg-opacity-10 text-success rounded-circle">
+            <svg cIcon name="cilCheckCircle" size="xl"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-3 h-100 bg-white border-start border-4 border-warning">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <span class="text-muted small fw-semibold text-uppercase">Facturas Pendientes</span>
+            <h3 class="fw-bold text-warning mb-0 mt-1">{{ countPendingPurchases() }}</h3>
+            <span class="text-muted small">Compras con saldo por saldar</span>
+          </div>
+          <div class="p-3 bg-warning bg-opacity-10 text-warning rounded-circle">
+            <svg cIcon name="cilClock" size="xl"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-3 h-100 bg-white border-start border-4 border-danger">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <span class="text-muted small fw-semibold text-uppercase">Balance Total por Pagar</span>
+            <h3 class="fw-bold text-danger mb-0 mt-1">RD$ {{ totalPendingAmount() | number:'1.2-2' }}</h3>
+            <span class="text-muted small">Deuda acumulada a suplidores</span>
+          </div>
+          <div class="p-3 bg-danger bg-opacity-10 text-danger rounded-circle">
+            <svg cIcon name="cilDollar" size="xl"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <ul class="nav nav-pills mb-3 gap-2">
+    <li class="nav-item">
+      <button class="nav-link py-2 px-3 fw-semibold" [class.active]="activeTab() === 'payments'"
+        (click)="activeTab.set('payments')">
+        <svg cIcon name="cilCreditCard" class="me-1"></svg> Historial de Transacciones de Pagos
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link py-2 px-3 fw-semibold position-relative" [class.active]="activeTab() === 'pending'"
+        (click)="activeTab.set('pending')">
+        <svg cIcon name="cilDescription" class="me-1"></svg> Facturas de Compras y Cuentas por Pagar
+        @if (countPendingPurchases() > 0) {
+        <span class="badge bg-danger rounded-pill ms-2">{{ countPendingPurchases() }}</span>
+        }
+      </button>
+    </li>
+  </ul>
+
+  @if (activeTab() === 'payments') {
+  <!-- Payments History Tab -->
+  <app-filter-panel [title]="'Filtrar Pagos'" [config]="filterConfig()" [values]="filters()"
     (filtersChange)="onFiltersChange($event)"></app-filter-panel>
 
   <c-card class="shadow-sm border-0 mb-4">
@@ -31,43 +101,47 @@
         <p class="text-body-secondary mb-0">{{ translationService.t('common.loading') }}</p>
       </div>
       } @else if (payments().length === 0) {
-      <!-- Empty State -->
       <div class="py-5 text-center px-4">
         <svg cIcon name="cilCreditCard" size="xl" class="text-body-secondary mb-3"
           style="width: 48px; height: 48px;"></svg>
-        <h4 class="fw-bold text-dark">{{ translationService.t('payments.emptyTitle') }}</h4>
-        <p class="text-body-secondary mt-1 max-width-320 mx-auto">{{ translationService.t('payments.emptyBody') }}</p>
+        <h4 class="fw-bold text-dark">No hay pagos registrados</h4>
+        <p class="text-body-secondary mt-1 max-width-320 mx-auto">Comienza registrando un pago a proveedor o abono a compra.</p>
         <button cButton color="primary" class="mt-3 px-4" (click)="openCreateModal()">
-          {{ translationService.t('payments.first') }}
+          Registrar Primer Pago
         </button>
       </div>
       } @else {
-      <app-table [columns]="columns" [rows]="getFilteredPayments()" [loading]="isLoading()"
-        [emptyMessage]="translationService.t('payments.emptyBody')" [rowTemplate]="paymentRowTpl">
+      <app-table [columns]="columns" [rows]="pagedPayments()" [loading]="isLoading()"
+        [emptyMessage]="'No se encontraron pagos con los filtros aplicados.'" [rowTemplate]="paymentRowTpl">
       </app-table>
 
       <ng-template #paymentRowTpl let-p>
         <tr>
           <td class="ps-4 font-monospace small">#{{ p.id }}</td>
-          <td>{{ p.creationDate | date:'short' }}</td>
+          <td>{{ p.creationDate | date:'medium' }}</td>
           <td>
-            @if (p.saleId) {
-            <span class="text-primary fw-semibold">Sale #{{ p.saleId }}</span>
-            } @else if (p.purchaseId) {
-            <span class="text-info fw-semibold">Purchase #{{ p.purchaseId }}</span>
+            @if (p.purchaseId) {
+            <div>
+              <span class="text-primary fw-semibold">Compra #{{ p.purchaseId }}</span>
+              <div class="text-muted small">{{ getPurchaseSupplier(p.purchaseId) }}</div>
+            </div>
+            } @else if (p.saleId) {
+            <span class="text-success fw-semibold">Venta #{{ p.saleId }}</span>
             } @else {
-            <span class="text-muted">-</span>
+            <span class="text-muted">Abono General</span>
             }
           </td>
           <td>
             <span class="badge bg-light text-dark border">{{ p.method }}</span>
           </td>
-          <td>{{ p.reference || '-' }}</td>
-          <td class="text-end fw-bold text-dark">\${{ p.amount | number:'1.2-2' }}</td>
+          <td>
+            <span class="small font-monospace">{{ p.reference || '-' }}</span>
+          </td>
+          <td class="text-end fw-bold text-dark">RD$ {{ p.amount | number:'1.2-2' }}</td>
           <td class="text-center pe-4 action-cell">
             <div class="desktop-actions">
               @if (authService.hasRole(['Admin'])) {
-              <button cButton color="danger" size="sm" variant="ghost" title="Delete" (click)="deletePayment(p.id!)">
+              <button cButton color="danger" size="sm" variant="ghost" title="Eliminar Pago" (click)="deletePayment(p.id!)">
                 <svg cIcon name="cilTrash" size="sm"></svg>
               </button>
               } @else {
@@ -79,12 +153,10 @@
               <summary class="btn btn-light btn-sm">⋯</summary>
               <div class="mobile-actions-menu">
                 @if (authService.hasRole(['Admin'])) {
-                <button cButton color="danger" size="sm" variant="ghost" class="w-100" title="Delete"
+                <button cButton color="danger" size="sm" variant="ghost" class="w-100 text-danger" title="Eliminar"
                   (click)="deletePayment(p.id!)">
-                  <svg cIcon name="cilTrash" size="sm"></svg> Delete
+                  <svg cIcon name="cilTrash" size="sm"></svg> Eliminar
                 </button>
-                } @else {
-                <div class="text-muted small p-2">-</div>
                 }
               </div>
             </details>
@@ -95,9 +167,69 @@
     </c-card-body>
   </c-card>
 
-  @if (!isLoading() && getFilteredPaymentsCount() > 0) {
-  <app-list-pagination [currentPage]="currentPage()" [totalItems]="getFilteredPaymentsCount()" [pageSize]="pageSize"
+  @if (!isLoading() && filteredPaymentsCount() > 0) {
+  <app-list-pagination [currentPage]="currentPage()" [totalItems]="filteredPaymentsCount()" [pageSize]="pageSize"
     [label]="'pagos'" (pageChange)="onPageChange($event)"></app-list-pagination>
+  }
+  } @else {
+  <!-- Accounts Payable Tab -->
+  <c-card class="shadow-sm border-0 mb-4">
+    <c-card-body class="p-0">
+      @if (purchases().length === 0) {
+      <div class="py-5 text-center px-4">
+        <svg cIcon name="cilDescription" size="xl" class="text-body-secondary mb-3" style="width: 48px; height: 48px;"></svg>
+        <h4 class="fw-bold text-dark">No hay facturas de compras registradas</h4>
+        <p class="text-body-secondary mt-1">Cuando registres compras a proveedores, aparecerán aquí con sus balances pendientes.</p>
+      </div>
+      } @else {
+      <app-table [columns]="pendingColumns" [rows]="pendingPurchasesList()" [loading]="isLoading()"
+        [emptyMessage]="'No hay registros de compras.'" [rowTemplate]="pendingRowTpl">
+      </app-table>
+
+      <ng-template #pendingRowTpl let-pur>
+        <tr>
+          <td class="ps-4 font-monospace fw-bold">#{{ pur.id }}</td>
+          <td>{{ pur.creationDate | date:'shortDate' }}</td>
+          <td>
+            <div class="fw-semibold text-dark">{{ getSupplierName(pur.supplierId) }}</div>
+            <div class="text-muted small">{{ pur.supplierRnc || '' }}</div>
+          </td>
+          <td class="text-end fw-semibold">RD$ {{ pur.total | number:'1.2-2' }}</td>
+          <td class="text-end text-success fw-semibold">RD$ {{ pur.paidAmount | number:'1.2-2' }}</td>
+          <td class="text-end fw-bold" [class.text-danger]="pur.balance > 0" [class.text-muted]="pur.balance <= 0">
+            RD$ {{ pur.balance | number:'1.2-2' }}
+          </td>
+          <td>
+            @if (pur.isFullyPaid) {
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+              ✓ Pagada
+            </span>
+            } @else if (pur.paidAmount > 0) {
+            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">
+              ⏳ Parcial
+            </span>
+            } @else {
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+              ⚠️ Pendiente
+            </span>
+            }
+          </td>
+          <td class="pe-4 text-center">
+            @if (!pur.isFullyPaid) {
+            <button cButton color="primary" size="sm" class="d-inline-flex align-items-center shadow-sm"
+              (click)="paySpecificPurchase(pur.id)">
+              <svg cIcon name="cilCreditCard" class="me-1" size="sm"></svg>
+              Abonar / Pagar
+            </button>
+            } @else {
+            <span class="badge bg-light text-muted border">Completa</span>
+            }
+          </td>
+        </tr>
+      </ng-template>
+      }
+    </c-card-body>
+  </c-card>
   }
 </c-container>
 

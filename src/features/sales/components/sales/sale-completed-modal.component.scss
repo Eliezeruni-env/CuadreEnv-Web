@@ -1,0 +1,192 @@
+.custom-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1060;
+  backdrop-filter: blur(4px);
+  padding: 1rem;
+}
+
+.completed-modal-container {
+  max-width: 1140px;
+  width: 100%;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.success-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #dcfce7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.invoice-sheet {
+  border-radius: 12px;
+  border-color: #e2e8f0;
+}
+
+.invoice-logo-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.customer-info-box {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.font-size-xs {
+  font-size: 0.72rem;
+}
+
+.thermal-ticket-container {
+  display: none;
+}
+
+/* Print Styles */
+@media print {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .custom-modal-backdrop {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    inset: auto !important;
+  }
+
+  .completed-modal-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .modal-top-bar,
+  .col-lg-5,
+  .btn,
+  .btn-close,
+  .invoice-card-title {
+    display: none !important;
+  }
+
+  // Standard Letter / Full Invoice Mode
+  .completed-modal-container:not(.print-ticket-mode) {
+    #thermalTicketPrintArea {
+      display: none !important;
+    }
+
+    #invoicePrintArea,
+    #invoicePrintArea * {
+      visibility: visible !important;
+    }
+
+    #invoicePrintArea {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 24px !important;
+      border: none !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+    }
+  }
+
+  // Thermal Ticket Mode (80mm / 58mm POS Printer)
+  .completed-modal-container.print-ticket-mode {
+    #invoicePrintArea {
+      display: none !important;
+    }
+
+    #thermalTicketPrintArea,
+    #thermalTicketPrintArea * {
+      visibility: visible !important;
+    }
+
+    #thermalTicketPrintArea {
+      display: block !important;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 80mm !important;
+      max-width: 80mm !important;
+      margin: 0 !important;
+      padding: 4mm 6mm !important;
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-size: 11px !important;
+      line-height: 1.25 !important;
+      font-family: 'Courier New', Courier, monospace !important;
+
+      &.ticket-58mm {
+        width: 58mm !important;
+        max-width: 58mm !important;
+        padding: 2mm 3mm !important;
+        font-size: 9.5px !important;
+      }
+
+      img,
+      .ticket-logo-img {
+        display: block !important;
+        margin: 0 auto !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .ticket-divider {
+        white-space: pre;
+        letter-spacing: -0.5px;
+        color: #333333;
+      }
+
+      .ticket-item-title {
+        word-break: break-word;
+      }
+    }
+  }
+}
+

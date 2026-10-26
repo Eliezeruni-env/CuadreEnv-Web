@@ -102,6 +102,7 @@ export class TranslationService {
       'nav.cashRegister': 'Caja Chica',
       'nav.administration': 'Administración',
       'nav.teamUsers': 'Equipo y Permisos',
+      'nav.services': 'Servicios',
 
       // Dashboard
       'dashboard.title': 'Resumen del Espacio de Trabajo',
@@ -219,9 +220,14 @@ export class TranslationService {
       'sales.table.saleId': 'ID de venta',
       'sales.table.date': 'Fecha',
       'sales.table.customer': 'Cliente',
+      'sales.table.unknownCustomer': 'Consumidor Final',
       'sales.table.total': 'Total',
       'sales.table.paid': 'Pagado',
       'sales.table.status': 'Estado',
+      'sales.status.paid': 'Pagada',
+      'sales.status.partial': 'Parcial',
+      'sales.status.pending': 'Pendiente',
+      'sales.status.cancelled': 'Cancelada',
       'sales.filterTitle': 'Filtrar ventas',
       'sales.filterSearch': 'Cliente o ID',
       'sales.filterStatus': 'Estado',
@@ -234,6 +240,7 @@ export class TranslationService {
       'sales.modal.selectCustomer': 'Seleccionar Cliente',
       'sales.modal.paymentMethod': 'Método de Pago',
       'sales.modal.addProduct': 'Agregar Producto',
+      'sales.modal.items': 'Productos Vendidos',
       'sales.modal.quantity': 'Cantidad',
       'sales.modal.unitPrice': 'Precio Unit.',
       'sales.modal.subtotal': 'Subtotal',
@@ -485,6 +492,7 @@ export class TranslationService {
       'nav.cashRegister': 'Cash Register',
       'nav.administration': 'Administration',
       'nav.teamUsers': 'Team & Permissions',
+      'nav.services': 'Services',
 
       // Dashboard
       'dashboard.title': 'Workspace Overview',
@@ -602,9 +610,14 @@ export class TranslationService {
       'sales.table.saleId': 'Sale ID',
       'sales.table.date': 'Date',
       'sales.table.customer': 'Customer',
+      'sales.table.unknownCustomer': 'Walk-in Customer',
       'sales.table.total': 'Total',
       'sales.table.paid': 'Paid',
       'sales.table.status': 'Status',
+      'sales.status.paid': 'Paid',
+      'sales.status.partial': 'Partial',
+      'sales.status.pending': 'Pending',
+      'sales.status.cancelled': 'Cancelled',
       'sales.filterTitle': 'Filter sales',
       'sales.filterSearch': 'Customer or ID',
       'sales.filterStatus': 'Status',
@@ -617,6 +630,7 @@ export class TranslationService {
       'sales.modal.selectCustomer': 'Select Customer',
       'sales.modal.paymentMethod': 'Payment Method',
       'sales.modal.addProduct': 'Add Product',
+      'sales.modal.items': 'Sold Products',
       'sales.modal.quantity': 'Qty',
       'sales.modal.unitPrice': 'Unit Price',
       'sales.modal.subtotal': 'Subtotal',
@@ -807,7 +821,13 @@ export class TranslationService {
 
   getTranslatedNavItems(rawItems: INavData[]): INavData[] {
     return rawItems.map((item) => {
-      const copy: INavData = { ...item };
+      const copy: INavData = {
+        ...item,
+        linkProps: {
+          routerLinkActiveOptions: { exact: true },
+          ...(item.linkProps || {})
+        }
+      };
       if (item.name) {
         const key = this.getNavKey(item.name);
         copy.name = this.t(key);
@@ -855,6 +875,8 @@ export class TranslationService {
       case 'Team & Users':
       case 'Equipo y Permisos':
         return 'nav.teamUsers';
+      case 'Servicios':
+        return 'nav.services';
       default:
         return name;
     }

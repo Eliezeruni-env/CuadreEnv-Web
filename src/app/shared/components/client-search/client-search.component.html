@@ -1,0 +1,63 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="cancel.emit()">
+    <div class="custom-modal-content" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header d-flex align-items-center justify-content-between p-3 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+          <svg cIcon name="cilUser" class="text-primary" style="width: 22px; height: 22px;"></svg>
+          <h5 class="mb-0 fw-bold text-dark">Buscar y Seleccionar Cliente</h5>
+        </div>
+        <button type="button" class="btn-close" (click)="cancel.emit()" aria-label="Close"></button>
+      </div>
+
+      <div class="custom-modal-body p-3">
+        <!-- Search Input -->
+        <div class="input-group mb-3">
+          <span class="input-group-text bg-white border-end-0">
+            <svg cIcon name="cilSearch" style="width: 16px; height: 16px;"></svg>
+          </span>
+          <input
+            type="text"
+            class="form-control border-start-0"
+            placeholder="Buscar por nombre, RNC, cédula o teléfono..."
+            [value]="searchTerm"
+            (input)="onSearchInput($event)"
+            autofocus
+          />
+        </div>
+
+        <!-- Clients List -->
+        <div class="client-list overflow-auto" style="max-height: 320px;">
+          @if (filteredClients.length === 0) {
+            <div class="text-center py-4 text-secondary">
+              <svg cIcon name="cilPeople" style="width: 36px; height: 36px;" class="mb-2 opacity-50"></svg>
+              <p class="mb-0 small">No se encontraron clientes.</p>
+            </div>
+          } @else {
+            <div class="list-group list-group-flush">
+              @for (c of filteredClients; track c.id) {
+                <button
+                  type="button"
+                  class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-2 px-3 rounded mb-1 border"
+                  (click)="selectClient(c)"
+                >
+                  <div>
+                    <div class="fw-semibold text-dark">{{ c.name }}</div>
+                    <small class="text-secondary">
+                      {{ c.identification ? 'RNC/Céd: ' + c.identification : '' }}
+                      {{ c.phone ? ' | Tel: ' + c.phone : '' }}
+                    </small>
+                  </div>
+                  <span class="btn btn-sm btn-outline-primary px-3 rounded-pill">Seleccionar</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="custom-modal-footer p-3 border-top bg-light d-flex justify-content-end">
+        <button type="button" class="btn btn-light border px-3" (click)="cancel.emit()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}

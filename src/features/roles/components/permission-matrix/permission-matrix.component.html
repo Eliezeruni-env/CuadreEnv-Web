@@ -1,0 +1,334 @@
+<div class="matrix-container fade-in">
+  <!-- Page Header with Back Button -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <a
+        routerLink="/admin/roles"
+        class="btn btn-sm btn-light border rounded-3 text-secondary p-2 d-flex align-items-center justify-content-center shadow-2xs"
+        title="Volver al catálogo de roles"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </a>
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+            Control de Autorización
+          </span>
+          <span class="text-secondary small">· Matriz Granular de Permisos</span>
+        </div>
+        <h2 class="fw-bold text-dark mb-0 fs-4">Editor de Permisos por Rol</h2>
+      </div>
+    </div>
+
+    <!-- Quick Action Bar -->
+    <div class="d-flex align-items-center gap-2">
+      @if (hasUnsavedChanges()) {
+        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1.5 px-2.5 rounded-pill small animate-pulse">
+          ● Cambios sin guardar
+        </span>
+      }
+
+      <button
+        type="button"
+        class="btn btn-primary btn-sm px-3 shadow-sm rounded-3 fw-medium d-flex align-items-center gap-2"
+        [disabled]="isSaving() || !hasUnsavedChanges()"
+        (click)="saveChanges()"
+      >
+        @if (isSaving()) {
+          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          <span>Guardando...</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          <span>Guardar Permisos</span>
+        }
+      </button>
+    </div>
+  </div>
+
+  <!-- Role Selector Card -->
+  <div class="card border-0 shadow-sm rounded-4 p-3.5 mb-4 bg-white">
+    <div class="row align-items-center g-3">
+      <!-- Selector Dropdown / Pills -->
+      <div class="col-md-5">
+        <label class="form-label fw-semibold text-secondary small mb-1.5">
+          Seleccionar Rol a Configurar:
+        </label>
+        <div class="d-flex align-items-center gap-2">
+          <select
+            class="form-select form-select-sm fw-semibold text-dark border-primary-subtle"
+            [ngModel]="selectedRoleId()"
+            (ngModelChange)="selectRole($event)"
+          >
+            @for (role of getRoles(); track role.id) {
+              <option [value]="role.id">
+                {{ role.name }} ({{ role.isSystem ? 'Sistema' : 'Personalizado' }})
+              </option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Active Role Details -->
+      <div class="col-md-4">
+        @if (selectedRole(); as currentRole) {
+          <div class="ps-md-3 border-start">
+            <div class="d-flex align-items-center gap-2 mb-0.5">
+              <span class="fw-bold text-dark fs-6">{{ currentRole.name }}</span>
+              <span class="badge" [ngClass]="currentRole.isSystem ? 'bg-secondary-subtle text-secondary' : 'bg-success-subtle text-success'" style="font-size: 0.65rem;">
+                {{ currentRole.isSystem ? 'Rol Sistema' : 'Rol Empresa' }}
+              </span>
+            </div>
+            <small class="text-secondary d-block text-truncate" style="font-size: 0.75rem;">
+              {{ currentRole.description || 'Sin descripción' }}
+            </small>
+          </div>
+        }
+      </div>
+
+      <!-- Quick Bulk Toggles -->
+      <div class="col-md-3 text-md-end">
+        <div class="d-flex flex-wrap gap-1.5 justify-content-md-end align-items-center">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-xs py-1 px-2.5 rounded-2"
+            title="Activar todos los permisos disponibles"
+            (click)="grantAll()"
+          >
+            ✓ Conceder Todo
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-xs py-1 px-2.5 rounded-2"
+            title="Desactivar todos los permisos"
+            (click)="revokeAll()"
+          >
+            ✕ Revocar Todo
+          </button>
+        </div>
+        <div class="mt-1.5">
+          <span class="badge bg-light text-dark border px-2.5 py-1" style="font-size: 0.72rem;">
+            <strong class="text-primary">{{ activeCount() }}</strong> de {{ totalCatalogCount() }} permisos activos
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Control Antidescuadre de Stock: Vías de Entrada de Mercancía para el Rol -->
+  <div class="card border-0 shadow-sm rounded-4 p-3.5 mb-4 bg-white" style="border-left: 4px solid #4f46e5 !important;">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+      <div class="d-flex align-items-center gap-2">
+        <span class="fs-5">🛡️</span>
+        <div>
+          <h5 class="fw-bold text-dark mb-0 fs-6">Control Antidescuadre de Stock: Vías de Entrada de Mercancía</h5>
+          <span class="text-secondary small">
+            Define si los usuarios con el rol <strong>{{ selectedRole()?.name || 'seleccionado' }}</strong> pueden recepcionar compras y/o ingresar inventario manual.
+          </span>
+        </div>
+      </div>
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill small">
+        Aislamiento Granular Activo
+      </span>
+    </div>
+
+    <div class="row g-3 mt-1">
+      <!-- purchases-receipts Switch -->
+      <div class="col-md-6">
+        <div class="p-3 border rounded-3 bg-light bg-opacity-50 h-100 d-flex flex-column justify-content-between">
+          <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
+            <div>
+              <div class="d-flex align-items-center gap-1.5 mb-1">
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">
+                  Vía Formal
+                </span>
+                <strong class="text-dark small">Recepciones de Orden de Compra</strong>
+              </div>
+              <p class="text-secondary mb-0" style="font-size: 0.76rem; line-height: 1.35;">
+                Permite a este rol verificar y recibir pedidos físicos de proveedores respaldados por una Orden de Compra (<code>purchases-receipts</code>).
+              </p>
+            </div>
+            <div class="form-check form-switch m-0">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+                id="rolePurReceiptsSwitch"
+                [checked]="isGranularModuleEnabled('purchases-receipts')"
+                (change)="toggleGranularModule('purchases-receipts')"
+              />
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-1 text-muted" style="font-size: 0.7rem;">
+            <span>Estado:</span>
+            <span [ngClass]="isGranularModuleEnabled('purchases-receipts') ? 'text-success fw-bold' : 'text-danger fw-bold'">
+              {{ isGranularModuleEnabled('purchases-receipts') ? '● Habilitado' : '○ Bloqueado' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- inventory-entries Switch -->
+      <div class="col-md-6">
+        <div class="p-3 border rounded-3 bg-light bg-opacity-50 h-100 d-flex flex-column justify-content-between">
+          <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
+            <div>
+              <div class="d-flex align-items-center gap-1.5 mb-1">
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">
+                  Vía Manual
+                </span>
+                <strong class="text-dark small">Entradas Manuales de Almacén</strong>
+              </div>
+              <p class="text-secondary mb-0" style="font-size: 0.76rem; line-height: 1.35;">
+                Permite a este rol registrar ingresos directos y ajustes de stock sin orden de compra formal (<code>inventory-entries</code>).
+              </p>
+            </div>
+            <div class="form-check form-switch m-0">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+                id="roleInvEntriesSwitch"
+                [checked]="isGranularModuleEnabled('inventory-entries')"
+                (change)="toggleGranularModule('inventory-entries')"
+              />
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-1 text-muted" style="font-size: 0.7rem;">
+            <span>Estado:</span>
+            <span [ngClass]="isGranularModuleEnabled('inventory-entries') ? 'text-success fw-bold' : 'text-danger fw-bold'">
+              {{ isGranularModuleEnabled('inventory-entries') ? '● Habilitado' : '○ Bloqueado' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Permissions Matrix Table -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
+    <div class="table-responsive matrix-scroll-wrap">
+      <table class="table table-hover align-middle mb-0 matrix-table">
+        <thead class="sticky-top bg-light-subtle border-bottom">
+          <tr>
+            <th class="ps-3 py-3 text-uppercase text-secondary fw-semibold align-middle" style="min-width: 260px; font-size: 0.75rem;">
+              Módulo del Sistema
+            </th>
+
+            @for (act of actions; track act.key) {
+              <th class="text-center py-2.5 align-middle" style="min-width: 125px;">
+                <div class="d-flex flex-column align-items-center justify-content-center gap-1 cursor-pointer py-1" (click)="toggleAllForAction(act.key)">
+                  <span class="badge" [ngClass]="'bg-' + act.badgeColor + '-subtle text-' + act.badgeColor" style="font-size: 0.72rem;">
+                    {{ act.label }}
+                  </span>
+                  <span class="text-muted" style="font-size: 0.65rem;">
+                    (Alternar col)
+                  </span>
+                </div>
+              </th>
+            }
+
+            <th class="text-center pe-3 py-2.5 align-middle" style="min-width: 110px; font-size: 0.75rem;">
+              <span class="text-secondary fw-semibold text-uppercase">Módulo Completo</span>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (mod of modules; track mod.key) {
+            <tr>
+              <!-- Module Label & Description -->
+              <td class="ps-3 py-3 align-middle">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="module-avatar p-2 bg-primary-subtle text-primary rounded-3 d-flex align-items-center justify-content-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                      <line x1="8" y1="21" x2="16" y2="21"></line>
+                      <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                  </div>
+                  <div class="text-truncate">
+                    <div class="fw-bold text-dark fs-6">{{ mod.label }}</div>
+                    <small class="text-secondary d-block" style="font-size: 0.72rem;">{{ mod.description }}</small>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Action Checkboxes per Module -->
+              @for (act of actions; track act.key) {
+                <td class="text-center py-2.5 align-middle">
+                  @if (getPermission(mod.key, act.key); as perm) {
+                    <div
+                      class="permission-cell-box mx-auto d-flex align-items-center justify-content-center rounded-3 cursor-pointer"
+                      [class.checked]="hasPermission(mod.key, act.key)"
+                      (click)="togglePermission(mod.key, act.key)"
+                      [title]="perm.description"
+                    >
+                      <input
+                        type="checkbox"
+                        class="form-check-input mt-0"
+                        style="pointer-events: none;"
+                        [checked]="hasPermission(mod.key, act.key)"
+                        tabindex="-1"
+                      />
+                    </div>
+                  } @else {
+                    <span class="text-muted small">—</span>
+                  }
+                </td>
+              }
+
+              <!-- Row Toggle (All Actions for this Module) -->
+              <td class="text-center pe-3 py-2.5 align-middle">
+                <button
+                  type="button"
+                  class="btn btn-sm py-1 px-2.5 rounded-2 fw-medium"
+                  style="font-size: 0.74rem;"
+                  [ngClass]="isModuleFullySelected(mod.key) ? 'btn-primary' : 'btn-outline-secondary'"
+                  (click)="toggleAllForModule(mod.key)"
+                  title="Activar / desactivar todas las acciones de este módulo"
+                >
+                  {{ isModuleFullySelected(mod.key) ? '✓ Todos' : 'Activar' }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Matrix Footer Note -->
+    <div class="p-3 bg-light-subtle border-top d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div class="text-secondary small d-flex align-items-center gap-2" style="font-size: 0.74rem;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>
+          <strong>Nota de Auditoría:</strong> La acción <em>"Eliminar"</em> en perfiles de auditoría requerirá aprobación expresa del Administrador en la <strong>Bandeja de Aprobaciones</strong>.
+        </span>
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-primary btn-sm px-3 rounded-3 fw-medium d-flex align-items-center gap-2"
+        [disabled]="isSaving() || !hasUnsavedChanges()"
+        (click)="saveChanges()"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+          <polyline points="17 21 17 13 7 13 7 21"></polyline>
+          <polyline points="7 3 7 8 15 8"></polyline>
+        </svg>
+        <span>Guardar Permisos</span>
+      </button>
+    </div>
+  </div>
+</div>

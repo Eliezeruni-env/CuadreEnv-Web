@@ -7,21 +7,6 @@ import {
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../cuadreEnv/services/auth.service';
-import { IconDirective } from '@coreui/icons-angular';
-import {
-  ButtonDirective,
-  CardBodyComponent,
-  CardComponent,
-  ColComponent,
-  ContainerComponent,
-  FormControlDirective,
-  FormDirective,
-  InputGroupComponent,
-  InputGroupTextDirective,
-  RowComponent,
-  AlertComponent,
-  SpinnerComponent,
-} from '@coreui/angular';
 
 @Component({
   selector: 'app-register',
@@ -29,20 +14,7 @@ import {
   styleUrls: ['./register.component.scss'],
   standalone: true,
   imports: [
-    ContainerComponent,
-    RowComponent,
-    ColComponent,
-    CardComponent,
-    CardBodyComponent,
-    FormDirective,
-    InputGroupComponent,
-    InputGroupTextDirective,
-    IconDirective,
-    FormControlDirective,
-    ButtonDirective,
     ReactiveFormsModule,
-    AlertComponent,
-    SpinnerComponent,
     RouterLink,
   ],
 })
@@ -51,6 +23,9 @@ export class RegisterComponent {
   isLoading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
   successMessage = signal<string | null>(null);
+  currentStep = signal<number>(1);
+  showPassword = signal<boolean>(false);
+  showRepeatPassword = signal<boolean>(false);
 
   constructor(
     private fb: FormBuilder,
@@ -69,6 +44,41 @@ export class RegisterComponent {
       },
       { validators: this.passwordMatchValidator },
     );
+  }
+
+  toggleShowPassword() {
+    this.showPassword.update((v) => !v);
+  }
+
+  toggleShowRepeatPassword() {
+    this.showRepeatPassword.update((v) => !v);
+  }
+
+  nextStep() {
+    const step1Controls = ['email', 'password', 'repeatPassword'];
+    let hasError = false;
+
+    step1Controls.forEach((field) => {
+      const ctrl = this.registerForm.get(field);
+      ctrl?.markAsTouched();
+      if (ctrl?.invalid) {
+        hasError = true;
+      }
+    });
+
+    if (this.registerForm.hasError('mismatch')) {
+      hasError = true;
+    }
+
+    if (hasError) {
+      return;
+    }
+
+    this.currentStep.set(2);
+  }
+
+  prevStep() {
+    this.currentStep.set(1);
   }
 
   passwordMatchValidator(g: FormGroup) {

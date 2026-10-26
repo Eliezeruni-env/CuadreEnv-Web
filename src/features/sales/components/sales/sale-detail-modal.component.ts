@@ -4,6 +4,8 @@ import {
   Output,
   EventEmitter,
   OnInit,
+  OnChanges,
+  SimpleChanges,
   signal,
   inject,
 } from '@angular/core';
@@ -28,7 +30,17 @@ import {
   RowComponent,
   SpinnerComponent,
 } from '@coreui/angular';
+import { IconDirective } from '@coreui/icons-angular';
 import { TableComponent } from '../../../cuadreEnv/components/table/table.component';
+
+export interface SaleDetailItemView {
+  productId: number;
+  productName: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+}
 
 @Component({
   selector: 'app-sale-detail-modal',
@@ -39,198 +51,12 @@ import { TableComponent } from '../../../cuadreEnv/components/table/table.compon
     ButtonDirective,
     FormControlDirective,
     FormDirective,
-    RowComponent,
-    ColComponent,
     SpinnerComponent,
-    TableComponent,
+    IconDirective,
   ],
-  template: `
-    <!-- Detail Modal -->
-    @if (visible) {
-      <div class="custom-modal-backdrop" (click)="close()">
-        <div
-          class="custom-modal-content modal-lg"
-          (click)="$event.stopPropagation()"
-        >
-          <div class="custom-modal-header">
-            <h5 class="fw-bold">{{ translationService.t('sales.modal.detailTitle') }}</h5>
-            <button
-              type="button"
-              class="btn-close"
-              (click)="close()"
-              aria-label="Close"
-            ></button>
-          </div>
-          <div class="custom-modal-body">
-            @if (sale) {
-              <div class="mb-4">
-                <c-row>
-                  <c-col md="6">
-                    <div class="text-secondary small">{{ translationService.t('sales.table.saleId') }}</div>
-                    <div class="fw-bold text-dark font-monospace">
-                      #{{ sale.id }}
-                    </div>
-                    <div class="text-secondary small mt-2">{{ translationService.t('sales.table.date') }}</div>
-                    <div class="text-dark">
-                      {{ sale.creationDate | date: 'medium' }}
-                    </div>
-                  </c-col>
-                  <c-col md="6" class="text-md-end mt-2 mt-md-0">
-                    <div class="text-secondary small">{{ translationService.t('sales.table.status') }}</div>
-                    <div>
-                      <span
-                        [ngClass]="
-                          sale.isCancelled
-                            ? 'badge bg-danger-subtle text-danger'
-                            : 'badge bg-success-subtle text-success'
-                        "
-                      >
-                        {{
-                          sale.isCancelled
-                            ? translationService.t('sales.filterCancelled')
-                            : translationService.t('sales.filterProcessed')
-                        }}
-                      </span>
-                    </div>
-                  </c-col>
-                </c-row>
-              </div>
-
-              <h6 class="fw-bold text-dark mb-2">{{ translationService.t('sales.modal.addProduct') }}</h6>
-              <div class="table-responsive border rounded mb-3">
-                <app-table
-                  [columns]="[
-                    { field: 'description', label: translationService.t('products.table.product') },
-                    { field: 'quantity', label: translationService.t('sales.modal.quantity') },
-                    { field: 'unitPrice', label: translationService.t('sales.modal.unitPrice') },
-                    { field: 'subtotal', label: translationService.t('sales.modal.subtotal') },
-                  ]"
-                  [rows]="sale.details"
-                  [rowTemplate]="saleDetailRowTpl"
-                ></app-table>
-
-                <ng-template #saleDetailRowTpl let-item>
-                  <tr>
-                    <td class="ps-3 fw-semibold text-dark">
-                      {{ getProductName(item.productId) }}
-                    </td>
-                    <td class="text-end">{{ item.quantity }} u.</td>
-                    <td class="text-end">
-                      \${{ item.unitPrice | number: '1.2-2' }}
-                    </td>
-                    <td class="text-end pe-3 fw-bold">
-                      \${{ item.quantity * item.unitPrice | number: '1.2-2' }}
-                    </td>
-                  </tr>
-                </ng-template>
-
-                <div class="table-footer mt-2">
-                  <div class="text-end fw-bold">
-                    {{ translationService.t('sales.modal.grandTotal') }}:
-                    <span class="fw-bold text-dark font-size-md"
-                      >\${{ sale.total | number: '1.2-2' }}</span
-                    >
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-          <div class="custom-modal-footer">
-            <button cButton color="light" class="border" (click)="close()">
-              {{ translationService.t('common.close') }}
-            </button>
-            @if (
-              sale &&
-              !sale.isCancelled &&
-              authService.hasRole(['Admin', 'Manager'])
-            ) {
-              <button
-                cButton
-                color="danger"
-                class="text-white border-0"
-                (click)="openCancelModal()"
-              >
-                {{ translationService.t('sales.filterCancelled') }}
-              </button>
-            }
-          </div>
-        </div>
-      </div>
-    }
-
-    <!-- Cancel Void Dialog -->
-    @if (isCancelModalOpen) {
-      <div
-        class="custom-modal-backdrop"
-        (click)="closeCancelModal()"
-        style="z-index: 1060;"
-      >
-        <div class="custom-modal-content" (click)="$event.stopPropagation()">
-          <div class="custom-modal-header">
-            <h5 class="fw-bold">Void/Cancel Sale</h5>
-            <button
-              type="button"
-              class="btn-close"
-              (click)="closeCancelModal()"
-              aria-label="Close"
-            ></button>
-          </div>
-          <div class="custom-modal-body">
-            <p class="text-body-secondary small mb-3">
-              Are you sure you want to cancel this invoice? This transaction is
-              irreversible and will refund stock items count back to inventory.
-            </p>
-            <form cForm [formGroup]="cancelForm">
-              <div class="mb-3">
-                <label class="small fw-semibold text-secondary mb-1"
-                  >Reason for cancellation *</label
-                >
-                <input
-                  formControlName="reason"
-                  cFormControl
-                  placeholder="e.g. Return of goods / input error"
-                />
-                @if (
-                  cancelForm.get('reason')?.touched &&
-                  cancelForm.get('reason')?.invalid
-                ) {
-                  <div class="text-danger small mt-1">
-                    Cancellation reason is required (Max 250 chars).
-                  </div>
-                }
-              </div>
-            </form>
-          </div>
-          <div class="custom-modal-footer">
-            <button
-              cButton
-              color="light"
-              class="border"
-              (click)="closeCancelModal()"
-            >
-              Dismiss
-            </button>
-            <button
-              cButton
-              color="danger"
-              class="text-white border-0"
-              [disabled]="isLoading() || cancelForm.invalid"
-              (click)="cancelSale()"
-            >
-              @if (isLoading()) {
-                <c-spinner size="sm" class="me-2"></c-spinner>
-                Cancelling...
-              } @else {
-                Void Invoice
-              }
-            </button>
-          </div>
-        </div>
-      </div>
-    }
-  `,
+  templateUrl: './sale-detail-modal.component.html',
 })
-export class SaleDetailModalComponent implements OnInit {
+export class SaleDetailModalComponent implements OnInit, OnChanges {
   readonly translationService = inject(TranslationService);
 
   @Input() visible = false;
@@ -239,8 +65,10 @@ export class SaleDetailModalComponent implements OnInit {
   @Output() cancelled = new EventEmitter<void>();
 
   products = signal<ProductDto[]>([]);
+  itemsList = signal<SaleDetailItemView[]>([]);
   isCancelModalOpen = false;
   isLoading = signal<boolean>(false);
+  isLoadingDetails = signal<boolean>(false);
 
   cancelForm: FormGroup;
 
@@ -256,18 +84,112 @@ export class SaleDetailModalComponent implements OnInit {
     });
   }
 
-  ngOnInit() {
-    this.loadProducts();
+  async ngOnInit() {
+    await this.loadProducts();
+    if (this.visible && this.sale) {
+      await this.ensureSaleDetails();
+    }
+  }
+
+  async ngOnChanges(changes: SimpleChanges) {
+    if (
+      (changes['visible'] && this.visible) ||
+      (changes['sale'] && this.sale)
+    ) {
+      await this.ensureSaleDetails();
+    }
   }
 
   async loadProducts() {
     try {
       const pRes = await this.productService.getPagedProducts(1, 100);
-      if (pRes.success && pRes.data) {
-        this.products.set(pRes.data.items || []);
+      const items = pRes?.data?.items || (Array.isArray(pRes?.data) ? pRes.data : []);
+      if (items.length > 0) {
+        this.products.set(items);
+      } else {
+        const searchRes = await this.productService.searchProducts('');
+        if (searchRes.success && searchRes.data && searchRes.data.length > 0) {
+          this.products.set(searchRes.data);
+        }
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error('Failed to load modal products:', e?.message || e);
+    }
+  }
+
+  async ensureSaleDetails() {
+    if (!this.sale) {
+      this.itemsList.set([]);
+      return;
+    }
+
+    let rawDetails: any[] =
+      this.sale.details ||
+      (this.sale as any).items ||
+      (this.sale as any).saleDetails ||
+      (this.sale as any).productDetails ||
+      [];
+
+    // If details are empty and we have a sale id, fetch full sale from API/cache
+    if ((!rawDetails || rawDetails.length === 0) && this.sale.id) {
+      this.isLoadingDetails.set(true);
+      try {
+        const res = await this.saleService.getSale(this.sale.id);
+        if (res?.success && res.data) {
+          const freshSale = res.data;
+          rawDetails =
+            freshSale.details ||
+            (freshSale as any).items ||
+            (freshSale as any).saleDetails ||
+            (freshSale as any).productDetails ||
+            [];
+          if (rawDetails && rawDetails.length > 0) {
+            this.sale = { ...this.sale, details: rawDetails };
+          }
+        }
+      } catch (e) {
+        console.warn('Could not fetch sale details by id:', e);
+      } finally {
+        this.isLoadingDetails.set(false);
+      }
+    }
+
+    // Map items to standard view items
+    if (rawDetails && rawDetails.length > 0) {
+      const mapped: SaleDetailItemView[] = rawDetails.map((item: any) => {
+        const pId = item.productId || item.id || 0;
+        const pName =
+          item.productName ||
+          item.description ||
+          item.name ||
+          this.getProductName(pId);
+        const qty = Number(item.quantity ?? 1) || 1;
+        const price = Number(item.unitPrice ?? item.price ?? 0) || 0;
+        const sub = Number(item.subtotal ?? item.total ?? (qty * price)) || (qty * price);
+
+        return {
+          productId: pId,
+          productName: pName,
+          description: pName,
+          quantity: qty,
+          unitPrice: price,
+          subtotal: sub,
+        };
+      });
+      this.itemsList.set(mapped);
+    } else if (this.sale.total && this.sale.total > 0) {
+      // Fallback if backend returned summary sale without line details
+      const fallbackItem: SaleDetailItemView = {
+        productId: (this.sale as any).productId || 1,
+        productName: (this.sale as any).notes || (this.sale as any).description || `Venta #${this.sale.id}`,
+        description: (this.sale as any).notes || (this.sale as any).description || `Venta #${this.sale.id}`,
+        quantity: 1,
+        unitPrice: this.sale.total,
+        subtotal: this.sale.total,
+      };
+      this.itemsList.set([fallbackItem]);
+    } else {
+      this.itemsList.set([]);
     }
   }
 
@@ -296,14 +218,12 @@ export class SaleDetailModalComponent implements OnInit {
 
     try {
       await this.saleService.cancelSale(this.sale.id, reason);
-      this.notificationService.success('Sale cancelled successfully.');
+      this.notificationService.success('Venta anulada/cancelada exitosamente.');
       this.closeCancelModal();
       this.cancelled.emit();
       this.close();
     } catch (e: any) {
-      this.notificationService.error(
-        e?.response?.data?.message || e?.message || 'Error cancelling sale.',
-      );
+      this.notificationService.showApiError(e);
     } finally {
       this.isLoading.set(false);
     }
@@ -311,6 +231,35 @@ export class SaleDetailModalComponent implements OnInit {
 
   getProductName(productId: number): string {
     const p = this.products().find((item) => item.id === productId);
-    return p ? p.description || 'Unknown Product' : `Product #${productId}`;
+    return p ? p.description || p.barcode || 'Producto' : `Producto #${productId}`;
+  }
+
+  isServiceSale(): boolean {
+    if (!this.sale) return false;
+    const s: any = this.sale;
+    if (s.originChannel === 'SERVICIO' || s.originChannel === 'SERVICE' || s.originChannel === 3) return true;
+    if (typeof s.notes === 'string') {
+      const upper = s.notes.toUpperCase();
+      if (
+        upper.includes('[SERVICIO]') ||
+        upper.includes('VENTA DE SERVICIO') ||
+        upper.includes('SERVICIOS #') ||
+        upper.includes('MANO DE OBRA')
+      ) {
+        return true;
+      }
+    }
+    if (typeof s.invoiceNumber === 'string' && s.invoiceNumber.toUpperCase().includes('SERV')) return true;
+    const items = this.itemsList();
+    if (items && items.length > 0) {
+      return items.some((it: any) => {
+        if (it.isService === true || it.productTypeId === 2) return true;
+        const code = String(it.productCode || it.code || '').toUpperCase();
+        if (code.startsWith('SERV') || code.startsWith('SRV')) return true;
+        const name = String(it.productName || it.description || '').toLowerCase();
+        return name.includes('servicio') || name.includes('mano de obra') || name.includes('mantenimiento');
+      });
+    }
+    return false;
   }
 }

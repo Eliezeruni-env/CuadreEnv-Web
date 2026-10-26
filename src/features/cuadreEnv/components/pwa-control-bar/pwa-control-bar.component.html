@@ -1,0 +1,203 @@
+<!-- 1. Banner Offline Bonito (Punto 6) -->
+@if (!pwaService.isOnline() && !dismissOfflineBanner) {
+  <div class="pwa-offline-banner shadow-lg animate-fade-in" role="alert">
+    <div class="d-flex align-items-center justify-content-between gap-3 px-3 py-2">
+      <div class="d-flex align-items-center gap-2">
+        <span class="offline-pulse-dot"></span>
+        <div class="offline-text">
+          <strong class="text-white">Modo Offline Activo:</strong>
+          <span class="text-white-50 ms-1 small">Sin conexión a internet. Tus ventas y cobros se guardarán de forma segura en este dispositivo y se sincronizarán al reconectarse.</span>
+        </div>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-light py-0 px-2 font-size-xs" (click)="dismissOfflineBanner = true">
+        Ocultar
+      </button>
+    </div>
+  </div>
+}
+
+<!-- 2. Notificación de Nueva Versión (Punto 4) -->
+@if (pwaService.hasUpdateAvailable()) {
+  <div class="pwa-update-toast shadow-lg animate-bounce-in" role="alert">
+    <div class="d-flex align-items-center justify-content-between gap-3 p-3">
+      <div class="d-flex align-items-center gap-2">
+        <span class="fs-4">🚀</span>
+        <div>
+          <div class="fw-bold text-dark font-size-sm">Nueva versión disponible</div>
+          <small class="text-secondary">Actualiza para recibir las últimas mejoras y correcciones.</small>
+        </div>
+      </div>
+      <button type="button" class="btn btn-sm btn-cuadre-primary fw-bold px-3 py-1.5 shadow-xs" (click)="onUpdateClick()">
+        Actualizar Ahora
+      </button>
+    </div>
+  </div>
+}
+
+<!-- 3. Botón Flotante de Instalación A2HS Universal -->
+@if (!pwaService.isInstalled() && pwaService.isOnline() && !dismissInstallFloating) {
+  <div class="pwa-install-floating animate-slide-up">
+    <div class="pwa-install-pill-wrap d-flex align-items-center shadow-md">
+      <button type="button" class="btn pwa-install-btn d-flex align-items-center gap-2" (click)="onInstallClick()" title="Instalar CuadreEnv en este dispositivo">
+        <span class="fs-6">📲</span>
+        <span class="fw-bold font-size-sm">Instalar App</span>
+      </button>
+      <button type="button" class="btn pwa-dismiss-btn" (click)="dismissInstallFloating = true" title="Ocultar">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+  </div>
+}
+
+<!-- 4. Modal de Instalación Guiada Multi-Plataforma (Android, iOS Safari, PC / Mac) -->
+@if (pwaService.showInstallModal() || pwaService.showIosInstructions()) {
+  <div class="custom-modal-backdrop pwa-install-modal-backdrop" (click)="closeInstallModal()">
+    <div class="custom-modal-content pwa-install-modal shadow-lg" (click)="$event.stopPropagation()">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+        <div class="d-flex align-items-center gap-2">
+          <span class="fs-5">📲</span>
+          <h6 class="fw-bold mb-0 text-dark">Instalar CuadreEnv App</h6>
+        </div>
+        <button type="button" class="btn-close" (click)="closeInstallModal()" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="p-3 p-sm-4">
+        <!-- Selector de Plataforma (Tabs) -->
+        <div class="pwa-platform-tabs d-flex p-1 rounded-3 mb-3 bg-light border">
+          <button
+            type="button"
+            class="btn btn-sm flex-fill fw-bold platform-tab-btn"
+            [class.active]="pwaService.activeInstallTab() === 'android'"
+            (click)="setInstallTab('android')">
+            <span>🤖 Android</span>
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm flex-fill fw-bold platform-tab-btn"
+            [class.active]="pwaService.activeInstallTab() === 'ios'"
+            (click)="setInstallTab('ios')">
+            <span>🍎 iPhone / iPad</span>
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm flex-fill fw-bold platform-tab-btn"
+            [class.active]="pwaService.activeInstallTab() === 'desktop'"
+            (click)="setInstallTab('desktop')">
+            <span>💻 PC / Mac</span>
+          </button>
+        </div>
+
+        <!-- Si el prompt nativo está disponible, botón directo destacado -->
+        @if (pwaService.canInstall()) {
+          <div class="alert alert-success d-flex align-items-center justify-content-between gap-3 p-2.5 rounded-3 mb-3 border-0 bg-success-subtle text-success-emphasis">
+            <div class="small">
+              <strong>¡Listo para instalar!</strong> Tu navegador permite instalación automática directa.
+            </div>
+            <button type="button" class="btn btn-sm btn-success fw-bold text-nowrap px-3 shadow-xs" (click)="onInstallClick()">
+              ⚡ Instalar Ya
+            </button>
+          </div>
+        }
+
+        <!-- Pestaña 1: Android -->
+        @if (pwaService.activeInstallTab() === 'android') {
+          <div class="platform-steps-content animate-fade-in">
+            <p class="text-secondary small mb-3">
+              Instala CuadreEnv en tu dispositivo Android (Chrome, Samsung Internet o Edge) para usarlo a pantalla completa sin barras:
+            </p>
+            <div class="steps-list d-flex flex-column gap-2 mb-3">
+              <div class="step-item d-flex align-items-center gap-3 p-2.5 rounded-3 bg-light border">
+                <span class="step-badge">1</span>
+                <div class="step-desc small">
+                  Toca el menú de <strong>tres puntos (⋮)</strong> en la esquina superior derecha del navegador.
+                </div>
+              </div>
+              <div class="step-item d-flex align-items-center gap-3 p-2.5 rounded-3 bg-light border">
+                <span class="step-badge">2</span>
+                <div class="step-desc small">
+                  Selecciona <strong>"Instalar aplicación"</strong> o <strong>"Agregar a la pantalla principal"</strong>.
+                </div>
+              </div>
+              <div class="step-item d-flex align-items-center gap-3 p-2.5 rounded-3 bg-light border">
+                <span class="step-badge">3</span>
+                <div class="step-desc small">
+                  Presiona <strong>"Instalar"</strong> para confirmar. ¡Listo! Se agregará el icono en tu pantalla de inicio.
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Pestaña 2: iOS (iPhone / iPad) -->
+        @if (pwaService.activeInstallTab() === 'ios') {
+          <div class="platform-steps-content animate-fade-in">
+            <p class="text-secondary small mb-3">
+              Instala CuadreEnv en tu iPhone o iPad usando <strong>Safari</strong> en 3 sencillos pasos:
+            </p>
+            <div class="steps-list d-flex flex-column gap-2 mb-3">
+              <div class="step-item d-flex align-items-center gap-3 p-2.5 rounded-3 bg-light border">
+                <span class="step-badge">1</span>
+                <div class="step-desc small">
+                  Toca el botón <strong>Compartir</strong>
+                  <span class="ios-icon-share ms-1">⎋</span> en la barra inferior de Safari.
+                </div>
+              </div>
+              <div class="step-item d-flex align-items-center gap-3 p-2.5 rounded-3 bg-light border">
+                <span class="step-badge">2</span>
+                <div class="step-desc small">
+                  Desliza hacia abajo y presiona <strong>"Agregar a pantalla de inicio"</strong>
+                  <span class="ms-1">⊞</span>.
+                </div>
+              </div>
+              <div class="step-item d-flex align-items-center gap-3 p-2.5 rounded-3 bg-light border">
+                <span class="step-badge">3</span>
+                <div class="step-desc small">
+                  Presiona <strong>"Agregar"</strong> en la esquina superior derecha.
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Pestaña 3: Desktop (PC / Mac) -->
+        @if (pwaService.activeInstallTab() === 'desktop') {
+          <div class="platform-steps-content animate-fade-in">
+            <p class="text-secondary small mb-3">
+              Instala CuadreEnv en tu computadora (Google Chrome o Microsoft Edge) para máxima velocidad de caja:
+            </p>
+            <div class="steps-list d-flex flex-column gap-2 mb-3">
+              <div class="step-item d-flex align-items-center gap-3 p-2.5 rounded-3 bg-light border">
+                <span class="step-badge">1</span>
+                <div class="step-desc small">
+                  Ubica el icono de instalación <strong>(📥 o ⊕)</strong> en el extremo derecho de la barra de direcciones URL.
+                </div>
+              </div>
+              <div class="step-item d-flex align-items-center gap-3 p-2.5 rounded-3 bg-light border">
+                <span class="step-badge">2</span>
+                <div class="step-desc small">
+                  O haz clic en el menú <strong>(⋮)</strong> &gt; <strong>"Guardar y compartir"</strong> &gt; <strong>"Instalar CuadreEnv"</strong>.
+                </div>
+              </div>
+              <div class="step-item d-flex align-items-center gap-3 p-2.5 rounded-3 bg-light border">
+                <span class="step-badge">3</span>
+                <div class="step-desc small">
+                  Haz clic en <strong>"Instalar"</strong> para abrir CuadreEnv como ventana nativa independiente.
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <div class="alert alert-info py-2 px-3 small border-0 rounded-3 mb-0" style="background-color: rgba(14, 165, 233, 0.1); color: #0284c7;">
+          ✓ Funciona sin barra de direcciones, soporta ventas offline y responde instantáneamente.
+        </div>
+      </div>
+
+      <div class="p-3 border-top bg-light text-end">
+        <button type="button" class="btn btn-cuadre-primary btn-sm px-4 fw-bold" (click)="closeInstallModal()">
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+}

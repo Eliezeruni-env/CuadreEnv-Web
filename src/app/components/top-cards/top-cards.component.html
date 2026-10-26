@@ -1,0 +1,26 @@
+<div class="row g-3 mb-4">
+  @for (card of cards; track card.title) {
+    <div [class]="card.colClass || 'col-12 col-sm-6 col-xl-3'">
+      <div class="card border-0 shadow-sm top-metric-card h-100 p-3">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <span class="text-secondary small fw-semibold text-uppercase tracking-wider">
+              {{ card.title }}
+            </span>
+            <h4 class="fw-bold text-dark mb-0 mt-1">{{ card.value }}</h4>
+            @if (card.subtitle) {
+              <div class="small mt-1" [ngClass]="card.subtitleClass || 'text-muted'">
+                {{ card.subtitle }}
+              </div>
+            }
+          </div>
+          @if (card.icon) {
+            <div class="metric-icon-box" [style.background]="card.iconBg || '#ede9fe'" [style.color]="card.iconColor || '#6366f1'">
+              <span [innerHTML]="card.icon"></span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

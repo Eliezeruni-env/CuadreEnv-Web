@@ -1,0 +1,28 @@
+@if (breadcrumbs().length > 0) {
+  <nav aria-label="breadcrumb" class="custom-breadcrumb-nav mb-3">
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item">
+        <a routerLink="/" class="text-decoration-none text-muted d-inline-flex align-items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          Inicio
+        </a>
+      </li>
+      @for (crumb of breadcrumbs(); track crumb.url; let last = $last) {
+        @if (last) {
+          <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">
+            {{ crumb.label }}
+          </li>
+        } @else {
+          <li class="breadcrumb-item">
+            <a [routerLink]="crumb.url" class="text-decoration-none text-muted">
+              {{ crumb.label }}
+            </a>
+          </li>
+        }
+      }
+    </ol>
+  </nav>
+}

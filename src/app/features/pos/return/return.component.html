@@ -1,0 +1,20 @@
+<div class="card border-0 shadow-sm rounded-3 p-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold text-dark mb-0">Gestión de Devoluciones POS</h4>
+    <a [routerLink]="['/pos']" class="btn btn-outline-secondary btn-sm">Volver a Venta</a>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label small fw-semibold text-secondary mb-1">Buscar Factura / Ticket</label>
+      <div class="input-group">
+        <input type="text" class="form-control" placeholder="Ej: #TK-00129" />
+        <button class="btn btn-primary" type="button">Buscar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-light border text-secondary small">
+    Ingrese el número de comprobante o ticket para iniciar el proceso de devolución o sustitución de mercancía.
+  </div>
+</div>

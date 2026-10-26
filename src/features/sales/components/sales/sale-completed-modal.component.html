@@ -1,0 +1,600 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="close()">
+    <div
+      class="custom-modal-content completed-modal-container"
+      [class.print-ticket-mode]="isTicketMode()"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Modal Header Bar -->
+      <div class="modal-top-bar d-flex flex-wrap justify-content-between align-items-center p-3 p-md-4 border-bottom bg-white">
+        <div class="d-flex align-items-center gap-3">
+          <div class="success-icon-circle shadow-sm">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#16a34a"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0 text-dark">Venta completada</h5>
+            <span class="text-secondary small">La venta se ha registrado correctamente</span>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+          <button
+            type="button"
+            class="btn btn-outline-success d-flex align-items-center gap-1.5 px-3 shadow-xs fw-bold"
+            (click)="sendWhatsAppInvoice()"
+            title="Compartir comprobante formateado por WhatsApp"
+          >
+            <svg cIcon name="cilPhone" style="width: 15px; height: 15px;"></svg>
+            <span>WhatsApp</span>
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-light border d-flex align-items-center gap-2 px-3 shadow-sm fw-semibold text-secondary"
+            (click)="printInvoice()"
+            title="Imprimir formato factura estándar"
+          >
+            <svg cIcon name="cilPrint" style="width: 16px; height: 16px;"></svg>
+            <span>Factura Carta</span>
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-light border d-flex align-items-center gap-2 px-3 shadow-sm fw-semibold text-secondary"
+            (click)="printTicket()"
+            title="Imprimir formato ticket térmico de 80mm/58mm"
+          >
+            <svg cIcon name="cilPrint" style="width: 16px; height: 16px;"></svg>
+            <span>Ticket POS (80mm)</span>
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-light border d-flex align-items-center gap-2 px-3 shadow-sm fw-semibold text-secondary"
+            (click)="sendEmail()"
+          >
+            <svg cIcon name="cilEnvelopeClosed" style="width: 16px; height: 16px;"></svg>
+            <span>Enviar por email</span>
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-primary d-flex align-items-center gap-2 px-3 shadow-sm fw-bold"
+            (click)="startNewSale()"
+          >
+            <svg cIcon name="cilPlus" style="width: 16px; height: 16px;"></svg>
+            <span>+ Nueva venta</span>
+          </button>
+
+          <button
+            type="button"
+            class="btn-close ms-2"
+            (click)="close()"
+            aria-label="Close"
+          ></button>
+        </div>
+      </div>
+
+      <!-- Modal Body Content -->
+      <div class="custom-modal-body p-3 p-md-4 overflow-auto bg-light-subtle" style="max-height: calc(90vh - 100px);">
+        <div class="row g-4">
+          <!-- LEFT SIDE: Printable Invoice Document (Col-lg-7) -->
+          <div class="col-lg-7">
+            <div id="invoicePrintArea" class="invoice-sheet card border shadow-sm p-4 bg-white">
+              <h6 class="fw-bold text-dark mb-4 invoice-card-title">Factura de venta</h6>
+
+              <!-- Invoice Header -->
+              <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
+                <div class="d-flex align-items-center gap-3">
+                  @if (companyService.currentSettings().logoUrl) {
+                    <img [src]="companyService.currentSettings().logoUrl" alt="Logo" style="max-height: 56px; max-width: 160px; object-fit: contain;" />
+                  } @else {
+                    <div class="invoice-logo-box">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="28"
+                        height="28"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#ffffff"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                      </svg>
+                    </div>
+                  }
+                  <div>
+                    <h5 class="fw-bold mb-0 text-dark">{{ companyService.currentSettings().commercialName || companyService.currentSettings().companyName || 'CuadreEnv, SRL' }}</h5>
+                    @if (companyService.currentSettings().commercialName && companyService.currentSettings().companyName && companyService.currentSettings().commercialName !== companyService.currentSettings().companyName) {
+                      <div class="text-secondary small">{{ companyService.currentSettings().companyName }}</div>
+                    } @else {
+                      <div class="text-secondary small">{{ companyService.currentSettings().companyName || 'Soluciones de Facturación & Control' }}</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="text-end">
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace px-2 py-1 mb-1">
+                    e-CF Ley 32-23
+                  </span>
+                  <div class="fw-bold text-dark font-monospace" style="font-size: 0.8rem;">{{ eCfName }}</div>
+                  <div class="fw-bold text-primary font-monospace fs-5">
+                    e-NCF: {{ eNcfNumber }}
+                  </div>
+                  <div class="text-secondary font-monospace" style="font-size: 0.72rem;">
+                    Cód. Seguridad: <span class="fw-bold text-dark">{{ securityCode }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Company & Transaction Metadata -->
+              <div class="row g-3 small text-secondary mb-4 pb-3 border-bottom">
+                <div class="col-md-7">
+                  <div class="fw-bold text-dark">{{ companyService.currentSettings().commercialName || companyService.currentSettings().companyName || 'CuadreEnv, SRL' }}</div>
+                  @if (companyService.currentSettings().rnc) {
+                    <div>RNC: {{ companyService.currentSettings().rnc }}</div>
+                  }
+                  @if (companyService.currentSettings().address) {
+                    <div>{{ companyService.currentSettings().address }}</div>
+                  }
+                  @if (companyService.currentSettings().phone) {
+                    <div>Tel.: {{ companyService.currentSettings().phone }}</div>
+                  }
+                  @if (companyService.currentSettings().ticketWhatsapp) {
+                    <div>WhatsApp: {{ companyService.currentSettings().ticketWhatsapp }}</div>
+                  }
+                </div>
+                <div class="col-md-5 text-md-end">
+                  <div><span class="text-dark fw-semibold">Fecha:</span> {{ formattedDate }}</div>
+                  <div><span class="text-dark fw-semibold">Caja:</span> {{ saleData?.cashRegisterName || 'Caja Principal' }}</div>
+                  <div><span class="text-dark fw-semibold">Cajero:</span> {{ saleData?.cashierName || 'Admin' }}</div>
+                </div>
+              </div>
+
+              <!-- Customer Info Box -->
+              <div class="customer-info-box card border rounded-3 p-3 bg-light-subtle mb-4">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="text-secondary">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-secondary small font-size-xs fw-semibold">Cliente</div>
+                    <div class="fw-bold text-dark">{{ saleData?.customerName || 'Consumidor final' }}</div>
+                    <div class="text-secondary small font-monospace" style="font-size: 0.75rem;">
+                      RNC / Cédula: {{ saleData?.customerRnc || '000-0000000-0' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Products Table -->
+              <div class="table-responsive border rounded-3 overflow-hidden mb-4">
+                <table class="table align-middle mb-0 small">
+                  <thead class="table-light">
+                    <tr>
+                      <th class="ps-3" style="width: 30px;">#</th>
+                      <th>Producto</th>
+                      <th>Código</th>
+                      <th class="text-end">Precio unit.</th>
+                      <th class="text-center">Cantidad</th>
+                      <th class="text-end">ITBIS (18%)</th>
+                      <th class="text-end pe-3">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of (saleData?.items || []); track $index; let idx = $index) {
+                      <tr>
+                        <td class="ps-3 font-monospace text-secondary">{{ idx + 1 }}</td>
+                        <td class="fw-bold text-dark">{{ item.productName }}</td>
+                        <td class="text-secondary font-monospace" style="font-size: 0.75rem;">
+                          {{ item.productCode || ('PROD-' + (item.productId || (idx + 1))) }}
+                        </td>
+                        <td class="text-end font-monospace">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
+                        <td class="text-center font-monospace">{{ item.quantity }}</td>
+                        <td class="text-end font-monospace text-secondary">
+                          RD$ {{ (item.total * 0.18) | number:'1.2-2' }}
+                        </td>
+                        <td class="text-end pe-3 font-monospace fw-bold text-dark">
+                          RD$ {{ item.total | number:'1.2-2' }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Observaciones & Financial Summary -->
+              <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                  <div class="card border rounded-3 p-3 bg-light-subtle h-100">
+                    <div class="text-secondary small fw-semibold mb-1">Observaciones</div>
+                    <div class="small text-secondary">
+                      {{ saleData?.notes || '-' }}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <div class="card border rounded-3 p-3 bg-light-subtle">
+                    <div class="d-flex justify-content-between small mb-2">
+                      <span class="text-secondary">Subtotal</span>
+                      <span class="fw-semibold font-monospace">RD$ {{ (saleData?.subtotal || 0) | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between small mb-2">
+                      <span class="text-secondary">Descuento</span>
+                      <span class="font-monospace text-secondary">RD$ {{ (saleData?.discount || 0) | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between small mb-2">
+                      <span class="text-secondary">ITBIS (18%)</span>
+                      <span class="font-monospace text-secondary">RD$ {{ (saleData?.itbis || 0) | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between pt-2 border-top fs-5 fw-bold text-dark">
+                      <span>Total</span>
+                      <span class="text-primary font-monospace">RD$ {{ (saleData?.total || 0) | number:'1.2-2' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Timbre Digital QR e-CF (Ley 32-23) - Pausado a futuro -->
+              @if (isDgiiActive) {
+                <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-light-subtle my-3">
+                  <div class="d-flex align-items-center gap-3">
+                    <img [src]="digitalStampQrUrl" alt="Timbre Digital DGII" style="width: 76px; height: 76px; image-rendering: pixelated;" class="border p-1 bg-white rounded-2" />
+                    <div>
+                      <div class="fw-bold text-dark small d-flex align-items-center gap-1">
+                        <span>Timbre Digital DGII</span>
+                        <span class="badge bg-success text-white" style="font-size: 0.65rem;">✓ Certificado e-CF</span>
+                      </div>
+                      <div class="text-secondary small font-monospace mt-1" style="font-size: 0.72rem;">
+                        e-NCF: {{ eNcfNumber }} · Cód. Seguridad: {{ securityCode }}
+                      </div>
+                      <div class="text-muted small" style="font-size: 0.68rem;">
+                        Consulte la validez fiscal escaneando el código QR o en ecf.dgii.gov.do
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-end font-monospace text-secondary small d-none d-sm-block">
+                    <div class="badge bg-secondary-subtle text-secondary border font-size-xs">Ley No. 32-23</div>
+                    <div class="text-success fw-bold font-size-xs mt-1">Emisión e-CF Activa</div>
+                  </div>
+                </div>
+              }
+
+              <!-- Invoice Footer Disclaimer -->
+              <div class="text-center text-secondary small pt-3 border-top">
+                <div class="fw-semibold text-dark mb-1">
+                  "{{ companyService.currentSettings().invoiceFooterPhrase || '¡Gracias por su preferencia!' }}"
+                </div>
+                <div class="font-size-xs text-muted">Este documento es un comprobante fiscal electrónico (e-CF) válido emitido bajo la Ley No. 32-23.</div>
+              </div>
+            </div>
+
+            <!-- Dedicated 80mm/58mm Thermal Ticket Print Template -->
+            <div id="thermalTicketPrintArea" class="thermal-ticket-container font-monospace" [class.ticket-58mm]="companyService.currentSettings().ticketPaperSize === '58mm'">
+              <div class="text-center mb-2">
+                @if (companyService.currentSettings().logoUrl) {
+                  <div class="ticket-logo-container mb-2">
+                    <img
+                      [src]="companyService.currentSettings().logoUrl"
+                      alt="Logo Empresa"
+                      class="ticket-logo-img"
+                      style="max-height: 48px; max-width: 140px; object-fit: contain; margin: 0 auto 6px auto; display: block;"
+                    />
+                  </div>
+                }
+                <div class="fw-bold fs-6 text-uppercase">{{ companyService.currentSettings().commercialName || companyService.currentSettings().companyName || 'CUADRE-ENV' }}</div>
+                @if (companyService.currentSettings().companyName && companyService.currentSettings().commercialName && companyService.currentSettings().companyName !== companyService.currentSettings().commercialName) {
+                  <div class="small text-muted">{{ companyService.currentSettings().companyName }}</div>
+                }
+                @if (companyService.currentSettings().rnc) {
+                  <div class="small">RNC: {{ companyService.currentSettings().rnc }}</div>
+                }
+                @if (companyService.currentSettings().address) {
+                  <div class="small">{{ companyService.currentSettings().address }}</div>
+                }
+                @if (companyService.currentSettings().phone) {
+                  <div class="small">Tel: {{ companyService.currentSettings().phone }}</div>
+                }
+              </div>
+
+              <div class="ticket-divider text-center">================================</div>
+
+              <div class="small mb-2">
+                <div><strong>TICKET:</strong> {{ saleData?.invoiceNumber || ('VTA-' + (saleData?.id || '000123')) }}</div>
+                <div><strong>e-NCF:</strong> {{ eNcfNumber }}</div>
+                <div><strong>CÓD. SEG:</strong> {{ securityCode }}</div>
+                <div><strong>FECHA:</strong> {{ formattedDate }}</div>
+                <div><strong>CLIENTE:</strong> {{ saleData?.customerName || 'Consumidor Final' }}</div>
+                @if (saleData; as sale) {
+                  @if (sale.customerRnc && sale.customerRnc !== '000-0000000-0') {
+                    <div><strong>RNC/CÉD:</strong> {{ sale.customerRnc }}</div>
+                  }
+                }
+                <div><strong>CAJA:</strong> {{ saleData?.cashRegisterName || 'Caja Principal' }}</div>
+                <div><strong>CAJERO:</strong> {{ saleData?.cashierName || 'Admin' }}</div>
+                <div><strong>PAGO:</strong> {{ saleData?.paymentMethod || 'Efectivo' }}</div>
+              </div>
+
+              <div class="ticket-divider text-center">--------------------------------</div>
+
+              <!-- Ticket Items -->
+              <div class="ticket-items small mb-2">
+                <div class="d-flex justify-content-between fw-bold mb-1 border-bottom pb-1">
+                  <span style="flex: 2;">ARTÍCULO</span>
+                  <span style="flex: 1;" class="text-center">CANT</span>
+                  <span style="flex: 1;" class="text-end">TOTAL</span>
+                </div>
+                @for (item of saleData?.items; track item.productId || item.productCode) {
+                  <div class="mb-1">
+                    <div class="ticket-item-title fw-semibold">{{ item.productName }}</div>
+                    <div class="d-flex justify-content-between text-secondary font-size-xs">
+                      <span style="flex: 2;">RD$ {{ item.unitPrice | number:'1.2-2' }}</span>
+                      <span style="flex: 1;" class="text-center">x{{ item.quantity }}</span>
+                      <span style="flex: 1;" class="text-end font-monospace fw-bold text-dark">RD$ {{ item.total | number:'1.2-2' }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <div class="ticket-divider text-center">--------------------------------</div>
+
+              <!-- Ticket Totals -->
+              <div class="small">
+                <div class="d-flex justify-content-between">
+                  <span>Subtotal:</span>
+                  <span>RD$ {{ (saleData?.subtotal || 0) | number:'1.2-2' }}</span>
+                </div>
+                @if ((saleData?.discount || 0) > 0) {
+                  <div class="d-flex justify-content-between text-danger">
+                    <span>Descuento:</span>
+                    <span>- RD$ {{ (saleData?.discount || 0) | number:'1.2-2' }}</span>
+                  </div>
+                }
+                <div class="d-flex justify-content-between">
+                  <span>ITBIS (18%):</span>
+                  <span>RD$ {{ (saleData?.itbis || 0) | number:'1.2-2' }}</span>
+                </div>
+                <div class="ticket-divider text-center my-1">================================</div>
+                <div class="d-flex justify-content-between fw-bold fs-6">
+                  <span>TOTAL:</span>
+                  <span>RD$ {{ (saleData?.total || 0) | number:'1.2-2' }}</span>
+                </div>
+                <div class="ticket-divider text-center my-1">--------------------------------</div>
+                <div class="d-flex justify-content-between">
+                  <span>Monto Recibido:</span>
+                  <span>RD$ {{ (saleData?.amountReceived || saleData?.total || 0) | number:'1.2-2' }}</span>
+                </div>
+                <div class="d-flex justify-content-between fw-bold">
+                  <span>Cambio / Devuelta:</span>
+                  <span>RD$ {{ changeAmount | number:'1.2-2' }}</span>
+                </div>
+              </div>
+
+              <div class="ticket-divider text-center my-2">================================</div>
+
+              <div class="text-center small mt-2">
+                @if (companyService.currentSettings().ticketInstagram || companyService.currentSettings().ticketWhatsapp) {
+                  <div class="text-secondary font-size-xs mb-1">
+                    {{ companyService.currentSettings().ticketInstagram ? '📸 IG: ' + companyService.currentSettings().ticketInstagram : '' }}
+                    {{ companyService.currentSettings().ticketWhatsapp ? ' · 📲 WS: ' + companyService.currentSettings().ticketWhatsapp : '' }}
+                  </div>
+                }
+                <div class="fw-bold">
+                  {{ companyService.currentSettings().invoiceFooterPhrase || '¡GRACIAS POR SU PREFERENCIA!' }}
+                </div>
+                <div class="text-muted font-size-xs mb-2">Conserve su ticket para cualquier reclamo o garantía</div>
+                @if (companyService.currentSettings().ticketShowQr !== false) {
+                  <div class="text-center my-1.5">
+                    <img [src]="digitalStampQrUrl" style="width: 72px; height: 72px; image-rendering: pixelated;" alt="QR" />
+                    <div class="text-muted font-size-xs mt-0.5">Comprobante y Atención Digital</div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT SIDE: Summary, Additional Info & Quick Actions (Col-lg-5) -->
+          <div class="col-lg-5 d-flex flex-column gap-3">
+            <!-- 1. Resumen de la venta -->
+            <div class="card border shadow-sm rounded-3 p-3 bg-white">
+              <h6 class="fw-bold text-dark mb-3">Resumen de la venta</h6>
+
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-secondary small">Total</span>
+                <span class="fw-bold text-dark fs-4 font-monospace">
+                  RD$ {{ (saleData?.total || 0) | number:'1.2-2' }}
+                </span>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-secondary small">Método de pago</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill fw-semibold">
+                  {{ saleData?.paymentMethod || 'Efectivo' }}
+                </span>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-secondary small">Monto recibido</span>
+                <span class="fw-semibold font-monospace text-dark">
+                  RD$ {{ (saleData?.amountReceived || saleData?.total || 0) | number:'1.2-2' }}
+                </span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                <span class="text-secondary small">Cambio</span>
+                <span class="fw-bold text-success font-monospace fs-5">
+                  RD$ {{ changeAmount | number:'1.2-2' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- 2. Información adicional -->
+            <div class="card border shadow-sm rounded-3 p-3 bg-white">
+              <h6 class="fw-bold text-dark mb-3">Información adicional</h6>
+
+              <div class="d-flex justify-content-between align-items-center mb-2 small">
+                <span class="text-secondary">Estado</span>
+                <span class="badge bg-success-subtle text-success border px-2 py-1 rounded-pill">
+                  Completada
+                </span>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center mb-2 small">
+                <span class="text-secondary">Número de venta</span>
+                <span class="fw-bold font-monospace text-dark">
+                  {{ saleData?.invoiceNumber || ('VTA-' + (saleData?.id || '000123')) }}
+                </span>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center mb-2 small">
+                <span class="text-secondary">Fecha</span>
+                <span class="font-monospace text-dark">{{ formattedDate }}</span>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center mb-2 small">
+                <span class="text-secondary">Caja</span>
+                <span class="text-dark fw-semibold">{{ saleData?.cashRegisterName || 'Caja Principal' }}</span>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center small">
+                <span class="text-secondary">Cajero</span>
+                <span class="text-dark fw-semibold">{{ saleData?.cashierName || 'Admin' }}</span>
+              </div>
+            </div>
+
+            <!-- 3. Acciones rápidas -->
+            <div class="card border shadow-sm rounded-3 overflow-hidden bg-white">
+              <div class="p-3 border-bottom">
+                <h6 class="fw-bold text-dark mb-0">Acciones rápidas</h6>
+              </div>
+
+              <div class="list-group list-group-flush small">
+                <button
+                  type="button"
+                  class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 text-success fw-bold"
+                  (click)="sendWhatsAppInvoice()"
+                >
+                  <div class="d-flex align-items-center gap-2">
+                    <svg cIcon name="cilPhone" style="width: 16px; height: 16px;"></svg>
+                    <span>Compartir por WhatsApp</span>
+                  </div>
+                  <span class="text-success">&rsaquo;</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3"
+                  (click)="printInvoice()"
+                >
+                  <div class="d-flex align-items-center gap-2">
+                    <svg cIcon name="cilPrint" style="width: 16px; height: 16px;" class="text-secondary"></svg>
+                    <span class="fw-semibold text-dark">Imprimir factura</span>
+                  </div>
+                  <span class="text-secondary">&rsaquo;</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3"
+                  (click)="sendEmail()"
+                >
+                  <div class="d-flex align-items-center gap-2">
+                    <svg cIcon name="cilEnvelopeClosed" style="width: 16px; height: 16px;" class="text-secondary"></svg>
+                    <span class="fw-semibold text-dark">Enviar por email</span>
+                  </div>
+                  <span class="text-secondary">&rsaquo;</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3"
+                  (click)="downloadPdf()"
+                >
+                  <div class="d-flex align-items-center gap-2">
+                    <svg cIcon name="cilCloudDownload" style="width: 16px; height: 16px;" class="text-secondary"></svg>
+                    <span class="fw-semibold text-dark">Descargar PDF</span>
+                  </div>
+                  <span class="text-secondary">&rsaquo;</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 text-primary"
+                  (click)="startNewSale()"
+                >
+                  <div class="d-flex align-items-center gap-2">
+                    <svg cIcon name="cilPlus" style="width: 16px; height: 16px;" class="text-primary"></svg>
+                    <span class="fw-bold">+ Nueva venta</span>
+                  </div>
+                  <span class="text-primary">&rsaquo;</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOTTOM SECTION: Productos vendidos (Only screen, hidden in print) -->
+        @if (saleData && saleData.items && saleData.items.length > 0) {
+          <div class="mt-4 pt-3 border-top d-print-none">
+            <h6 class="fw-bold text-dark mb-3">Productos vendidos</h6>
+            <div class="row g-3">
+              @for (item of (saleData.items || []); track $index) {
+                <div class="col-md-4 col-sm-6">
+                  <div class="card border rounded-3 p-3 bg-white shadow-sm h-100 d-flex flex-row align-items-center gap-3">
+                    <div class="product-badge-icon bg-primary-subtle text-primary rounded-3 p-2">
+                      <svg cIcon name="cilCart" style="width: 20px; height: 20px;"></svg>
+                    </div>
+                    <div class="flex-grow-1">
+                      <div class="fw-bold text-dark small mb-0">{{ item.productName }}</div>
+                      <div class="text-secondary small font-monospace">
+                        {{ item.quantity }} x RD$ {{ item.unitPrice | number:'1.2-2' }}
+                      </div>
+                      <div class="fw-bold text-primary font-monospace small">
+                        RD$ {{ item.total | number:'1.2-2' }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Send Email Modal Component -->
+<app-send-invoice-email-modal #sendEmailModal [(visible)]="isEmailModalOpen"></app-send-invoice-email-modal>
+
+<!-- Send WhatsApp Modal Component -->
+<app-send-whatsapp-modal #sendWhatsAppModal></app-send-whatsapp-modal>

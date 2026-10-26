@@ -1,8 +1,8 @@
 // Modern SaaS Design System styles (Stripe / Notion / Linear style)
 
-// Primary Color Enhancements (Tailored Indigo/Violet)
-$saas-primary: #4f46e5;
-$saas-primary-hover: #4338ca;
+// Primary Color Enhancements (Brand Dark Slate Blue / Charcoal)
+$saas-primary: #252b46;
+$saas-primary-hover: #6b7785;
 $saas-success: #10b981;
 $saas-danger: #ef4444;
 $saas-warning: #f59e0b;
@@ -42,6 +42,7 @@ body {
 .btn-primary {
   background-color: $saas-primary !important;
   border-color: $saas-primary !important;
+  color: #ffffff !important;
   font-weight: 500;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 6px;
@@ -49,7 +50,8 @@ body {
   &:hover, &:focus, &:active {
     background-color: $saas-primary-hover !important;
     border-color: $saas-primary-hover !important;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25) !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(37, 43, 70, 0.25) !important;
   }
 }
 
@@ -75,7 +77,7 @@ body {
 
   &:focus {
     border-color: $saas-primary !important;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15) !important;
+    box-shadow: 0 0 0 3px rgba(37, 43, 70, 0.15) !important;
   }
 }
 
@@ -325,30 +327,37 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.55);
   z-index: 1050;
   display: flex;
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(4px);
   transition: opacity 0.2s ease-in-out;
+  padding: clamp(8px, 2vh, 16px);
+  box-sizing: border-box;
 }
 
 .custom-modal-content {
   background-color: #ffffff;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 550px;
-  max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border-radius: 14px;
+  width: 95%;
+  max-width: 600px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
   animation: modal-slide-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   border: 1px solid #e5e7eb;
+  overflow: hidden;
 
   &.modal-lg {
-    max-width: 750px;
+    max-width: 820px;
+  }
+
+  &.modal-xl {
+    max-width: 1050px;
   }
 }
 
@@ -370,11 +379,13 @@ body {
 }
 
 .custom-modal-header {
-  padding: 16px 20px;
+  padding: 14px 20px;
   border-bottom: 1px solid #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
+  background-color: #ffffff;
 
   h5 {
     margin: 0;
@@ -384,23 +395,193 @@ body {
 
 [data-coreui-theme="dark"] .custom-modal-header {
   border-bottom-color: #1e293b !important;
+  background-color: #0f172a !important;
 }
 
 .custom-modal-body {
-  padding: 20px;
+  padding: 18px 20px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+
+  /* Custom slim modern scrollbar */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 9999px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.65);
+  }
 }
 
 .custom-modal-footer {
-  padding: 16px 20px;
+  padding: 14px 20px;
   border-top: 1px solid #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
+  flex-shrink: 0;
+  background-color: #ffffff;
 }
 
 [data-coreui-theme="dark"] .custom-modal-footer {
   border-top-color: #1e293b !important;
+  background-color: #0f172a !important;
 }
+
+// Status & Type Brand Badges
+.status-badge-primary,
+.badge-brand-primary {
+  background-color: #252b46 !important;
+  color: #ffffff !important;
+  border: 1px solid #252b46 !important;
+  font-weight: 600;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #6b7785 !important;
+    border-color: #6b7785 !important;
+    color: #ffffff !important;
+  }
+}
+
+.status-badge-subtle-primary,
+.badge-brand-subtle {
+  background-color: rgba(37, 43, 70, 0.08) !important;
+  color: #252b46 !important;
+  border: 1px solid rgba(37, 43, 70, 0.22) !important;
+  font-weight: 600;
+}
+
+.status-badge-success,
+.badge-brand-success {
+  background-color: rgba(40, 167, 69, 0.12) !important;
+  color: #198754 !important;
+  border: 1px solid rgba(40, 167, 69, 0.28) !important;
+  font-weight: 600;
+}
+
+.status-badge-warning,
+.badge-brand-warning {
+  background-color: rgba(255, 193, 7, 0.15) !important;
+  color: #997404 !important;
+  border: 1px solid rgba(255, 193, 7, 0.35) !important;
+  font-weight: 600;
+}
+
+.status-badge-danger,
+.badge-brand-danger {
+  background-color: rgba(220, 53, 69, 0.12) !important;
+  color: #dc3545 !important;
+  border: 1px solid rgba(220, 53, 69, 0.28) !important;
+  font-weight: 600;
+}
+
+.status-badge-neutral,
+.badge-brand-neutral {
+  background-color: rgba(107, 119, 133, 0.1) !important;
+  color: #252b46 !important;
+  border: 1px solid rgba(107, 119, 133, 0.25) !important;
+  font-weight: 600;
+}
+
+// ============================================================================
+// Silicon Valley Deep Space Navy & Glassmorphism System
+// ============================================================================
+.glass-panel {
+  background: var(--cuadre-glass-bg, rgba(255, 255, 255, 0.85)) !important;
+  backdrop-filter: var(--cuadre-glass-blur, blur(16px)) !important;
+  -webkit-backdrop-filter: var(--cuadre-glass-blur, blur(16px)) !important;
+  border: 1px solid var(--cuadre-glass-border, rgba(15, 23, 42, 0.08)) !important;
+  box-shadow: var(--cuadre-card-shadow) !important;
+  border-radius: 14px;
+}
+
+.card {
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  &:active {
+    transform: scale(0.975);
+  }
+}
+
+// Tactile & Ergonomic Keyboards
+kbd, .kbd-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  color: #1e293b;
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-bottom: 2px solid #94a3b8;
+  border-radius: 4px;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.06);
+  line-height: 1;
+}
+
+[data-coreui-theme="dark"] kbd,
+[data-coreui-theme="dark"] .kbd-pill {
+  color: #e2e8f0;
+  background-color: #1e293b;
+  border-color: #475569;
+  border-bottom-color: #64748b;
+}
+
+// Live Pulse Indicator
+.pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulse-ring 1.8s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+// Live Feed Highlight Flash
+@keyframes live-feed-flash {
+  0% {
+    background-color: rgba(37, 99, 235, 0.15);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.live-feed-highlight {
+  animation: live-feed-flash 2.5s ease-out;
+}
+
 
