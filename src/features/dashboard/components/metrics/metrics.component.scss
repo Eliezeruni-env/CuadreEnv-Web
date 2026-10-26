@@ -52,13 +52,32 @@
     flex-shrink: 0;
   }
 
+  .chart-container-box {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+
+    c-chart {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    canvas {
+      display: block !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+    }
+  }
+
   .row-3-card {
-    min-height: 400px;
+    min-height: 380px;
     display: flex;
     flex-direction: column;
     border: 1px solid #e2e8f0 !important;
     background-color: #ffffff;
     box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03);
+    overflow: hidden;
   }
 
   .period-pills {

@@ -92,11 +92,24 @@ export class EmployeeModalComponent implements OnInit {
     return this.selectedRoles().includes(roleName);
   }
 
+  private readonly GRANULAR_STOCK_MODULES = ['purchases-receipts', 'inventory-entries'];
+
   toggleModule(moduleCode: string): void {
     const code = moduleCode.toLowerCase();
     const current = this.selectedModules();
     const isWildcard = current.includes('*') || current.includes('ALL') || current.includes('all');
     let updated: string[];
+
+    if (this.GRANULAR_STOCK_MODULES.includes(code)) {
+      const isAlreadySelected = current.some(m => m.toLowerCase() === code);
+      if (isAlreadySelected) {
+        updated = current.filter(m => m.toLowerCase() !== code && m !== '*' && m !== 'ALL' && m !== 'all');
+      } else {
+        updated = [...current.filter(m => m.toLowerCase() !== code), code];
+      }
+      this.selectedModules.set(updated);
+      return;
+    }
 
     if (isWildcard) {
       const allCodes = this.availableModules.map(m => m.code);
@@ -115,10 +128,15 @@ export class EmployeeModalComponent implements OnInit {
 
   isModuleSelected(moduleCode: string): boolean {
     const selected = this.selectedModules();
+    const code = moduleCode.toLowerCase();
+
+    if (this.GRANULAR_STOCK_MODULES.includes(code)) {
+      return selected.some(m => m.toLowerCase() === code || m === '*' || m.toUpperCase() === 'ALL');
+    }
+
     if (selected.includes('*') || selected.includes('ALL') || selected.includes('all')) {
       return true;
     }
-    const code = moduleCode.toLowerCase();
     const canonicalCode = MENU_TO_CANONICAL[code] || code;
     return selected.includes(moduleCode) || selected.includes(code) || selected.includes(canonicalCode);
   }

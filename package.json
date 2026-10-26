@@ -13,6 +13,8 @@
   "scripts": {
     "ng": "ng",
     "start": "node server.js",
+    "dev": "ng serve -o",
+    "dev:mobile": "ng serve --host 0.0.0.0 --ssl",
     "start:dev": "ng serve -o",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
@@ -39,6 +41,8 @@
     "@coreui/icons-angular": "~5.6.24",
     "@coreui/utils": "^2.0.2",
     "@microsoft/signalr": "^10.0.11",
+    "@zxing/browser": "^0.2.1",
+    "@zxing/library": "^0.23.0",
     "chart.js": "^4.5.1",
     "express": "^5.3.0",
     "ngx-scrollbar": "^13.0.3",

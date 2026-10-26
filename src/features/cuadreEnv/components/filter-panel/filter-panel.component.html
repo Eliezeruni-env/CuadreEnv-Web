@@ -33,6 +33,7 @@
                         <svg cIcon name="cilSearch" size="sm"></svg>
                     </span>
                     <input cFormControl [ngModel]="getValue(field.key)" (ngModelChange)="onTextInput(field.key, $event)"
+                        (keydown.enter)="onEnter(field.key)"
                         [placeholder]="field.placeholder || translationService.t('filterPanel.searchPlaceholder')" />
                 </c-input-group>
                 }

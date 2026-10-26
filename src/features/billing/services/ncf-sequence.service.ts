@@ -20,64 +20,6 @@ export interface NcfSequenceRange {
 
 const NCF_SEQUENCES_STORAGE_KEY = 'cuadreenv_ncf_sequences_db';
 
-const INITIAL_DGII_SEQUENCES: NcfSequenceRange[] = [
-  {
-    id: 1,
-    typeCode: 'B01',
-    typeName: 'Factura de Crédito Fiscal (B01)',
-    prefix: 'B01',
-    currentNumber: 965,
-    startNumber: 1,
-    endNumber: 1000,
-    expirationDate: '2026-10-18', // ~16 días
-    isActive: true,
-  },
-  {
-    id: 2,
-    typeCode: 'B02',
-    typeName: 'Factura de Consumo Final (B02)',
-    prefix: 'B02',
-    currentNumber: 4960,
-    startNumber: 1,
-    endNumber: 5000,
-    expirationDate: '2026-12-31',
-    isActive: true,
-  },
-  {
-    id: 3,
-    typeCode: 'B04',
-    typeName: 'Nota de Crédito (B04)',
-    prefix: 'B04',
-    currentNumber: 180,
-    startNumber: 1,
-    endNumber: 500,
-    expirationDate: '2026-12-31',
-    isActive: true,
-  },
-  {
-    id: 4,
-    typeCode: 'E31',
-    typeName: 'e-CF Crédito Fiscal Electrónico (E31)',
-    prefix: 'E31',
-    currentNumber: 120,
-    startNumber: 1,
-    endNumber: 10000,
-    expirationDate: '2027-06-30',
-    isActive: true,
-  },
-  {
-    id: 5,
-    typeCode: 'E32',
-    typeName: 'e-CF Consumo Electrónico (E32)',
-    prefix: 'E32',
-    currentNumber: 450,
-    startNumber: 1,
-    endNumber: 50000,
-    expirationDate: '2027-06-30',
-    isActive: true,
-  },
-];
-
 @Injectable({
   providedIn: 'root',
 })
@@ -94,16 +36,26 @@ export class NcfSequenceService {
 
   private loadStoredSequences(): NcfSequenceRange[] {
     try {
+      if (typeof window === 'undefined') return [];
       const raw = localStorage.getItem(NCF_SEQUENCES_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : INITIAL_DGII_SEQUENCES;
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      // Limpiar datos si coinciden con los mocks obsoletos de 965 o 4960
+      if (Array.isArray(parsed) && parsed.some((item: any) => item.currentNumber === 965 || item.currentNumber === 4960)) {
+        localStorage.removeItem(NCF_SEQUENCES_STORAGE_KEY);
+        return [];
+      }
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
-      return INITIAL_DGII_SEQUENCES;
+      return [];
     }
   }
 
   private saveStoredSequences(list: NcfSequenceRange[]) {
     try {
-      localStorage.setItem(NCF_SEQUENCES_STORAGE_KEY, JSON.stringify(list));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(NCF_SEQUENCES_STORAGE_KEY, JSON.stringify(list));
+      }
       this.sequencesSignal.set(list);
     } catch {
       // ignore

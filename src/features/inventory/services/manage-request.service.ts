@@ -39,27 +39,66 @@ export class ManageRequestService {
   }
 
   async getRequests(statusId?: number): Promise<ApiResponse<ManageRequest[]>> {
+    let apiList: ManageRequest[] = [];
     try {
       const res = await this.api.get<any, any>('/ManageRequest');
-      const list = extractArray<ManageRequest>(res);
+      const list = extractArray<any>(res);
       if (list && list.length > 0) {
-        if (statusId) {
-          return { success: true, data: list.filter((r) => r.statusId === statusId) };
-        }
-        return { success: true, data: list };
+        apiList = list.map((item: any) => {
+          const statusIdResolved = item.statusId ?? (item.status === 'Approved' ? 2 : item.status === 'Rejected' ? 3 : 1);
+          const statusNameResolved = item.statusName ?? (statusIdResolved === 2 ? 'Aprobado' : statusIdResolved === 3 ? 'Rechazado' : 'Pendiente');
+          const typeIdResolved = item.requestType ?? (item.type ?? 1);
+          return {
+            id: item.id,
+            requestNumber: item.requestNumber || `REQ-${String(item.id).slice(-6)}`,
+            requestType: typeIdResolved,
+            typeName: item.typeName || (typeIdResolved === 1 ? 'Recepción de Compra' : typeIdResolved === 2 ? 'Ajuste de Stock' : 'Solicitud de Almacén'),
+            statusId: statusIdResolved,
+            statusName: statusNameResolved,
+            creatorName: item.creatorName || item.createdBy || 'Usuario Almacén',
+            createdAt: item.createdAt || new Date().toISOString(),
+            comment: item.comment || '',
+            payloadJson: item.payloadJson || '{}',
+            timeline: Array.isArray(item.timeline) ? item.timeline : [],
+            reviewerName: item.reviewerName,
+            reviewedAt: item.reviewedAt,
+            rejectionReason: item.rejectionReason,
+          };
+        });
       }
-      const local = this.getLocalRequests();
-      return { success: true, data: statusId ? local.filter((r) => r.statusId === statusId) : local };
     } catch {
-      // Si el backend aún no implementa [HttpGet] en ManageRequest, recuperar cola local
-      const local = this.getLocalRequests();
-      return { success: true, data: statusId ? local.filter((r) => r.statusId === statusId) : local };
+      // offline fallback
     }
+
+    const local = this.getLocalRequests();
+    const map = new Map<number, ManageRequest>();
+    for (const m of apiList) map.set(m.id, m);
+    for (const loc of local) {
+      if (!map.has(loc.id)) {
+        map.set(loc.id, loc);
+      } else {
+        const existing = map.get(loc.id)!;
+        if (loc.statusId !== existing.statusId) {
+          map.set(loc.id, loc);
+        }
+      }
+    }
+    const combined = Array.from(map.values()).sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+    if (statusId) {
+      return { success: true, data: combined.filter((r) => r.statusId === statusId) };
+    }
+    return { success: true, data: combined };
   }
 
   async getRequest(id: number): Promise<ApiResponse<ManageRequest>> {
-    const list = this.getLocalRequests();
-    const found = list.find((r) => r.id === id);
+    let list = this.getLocalRequests();
+    let found = list.find((r) => r.id === id);
+    if (!found) {
+      const allRes = await this.getRequests();
+      found = allRes.data?.find((r) => r.id === id);
+    }
     if (found) {
       return {
         success: true,
@@ -114,8 +153,16 @@ export class ManageRequestService {
   }
 
   async approveRequest(id: number, comment?: string): Promise<ApiResponse<ManageRequest>> {
-    const list = this.getLocalRequests();
-    const idx = list.findIndex((r) => r.id === id);
+    let list = this.getLocalRequests();
+    let idx = list.findIndex((r) => r.id === id);
+    if (idx === -1) {
+      const allRes = await this.getRequests();
+      const foundInAll = allRes.data?.find((r) => r.id === id);
+      if (foundInAll) {
+        list.push(foundInAll);
+        idx = list.length - 1;
+      }
+    }
     if (idx === -1) return { success: false, message: 'Solicitud no encontrada.' };
 
     const req = list[idx];
@@ -123,6 +170,7 @@ export class ManageRequestService {
     req.statusName = 'Aprobado';
     req.reviewerName = 'Administrador / Supervisor';
     req.reviewedAt = new Date().toISOString();
+    if (!Array.isArray(req.timeline)) req.timeline = [];
     req.timeline.push({
       timestamp: new Date().toISOString(),
       action: 'Aprobación y Aplicación en Inventario',
@@ -174,8 +222,16 @@ export class ManageRequestService {
   }
 
   async rejectRequest(id: number, reason: string): Promise<ApiResponse<ManageRequest>> {
-    const list = this.getLocalRequests();
-    const idx = list.findIndex((r) => r.id === id);
+    let list = this.getLocalRequests();
+    let idx = list.findIndex((r) => r.id === id);
+    if (idx === -1) {
+      const allRes = await this.getRequests();
+      const foundInAll = allRes.data?.find((r) => r.id === id);
+      if (foundInAll) {
+        list.push(foundInAll);
+        idx = list.length - 1;
+      }
+    }
     if (idx === -1) return { success: false, message: 'Solicitud no encontrada.' };
 
     const req = list[idx];
@@ -184,6 +240,7 @@ export class ManageRequestService {
     req.reviewerName = 'Administrador / Supervisor';
     req.reviewedAt = new Date().toISOString();
     req.rejectionReason = reason;
+    if (!Array.isArray(req.timeline)) req.timeline = [];
     req.timeline.push({
       timestamp: new Date().toISOString(),
       action: 'Rechazo de Solicitud',

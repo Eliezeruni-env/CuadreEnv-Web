@@ -21,7 +21,8 @@ export class WarehouseOutletService {
   private getLocalOutlets(): WarehouseOutlet[] {
     try {
       const raw = localStorage.getItem(OUTLETS_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const list: WarehouseOutlet[] = raw ? JSON.parse(raw) : [];
+      return list.filter((item) => (item.totalQuantity || 0) > 0 || (item.productDetails && item.productDetails.length > 0));
     } catch {
       return [];
     }
@@ -36,17 +37,58 @@ export class WarehouseOutletService {
   }
 
   async getOutlets(): Promise<ApiResponse<WarehouseOutlet[]>> {
+    let apiList: WarehouseOutlet[] = [];
     try {
       const res = await this.api.get<any, any>('/WarehouseOutlet');
       const list = extractArray<WarehouseOutlet>(res);
       if (list && list.length > 0) {
-        const normalized = list.map((item) => normalizeWarehouseMovement<WarehouseOutlet>(item));
-        return { success: true, data: normalized };
+        apiList = list.map((item) => normalizeWarehouseMovement<WarehouseOutlet>(item));
       }
-      return { success: true, data: [] };
     } catch {
-      return { success: false, data: [], message: 'No se pudo conectar con el servidor.' };
+      try {
+        const res2 = await this.api.get<any, any>('/inventory/movements', { params: { type: 'Outbound' } });
+        const list2 = extractArray<any>(res2);
+        if (list2 && list2.length > 0) {
+          apiList = list2.map((item) => normalizeWarehouseMovement<WarehouseOutlet>({ ...item, type: 'OUTLET' }));
+        }
+      } catch {
+        // ignore
+      }
     }
+
+    // Filter out invalid/empty movements (such as deleted rows with 0 quantity and 0 products)
+    const validApiList = apiList.filter((item) => {
+      const hasProducts = item.productDetails && item.productDetails.length > 0 && item.productDetails[0].productId > 0;
+      const hasQty = (item.totalQuantity || 0) > 0;
+      const isNotDeleted = !(item as any).isDeleted && (item as any).active !== false;
+      return (hasProducts || hasQty) && isNotDeleted;
+    });
+
+    const localList = this.getLocalOutlets().map((o) => normalizeWarehouseMovement<WarehouseOutlet>(o));
+    const map = new Map<string, WarehouseOutlet>();
+
+    // 1. Register local movements first (they have full rich line item details)
+    for (const loc of localList) {
+      if (loc.id !== undefined) map.set(String(loc.id), loc);
+    }
+
+    // 2. Merge backend movements, preserving line item details from local if available
+    for (const o of validApiList) {
+      if (o.id !== undefined) {
+        const key = String(o.id);
+        const existing = map.get(key);
+        if (existing && existing.productDetails && existing.productDetails.length > 0) {
+          map.set(key, { ...o, ...existing, id: o.id });
+        } else {
+          map.set(key, o);
+        }
+      }
+    }
+
+    const combined = Array.from(map.values()).sort(
+      (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
+    );
+    return { success: true, data: combined };
   }
 
   async getOutlet(id: number): Promise<ApiResponse<WarehouseOutlet>> {
@@ -109,11 +151,25 @@ export class WarehouseOutletService {
       totalCost: totalCost,
     };
 
-    // 1. Post to API if active
-    try {
-      await this.api.post<any, any>('/WarehouseOutlet', newOutlet);
-    } catch {
-      // offline fallback
+    // 1. Post to backend endpoint POST /WarehouseOutlet
+    for (const item of outlet.productDetails || []) {
+      try {
+        await this.api.post<any, any>('/WarehouseOutlet', {
+          productId: item.productId,
+          warehouseId: whId,
+          quantity: item.quantity,
+        });
+      } catch {
+        try {
+          await this.api.post<any, any>('/Warehouse/stock/remove', {
+            productId: item.productId,
+            warehouseId: whId,
+            quantity: item.quantity,
+          });
+        } catch {
+          // offline fallback
+        }
+      }
     }
 
     // 2. Persist locally

@@ -115,8 +115,23 @@ export class ListbillingComponent implements OnInit {
     this.currentPage = page;
   }
 
-  toggleDetail(billing: Billing) {
+  async toggleDetail(billing: Billing) {
     billing.showDetail = !billing.showDetail;
+    if (billing.showDetail && (!billing.productDetails || billing.productDetails.length === 0) && (!billing.details || billing.details.length === 0) && billing.id) {
+      try {
+        const res = await this.billingService.getBillingById(billing.id);
+        if (res?.success && res.data) {
+          const items = res.data.productDetails || res.data.details || [];
+          billing.productDetails = items;
+          billing.details = items;
+          if (res.data.amountSubTotal) billing.amountSubTotal = res.data.amountSubTotal;
+          if (res.data.amountItbis) billing.amountItbis = res.data.amountItbis;
+          if (res.data.amountTotal) billing.amountTotal = res.data.amountTotal;
+        }
+      } catch (err) {
+        console.error('Error al cargar detalle de factura:', err);
+      }
+    }
   }
 
   goToCreate() {
@@ -133,11 +148,25 @@ export class ListbillingComponent implements OnInit {
     });
   }
 
-  printInvoice(billing: Billing) {
+  async printInvoice(billing: Billing) {
+    if ((!billing.productDetails || billing.productDetails.length === 0) && (!billing.details || billing.details.length === 0) && billing.id) {
+      const res = await this.billingService.getBillingById(billing.id);
+      if (res?.success && res.data) {
+        billing.productDetails = res.data.productDetails || res.data.details || [];
+        billing.details = billing.productDetails;
+      }
+    }
     this.selectedInvoiceToPrint = billing;
   }
 
-  viewInvoice(billing: Billing) {
+  async viewInvoice(billing: Billing) {
+    if ((!billing.productDetails || billing.productDetails.length === 0) && (!billing.details || billing.details.length === 0) && billing.id) {
+      const res = await this.billingService.getBillingById(billing.id);
+      if (res?.success && res.data) {
+        billing.productDetails = res.data.productDetails || res.data.details || [];
+        billing.details = billing.productDetails;
+      }
+    }
     this.selectedInvoiceToPrint = billing;
   }
 

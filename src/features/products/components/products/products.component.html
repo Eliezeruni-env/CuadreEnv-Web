@@ -22,8 +22,11 @@
         Recargar
       </button>
       @if (authService.hasRole(['Admin', 'Manager', 'Employee'])) {
+        <a routerLink="/products/settings" class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" title="Configurar Categorías y Tipos">
+          <span>Categorías</span>
+        </a>
         <button class="btn btn-outline-success d-flex align-items-center gap-2 shadow-xs px-3 fw-bold" (click)="openImportModal()">
-          <span>📊 Importar Excel / Plantillas</span>
+          <span>Importar Excel / Plantillas</span>
         </button>
         <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openCreateModal()">
           <span>+ {{ translationService.t('products.new') }}</span>
@@ -130,17 +133,17 @@
             </thead>
             <tbody>
               @for (p of pagedProducts(); track p.id) {
-                <tr class="master-row">
+                <tr class="master-row product-interactive-row" [class.row-healthy]="getStockState(p) === 'healthy'" [class.row-low]="getStockState(p) === 'low'" [class.row-critical]="getStockState(p) !== 'healthy' && getStockState(p) !== 'low'">
                   <td class="ps-3">
                     <div class="d-flex align-items-center gap-2 flex-wrap">
-                      <span class="fw-bold text-dark">{{ p.description }}</span>
+                      <span class="fw-bold text-dark product-name-title">{{ p.description }}</span>
                       @if (p.isOrganic) {
-                        <span class="badge bg-success-subtle text-success border border-success px-2 py-0.5 font-size-xs">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 font-size-xs rounded-pill">
                           🌱 Orgánico
                         </span>
                       }
                       @if (getExpirationInfo(p).status !== 'none') {
-                        <span class="badge px-2 py-0.5 font-size-xs" [ngClass]="getExpirationInfo(p).badgeClass">
+                        <span class="badge px-2.5 py-0.5 font-size-xs rounded-pill" [ngClass]="getExpirationInfo(p).badgeClass">
                           {{ getExpirationInfo(p).label }}
                         </span>
                       }
@@ -151,29 +154,43 @@
                   </td>
                   <td class="font-monospace text-secondary small">{{ p.reference || '-' }}</td>
                   <td>
-                    <span class="badge bg-light text-secondary border font-monospace">{{ p.barcode || '-' }}</span>
+                    <span class="badge bg-light text-dark border font-monospace">{{ p.barcode || '-' }}</span>
                   </td>
                   <td class="text-end font-monospace fw-bold text-dark">RD$ {{ p.cost | number:'1.2-2' }}</td>
                   <td class="text-end font-monospace fw-bold">
-                    {{ p.stock }} uds
+                    {{ p.stock }} <span class="small fw-normal text-muted">uds</span>
                   </td>
                   <td class="text-center">
                     @if (getStockState(p) === 'healthy') {
-                      <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill">
-                        En Stock
-                      </span>
+                      <div class="stock-status-pill pill-normal">
+                        <span class="status-dot-pulse"></span>
+                        <span class="status-pill-label">En Stock</span>
+                      </div>
                     } @else if (getStockState(p) === 'low') {
-                      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1 rounded-pill">
-                        Stock Bajo
-                      </span>
+                      <div class="stock-status-pill pill-low">
+                        <span class="status-dot-pulse"></span>
+                        <span class="status-pill-label">Stock Bajo</span>
+                      </div>
                     } @else {
-                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 rounded-pill">
-                        Crítico / Agotado
-                      </span>
+                      <div class="stock-status-pill pill-critical">
+                        <span class="status-dot-pulse"></span>
+                        <span class="status-pill-label">Crítico / Agotado</span>
+                      </div>
                     }
                   </td>
                   <td class="text-center pe-3">
                     <div class="action-btn-group justify-content-center">
+                      <button
+                        class="btn-action-icon btn-action-view"
+                        type="button"
+                        (click)="openDetailModal(p)"
+                        title="Ver Detalle y Código de Barras Generado"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      </button>
                       @if (authService.hasRole(['Admin', 'Manager', 'Employee'])) {
                         <button
                           class="btn-action-icon btn-action-edit"
@@ -299,3 +316,12 @@
 
 <!-- Modal de Importación Inteligente y Catálogos Pre-cargados -->
 <app-product-import-modal #importModal (imported)="loadProducts()"></app-product-import-modal>
+
+<!-- Modal Detalle de Producto con Código de Barras y Foto -->
+<app-product-detail-modal
+  #detailModal
+  [visible]="isDetailModalOpen()"
+  (visibleChange)="isDetailModalOpen.set($event)"
+  [product]="selectedProductForDetail()"
+  (editRequested)="openEditModal($event)"
+></app-product-detail-modal>

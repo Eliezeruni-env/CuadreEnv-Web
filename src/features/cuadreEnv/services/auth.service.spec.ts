@@ -130,10 +130,10 @@ describe('AuthService & Session Persistence', () => {
       user: { modules: ['cash-register', 'customers'] },
     });
 
-    expect(authService.allowedModules()).toEqual(['cashregister', 'customers']);
+    expect(authService.allowedModules()).toEqual(['cash-register', 'customers']);
   });
 
-  it('restores and normalizes allowed modules from JWT claims', () => {
+  it('restores and preserves literal allowed modules from JWT claims', () => {
     const fakePayload = {
       sub: '42',
       allowedModules: ['cash-register', 'inventory-stock', 'customers'],
@@ -147,7 +147,7 @@ describe('AuthService & Session Persistence', () => {
     const authService = TestBed.inject(AuthService);
     authService.licensedModules.set(['*']);
 
-    expect(authService.allowedModules()).toEqual(['cashregister', 'inventory', 'customers']);
+    expect(authService.allowedModules()).toEqual(['cash-register', 'inventory-stock', 'customers']);
     expect(authService.hasModule('cash-register')).toBe(true);
     expect(authService.hasModule('inventory-stock')).toBe(true);
     expect(authService.hasModule('billing')).toBe(false);

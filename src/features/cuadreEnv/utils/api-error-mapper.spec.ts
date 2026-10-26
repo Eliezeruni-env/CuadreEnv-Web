@@ -147,6 +147,25 @@ describe('API Error Mapper (api-error-mapper)', () => {
       expect(mapped.title).toBe('Operación No Permitida');
       expect(mapped.message).toBe('No se puede completar la acción porque el registro está vinculado con otros datos en el sistema.');
     });
+
+    it('should map OPEN_CASH_OPERATIONS with informative warning without treating as server error', () => {
+      const rawError = {
+        status: 400,
+        error: {
+          statusCode: 400,
+          errorCode: 'OPEN_CASH_OPERATIONS',
+          message: 'No se puede cerrar la caja: existen 1 venta(s) en espera que deben completarse o anularse primero.',
+        },
+      };
+
+      const mapped = mapApiErrorToUserMessage(rawError);
+
+      expect(mapped.type).toBe('warning');
+      expect(mapped.title).toBe('Ventas Pendientes en Caja');
+      expect(mapped.message).toContain('venta');
+      expect(mapped.isCritical).toBe(false);
+      expect(mapped.errorCode).toBe('OPEN_CASH_OPERATIONS');
+    });
   });
 
   describe('applyFieldErrorsToForm Helper', () => {

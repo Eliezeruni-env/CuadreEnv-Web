@@ -30,6 +30,20 @@
               <input formControlName="phone" cFormControl [placeholder]="translationService.t('customers.modal.phoneLabel')" />
             </c-col>
           </c-row>
+
+          <div class="p-3 bg-light rounded-3 border mt-1 mb-2 d-flex align-items-center justify-content-between">
+            <div>
+              <div class="fw-semibold small text-dark">
+                {{ customerForm.get('active')?.value ? 'Cliente Activo' : 'Cliente Inactivo' }}
+              </div>
+              <div class="text-secondary small font-size-xs">
+                {{ customerForm.get('active')?.value ? 'Habilitado para facturación y ventas.' : 'Suspendido. No podrá emitir nuevas facturas.' }}
+              </div>
+            </div>
+            <div class="form-check form-switch m-0 fs-5">
+              <input class="form-check-input" type="checkbox" role="switch" id="customerActiveSwitch" formControlName="active" />
+            </div>
+          </div>
         </form>
       </div>
       <div class="custom-modal-footer">

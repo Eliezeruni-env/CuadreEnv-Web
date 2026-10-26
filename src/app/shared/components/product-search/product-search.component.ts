@@ -13,6 +13,8 @@ import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../../../features/products/services/product.service';
 import { StockService } from '../../../../features/inventory/services/stock.service';
 import { NotificationService } from '../../../../features/cuadreEnv/services/notification.service';
+import { ProductPackagingService, ProductPackaging } from '../../../../features/products/services/product-packaging.service';
+import { UnitOfMeasurementService } from '../../../../features/products/services/unit-of-measurement.service';
 import type { ProductMovementDetail } from '../../../models/movement';
 import type { Product } from '../../../models/product';
 
@@ -27,6 +29,8 @@ export class ProductSearchComponent implements OnInit, OnChanges {
   private productService = inject(ProductService);
   private stockService = inject(StockService);
   private notificationService = inject(NotificationService);
+  private packagingService = inject(ProductPackagingService);
+  private unitService = inject(UnitOfMeasurementService);
 
   @Input() warehouseId = 1;
   @Input() mode: 'entry' | 'outlet' | 'transfer' = 'entry';
@@ -43,6 +47,13 @@ export class ProductSearchComponent implements OnInit, OnChanges {
   quantity = 1;
   cost = 0;
   isSearching = false;
+
+  // Packaging and base unit variables
+  currentPackaging: ProductPackaging | undefined;
+  unitSymbol = 'lb';
+  entryMode: 'base' | 'package' = 'base';
+  packageCount = 1;
+  packageCost = 0;
 
   async ngOnInit() {
     await this.loadProducts();
@@ -62,25 +73,33 @@ export class ProductSearchComponent implements OnInit, OnChanges {
     try {
       const res = await this.productService.getPagedProducts(1, 100);
       if (res?.success && res.data?.items) {
-        this.allProducts = (res.data.items as any[]).map((p: any) => ({
-          id: p.id || 0,
-          description: p.description || '',
-          barcode: p.barcode || '',
-          reference: p.reference || '',
-          shortDescription: p.shortDescription || '',
-          cost: p.cost || 0,
-          priceList: p.priceList || p.price || (p.cost ? p.cost * 1.3 : 0),
-          taxRate: p.taxRate || 18,
-          minimumQuantity: p.minimumQuantity || 5,
-          maximumQuantity: p.maximumQuantity || 100,
-          packingId: p.packingId || 1,
-          productTypeId: p.productTypeId || 1,
-          categoryId: p.categoryId || 1,
-          unitOfMeasurementId: p.unitOfMeasurementId || 1,
-          expires: p.expires || false,
-          invoiceWithoutStock: p.invoiceWithoutStock || false,
-          stock: p.stock || 0,
-        }));
+        this.allProducts = (res.data.items as any[])
+          .filter(
+            (p: any) =>
+              p.productTypeId !== 2 &&
+              !p.isService &&
+              p.productType?.name !== 'Servicio' &&
+              p.productType?.description !== 'Servicio'
+          )
+          .map((p: any) => ({
+            id: p.id || 0,
+            description: p.description || '',
+            barcode: p.barcode || '',
+            reference: p.reference || '',
+            shortDescription: p.shortDescription || '',
+            cost: p.cost || 0,
+            priceList: p.priceList || p.price || (p.cost ? p.cost * 1.3 : 0),
+            taxRate: p.taxRate || 18,
+            minimumQuantity: p.minimumQuantity || 5,
+            maximumQuantity: p.maximumQuantity || 100,
+            packingId: p.packingId || 1,
+            productTypeId: p.productTypeId || 1,
+            categoryId: p.categoryId || 1,
+            unitOfMeasurementId: p.unitOfMeasurementId || 1,
+            expires: p.expires || false,
+            invoiceWithoutStock: p.invoiceWithoutStock || false,
+            stock: p.stock || 0,
+          }));
         await this.refreshFilteredProducts();
       }
     } catch {
@@ -119,8 +138,41 @@ export class ProductSearchComponent implements OnInit, OnChanges {
 
   selectProduct(p: Product & { stockInWarehouse: number }) {
     this.selectedProduct = p;
-    this.quantity = 1;
     this.cost = p.cost || 0;
+    this.currentPackaging = this.packagingService.getPackaging(p.id);
+    const unit = p.unitOfMeasurementId ? this.unitService.getUnitById(p.unitOfMeasurementId) : undefined;
+    this.unitSymbol = unit?.symbol || 'lb';
+
+    if (this.currentPackaging && this.currentPackaging.hasPackaging && this.currentPackaging.packageUnitsCount > 0) {
+      this.entryMode = 'package';
+      this.packageCount = 1;
+      const factor = this.currentPackaging.packageUnitsCount;
+      this.packageCost = this.currentPackaging.packageCost || (this.cost * factor);
+      this.quantity = factor;
+    } else {
+      this.entryMode = 'base';
+      this.quantity = 1;
+    }
+  }
+
+  setEntryMode(mode: 'base' | 'package') {
+    this.entryMode = mode;
+    if (mode === 'package' && this.currentPackaging && this.currentPackaging.hasPackaging) {
+      this.onPackageValuesChange();
+    } else {
+      this.quantity = 1;
+      this.cost = this.selectedProduct?.cost || 0;
+    }
+  }
+
+  onPackageValuesChange() {
+    if (this.entryMode === 'package' && this.currentPackaging && this.currentPackaging.hasPackaging) {
+      const factor = this.currentPackaging.packageUnitsCount || 1;
+      this.quantity = Math.round(Number(this.packageCount || 0) * factor * 100) / 100;
+      if (this.packageCost > 0 && factor > 0) {
+        this.cost = Math.round((Number(this.packageCost) / factor) * 10000) / 10000;
+      }
+    }
   }
 
   populateEdit(detail: ProductMovementDetail) {
@@ -148,6 +200,7 @@ export class ProductSearchComponent implements OnInit, OnChanges {
     }
     this.quantity = detail.quantity;
     this.cost = detail.cost || detail.price || 0;
+    this.currentPackaging = this.packagingService.getPackaging(detail.productId);
   }
 
   submitProduct() {
@@ -167,16 +220,22 @@ export class ProductSearchComponent implements OnInit, OnChanges {
       const available = this.selectedProduct.stockInWarehouse;
       if (!allowWithoutStock && this.quantity > available) {
         this.notificationService.error(
-          `Stock insuficiente en el almacén de origen (Disponible: ${available} uds, Solicitado: ${this.quantity} uds).`,
+          `Stock insuficiente en el almacén de origen (Disponible: ${available} ${this.unitSymbol}, Solicitado: ${this.quantity} ${this.unitSymbol}).`,
         );
         return;
       }
     }
 
+    let displayName = this.selectedProduct.description;
+    if (this.entryMode === 'package' && this.currentPackaging && this.currentPackaging.hasPackaging) {
+      const pName = this.currentPackaging.packageUnitName || 'Empaque';
+      displayName = `${this.selectedProduct.description} [${this.packageCount} ${pName}(s) de ${this.currentPackaging.packageUnitsCount} ${this.unitSymbol}]`;
+    }
+
     const detail: ProductMovementDetail = {
       productId: this.selectedProduct.id,
       barCode: this.selectedProduct.barcode,
-      productName: this.selectedProduct.description,
+      productName: displayName,
       quantity: Number(this.quantity),
       cost: Number(this.cost) || Number(this.selectedProduct.cost) || 0,
       price: Number(this.selectedProduct.priceList) || 0,
@@ -189,7 +248,7 @@ export class ProductSearchComponent implements OnInit, OnChanges {
       this.notificationService.success(`Línea "${detail.productName}" actualizada.`);
     } else {
       this.productAdded.emit(detail);
-      this.notificationService.success(`Producto "${detail.productName}" agregado a la lista.`);
+      this.notificationService.success(`Producto "${detail.productName}" agregado (+${detail.quantity} ${this.unitSymbol}).`);
     }
 
     this.resetSelection();
@@ -197,6 +256,10 @@ export class ProductSearchComponent implements OnInit, OnChanges {
 
   resetSelection() {
     this.selectedProduct = null;
+    this.currentPackaging = undefined;
+    this.entryMode = 'base';
+    this.packageCount = 1;
+    this.packageCost = 0;
     this.quantity = 1;
     this.cost = 0;
     this.searchTerm = '';

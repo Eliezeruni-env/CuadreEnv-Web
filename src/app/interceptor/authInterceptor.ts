@@ -21,6 +21,10 @@ function isPublicAuthEndpoint(url: string): boolean {
     lower.includes('/auth/login') ||
     lower.includes('/auth/register') ||
     lower.includes('/auth/refresh') ||
+    lower.includes('/auth/forgot-password') ||
+    lower.includes('/auth/reset-password') ||
+    lower.includes('/auth/reset-password-request') ||
+    lower.includes('/auth/confirm-reset-password') ||
     lower.includes('/hc')
   );
 }
@@ -49,19 +53,25 @@ export const authInterceptorFn: HttpInterceptorFn = (req, next) => {
     headers = headers.set('Content-Type', 'application/json');
   }
 
-  // Prevenir que companyId sea enviado en el body para determinar tenant
-  let body = req.body;
+  // Garantizar que si el body requiere companyId, use el tenant activo y nunca 0 o null
+  let body: any = req.body;
   if (
+    !isAuth &&
     body &&
     typeof body === 'object' &&
     !Array.isArray(body) &&
     !(body instanceof FormData) &&
     !(body instanceof Blob)
   ) {
-    if ('companyId' in body || 'CompanyId' in body) {
-      // Excluir companyId del body para que el tenant provenga exclusivamente del JWT
-      const { companyId: _c, CompanyId: _C, ...rest } = body as Record<string, any>;
-      body = rest;
+    const rawBody = body as Record<string, any>;
+    if (
+      companyId &&
+      (rawBody['companyId'] === 0 ||
+        rawBody['companyId'] === null ||
+        rawBody['companyId'] === undefined ||
+        rawBody['companyId'] === '0')
+    ) {
+      body = { ...rawBody, companyId: Number(companyId) };
     }
   }
 
@@ -104,17 +114,24 @@ export class AuthInterceptor implements HttpInterceptor {
       headers = headers.set('Content-Type', 'application/json');
     }
 
-    let body = req.body;
+    let body: any = req.body;
     if (
+      !isAuth &&
       body &&
       typeof body === 'object' &&
       !Array.isArray(body) &&
       !(body instanceof FormData) &&
       !(body instanceof Blob)
     ) {
-      if ('companyId' in body || 'CompanyId' in body) {
-        const { companyId: _c, CompanyId: _C, ...rest } = body as Record<string, any>;
-        body = rest;
+      const rawBody = body as Record<string, any>;
+      if (
+        companyId &&
+        (rawBody['companyId'] === 0 ||
+          rawBody['companyId'] === null ||
+          rawBody['companyId'] === undefined ||
+          rawBody['companyId'] === '0')
+      ) {
+        body = { ...rawBody, companyId: Number(companyId) };
       }
     }
 

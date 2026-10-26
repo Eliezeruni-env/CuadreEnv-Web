@@ -23,8 +23,9 @@ describe('CashRegisterService', () => {
           let totalIn = 0;
           let totalOut = 0;
           for (const m of mockMovements) {
-            if (m.type === 'In') totalIn += Number(m.amount);
-            else if (m.type === 'Out') totalOut += Number(m.amount);
+            const t = (m.type || '').toString().toLowerCase();
+            if (t === '1' || t === 'in' || t === 'entrada') totalIn += Number(m.amount);
+            else if (t === '2' || t === 'out' || t === 'salida') totalOut += Number(m.amount);
           }
           return Promise.resolve({
             success: true,
@@ -86,7 +87,14 @@ describe('CashRegisterService', () => {
           mockMovements.push(mov);
           return Promise.resolve(mov);
         }
-        if (url === '/Sale') {
+        if (url === '/Sale' || url.includes('/sales')) {
+          mockMovements.push({
+            id: mockMovements.length + 1,
+            amount: body?.total || 590,
+            type: '1',
+            description: 'Venta POS',
+            createdDate: new Date().toISOString(),
+          });
           return Promise.resolve({ id: 101, success: true });
         }
         return Promise.resolve({ success: true });

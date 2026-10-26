@@ -91,6 +91,21 @@ export class UserService {
     }
   }
 
+  async getCashiers(): Promise<Array<{ id: number; firstName?: string; lastName?: string; email: string; userName?: string; role?: string }>> {
+    try {
+      const res = await this.api.get<any, any>('/user/cashiers');
+      const data = Array.isArray(res) ? res : res?.data || res?.items || [];
+      return data;
+    } catch {
+      try {
+        const res = await this.api.get<any, any>('/users/cashiers');
+        return Array.isArray(res) ? res : res?.data || res?.items || [];
+      } catch {
+        return [];
+      }
+    }
+  }
+
   async getUser(id: number): Promise<UserDto> {
     try {
       const res = await this.api.get<any, any>(`/users/${id}`);

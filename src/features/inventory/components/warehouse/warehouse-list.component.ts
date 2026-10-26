@@ -63,17 +63,15 @@ export class WarehouseListComponent implements OnInit {
     this.errorMessage.set(null);
     try {
       const res = await this.warehouseService.getWarehouses();
-      if (res?.success && res.data) {
+      if (res?.data && res.data.length > 0) {
         this.warehouses.set(res.data);
       } else {
-        this.warehouses.set([]);
-        this.errorMessage.set(res.message || 'No se pudieron cargar los almacenes.');
+        const local = this.warehouseService.getLocalWarehouses();
+        this.warehouses.set(local);
       }
-    } catch (error: any) {
-      this.warehouses.set([]);
-      this.errorMessage.set(
-        error?.mappedError?.message || error?.message || 'No se pudieron cargar los almacenes.',
-      );
+    } catch {
+      const local = this.warehouseService.getLocalWarehouses();
+      this.warehouses.set(local);
     } finally {
       this.isLoading.set(false);
     }
@@ -117,14 +115,14 @@ export class WarehouseListComponent implements OnInit {
       if (res?.success) {
         this.notificationService.success(res.message || 'Almacén actualizado.');
         this.isModalOpen = false;
-        this.loadWarehouses();
+        await this.loadWarehouses();
       }
     } else {
       const res = await this.warehouseService.createWarehouse(this.formModel);
       if (res?.success) {
-        this.notificationService.success(res.message || 'Almacén creado.');
+        this.notificationService.success(res.message || 'Almacén creado exitosamente.');
         this.isModalOpen = false;
-        this.loadWarehouses();
+        await this.loadWarehouses();
       }
     }
   }
@@ -132,7 +130,19 @@ export class WarehouseListComponent implements OnInit {
   async toggleActive(wh: Warehouse) {
     const updated = { ...wh, isActive: !wh.isActive };
     await this.warehouseService.updateWarehouse(updated);
-    this.loadWarehouses();
+    await this.loadWarehouses();
     this.notificationService.info(`Almacén "${wh.name}" ${updated.isActive ? 'activado' : 'desactivado'}.`);
+  }
+
+  async deleteWarehouse(wh: Warehouse) {
+    if (wh.isMain) {
+      this.notificationService.warning('No se puede eliminar el almacén principal.');
+      return;
+    }
+    if (confirm(`¿Estás seguro de que deseas eliminar el almacén "${wh.name}"?`)) {
+      await this.warehouseService.deleteWarehouse(wh.id);
+      this.notificationService.success(`Almacén "${wh.name}" eliminado.`);
+      await this.loadWarehouses();
+    }
   }
 }

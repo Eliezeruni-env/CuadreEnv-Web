@@ -129,7 +129,7 @@
                     <span class="font-monospace text-primary fw-semibold">{{ loadedInvoice.originalNcf }}</span>
                   </div>
                   <div class="col-md-4">
-                    <span class="text-dark fw-semibold">Almacén:</span> Almacén Principal #1
+                    <span class="text-dark fw-semibold">Almacén:</span> {{ loadedInvoice.warehouseName || ('Almacén #' + loadedInvoice.warehouseId) }}
                   </div>
                 </div>
 
@@ -310,7 +310,7 @@
                   </div>
 
                   <div class="small text-secondary mb-2">
-                    Los siguientes productos serán sumados nuevamente al stock de <b>Almacén Principal #1</b>:
+                    Los siguientes productos serán sumados nuevamente al stock de <b>{{ loadedInvoice.warehouseName || ('Almacén #' + loadedInvoice.warehouseId) }}</b>:
                   </div>
 
                   <ul class="list-group list-group-flush small">
@@ -349,8 +349,8 @@
                   </div>
 
                   <div class="d-flex justify-content-between align-items-center small mb-2 pb-2 border-bottom">
-                    <span class="text-secondary">NCF Tipo Nota de Crédito:</span>
-                    <span class="badge bg-primary text-white font-monospace">B04 (DGII)</span>
+                    <span class="text-secondary">Tipo de Operación:</span>
+                    <span class="badge bg-primary text-white font-monospace">Nota de Crédito Interna</span>
                   </div>
 
                   <div class="d-flex justify-content-between align-items-center small mb-2">

@@ -52,7 +52,8 @@ export class CustomerModalComponent {
       name: ['', [Validators.required, Validators.maxLength(150)]],
       email: ['', [Validators.email]],
       phone: [''],
-      identification: ['']
+      identification: [''],
+      active: [true]
     });
   }
 
@@ -63,7 +64,8 @@ export class CustomerModalComponent {
       name: '',
       email: '',
       phone: '',
-      identification: ''
+      identification: '',
+      active: true
     });
     this.visible = true;
     this.visibleChange.emit(true);
@@ -76,7 +78,8 @@ export class CustomerModalComponent {
       name: customer.name || '',
       email: customer.email || '',
       phone: customer.phone || '',
-      identification: customer.identification || ''
+      identification: customer.identification || '',
+      active: customer.active !== false
     });
     this.visible = true;
     this.visibleChange.emit(true);
@@ -95,7 +98,7 @@ export class CustomerModalComponent {
 
     this.isLoading.set(true);
     const formVal = this.customerForm.value;
-    const payload: CustomerDto = { ...formVal, active: true };
+    const payload: CustomerDto = { ...formVal };
 
     try {
       if (this.isEditMode) {

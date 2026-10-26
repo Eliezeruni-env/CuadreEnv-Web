@@ -203,70 +203,91 @@
 @if (isModalOpen()) {
   <div class="custom-modal-backdrop" (click)="closeModal()">
     <div class="custom-modal-content modal-lg supplier-modal-content" (click)="$event.stopPropagation()">
-      <div class="custom-modal-header supplier-modal-header">
-        <div>
-          <h5 class="mb-1">{{ isEditMode() ? 'Editar Proveedor' : 'Nuevo Proveedor' }}</h5>
-          <small>Datos comerciales y contactos del proveedor</small>
+      <div class="custom-modal-header supplier-modal-header px-4 py-3 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-2 bg-white bg-opacity-15 rounded-3 text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
+              <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
+              <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path>
+              <path d="M10 6h4"></path>
+              <path d="M10 10h4"></path>
+              <path d="M10 14h4"></path>
+              <path d="M10 18h4"></path>
+            </svg>
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold">{{ isEditMode() ? 'Editar Proveedor' : 'Nuevo Proveedor' }}</h5>
+            <small class="opacity-75">Ficha comercial, datos de facturación RNC y contactos comerciales</small>
+          </div>
         </div>
         <button type="button" class="btn-close" (click)="closeModal()" aria-label="Close"></button>
       </div>
 
       <div class="custom-modal-body supplier-modal-body p-4">
         <form cForm [formGroup]="supplierForm">
-          <div class="row g-3 mb-3">
-            <div class="col-md-8">
-              <label class="form-label required-label small fw-semibold text-secondary">Razón Social / Nombre Comercial *</label>
-              <input cFormControl formControlName="name" placeholder="Ej. Distribuidora del Caribe SRL" />
-              @if (supplierForm.get('name')?.touched && supplierForm.get('name')?.invalid) {
-                <div class="text-danger small mt-1">El nombre del proveedor es obligatorio.</div>
-              }
+          <!-- Bloque 1: Identificación Comercial y Fiscal -->
+          <div class="supplier-form-card mb-3 p-3 rounded-3 border bg-light bg-opacity-50">
+            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+              <span class="badge bg-primary-subtle text-primary fw-bold">1</span>
+              <h6 class="fw-bold mb-0 text-dark">Información Comercial y Registro Fiscal (DGII)</h6>
             </div>
-            <div class="col-md-4">
-              <label class="form-label small fw-semibold text-secondary">RNC</label>
-              <input cFormControl formControlName="rnc" placeholder="Ej. 131-00000-0" />
-            </div>
-          </div>
-
-          <div class="row g-3 mb-3">
-            <div class="col-md-6">
-              <label class="form-label small fw-semibold text-secondary">Cédula (Persona Física)</label>
-              <input cFormControl formControlName="cedula" placeholder="Ej. 001-0000000-0" />
-            </div>
-            <div class="col-md-6">
-              <label class="form-label small fw-semibold text-secondary">Persona de Contacto Principal</label>
-              <input cFormControl formControlName="contactPerson" placeholder="Ej. Juan Pérez" />
-            </div>
-          </div>
-
-          <div class="row g-3 mb-3">
-            <div class="col-md-6">
-              <label class="form-label small fw-semibold text-secondary">Teléfono Fijo</label>
-              <input cFormControl formControlName="phone" placeholder="Ej. 809-555-0100" />
-            </div>
-            <div class="col-md-6">
-              <label class="form-label small fw-semibold text-secondary">Móvil / WhatsApp</label>
-              <input cFormControl formControlName="mobile" placeholder="Ej. 829-555-0100" />
+            <div class="row g-3">
+              <div class="col-md-8">
+                <label class="form-label required-label small fw-semibold text-secondary">Razón Social / Nombre Comercial *</label>
+                <input cFormControl formControlName="name" placeholder="Ej. Distribuidora del Caribe SRL" class="rounded-3" />
+                @if (supplierForm.get('name')?.touched && supplierForm.get('name')?.invalid) {
+                  <div class="text-danger small mt-1">El nombre del proveedor es obligatorio.</div>
+                }
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-secondary">RNC (Empresa)</label>
+                <input cFormControl formControlName="rnc" placeholder="Ej. 131-00000-0" class="rounded-3 font-monospace" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Cédula (Si es Persona Física)</label>
+                <input cFormControl formControlName="cedula" placeholder="Ej. 001-0000000-0" class="rounded-3 font-monospace" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Dirección Comercial / Depósito</label>
+                <input cFormControl formControlName="address" placeholder="Av. Principal #10, Santo Domingo" class="rounded-3" />
+              </div>
             </div>
           </div>
 
-          <div class="row g-3 mb-3">
-            <div class="col-md-6">
-              <label class="form-label small fw-semibold text-secondary">Correo Electrónico</label>
-              <input cFormControl type="email" formControlName="email" placeholder="contacto@proveedor.com" />
-              @if (supplierForm.get('email')?.touched && supplierForm.get('email')?.invalid) {
-                <div class="text-danger small mt-1">Formato de correo inválido.</div>
-              }
+          <!-- Bloque 2: Contacto Directo y Comunicación -->
+          <div class="supplier-form-card mb-3 p-3 rounded-3 border bg-light bg-opacity-50">
+            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+              <span class="badge bg-primary-subtle text-primary fw-bold">2</span>
+              <h6 class="fw-bold mb-0 text-dark">Canales de Contacto Directo</h6>
             </div>
-            <div class="col-md-6">
-              <label class="form-label small fw-semibold text-secondary">Dirección Comercial</label>
-              <input cFormControl formControlName="address" placeholder="Av. Principal #10, Santo Domingo" />
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Persona de Contacto Principal</label>
+                <input cFormControl formControlName="contactPerson" placeholder="Ej. Juan Pérez (Gerente de Cuentas)" class="rounded-3" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Correo Electrónico para Órdenes</label>
+                <input cFormControl type="email" formControlName="email" placeholder="pedidos@proveedor.com" class="rounded-3" />
+                @if (supplierForm.get('email')?.touched && supplierForm.get('email')?.invalid) {
+                  <div class="text-danger small mt-1">Formato de correo inválido.</div>
+                }
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Teléfono Fijo / Centralita</label>
+                <input cFormControl formControlName="phone" placeholder="Ej. 809-555-0100" class="rounded-3 font-monospace" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Móvil / WhatsApp Directo</label>
+                <input cFormControl formControlName="mobile" placeholder="Ej. 829-555-0100" class="rounded-3 font-monospace" />
+              </div>
             </div>
           </div>
 
-          <div class="form-check mt-2 mb-4">
-            <input class="form-check-input" type="checkbox" id="supplierActive" formControlName="active">
-            <label class="form-check-label small fw-semibold text-secondary" for="supplierActive">
-              Proveedor Activo para Operaciones Comerciales
+          <div class="form-check p-2 px-4 rounded-3 border bg-white mb-3 d-flex align-items-center gap-2">
+            <input class="form-check-input ms-0 mt-0" type="checkbox" id="supplierActive" formControlName="active">
+            <label class="form-check-label small fw-semibold text-dark mb-0 cursor-pointer" for="supplierActive">
+              Proveedor Habilitado y Activo para Órdenes de Compra y Recepción
             </label>
           </div>
 

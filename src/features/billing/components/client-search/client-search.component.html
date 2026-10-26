@@ -143,9 +143,14 @@
           [(ngModel)]="header.warehouseId"
           (ngModelChange)="emitHeader()"
         >
-          <option [ngValue]="1">Almacén Principal</option>
-          <option [ngValue]="2">Almacén Secundario</option>
-          <option [ngValue]="3">Sucursal Norte</option>
+          @for (w of warehouses(); track w.id) {
+            <option [ngValue]="w.id">
+              {{ w.name }} {{ w.isMain ? '★' : '' }}
+            </option>
+          }
+          @if (warehouses().length === 0) {
+            <option [ngValue]="header.warehouseId">Almacén #{{ header.warehouseId }}</option>
+          }
         </select>
       </div>
 

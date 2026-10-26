@@ -1,4 +1,11 @@
-import { Component, Input, Output, EventEmitter, computed, inject } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  computed,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
@@ -118,13 +125,13 @@ export const ROUTES: RouteInfo[] = [
     icon: 'cilArrowThickToBottom',
     class: '',
   },
-  {
-    path: '/billing/reports',
-    moduleCode: 'billing-reports-dgii',
-    title: 'Reportes DGII',
-    icon: 'cilChartPie',
-    class: '',
-  },
+  // {
+  //   path: '/billing/reports',
+  //   moduleCode: 'billing-reports-dgii',
+  //   title: 'Reportes DGII',
+  //   icon: 'cilChartPie',
+  //   class: '',
+  // },
   {
     path: '/inventory/transfers',
     moduleCode: 'inventory-transfers',
@@ -227,15 +234,15 @@ export const ROUTES: RouteInfo[] = [
   },
   {
     path: '/users',
-    moduleCode: 'company',
-    title: 'Usuarios y Permisos',
+    moduleCode: 'users',
+    title: 'Usuarios y Equipo',
     icon: 'cilPeople',
     class: '',
   },
   {
     path: '/admin/roles',
     moduleCode: 'admin-roles',
-    title: 'Roles',
+    title: 'Roles y Permisos',
     icon: 'cilSettings',
     class: '',
   },
@@ -249,7 +256,7 @@ export const ROUTES: RouteInfo[] = [
   {
     path: '/admin/approvals',
     moduleCode: 'admin-approvals',
-    title: 'Aprobaciones',
+    title: 'Bandeja de Aprobaciones',
     icon: 'cilCheckCircle',
     class: '',
   },
@@ -258,6 +265,13 @@ export const ROUTES: RouteInfo[] = [
     moduleCode: 'company-settings',
     title: 'Configuración de Empresa',
     icon: 'cilSettings',
+    class: '',
+  },
+  {
+    path: '/profile',
+    moduleCode: 'profile',
+    title: 'Mi Perfil',
+    icon: 'cilUser',
     class: '',
   },
 ];
@@ -285,6 +299,11 @@ export class SidebarComponent {
     return this.filterMenuItems(ROUTES);
   });
 
+  hasModule(moduleCode?: string): boolean {
+    if (!moduleCode) return false;
+    return this.permissionService.hasModule(moduleCode);
+  }
+
   private filterMenuItems(items: readonly RouteInfo[]): RouteInfo[] {
     const filtered = items.flatMap((item) => {
       if (item.isTitle) return [{ ...item }];
@@ -295,14 +314,19 @@ export class SidebarComponent {
       }
 
       const moduleCode = item.moduleCode || item.path;
-      return moduleCode && this.permissionService.hasModuleAccess(moduleCode) ? [{ ...item }] : [];
+      return moduleCode && this.hasModule(moduleCode)
+        ? [{ ...item }]
+        : [];
     });
 
     return filtered.filter((item, index) => {
       if (!item.isTitle) return true;
       const following = filtered.slice(index + 1);
       const nextTitle = following.findIndex((next) => next.isTitle);
-      return following.slice(0, nextTitle < 0 ? following.length : nextTitle).length > 0;
+      return (
+        following.slice(0, nextTitle < 0 ? following.length : nextTitle)
+          .length > 0
+      );
     });
   }
 

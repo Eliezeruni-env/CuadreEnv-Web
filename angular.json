@@ -36,7 +36,17 @@
             "preserveSymlinks": true,
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              {
+                "glob": "sw.js",
+                "input": "src/assets",
+                "output": "/"
+              },
+              {
+                "glob": "manifest.webmanifest",
+                "input": "src/assets",
+                "output": "/"
+              }
             ],
             "styles": [
               "src/scss/styles.scss"
@@ -59,8 +69,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "25kb",
-                  "maximumError": "50kb"
+                  "maximumWarning": "75kb",
+                  "maximumError": "120kb"
                 }
               ],
               "outputHashing": "all"

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ModuleAccessService } from './module-access.service';
 
 describe('ModuleAccessService', () => {
@@ -23,6 +23,8 @@ describe('ModuleAccessService', () => {
     expect(service.hasModule('sales')).toBe(true);
     expect(service.hasModule('cash-register')).toBe(true);
     expect(service.hasModule('random-module')).toBe(true);
+    expect(service.hasModule('purchases-receipts')).toBe(true);
+    expect(service.hasModule('inventory-entries')).toBe(true);
     expect(service.hasAllModules).toBe(true);
   });
 
@@ -53,14 +55,78 @@ describe('ModuleAccessService', () => {
     expect(service.hasModule('profile')).toBe(true);
   });
 
+  describe('Granular module access for goods receipts and inventory entries', () => {
+    it('should NOT allow purchases-receipts if only parent purchases is assigned', () => {
+      service.init(['purchases', 'purchases-orders']);
+      expect(service.hasModule('purchases')).toBe(true);
+      expect(service.hasModule('purchases-orders')).toBe(true);
+      expect(service.hasModule('purchases-receipts')).toBe(false);
+    });
+
+    it('should allow purchases-receipts when explicitly assigned', () => {
+      service.init(['purchases', 'purchases-receipts']);
+      expect(service.hasModule('purchases-receipts')).toBe(true);
+    });
+
+    it('should NOT allow inventory-entries if only parent inventory is assigned', () => {
+      service.init(['inventory', 'inventory-stock']);
+      expect(service.hasModule('inventory')).toBe(true);
+      expect(service.hasModule('inventory-stock')).toBe(true);
+      expect(service.hasModule('inventory-entries')).toBe(false);
+    });
+
+    it('should allow inventory-entries when explicitly assigned', () => {
+      service.init(['inventory', 'inventory-entries']);
+      expect(service.hasModule('inventory-entries')).toBe(true);
+    });
+
+    it('should isolate all inventory submodules when only inventory-stock is assigned', () => {
+      service.init(['inventory-stock']);
+      expect(service.hasModule('inventory-stock')).toBe(true);
+      expect(service.hasModule('inventory-entries')).toBe(false);
+      expect(service.hasModule('inventory-outlets')).toBe(false);
+      expect(service.hasModule('inventory-transfers')).toBe(false);
+      expect(service.hasModule('inventory-warehouses')).toBe(false);
+      expect(service.hasModule('inventory-manage-requests')).toBe(false);
+      expect(service.hasModule('purchases-orders')).toBe(false);
+      expect(service.hasModule('payments')).toBe(false);
+    });
+
+    it('should isolate purchases submodules when only purchases-orders is assigned', () => {
+      service.init(['purchases-orders']);
+      expect(service.hasModule('purchases-orders')).toBe(true);
+      expect(service.hasModule('purchases-receipts')).toBe(false);
+      expect(service.hasModule('purchases-suppliers')).toBe(false);
+      expect(service.hasModule('payments')).toBe(false);
+      expect(service.hasModule('inventory-entries')).toBe(false);
+    });
+
+    it('should require explicit assignment for payments, services, and credit-notes', () => {
+      service.init(['sales', 'billing']);
+      expect(service.hasModule('sales')).toBe(true);
+      expect(service.hasModule('billing')).toBe(true);
+      expect(service.hasModule('services')).toBe(false);
+      expect(service.hasModule('credit-notes')).toBe(false);
+      expect(service.hasModule('payments')).toBe(false);
+
+      service.init(['services', 'credit-notes', 'payments']);
+      expect(service.hasModule('services')).toBe(true);
+      expect(service.hasModule('credit-notes')).toBe(true);
+      expect(service.hasModule('payments')).toBe(true);
+    });
+  });
+
   it('should persist modules to sessionStorage when available', () => {
     const mockStorage: Record<string, string> = {};
-    if (typeof window !== 'undefined' && window.sessionStorage) {
-      vi.spyOn(Storage.prototype, 'setItem').mockImplementation((k: string, v: string) => {
-        mockStorage[k] = v;
-      });
-      vi.spyOn(Storage.prototype, 'getItem').mockImplementation((k: string) => mockStorage[k] || null);
-    }
+    const fakeSessionStorage = {
+      setItem: (k: string, v: string) => { mockStorage[k] = v; },
+      getItem: (k: string) => mockStorage[k] || null,
+      removeItem: (k: string) => { delete mockStorage[k]; },
+      clear: () => {}
+    };
+
+    (globalThis as any).window = (globalThis as any).window || {};
+    (globalThis as any).window.sessionStorage = fakeSessionStorage;
 
     service.init(['sales', 'customers']);
     expect(mockStorage['allowedModules']).toBe(JSON.stringify(['sales', 'customers']));

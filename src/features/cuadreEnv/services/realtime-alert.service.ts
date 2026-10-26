@@ -1,6 +1,6 @@
 import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import { Subject } from 'rxjs';
-import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
 import { NotificationService } from './notification.service';
 import { AuthService } from './auth.service';
 import { getAccessToken } from './apiClient';
@@ -53,41 +53,79 @@ export class RealtimeAlertService {
   constructor() {
     this.initRealtimeBroadcast();
     effect(() => {
-      this.authService.isAuthenticated();
-      this.authService.currentRole();
-      this.authService.isPlatformSuperUser();
-      this.initSignalRIfAuthorized();
+      const isAuth = this.authService.isAuthenticated();
+      if (isAuth) {
+        this.initSignalRConnection();
+      } else {
+        void this.disconnectSignalR();
+      }
     });
   }
 
   /**
-   * Conecta al hub /hubs/security-alerts únicamente si el usuario está autenticado y autorizado
+   * Conecta al hub /hubs/security-alerts si el usuario está autenticado con JWT válido.
+   * No bloquea la conexión desde el frontend por una lista local de roles.
    */
-  initSignalRIfAuthorized(): void {
+  initSignalRConnection(): void {
     if (typeof window === 'undefined') return;
 
-    // Verificar autorización: Admin, Supervisor o Dueño
     const isAuth = this.authService.isAuthenticated();
-    const canListen = this.authService.hasRole(['Admin', 'Supervisor', 'Manager', 'Dueño', 'Owner']) || this.authService.isSuperUser();
+    const token = getAccessToken();
 
-    if (!isAuth || !canListen) {
-      this.disconnectSignalR();
+    if (!isAuth || !token) {
+      void this.disconnectSignalR();
       return;
     }
 
-    if (this.hubConnection || this.isConnecting) {
+    if (
+      this.isConnecting ||
+      (this.hubConnection &&
+        (this.hubConnection.state === HubConnectionState.Connected ||
+          this.hubConnection.state === HubConnectionState.Connecting ||
+          this.hubConnection.state === HubConnectionState.Reconnecting))
+    ) {
       return;
     }
 
-    this.startSignalRConnection();
+    void this.startSignalRConnection();
+  }
+
+  // Alias de compatibilidad
+  initSignalRIfAuthorized(): void {
+    this.initSignalRConnection();
   }
 
   private async startSignalRConnection(): Promise<void> {
+    if (typeof window === 'undefined') return;
+    if (this.isConnecting) return;
+
+    // Evitar crear múltiples conexiones si ya existe una activa o en progreso
+    if (
+      this.hubConnection &&
+      (this.hubConnection.state === HubConnectionState.Connected ||
+        this.hubConnection.state === HubConnectionState.Connecting ||
+        this.hubConnection.state === HubConnectionState.Reconnecting)
+    ) {
+      return;
+    }
+
     this.isConnecting = true;
+
+    // Detener la conexión anterior antes de crear una nueva
+    if (this.hubConnection) {
+      const oldConn = this.hubConnection;
+      this.hubConnection = null;
+      try {
+        await oldConn.stop();
+      } catch {
+        // ignore stop error
+      }
+    }
+
     const hubUrl = `${environment.API_BASE_URL.replace(/\/$/, '')}/hubs/security-alerts`;
 
     try {
-      this.hubConnection = new HubConnectionBuilder()
+      const connection = new HubConnectionBuilder()
         .withUrl(hubUrl, {
           accessTokenFactory: () => getAccessToken() || '',
         })
@@ -96,24 +134,26 @@ export class RealtimeAlertService {
         .build();
 
       // Escuchar el evento de seguridad oficial
-      this.hubConnection.on('securityAlert', (payload: SignalRSecurityAlertPayload) => {
+      connection.on('securityAlert', (payload: SignalRSecurityAlertPayload) => {
         this.handleSignalRAlert(payload);
       });
 
-      this.hubConnection.onreconnecting(() => {
+      connection.onreconnecting(() => {
         console.warn('[SignalR SecurityAlerts] Reconectando al hub...');
       });
 
-      this.hubConnection.onreconnected(() => {
+      connection.onreconnected(() => {
         console.info('[SignalR SecurityAlerts] Conexión restablecida.');
       });
 
-      this.hubConnection.onclose(() => {
-        this.hubConnection = null;
-        this.isConnecting = false;
+      connection.onclose(() => {
+        if (this.hubConnection === connection) {
+          this.hubConnection = null;
+        }
       });
 
-      await this.hubConnection.start();
+      await connection.start();
+      this.hubConnection = connection;
       console.info('[SignalR SecurityAlerts] Conectado exitosamente al hub de seguridad.');
     } catch (err) {
       console.warn('[SignalR SecurityAlerts] No se pudo conectar al hub (continuando en modo resiliencia local):', err);
@@ -123,11 +163,17 @@ export class RealtimeAlertService {
     }
   }
 
-  disconnectSignalR(): void {
+  async disconnectSignalR(): Promise<void> {
     if (this.hubConnection) {
-      this.hubConnection.stop().catch(() => {});
+      const conn = this.hubConnection;
       this.hubConnection = null;
+      try {
+        await conn.stop();
+      } catch {
+        // ignore stop error
+      }
     }
+    this.isConnecting = false;
   }
 
   private handleSignalRAlert(payload: SignalRSecurityAlertPayload): void {

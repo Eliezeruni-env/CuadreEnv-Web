@@ -190,16 +190,25 @@ export class CreateServiceSaleModalComponent implements OnInit {
       }
 
       // 1. Create Sale in DB
-      const salePayload = {
+      const invoiceNumber = `VTA-SERV-${String(Date.now()).slice(-6)}`;
+      const salePayload: any = {
         customerId: this.selectedCustomerId,
         cashRegisterId: cashRegisterId,
+        originChannel: 'SERVICIO',
+        paymentType: this.paymentMode === 'CASH' ? 'CASH' : 'CREDIT',
+        paymentMethod: this.paymentMode === 'CASH' ? 'CASH' : 'OTHER',
+        invoiceNumber: invoiceNumber,
+        notes: this.serviceNotes ? `[SERVICIO] ${this.serviceNotes.trim()}` : '[SERVICIO] Factura de Servicios',
         total: this.totalAmount,
         paidAmount: this.paymentMode === 'CASH' ? this.totalAmount : 0,
         dueDate: this.paymentMode === 'CREDIT' ? this.dueDate : null,
         details: this.cart.map((item) => ({
           productId: item.serviceId,
+          productCode: item.serviceCode,
+          productName: item.serviceName,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
+          isService: true,
         })),
       };
 

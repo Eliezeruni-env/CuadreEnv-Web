@@ -65,9 +65,13 @@
         (ngModelChange)="emitChange()"
       >
         @for (c of concepts; track c.id) {
-          <option [ngValue]="c.id">{{ c.name }}</option>
+          <option [ngValue]="c.id" [title]="c.description">{{ c.name }}</option>
         }
       </select>
+      @let selectedConcept = concepts.find(c => c.id === conceptId);
+      @if (selectedConcept?.description) {
+        <div class="form-text font-size-xs text-muted mt-1">{{ selectedConcept?.description }}</div>
+      }
     </div>
 
     <!-- Commentary / Notes -->

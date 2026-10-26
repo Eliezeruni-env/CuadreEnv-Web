@@ -116,6 +116,28 @@ function handleGlobalHttpError(
     }
     if (isRefreshRequest) return;
 
+    const errorBody = error.error;
+    const isMissingCompany =
+      errorBody?.errorCode === 'MISSING_COMPANY_CLAIM' ||
+      errorBody?.code === 'MISSING_COMPANY_CLAIM' ||
+      errorBody?.message?.includes?.('CompanyId claim missing') ||
+      errorBody?.message?.includes?.('MISSING_COMPANY_CLAIM') ||
+      errorBody?.Message?.includes?.('CompanyId claim missing') ||
+      (typeof errorBody === 'string' && (errorBody.includes('CompanyId claim missing') || errorBody.includes('MISSING_COMPANY_CLAIM')));
+
+    if (isMissingCompany) {
+      if (notificationService) {
+        notificationService.error(
+          'Tu usuario no tiene una empresa activa asignada o seleccionada. Selecciona una empresa o sucursal para continuar.',
+          'Empresa Requerida'
+        );
+      }
+      if (router && !router.url.includes('/login') && !router.url.includes('/company/settings') && !router.url.includes('/companies/create')) {
+        router.navigate(['/company/settings']);
+      }
+      return;
+    }
+
     const apiMsg =
       error.error?.message ||
       (typeof error.error === 'string' ? error.error : null) ||
@@ -168,6 +190,28 @@ function handleGlobalHttpError(
 
   // 4. Manejo 403: Prohibido / Sin permisos suficientes
   if (status === 403) {
+    const errorBody = error.error;
+    const isMissingCompany =
+      errorBody?.errorCode === 'MISSING_COMPANY_CLAIM' ||
+      errorBody?.code === 'MISSING_COMPANY_CLAIM' ||
+      errorBody?.message?.includes?.('CompanyId claim missing') ||
+      errorBody?.message?.includes?.('MISSING_COMPANY_CLAIM') ||
+      errorBody?.Message?.includes?.('CompanyId claim missing') ||
+      (typeof errorBody === 'string' && (errorBody.includes('CompanyId claim missing') || errorBody.includes('MISSING_COMPANY_CLAIM')));
+
+    if (isMissingCompany) {
+      if (notificationService) {
+        notificationService.error(
+          'Acceso denegado por ausencia de empresa activa. Por favor, selecciona una empresa vinculada a tu cuenta.',
+          'Empresa Requerida'
+        );
+      }
+      if (router && !router.url.includes('/login') && !router.url.includes('/company/settings') && !router.url.includes('/companies/create')) {
+        router.navigate(['/company/settings']);
+      }
+      return;
+    }
+
     const apiCode =
       typeof error.error?.errorCode === 'string'
         ? error.error.errorCode
@@ -213,17 +257,33 @@ function handleGlobalHttpError(
 
   // Manejo 404: Recurso no encontrado
   if (status === 404) {
-    console.warn('[API 404 Not Found]', {
-      url: req.urlWithParams || req.url,
-      method: req.method,
-      error: error.error,
-    });
-    if (notificationService && req.method !== 'GET') {
-      const notFoundMsg =
-        error.error?.message ||
-        (typeof error.error === 'string' ? error.error : null) ||
-        'El recurso solicitado no fue encontrado en el servidor.';
-      notificationService.warning(notFoundMsg, 'No Encontrado (404)');
+    const reqUrl = (req.urlWithParams || req.url || '').toLowerCase();
+    const isSilencedProbe =
+      reqUrl.includes('/cash-sessions/active-session') ||
+      reqUrl.includes('/companysettings') ||
+      reqUrl.includes('/auth/user-companies') ||
+      reqUrl.includes('/accountreceivable') ||
+      reqUrl.includes('/sale/') ||
+      reqUrl.includes('/payments') ||
+      req.headers.has('x-silent-error') ||
+      req.headers.has('X-Silent-Error') ||
+      req.headers.has('x-silent-404') ||
+      req.headers.has('X-Silent-404');
+
+    if (!isSilencedProbe) {
+      console.warn('[API 404 Not Found]', {
+        url: req.urlWithParams || req.url,
+        method: req.method,
+        error: error.error,
+      });
+
+      if (notificationService && req.method !== 'GET') {
+        const notFoundMsg =
+          error.error?.message ||
+          (typeof error.error === 'string' ? error.error : null) ||
+          'El recurso solicitado no fue encontrado en el servidor.';
+        notificationService.warning(notFoundMsg, 'No Encontrado (404)');
+      }
     }
     return;
   }

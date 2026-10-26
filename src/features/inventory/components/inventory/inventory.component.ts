@@ -8,6 +8,8 @@ import {
 } from '@angular/forms';
 import { InventoryService } from '../../services/inventory.service';
 import { ProductService } from '../../../products/services/product.service';
+import { UnitOfMeasurementService, type UnitOfMeasurement } from '../../../products/services/unit-of-measurement.service';
+import { ProductPackagingService, type ProductPackaging } from '../../../products/services/product-packaging.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import type { WarehouseDto, ProductDto, MovementDto } from '../../../cuadreEnv/types/api';
@@ -61,6 +63,8 @@ import { ListPaginationComponent } from '../../../cuadreEnv/components/list-pagi
 export class InventoryComponent implements OnInit {
   readonly translationService = inject(TranslationService);
   private readonly notificationService = inject(NotificationService);
+  readonly packagingService = inject(ProductPackagingService);
+  readonly unitService = inject(UnitOfMeasurementService);
 
   activeTab = signal<string>('warehouses');
 
@@ -68,6 +72,7 @@ export class InventoryComponent implements OnInit {
   products = signal<ProductDto[]>([]);
   movements = signal<MovementDto[]>([]);
   lowStockItems = signal<ProductDto[]>([]);
+  units = signal<UnitOfMeasurement[]>([]);
 
   // Movement Filters
   movementTypeFilter = signal<string>('');
@@ -118,13 +123,15 @@ export class InventoryComponent implements OnInit {
     this.inboundForm = this.fb.group({
       productId: ['', [Validators.required]],
       warehouseId: ['', [Validators.required]],
-      quantity: [1, [Validators.required, Validators.min(1)]],
+      inboundMode: ['units'], // 'units' | 'package'
+      packageQuantity: [1, [Validators.min(1)]],
+      quantity: [1, [Validators.required, Validators.min(0.01)]],
     });
 
     this.outboundForm = this.fb.group({
       productId: ['', [Validators.required]],
       warehouseId: ['', [Validators.required]],
-      quantity: [1, [Validators.required, Validators.min(1)]],
+      quantity: [1, [Validators.required, Validators.min(0.01)]],
     });
 
     this.transferForm = this.fb.group(
@@ -132,10 +139,42 @@ export class InventoryComponent implements OnInit {
         productId: ['', [Validators.required]],
         fromWarehouseId: ['', [Validators.required]],
         toWarehouseId: ['', [Validators.required]],
-        quantity: [1, [Validators.required, Validators.min(1)]],
+        quantity: [1, [Validators.required, Validators.min(0.01)]],
       },
       { validators: this.differentWarehousesValidator },
     );
+  }
+
+  getProductUnitSymbol(product: ProductDto): string {
+    const u = this.units().find(unit => unit.id === product.unitOfMeasurementId);
+    return u?.symbol || 'und';
+  }
+
+  getProductPackaging(product: ProductDto): ProductPackaging | undefined {
+    return product.id ? this.packagingService.getPackaging(product.id) : undefined;
+  }
+
+  getEquivalenceText(product: ProductDto): string | null {
+    if (!product.id) return null;
+    const symbol = this.getProductUnitSymbol(product);
+    return this.packagingService.getEquivalenceText(product.id, product.stock || 0, symbol);
+  }
+
+  getSelectedInboundProduct(): ProductDto | undefined {
+    const pId = Number(this.inboundForm.get('productId')?.value);
+    return this.products().find(p => p.id === pId);
+  }
+
+  getInboundCalculatedUnits(): number {
+    const formVal = this.inboundForm.value;
+    const prod = this.getSelectedInboundProduct();
+    if (!prod || !prod.id) return Number(formVal.quantity) || 0;
+    const pkg = this.packagingService.getPackaging(prod.id);
+    if (formVal.inboundMode === 'package' && pkg && pkg.hasPackaging) {
+      const packs = Number(formVal.packageQuantity) || 0;
+      return Math.round(packs * (pkg.packageUnitsCount || 1) * 100) / 100;
+    }
+    return Number(formVal.quantity) || 0;
   }
 
   differentWarehousesValidator(g: FormGroup) {
@@ -146,6 +185,11 @@ export class InventoryComponent implements OnInit {
 
   ngOnInit() {
     this.loadData();
+    this.unitService.getUnitsOfMeasurement().then(res => {
+      if (res?.data && Array.isArray(res.data)) {
+        this.units.set(res.data);
+      }
+    });
   }
 
   async loadData() {
@@ -158,19 +202,24 @@ export class InventoryComponent implements OnInit {
         this.warehouses.set(whRes.data);
       }
 
-      // Load products (all for dropdown selection)
+      // Load products (tangible goods only - services have zero inventory management)
       const pRes = await this.productService.getPagedProducts(1, 100);
       if (pRes.success && pRes.data) {
-        this.products.set(pRes.data.items || []);
+        const tangibles = (pRes.data.items || []).filter(
+          p => p.productTypeId !== 2 && !(p as any).isService && (p as any).productType?.name !== 'Servicio'
+        );
+        this.products.set(tangibles);
       }
 
       // Load movements logs
       await this.loadMovements();
 
-      // Load low stock alerts
+      // Load low stock alerts (tangibles only)
       const lRes = await this.inventoryService.getLowStock();
       if (lRes.success && lRes.data) {
-        const arr = lRes.data || [];
+        const arr = (lRes.data || []).filter(
+          p => p.productTypeId !== 2 && !(p as any).isService && (p as any).productType?.name !== 'Servicio'
+        );
         this.lowStockItems.set(arr);
         this.lowStockTotal.set(arr.length);
       }
@@ -222,7 +271,7 @@ export class InventoryComponent implements OnInit {
     const val = this.inboundForm.value;
     const pId = parseInt(val.productId, 10);
     const wId = parseInt(val.warehouseId, 10);
-    const qty = parseInt(val.quantity, 10);
+    const qty = this.getInboundCalculatedUnits();
 
     try {
       const res = await this.inventoryService.addStock({

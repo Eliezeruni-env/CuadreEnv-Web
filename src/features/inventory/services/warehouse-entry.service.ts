@@ -19,7 +19,8 @@ export class WarehouseEntryService {
   private getLocalEntries(): WarehouseEntry[] {
     try {
       const raw = localStorage.getItem(ENTRIES_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const list: WarehouseEntry[] = raw ? JSON.parse(raw) : [];
+      return list.filter((item) => (item.totalQuantity || 0) > 0 || (item.productDetails && item.productDetails.length > 0));
     } catch {
       return [];
     }
@@ -34,17 +35,58 @@ export class WarehouseEntryService {
   }
 
   async getEntries(): Promise<ApiResponse<WarehouseEntry[]>> {
+    let apiList: WarehouseEntry[] = [];
     try {
       const res = await this.api.get<any, any>('/WarehouseEntry');
       const list = extractArray<WarehouseEntry>(res);
       if (list && list.length > 0) {
-        const normalized = list.map((item) => normalizeWarehouseMovement<WarehouseEntry>(item));
-        return { success: true, data: normalized };
+        apiList = list.map((item) => normalizeWarehouseMovement<WarehouseEntry>(item));
       }
-      return { success: true, data: [] };
     } catch {
-      return { success: false, data: [], message: 'No se pudo conectar con el servidor.' };
+      try {
+        const res2 = await this.api.get<any, any>('/inventory/movements', { params: { type: 'Inbound' } });
+        const list2 = extractArray<any>(res2);
+        if (list2 && list2.length > 0) {
+          apiList = list2.map((item) => normalizeWarehouseMovement<WarehouseEntry>({ ...item, type: 'ENTRY' }));
+        }
+      } catch {
+        // ignore
+      }
     }
+
+    // Filter out invalid/empty movements (such as deleted rows with 0 quantity and 0 products)
+    const validApiList = apiList.filter((item) => {
+      const hasProducts = item.productDetails && item.productDetails.length > 0 && item.productDetails[0].productId > 0;
+      const hasQty = (item.totalQuantity || 0) > 0;
+      const isNotDeleted = !(item as any).isDeleted && (item as any).active !== false;
+      return (hasProducts || hasQty) && isNotDeleted;
+    });
+
+    const localList = this.getLocalEntries().map((e) => normalizeWarehouseMovement<WarehouseEntry>(e));
+    const map = new Map<string, WarehouseEntry>();
+
+    // 1. Register local movements first (they have full rich line item details)
+    for (const loc of localList) {
+      if (loc.id !== undefined) map.set(String(loc.id), loc);
+    }
+
+    // 2. Merge backend movements, preserving line item details from local if available
+    for (const e of validApiList) {
+      if (e.id !== undefined) {
+        const key = String(e.id);
+        const existing = map.get(key);
+        if (existing && existing.productDetails && existing.productDetails.length > 0) {
+          map.set(key, { ...e, ...existing, id: e.id });
+        } else {
+          map.set(key, e);
+        }
+      }
+    }
+
+    const combined = Array.from(map.values()).sort(
+      (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
+    );
+    return { success: true, data: combined };
   }
 
   async getEntry(id: number): Promise<ApiResponse<WarehouseEntry>> {
@@ -91,11 +133,25 @@ export class WarehouseEntryService {
       totalCost: totalCost,
     };
 
-    // 1. Post to API if active
-    try {
-      await this.api.post<any, any>('/WarehouseEntry', newEntry);
-    } catch {
-      // offline fallback
+    // 1. Post each line item to backend endpoint POST /WarehouseEntry
+    for (const item of entry.productDetails || []) {
+      try {
+        await this.api.post<any, any>('/WarehouseEntry', {
+          productId: item.productId,
+          warehouseId: entry.warehouseId || 1,
+          quantity: item.quantity,
+        });
+      } catch {
+        try {
+          await this.api.post<any, any>('/Warehouse/stock/add', {
+            productId: item.productId,
+            warehouseId: entry.warehouseId || 1,
+            quantity: item.quantity,
+          });
+        } catch {
+          // offline fallback
+        }
+      }
     }
 
     // 2. Persist locally

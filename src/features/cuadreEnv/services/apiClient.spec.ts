@@ -10,6 +10,7 @@ import {
   extractArray,
   type ApiClientService,
 } from './apiClient';
+import { environment } from '../../../environments/environment';
 
 describe('ApiClient Central HTTP & /v1 configuration', () => {
   afterEach(() => {
@@ -18,7 +19,7 @@ describe('ApiClient Central HTTP & /v1 configuration', () => {
   });
 
   it('should use the Angular API base URL', () => {
-    expect(API_BASE_URL).toBe('http://localhost:8080');
+    expect(API_BASE_URL).toBe(environment.API_BASE_URL);
   });
 
   it('should store and retrieve access token for Authorization header', () => {

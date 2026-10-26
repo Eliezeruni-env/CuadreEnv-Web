@@ -1,15 +1,27 @@
-<div class="bg-light dark:bg-transparent min-vh-100 d-flex flex-row align-items-center">
-  <c-container>
-    <c-row class="justify-content-center">
-      <c-col md="6">
-        <div class="clearfix">
-          <h1 class="float-start display-3 me-4">404</h1>
-          <h4 class="pt-3">{{ translationService.t('pages.page404.title') }}</h4>
-          <p class="text-body-secondary float-start">
-            {{ translationService.t('pages.page404.message') }}
-          </p>
-        </div>
-      </c-col>
-    </c-row>
-  </c-container>
-</div>
+<main class="min-vh-100 d-flex align-items-center justify-content-center px-3 py-5 bg-light">
+  <div class="card border-0 shadow-lg text-center p-4 p-md-5 rounded-4 bg-white" style="max-width: 32rem;">
+    <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle bg-secondary-subtle text-secondary mx-auto mb-3" style="width: 5rem; height: 5rem;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <span class="badge bg-secondary-subtle text-secondary fw-bold px-3 py-2 rounded-pill font-monospace mb-2" style="font-size: 0.85rem;">
+      ERROR 404 • NO ENCONTRADO
+    </span>
+    <h2 class="h3 fw-bold text-dark mb-2">{{ translationService.t('pages.page404.title') }}</h2>
+    <p class="text-secondary small mb-4">
+      {{ translationService.t('pages.page404.message') }}
+    </p>
+    <a class="btn btn-primary fw-bold px-4 py-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2 mx-auto" [routerLink]="['/dashboard']">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"></rect>
+        <rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect>
+        <rect x="3" y="14" width="7" height="7"></rect>
+      </svg>
+      <span>Ir al Dashboard</span>
+    </a>
+  </div>
+</main>

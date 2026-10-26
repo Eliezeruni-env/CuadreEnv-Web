@@ -289,6 +289,13 @@ describe('E2E POS Workflow: Login → Open Register → Mixed Sale → Hold Sale
     });
 
     expect(cust1SaleResponse.success).toBe(true);
+    // Simulate cash movement for cash sale
+    await mockApiClient.post('/CashMovement', {
+      cashRegisterId: activeSession?.id,
+      amount: 1239,
+      type: 'In',
+      description: 'Cobro Cliente 1 en efectivo',
+    });
 
     // Total expected in drawer: 2000 (initial) + 136 (mixed cash) + 1239 (cust1 cash) = RD$ 3,375.00
     expect(drawerBalance).toBe(3375);

@@ -115,7 +115,7 @@
                       <button
                         type="button"
                         class="btn-action-icon"
-                        [ngClass]="wh.isActive ? 'btn-action-delete' : 'btn-action-view'"
+                        [ngClass]="wh.isActive ? 'btn-action-view' : 'btn-action-edit'"
                         (click)="toggleActive(wh)"
                         [title]="wh.isActive ? 'Desactivar' : 'Activar'"
                       >
@@ -130,6 +130,19 @@
                           </svg>
                         }
                       </button>
+                      @if (!wh.isMain) {
+                        <button
+                          type="button"
+                          class="btn-action-icon btn-action-delete"
+                          (click)="deleteWarehouse(wh)"
+                          title="Eliminar Almacén"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                        </button>
+                      }
                     </div>
                   </td>
                 </tr>
@@ -188,7 +201,7 @@
       </div>
       <div class="p-3 border-top bg-light d-flex justify-content-end gap-2">
         <button type="button" class="btn btn-light border" (click)="isModalOpen = false">Cancelar</button>
-        <button type="button" class="btn btn-primary fw-semibold" (click)="saveWarehouse()">Guardar Almacén</button>
+        <button type="button" class="btn btn-cuadre-primary fw-semibold" (click)="saveWarehouse()">Guardar Almacén</button>
       </div>
     </div>
   </div>

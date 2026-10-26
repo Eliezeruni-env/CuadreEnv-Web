@@ -176,6 +176,160 @@
             </div>
           </div>
         </div>
+
+        <!-- Cuentas Bancarias de la Empresa -->
+        <div class="card shadow-sm border-0 rounded-4 mb-3">
+          <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+              <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                <span>Cuentas Bancarias para Cobros y Transferencias</span>
+              </h6>
+              <small class="text-secondary">
+                Cuentas registradas para que los cajeros las provean al cliente al pagar por transferencia.
+              </small>
+            </div>
+            @if (!isAddingAccount() && !isReadOnly()) {
+              <button type="button" class="btn btn-sm btn-outline-primary fw-semibold d-flex align-items-center gap-1" (click)="startAddAccount()">
+                <span>+ Agregar Cuenta</span>
+              </button>
+            }
+          </div>
+
+          <div class="card-body p-4">
+            <!-- Form to add new account -->
+            @if (isAddingAccount()) {
+              <div class="p-3 bg-light rounded-3 border mb-3">
+                <h6 class="fw-bold text-dark small mb-3">Nueva Cuenta Bancaria</h6>
+                <div class="row g-2 mb-2">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-secondary mb-1">Nombre del Banco *</label>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm"
+                      placeholder="ej. Banco BHD, Banreservas, Scotiabank..."
+                      [ngModel]="newBankName()"
+                      (ngModelChange)="newBankName.set($event)"
+                      [ngModelOptions]="{standalone: true}"
+                    />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-secondary mb-1">Número de Cuenta *</label>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm font-monospace"
+                      placeholder="ej. 1234567890"
+                      [ngModel]="newBankAccount()"
+                      (ngModelChange)="newBankAccount.set($event)"
+                      [ngModelOptions]="{standalone: true}"
+                    />
+                  </div>
+                </div>
+
+                <div class="row g-2 mb-2">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-secondary mb-1">Tipo de Cuenta</label>
+                    <select
+                      class="form-select form-select-sm"
+                      [ngModel]="newBankType()"
+                      (ngModelChange)="newBankType.set($event)"
+                      [ngModelOptions]="{standalone: true}"
+                    >
+                      <option value="Cta. Corriente">Cta. Corriente</option>
+                      <option value="Cta. Ahorros">Cta. Ahorros</option>
+                      <option value="Cta. Digital">Cta. Digital</option>
+                      <option value="ACH Inmediato">ACH Inmediato</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-secondary mb-1">Nombre del Titular</label>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm"
+                      placeholder="Nombre empresa"
+                      [ngModel]="newBankHolder()"
+                      (ngModelChange)="newBankHolder.set($event)"
+                      [ngModelOptions]="{standalone: true}"
+                    />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-secondary mb-1">RNC / Cédula Titular</label>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm font-monospace"
+                      placeholder="ej. 132-94812-1"
+                      [ngModel]="newBankRnc()"
+                      (ngModelChange)="newBankRnc.set($event)"
+                      [ngModelOptions]="{standalone: true}"
+                    />
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                  <button type="button" class="btn btn-sm btn-light border" (click)="cancelAddAccount()">Cancelar</button>
+                  <button type="button" class="btn btn-sm btn-primary" (click)="saveAccount()">Guardar Cuenta</button>
+                </div>
+              </div>
+            }
+
+            <!-- Accounts List -->
+            @if (bankAccounts().length === 0) {
+              <div class="text-center py-4 text-muted">
+                <p class="small mb-1">No hay cuentas bancarias registradas.</p>
+                <button type="button" class="btn btn-sm btn-outline-primary mt-1" (click)="startAddAccount()">
+                  + Agregar primera cuenta
+                </button>
+              </div>
+            } @else {
+              <div class="list-group list-group-flush gap-2">
+                @for (acc of bankAccounts(); track acc.id) {
+                  <div class="list-group-item d-flex align-items-center justify-content-between p-3 rounded-3 border bg-white shadow-2xs">
+                    <div>
+                      <div class="fw-bold text-dark d-flex align-items-center gap-2">
+                        <span>{{ acc.bankName }}</span>
+                        <span class="badge bg-light text-secondary border font-size-xs">{{ acc.accountType || 'Cta. Bancaria' }}</span>
+                        @if (acc.isDefault) {
+                          <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-size-xs">Principal</span>
+                        }
+                      </div>
+                      <div class="small font-monospace text-secondary mt-1">
+                        No. Cuenta: <strong class="text-dark">{{ acc.accountNumber }}</strong>
+                        @if (acc.holderName) {
+                          <span class="ms-2">· Titular: {{ acc.holderName }}</span>
+                        }
+                        @if (acc.holderRnc) {
+                          <span class="ms-1 font-monospace">({{ acc.holderRnc }})</span>
+                        }
+                      </div>
+                    </div>
+
+                    @if (!isReadOnly()) {
+                      <div class="d-flex align-items-center gap-1.5">
+                        @if (!acc.isDefault) {
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-outline-secondary"
+                            (click)="setDefaultAccount(acc.id)"
+                            title="Marcar como cuenta principal"
+                          >
+                            Hacer Principal
+                          </button>
+                        }
+                        <button
+                          type="button"
+                          class="btn btn-xs btn-outline-danger"
+                          (click)="removeAccount(acc.id)"
+                          title="Eliminar cuenta bancaria"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
       </div>
 
       <!-- Columna Derecha: Parámetros de Facturación y Preview -->
@@ -226,22 +380,133 @@
               </div>
             </div>
 
-            <!-- Live Invoice Footer Preview Box -->
-            <div class="mt-4 p-3 border rounded-3 bg-light">
-              <div class="text-secondary small fw-semibold mb-2">Vista Previa en Comprobante / Factura:</div>
-              <div class="bg-white p-3 border rounded-2 text-center">
-                <div class="fw-bold text-dark mb-1 font-monospace" style="font-size: 0.9rem;">
-                  {{ form.get('companyName')?.value || 'Nombre de la Empresa' }}
+            <!-- Reglas de Inventario y Despacho -->
+            <div class="border-top pt-3 mt-3">
+              <h6 class="fw-bold text-dark mb-2 small text-uppercase d-flex align-items-center gap-1.5">
+                <span>Control de Inventario y Stock</span>
+              </h6>
+              <div class="p-2.5 bg-light rounded-3 border mb-2">
+                <div class="form-check form-switch mb-1">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="allowNegativeStockCheck"
+                    formControlName="allowNegativeStock"
+                  />
+                  <label class="form-check-label small fw-bold text-dark" for="allowNegativeStockCheck">
+                    Permitir ventas sin inventario (Stock Negativo)
+                  </label>
                 </div>
-                <div class="text-muted small font-monospace" style="font-size: 0.75rem;">
-                  RNC: {{ form.get('rnc')?.value || '1-01-00000-0' }} | Tel: {{ form.get('phone')?.value || '(809) 000-0000' }}
+                <small class="text-secondary d-block ps-4" style="font-size: 0.75rem; line-height: 1.25;">
+                  Activa esta opción si vendes servicios, comida rápida o productos que se despachan antes de registrar la entrada de compras. El sistema no bloqueará las ventas cuando el stock esté en 0.
+                </small>
+              </div>
+            </div>
+
+            <!-- Parámetros del Diseñador de Ticket Térmico -->
+            <div class="border-top pt-3 mt-3">
+              <h6 class="fw-bold text-dark mb-2 small text-uppercase d-flex align-items-center gap-1.5">
+                <span>Plantilla de Impresión de Tickets (80mm / 58mm)</span>
+              </h6>
+
+              <div class="row g-2 mb-2">
+                <div class="col-6">
+                  <label class="form-label text-secondary small mb-1 fw-semibold">Instagram en Ticket</label>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    formControlName="ticketInstagram"
+                    placeholder="@tuempresa"
+                  />
                 </div>
-                <div class="text-muted small font-monospace mb-2" style="font-size: 0.72rem;">
-                  {{ form.get('address')?.value || 'Dirección de la empresa' }}
+                <div class="col-6">
+                  <label class="form-label text-secondary small mb-1 fw-semibold">WhatsApp Soporte</label>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm font-monospace"
+                    formControlName="ticketWhatsapp"
+                    placeholder="(809) 555-0199"
+                  />
                 </div>
-                <hr class="my-2 border-dashed" />
-                <div class="fst-italic text-dark small fw-medium" style="font-size: 0.8rem;">
-                  "{{ form.get('invoiceFooterPhrase')?.value || '¡Gracias por su compra!' }}"
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="form-label text-secondary small mb-1 fw-semibold">Ancho de Ticket POS</label>
+                  <select class="form-select form-select-sm" formControlName="ticketPaperSize">
+                    <option value="80mm">80 mm (Estándar POS)</option>
+                    <option value="58mm">58 mm (Portátil / Mini)</option>
+                    <option value="letter">Carta A4 (Factura Legal)</option>
+                  </select>
+                </div>
+                <div class="col-6 d-flex align-items-end">
+                  <div class="form-check form-switch mb-1">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="ticketQrCheck"
+                      formControlName="ticketShowQr"
+                    />
+                    <label class="form-check-label small fw-semibold" for="ticketQrCheck">
+                      Imprimir QR en Ticket
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Thermal Ticket Preview Box -->
+            <div class="mt-3 p-3 border rounded-3 bg-light">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-secondary small fw-bold">Vista Previa de Ticket Térmico POS:</span>
+                <span class="badge bg-secondary-subtle text-secondary border font-monospace small" style="font-size: 0.68rem;">
+                  {{ form.get('ticketPaperSize')?.value || '80mm' }}
+                </span>
+              </div>
+              
+              <div class="bg-white p-3 border rounded-2 shadow-2xs font-monospace text-center mx-auto" style="max-width: 280px; font-size: 0.72rem; line-height: 1.35; border: 1px dashed #cbd5e1 !important;">
+                @if (logoPreview()) {
+                  <img [src]="logoPreview()" alt="Logo" style="max-height: 36px; max-width: 120px; object-fit: contain;" class="mb-1" />
+                } @else {
+                  <div class="fw-bold fs-6 text-dark text-uppercase">
+                    {{ form.get('commercialName')?.value || form.get('companyName')?.value || 'CUADRE-ENV SRL' }}
+                  </div>
+                }
+                <div class="text-secondary small">RNC: {{ form.get('rnc')?.value || '1-01-00000-0' }}</div>
+                <div class="text-secondary small">{{ form.get('address')?.value || 'Santo Domingo, R.D.' }}</div>
+                <div class="text-secondary small">Tel: {{ form.get('phone')?.value || '(809) 555-0199' }}</div>
+                
+                @if (form.get('ticketInstagram')?.value || form.get('ticketWhatsapp')?.value) {
+                  <div class="text-muted small mt-0.5">
+                    {{ form.get('ticketInstagram')?.value ? 'IG: ' + form.get('ticketInstagram')?.value : '' }}
+                    {{ form.get('ticketWhatsapp')?.value ? ' · WS: ' + form.get('ticketWhatsapp')?.value : '' }}
+                  </div>
+                }
+                
+                <div class="border-top border-bottom border-dark border-dashed my-2 py-1 text-start">
+                  <div class="d-flex justify-content-between fw-bold">
+                    <span>1x Producto Demo</span>
+                    <span>RD$ 150.00</span>
+                  </div>
+                  <div class="d-flex justify-content-between text-muted" style="font-size: 0.68rem;">
+                    <span>ITBIS (18%)</span>
+                    <span>RD$ 27.00</span>
+                  </div>
+                  <div class="d-flex justify-content-between fw-bold border-top border-dotted mt-1 pt-1">
+                    <span>TOTAL:</span>
+                    <span>RD$ 177.00</span>
+                  </div>
+                </div>
+
+                @if (form.get('ticketShowQr')?.value !== false) {
+                  <div class="my-1.5 d-flex justify-content-center">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=CUADRE_ENV_DEMO_TICKET" alt="QR" style="width: 60px; height: 60px;" />
+                  </div>
+                  <div class="text-muted" style="font-size: 0.6rem;">Escanear para comprobante digital</div>
+                }
+
+                <div class="fst-italic text-dark mt-2 fw-medium" style="font-size: 0.7rem;">
+                  "{{ form.get('invoiceFooterPhrase')?.value || '¡Gracias por su preferencia!' }}"
                 </div>
               </div>
             </div>

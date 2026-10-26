@@ -1,17 +1,17 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CompanyService } from '../../services/company.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
 import { PhoneMaskDirective, RncMaskDirective } from '../../../../app/shared/directives';
-import type { CompanySettingsDto } from '../../../cuadreEnv/types/api';
+import type { CompanySettingsDto, CompanyBankAccountDto } from '../../../cuadreEnv/types/api';
 
 @Component({
   selector: 'app-company-settings',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PhoneMaskDirective, RncMaskDirective],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PhoneMaskDirective, RncMaskDirective],
   templateUrl: './company-settings.component.html',
   styleUrls: ['./company-settings.component.scss'],
 })
@@ -27,6 +27,15 @@ export class CompanySettingsComponent implements OnInit {
   isSaving = signal<boolean>(false);
   isReadOnly = signal<boolean>(false);
   logoPreview = signal<string | null>(null);
+
+  // Bank accounts state
+  bankAccounts = signal<CompanyBankAccountDto[]>([]);
+  isAddingAccount = signal<boolean>(false);
+  newBankName = signal<string>('');
+  newBankAccount = signal<string>('');
+  newBankType = signal<string>('Cta. Corriente');
+  newBankHolder = signal<string>('');
+  newBankRnc = signal<string>('');
 
   ngOnInit() {
     this.initForm();
@@ -54,6 +63,11 @@ export class CompanySettingsComponent implements OnInit {
       ],
       defaultTaxPercentage: [18, [Validators.required, Validators.min(0), Validators.max(100)]],
       currency: ['DOP', Validators.required],
+      ticketInstagram: [''],
+      ticketWhatsapp: [''],
+      ticketShowQr: [true],
+      ticketPaperSize: ['80mm'],
+      allowNegativeStock: [false],
     });
   }
 
@@ -74,13 +88,26 @@ export class CompanySettingsComponent implements OnInit {
             '¡Gracias por su preferencia! Garantía válida por 30 días presentando este comprobante.',
           defaultTaxPercentage: settings.defaultTaxPercentage ?? 18,
           currency: settings.currency || 'DOP',
+          ticketInstagram: settings.ticketInstagram || '',
+          ticketWhatsapp: settings.ticketWhatsapp || '',
+          ticketShowQr: settings.ticketShowQr !== false,
+          ticketPaperSize: settings.ticketPaperSize || '80mm',
+          allowNegativeStock: settings.allowNegativeStock === true,
         });
         if (settings.logoUrl) {
           this.logoPreview.set(settings.logoUrl);
         }
+
+        const accounts =
+          settings.bankAccounts && settings.bankAccounts.length > 0
+            ? settings.bankAccounts
+            : this.companyService.getBankAccounts();
+        this.bankAccounts.set(accounts);
+      } else {
+        this.bankAccounts.set(this.companyService.getBankAccounts());
       }
     } catch {
-      // ignore
+      this.bankAccounts.set(this.companyService.getBankAccounts());
     } finally {
       this.isLoading.set(false);
     }
@@ -110,6 +137,62 @@ export class CompanySettingsComponent implements OnInit {
     this.form.patchValue({ logoUrl: '' });
   }
 
+  // Bank accounts management
+  startAddAccount() {
+    this.newBankName.set('');
+    this.newBankAccount.set('');
+    this.newBankType.set('Cta. Corriente');
+    this.newBankHolder.set(this.form.get('commercialName')?.value || this.form.get('companyName')?.value || '');
+    this.newBankRnc.set(this.form.get('rnc')?.value || '');
+    this.isAddingAccount.set(true);
+  }
+
+  cancelAddAccount() {
+    this.isAddingAccount.set(false);
+  }
+
+  saveAccount() {
+    const name = this.newBankName().trim();
+    const acc = this.newBankAccount().trim();
+    if (!name || !acc) {
+      this.notificationService.warning('Ingresa el nombre del banco y el número de cuenta.');
+      return;
+    }
+
+    const newAcc: CompanyBankAccountDto = {
+      id: `BANK_${Date.now()}`,
+      bankName: name,
+      accountNumber: acc,
+      accountType: this.newBankType(),
+      holderName: this.newBankHolder().trim(),
+      holderRnc: this.newBankRnc().trim(),
+      currency: 'DOP',
+      isDefault: this.bankAccounts().length === 0,
+    };
+
+    const updated = [...this.bankAccounts(), newAcc];
+    this.bankAccounts.set(updated);
+    this.isAddingAccount.set(false);
+    this.notificationService.success(`Cuenta de ${name} agregada.`);
+  }
+
+  removeAccount(id: string) {
+    const filtered = this.bankAccounts().filter((a) => a.id !== id);
+    if (filtered.length > 0 && !filtered.some((a) => a.isDefault)) {
+      filtered[0].isDefault = true;
+    }
+    this.bankAccounts.set(filtered);
+    this.notificationService.info('Cuenta bancaria removida.');
+  }
+
+  setDefaultAccount(id: string) {
+    const updated = this.bankAccounts().map((a) => ({
+      ...a,
+      isDefault: a.id === id,
+    }));
+    this.bankAccounts.set(updated);
+  }
+
   async onSubmit() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -119,9 +202,12 @@ export class CompanySettingsComponent implements OnInit {
 
     this.isSaving.set(true);
     try {
-      const payload: CompanySettingsDto = this.form.value;
+      const payload: CompanySettingsDto = {
+        ...this.form.value,
+        bankAccounts: this.bankAccounts(),
+      };
       await this.companyService.updateCompanySettings(payload);
-      this.notificationService.success('Configuración de la empresa guardada y sincronizada correctamente.');
+      this.notificationService.success('Configuración y cuentas de banco guardadas y sincronizadas correctamente.');
     } catch (e: any) {
       this.notificationService.error('Error al guardar la configuración de la empresa.');
     } finally {

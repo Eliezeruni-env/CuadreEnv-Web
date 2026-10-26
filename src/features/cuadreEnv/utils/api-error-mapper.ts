@@ -90,6 +90,28 @@ export function mapApiErrorToUserMessage(rawError: any): MappedApiError {
     };
   }
 
+  // 2b. Cierre de Caja con Operaciones Pendientes (OPEN_CASH_OPERATIONS)
+  if (
+    errorCode === 'OPEN_CASH_OPERATIONS' ||
+    (typeof rawMessage === 'string' && (
+      rawMessage.includes('OPEN_CASH_OPERATIONS') ||
+      (rawMessage.toLowerCase().includes('venta') && (rawMessage.toLowerCase().includes('espera') || rawMessage.toLowerCase().includes('pendiente')))
+    ))
+  ) {
+    return {
+      type: 'warning',
+      title: 'Ventas Pendientes en Caja',
+      message: rawMessage || 'Existen ventas pendientes o en espera en el POS que deben completarse o anularse antes de realizar el cierre de caja.',
+      errorCode: 'OPEN_CASH_OPERATIONS',
+      statusCode: statusCode || 400,
+      requestId,
+      timestamp,
+      path,
+      isCritical: false,
+      fieldErrors,
+    };
+  }
+
   // 3. Duplicate Key / Unique Constraints
   if (
     errorCode === 'DUPLICATE_KEY' ||

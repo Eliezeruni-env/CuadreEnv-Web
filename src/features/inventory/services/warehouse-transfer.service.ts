@@ -21,7 +21,8 @@ export class WarehouseTransferService {
   private getLocalTransfers(): WarehouseTransfer[] {
     try {
       const raw = localStorage.getItem(TRANSFERS_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const list: WarehouseTransfer[] = raw ? JSON.parse(raw) : [];
+      return list.filter((item) => (item.totalQuantity || 0) > 0 || (item.productDetails && item.productDetails.length > 0));
     } catch {
       return [];
     }
@@ -36,17 +37,58 @@ export class WarehouseTransferService {
   }
 
   async getTransfers(): Promise<ApiResponse<WarehouseTransfer[]>> {
+    let apiList: WarehouseTransfer[] = [];
     try {
       const res = await this.api.get<any, any>('/WarehouseTransfer');
       const list = extractArray<WarehouseTransfer>(res);
       if (list && list.length > 0) {
-        const normalized = list.map((item) => normalizeWarehouseMovement<WarehouseTransfer>(item));
-        return { success: true, data: normalized };
+        apiList = list.map((item) => normalizeWarehouseMovement<WarehouseTransfer>(item));
       }
-      return { success: true, data: [] };
     } catch {
-      return { success: false, data: [], message: 'No se pudo conectar con el servidor.' };
+      try {
+        const res2 = await this.api.get<any, any>('/inventory/movements', { params: { type: 'Transfer' } });
+        const list2 = extractArray<any>(res2);
+        if (list2 && list2.length > 0) {
+          apiList = list2.map((item) => normalizeWarehouseMovement<WarehouseTransfer>({ ...item, type: 'TRANSFER' }));
+        }
+      } catch {
+        // ignore
+      }
     }
+
+    // Filter out invalid/empty movements (such as deleted rows with 0 quantity and 0 products)
+    const validApiList = apiList.filter((item) => {
+      const hasProducts = item.productDetails && item.productDetails.length > 0 && item.productDetails[0].productId > 0;
+      const hasQty = (item.totalQuantity || 0) > 0;
+      const isNotDeleted = !(item as any).isDeleted && (item as any).active !== false;
+      return (hasProducts || hasQty) && isNotDeleted;
+    });
+
+    const localList = this.getLocalTransfers().map((t) => normalizeWarehouseMovement<WarehouseTransfer>(t));
+    const map = new Map<string, WarehouseTransfer>();
+
+    // 1. Register local movements first (they have full rich line item details)
+    for (const loc of localList) {
+      if (loc.id !== undefined) map.set(String(loc.id), loc);
+    }
+
+    // 2. Merge backend movements, preserving line item details from local if available
+    for (const t of validApiList) {
+      if (t.id !== undefined) {
+        const key = String(t.id);
+        const existing = map.get(key);
+        if (existing && existing.productDetails && existing.productDetails.length > 0) {
+          map.set(key, { ...t, ...existing, id: t.id });
+        } else {
+          map.set(key, t);
+        }
+      }
+    }
+
+    const combined = Array.from(map.values()).sort(
+      (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
+    );
+    return { success: true, data: combined };
   }
 
   async getTransfer(id: number): Promise<ApiResponse<WarehouseTransfer>> {
@@ -121,11 +163,27 @@ export class WarehouseTransferService {
       totalCost: totalCost,
     };
 
-    // 1. Post to API if active
-    try {
-      await this.api.post<any, any>('/WarehouseTransfer', newTransfer);
-    } catch {
-      // offline fallback
+    // 1. Post to backend endpoint POST /WarehouseTransfer
+    for (const item of transfer.productDetails || []) {
+      try {
+        await this.api.post<any, any>('/WarehouseTransfer', {
+          productId: item.productId,
+          fromWarehouseId: originId,
+          toWarehouseId: destinationId,
+          quantity: item.quantity,
+        });
+      } catch {
+        try {
+          await this.api.post<any, any>('/Warehouse/stock/transfer', {
+            productId: item.productId,
+            fromWarehouseId: originId,
+            toWarehouseId: destinationId,
+            quantity: item.quantity,
+          });
+        } catch {
+          // offline fallback
+        }
+      }
     }
 
     // 2. Persist locally

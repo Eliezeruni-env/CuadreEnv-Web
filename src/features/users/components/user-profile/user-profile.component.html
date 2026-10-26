@@ -357,6 +357,92 @@
           </div>
         </div>
       </div>
+
+      <!-- Card: Cuentas Bancarias de la Empresa para Transferencias -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 mt-4 bg-white">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2.5 border-bottom">
+          <div class="d-flex align-items-center gap-2.5">
+            <div class="p-2 bg-success-subtle text-success rounded-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <div>
+              <h5 class="fw-bold text-dark mb-0 fs-6">Cuentas Bancarias de la Empresa</h5>
+              <small class="text-secondary" style="font-size: 0.74rem;">Se muestran al cliente en el POS al pagar con transferencia</small>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-sm btn-primary py-1 px-2.5 rounded-2 d-flex align-items-center gap-1.5 fw-semibold shadow-xs"
+            (click)="openAddBankModal()"
+          >
+            <span>+ Nueva Cuenta</span>
+          </button>
+        </div>
+
+        @if (bankAccounts().length === 0) {
+          <div class="p-3 text-center border rounded-3 bg-light-subtle text-muted small">
+            No hay cuentas bancarias configuradas. Agrega una cuenta para que tus cajeros puedan mostrársela a los clientes en transferencias.
+          </div>
+        } @else {
+          <div class="d-flex flex-column gap-2">
+            @for (acc of bankAccounts(); track acc.id) {
+              <div class="p-3 rounded-3 border bg-light-subtle d-flex flex-column gap-1.5 transition-all">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fs-6">🏦</span>
+                    <strong class="text-dark">{{ acc.bankName }}</strong>
+                    <span class="badge bg-light text-secondary border font-size-2xs">{{ acc.accountType || 'Corriente' }}</span>
+                    @if (acc.isDefault) {
+                      <span class="badge bg-success-subtle text-success border border-success-subtle font-size-2xs">
+                        ★ Predeterminada POS
+                      </span>
+                    }
+                  </div>
+
+                  <div class="d-flex align-items-center gap-1">
+                    @if (!acc.isDefault) {
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-outline-secondary py-0.5 px-2 rounded font-size-2xs"
+                        (click)="setDefaultBankAccount(acc.id)"
+                        title="Marcar como predeterminada"
+                      >
+                        Hacer principal
+                      </button>
+                    }
+                    <button
+                      type="button"
+                      class="btn btn-xs btn-outline-danger py-0.5 px-2 rounded font-size-2xs"
+                      (click)="deleteBankAccount(acc.id)"
+                      title="Eliminar cuenta"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center small font-monospace">
+                  <span class="text-secondary">No. Cuenta:</span>
+                  <strong class="text-dark fs-6">{{ acc.accountNumber }}</strong>
+                </div>
+
+                @if (acc.holderName || acc.holderRnc) {
+                  <div class="d-flex justify-content-between align-items-center small text-secondary">
+                    <span>Titular: <strong>{{ acc.holderName || 'Empresa' }}</strong></span>
+                    @if (acc.holderRnc) {
+                      <span class="font-monospace">RNC: {{ acc.holderRnc }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
     </div>
 
     <!-- Right Column: Roles & Granular RBAC Permissions (58%) -->
@@ -553,6 +639,120 @@
           </div>
         }
       </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Agregar Cuenta Bancaria de la Empresa -->
+@if (isAddBankModalOpen()) {
+  <div class="custom-modal-backdrop" (click)="closeAddBankModal()">
+    <div class="custom-modal-content" style="max-width: 520px;" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header">
+        <div class="d-flex align-items-center gap-2.5">
+          <div class="p-2 bg-success-subtle text-success rounded-3 fs-6 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+            🏦
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0 text-dark fs-6">Nueva Cuenta Bancaria de la Empresa</h5>
+            <small class="text-secondary" style="font-size: 0.74rem;">Visible en cobros rápidos por transferencia</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="closeAddBankModal()" aria-label="Close"></button>
+      </div>
+
+      <form [formGroup]="bankForm" (ngSubmit)="saveBankAccount()">
+        <div class="custom-modal-body">
+          <!-- Sugerencias de bancos -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1.5">Bancos habituales en RD</label>
+            <div class="d-flex flex-wrap gap-1.5">
+              <button type="button" class="btn btn-xs btn-outline-secondary bg-light" (click)="selectBankSuggestion('Banco Popular Dominicano')">Popular</button>
+              <button type="button" class="btn btn-xs btn-outline-secondary bg-light" (click)="selectBankSuggestion('Banreservas')">Banreservas</button>
+              <button type="button" class="btn btn-xs btn-outline-secondary bg-light" (click)="selectBankSuggestion('Banco BHD')">BHD</button>
+              <button type="button" class="btn btn-xs btn-outline-secondary bg-light" (click)="selectBankSuggestion('Scotiabank')">Scotiabank</button>
+              <button type="button" class="btn btn-xs btn-outline-secondary bg-light" (click)="selectBankSuggestion('Banco Santa Cruz')">Santa Cruz</button>
+              <button type="button" class="btn btn-xs btn-outline-secondary bg-light" (click)="selectBankSuggestion('Qik Banco Digital')">Qik</button>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-dark mb-1">Nombre del Banco <span class="text-danger">*</span></label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Ej. Banco Popular Dominicano"
+              formControlName="bankName"
+              [class.is-invalid]="bankForm.get('bankName')?.invalid && bankForm.get('bankName')?.touched"
+            />
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-sm-7">
+              <label class="form-label small fw-semibold text-dark mb-1">Número de Cuenta <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control font-monospace"
+                placeholder="Ej. 792019481"
+                formControlName="accountNumber"
+                [class.is-invalid]="bankForm.get('accountNumber')?.invalid && bankForm.get('accountNumber')?.touched"
+              />
+            </div>
+            <div class="col-sm-5">
+              <label class="form-label small fw-semibold text-dark mb-1">Tipo de Cuenta</label>
+              <select class="form-select" formControlName="accountType">
+                <option value="Corriente">Cta. Corriente</option>
+                <option value="Ahorros">Cta. de Ahorros</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-sm-7">
+              <label class="form-label small fw-semibold text-dark mb-1">Titular de la Cuenta</label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Nombre de la empresa o titular"
+                formControlName="accountHolder"
+              />
+            </div>
+            <div class="col-sm-5">
+              <label class="form-label small fw-semibold text-dark mb-1">RNC / Cédula</label>
+              <input
+                type="text"
+                class="form-control font-monospace"
+                placeholder="Ej. 132-94812-1"
+                formControlName="rncOrCedula"
+              />
+            </div>
+          </div>
+
+          <div class="form-check p-2.5 bg-light rounded-3 border d-flex align-items-center gap-2 mb-1">
+            <input class="form-check-input m-0" type="checkbox" id="chkDefaultBank" formControlName="isDefault" />
+            <label class="form-check-label small text-dark fw-medium" for="chkDefaultBank">
+              Marcar como cuenta principal / predeterminada para cobros en el POS
+            </label>
+          </div>
+        </div>
+
+        <div class="custom-modal-footer">
+          <button type="button" class="btn btn-light border px-4" (click)="closeAddBankModal()">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary px-4 fw-semibold"
+            [disabled]="bankForm.invalid || isSavingBank()"
+          >
+            @if (isSavingBank()) {
+              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+              <span>Guardando...</span>
+            } @else {
+              <span>Guardar Cuenta</span>
+            }
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 }

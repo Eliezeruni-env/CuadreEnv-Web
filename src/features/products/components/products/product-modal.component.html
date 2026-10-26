@@ -1,6 +1,6 @@
 @if (visible) {
   <div class="custom-modal-backdrop" (click)="close()">
-    <div class="custom-modal-content modal-lg" (click)="$event.stopPropagation()">
+    <div class="custom-modal-content modal-lg product-modal-content" (click)="$event.stopPropagation()">
       <div class="custom-modal-header">
         <h5 class="fw-bold">{{ isEditMode ? translationService.t('products.modal.editTitle') : translationService.t('products.modal.createTitle') }}</h5>
         <button type="button" class="btn-close" (click)="close()" aria-label="Close"></button>
@@ -46,8 +46,31 @@
             <c-row>
               <!-- Barcode -->
               <c-col md="6" class="mb-3">
-                <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('products.modal.barcodeLabel') }}</label>
-                <input formControlName="barcode" cFormControl [placeholder]="translationService.t('products.modal.barcodeLabel')" />
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="small fw-semibold text-secondary mb-0">{{ translationService.t('products.modal.barcodeLabel') }}</label>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold"
+                    style="font-size: 11px; border-radius: 6px;"
+                    (click)="generateBarcodeForProduct()"
+                    title="Generar código de barra EAN-13 automático (RD)"
+                  >
+                    Auto-Generar
+                  </button>
+                </div>
+                <div class="input-group">
+                  <input formControlName="barcode" cFormControl [placeholder]="translationService.t('products.modal.barcodeLabel')" />
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    (click)="generateBarcodeForProduct()"
+                    title="Generar código de barra automático"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                  </button>
+                </div>
               </c-col>
 
               <!-- Reference -->
@@ -59,7 +82,7 @@
 
             <c-row>
               <!-- Product Type Dropdown -->
-              <c-col md="6" class="mb-3">
+              <c-col md="4" class="mb-3">
                 <label class="small fw-semibold text-secondary mb-1">
                   Tipo de Producto *
                 </label>
@@ -75,7 +98,7 @@
               </c-col>
 
               <!-- Category Dropdown -->
-              <c-col md="6" class="mb-3">
+              <c-col md="4" class="mb-3">
                 <label class="small fw-semibold text-secondary mb-1">
                   Categoría *
                 </label>
@@ -89,24 +112,137 @@
                   <div class="text-danger small mt-1">La categoría es requerida.</div>
                 }
               </c-col>
+
+              <!-- Unit of Measurement Dropdown -->
+              <c-col md="4" class="mb-3">
+                <label class="small fw-semibold text-secondary mb-1">
+                  Unidad de Medida *
+                </label>
+                <select formControlName="unitOfMeasurementId" class="form-select">
+                  <option [ngValue]="null">-- Seleccionar Unidad --</option>
+                  @for (u of units(); track u.id) {
+                    <option [ngValue]="u.id">
+                      {{ u.name }} ({{ u.symbol }}) {{ u.allowsDecimals ? '— Pesaje / Decimal' : '— Conteo' }}
+                    </option>
+                  }
+                </select>
+                @if (productForm.get('unitOfMeasurementId')?.touched && productForm.get('unitOfMeasurementId')?.invalid) {
+                  <div class="text-danger small mt-1">La unidad de medida es requerida.</div>
+                }
+              </c-col>
             </c-row>
+
+            <!-- Photo Upload & Preview Section -->
+            <div class="p-3 mb-3 bg-light rounded-4 border">
+              <label class="small fw-bold text-secondary mb-2 d-flex align-items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+                <span>Foto del Producto (Se mostrará en el botón de la caja registradora)</span>
+              </label>
+
+              <div class="d-flex align-items-center gap-3 flex-wrap">
+                @if (productForm.get('imageUrl')?.value) {
+                  <div class="position-relative" style="width: 80px; height: 80px;">
+                    <img
+                      [src]="productForm.get('imageUrl')?.value"
+                      alt="Vista previa"
+                      class="rounded-3 border shadow-xs"
+                      style="width: 80px; height: 80px; object-fit: cover;"
+                    />
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-danger position-absolute top-0 end-0 translate-middle rounded-circle p-0 d-flex align-items-center justify-content-center"
+                      style="width: 22px; height: 22px;"
+                      (click)="removePhoto()"
+                      title="Eliminar foto"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                }
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="productPhotoInput"
+                    class="d-none"
+                    (change)="onPhotoSelected($event)"
+                  />
+                  <label for="productPhotoInput" class="btn btn-sm btn-outline-primary fw-semibold cursor-pointer mb-0">
+                    📷 {{ productForm.get('imageUrl')?.value ? 'Cambiar Foto' : 'Subir Foto del Producto' }}
+                  </label>
+                  <div class="text-muted small mt-1" style="font-size: 11px;">
+                    Formatos JPG, PNG o WebP (Máx 5MB). Quienes usen la caja verán el botón para abrir esta foto.
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <c-row>
               <!-- Cost -->
-              <c-col md="6" class="mb-3">
+              <c-col md="4" class="mb-3">
                 <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('products.modal.costLabel') }} *</label>
-                <input formControlName="cost" type="number" cFormControl />
+                <div class="input-group">
+                  <span class="input-group-text bg-light">RD$</span>
+                  <input formControlName="cost" type="number" step="0.01" cFormControl />
+                </div>
                 @if (productForm.get('cost')?.touched && productForm.get('cost')?.invalid) {
                   <div class="text-danger small mt-1">El costo debe ser mayor a cero.</div>
                 }
               </c-col>
 
+              <!-- Public Sale Price -->
+              <c-col md="4" class="mb-3">
+                <label class="small fw-bold text-dark mb-1">Precio Unitario de Venta *</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-primary-subtle text-primary fw-bold">RD$</span>
+                  <input formControlName="price" type="number" step="0.01" cFormControl class="fw-bold text-primary" placeholder="0.00" />
+                </div>
+                <div class="form-text small" style="font-size: 11px;">
+                  ⚠️ Este precio solo se edita aquí, no en la caja.
+                </div>
+              </c-col>
+
               <!-- Stock -->
-              <c-col md="6" class="mb-3">
+              <c-col md="4" class="mb-3">
                 <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('products.modal.stockLabel') }} *</label>
                 <input formControlName="stock" type="number" cFormControl [readonly]="isEditMode" />
+                @if (getCalculatedStockEquivalence()) {
+                  <div class="form-text text-primary fw-semibold small mt-1">
+                    {{ getCalculatedStockEquivalence() }}
+                  </div>
+                }
               </c-col>
             </c-row>
+
+            <!-- Real-time Profit Margin Indicator -->
+            <div class="p-2.5 mb-3 rounded-3 bg-white border d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-success-subtle text-success fs-6 font-monospace">
+                  +RD$ {{ getMarginStats().profit | number:'1.2-2' }}
+                </span>
+                <span class="small text-secondary">Ganancia por unidad</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="small text-secondary">Margen Comercial:</span>
+                <span class="badge bg-primary-subtle text-primary fs-6 font-monospace">
+                  {{ getMarginStats().marginPct }}%
+                </span>
+              </div>
+            </div>
+
+            <!-- Venta al Detalle / Fraccionada (Granel) -->
+            <div class="form-check p-3 mb-3 bg-light rounded-3 border ms-0">
+              <input class="form-check-input ms-0 me-2" type="checkbox" id="allowFractionalCheck" formControlName="allowFractional">
+              <label class="form-check-label small fw-bold text-dark cursor-pointer" for="allowFractionalCheck">
+                ⚖️ Permitir Venta al Detalle Fraccionada (Por Pesos RD$ o por Libras / Fracción)
+              </label>
+              <div class="text-secondary small mt-1 ms-4" style="font-size: 11px;">
+                Permite vender cualquier porción (ej. RD$ 10, RD$ 25 de detergente o 1 lb, 3 lbs de un saco completo).
+              </div>
+            </div>
 
             <div class="mb-3">
               <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('common.description') }}</label>
@@ -122,7 +258,7 @@
 
               <!-- Max Qty -->
               <c-col md="6" class="mb-3">
-                <label class="small fw-semibold text-secondary mb-1">Max Qty</label>
+                <label class="small fw-semibold text-secondary mb-1">Cantidad Máxima en Almacén</label>
                 <input formControlName="maximumQuantity" type="number" cFormControl />
               </c-col>
             </c-row>
@@ -150,6 +286,86 @@
               <label class="form-check-label small fw-semibold text-secondary" for="invoiceWithoutStock">
                 Permitir facturar sin existencia (Stock)
               </label>
+            </div>
+
+            <!-- Empaque Mayor y Venta al Detalle -->
+            <div class="card border border-primary-subtle bg-light-subtle rounded-3 p-3 my-3">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div>
+                  <div class="fw-bold text-dark d-flex align-items-center gap-2">
+                    <span>Empaque Mayor / Saco / Caja</span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">Conversión de Almacén</span>
+                  </div>
+                  <div class="text-muted small">
+                    Permite vender por saco/caja al por mayor y descontar automáticamente del inventario al detalle (ej. saco de azúcar de 300 lb, caja de 24 und).
+                  </div>
+                </div>
+                <div class="form-check form-switch fs-5 m-0">
+                  <input class="form-check-input" type="checkbox" id="hasPackagingSwitch" formControlName="hasPackaging">
+                </div>
+              </div>
+
+              @if (productForm.get('hasPackaging')?.value) {
+                <div class="border-top pt-3 mt-2">
+                  <c-row>
+                    <c-col md="4" class="mb-3">
+                      <label class="small fw-semibold text-secondary mb-1">Nombre del Empaque *</label>
+                      <input formControlName="packageUnitName" cFormControl placeholder="ej: Saco, Caja, Fardo" />
+                      <div class="form-text small">Ej. Saco, Caja, Bulto</div>
+                    </c-col>
+
+                    <c-col md="4" class="mb-3">
+                      <label class="small fw-semibold text-secondary mb-1">
+                        Contenido por Empaque (en {{ getSelectedUnitSymbol() }}) *
+                      </label>
+                      <input formControlName="packageUnitsCount" type="number" step="any" cFormControl placeholder="ej: 300" />
+                      <div class="form-text small">
+                        1 {{ productForm.get('packageUnitName')?.value || 'Empaque' }} = {{ productForm.get('packageUnitsCount')?.value || 1 }} {{ getSelectedUnitSymbol() }}
+                      </div>
+                    </c-col>
+
+                    <c-col md="4" class="mb-3">
+                      <label class="small fw-semibold text-secondary mb-1">Precio por Empaque Completo</label>
+                      <div class="input-group">
+                        <span class="input-group-text">RD$</span>
+                        <input formControlName="packagePrice" type="number" step="any" cFormControl placeholder="0.00" />
+                      </div>
+                      <div class="form-text small">Precio si compran el saco/caja entera</div>
+                    </c-col>
+                  </c-row>
+
+                  <!-- Opción de venta individual suelta (ej. 1 cebolla, 1 plátano) -->
+                  <div class="p-3 bg-white rounded border mt-1">
+                    <div class="form-check form-switch mb-2">
+                      <input class="form-check-input" type="checkbox" id="hasIndividualUnitSwitch" formControlName="hasIndividualUnit">
+                      <label class="form-check-label small fw-bold text-dark" for="hasIndividualUnitSwitch">
+                        Permitir venta por pieza / unidad suelta (ej. 1 cebolla, 1 plátano)
+                      </label>
+                    </div>
+
+                    @if (productForm.get('hasIndividualUnit')?.value) {
+                      <c-row class="pt-2">
+                        <c-col md="4" class="mb-2">
+                          <label class="small fw-semibold text-secondary mb-1">Nombre de la Pieza</label>
+                          <input formControlName="individualUnitName" cFormControl placeholder="ej: Cebolla individual" />
+                        </c-col>
+                        <c-col md="4" class="mb-2">
+                          <label class="small fw-semibold text-secondary mb-1">Precio por Pieza</label>
+                          <div class="input-group">
+                            <span class="input-group-text">RD$</span>
+                            <input formControlName="individualUnitPrice" type="number" step="any" cFormControl placeholder="0.00" />
+                          </div>
+                        </c-col>
+                        <c-col md="4" class="mb-2">
+                          <label class="small fw-semibold text-secondary mb-1">Peso Promedio a descontar (en {{ getSelectedUnitSymbol() }})</label>
+                          <input formControlName="individualUnitWeight" type="number" step="any" cFormControl placeholder="ej: 0.35" />
+                          <div class="form-text small">Deduce esto del almacén en {{ getSelectedUnitSymbol() }} por cada pieza</div>
+                        </c-col>
+                      </c-row>
+                    }
+                  </div>
+                </div>
+              }
             </div>
           </form>
         }

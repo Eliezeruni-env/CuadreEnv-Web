@@ -262,7 +262,7 @@ export class RoleService {
     return true;
   }
 
-  async updateRolePermissions(roleId: number, permissionIds: number[]): Promise<boolean> {
+  async updateRolePermissions(roleId: number, permissionIds: number[], allowedModules?: string[]): Promise<boolean> {
     try {
       const role = await this.getRoleById(roleId);
       if (!role) throw new Error(`Rol con ID ${roleId} no encontrado`);
@@ -270,6 +270,7 @@ export class RoleService {
         name: role.name,
         description: role.description,
         permissionIds,
+        allowedModules: allowedModules ?? role.allowedModules,
       });
       await this.loadRoles();
       return true;
@@ -277,7 +278,7 @@ export class RoleService {
       // Fallback local update
     }
 
-    await this.updateRole(roleId, { permissionIds });
+    await this.updateRole(roleId, { permissionIds, allowedModules } as any);
     return true;
   }
 }

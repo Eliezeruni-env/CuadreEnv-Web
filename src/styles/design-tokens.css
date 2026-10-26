@@ -72,6 +72,41 @@
   --cuadre-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --cuadre-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --cuadre-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* Deep Space Navy & Silicon Valley Glass Palette */
+  --cuadre-navy-950: #020617;
+  --cuadre-navy-900: #0f172a;
+  --cuadre-navy-800: #1e293b;
+  --cuadre-navy-700: #334155;
+  --cuadre-glass-bg: rgba(255, 255, 255, 0.82);
+  --cuadre-glass-border: rgba(15, 23, 42, 0.08);
+  --cuadre-glass-blur: blur(16px);
+  --cuadre-card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --cuadre-card-shadow-hover: 0 12px 30px -4px rgba(15, 23, 42, 0.1), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+
+  /* ==========================================================================
+     6. CuadreEnv Mobile SaaS Flat Tokens (Stripe / Linear Native Standard)
+     ========================================================================== */
+  --cuadre-color-navy: #0F172A;
+  --cuadre-color-success-text: #047857;
+  --cuadre-color-warning-text: #B45309;
+  --cuadre-color-danger-text: #B91C1C;
+  --cuadre-color-info-text: #1D4ED8;
+  --cuadre-color-info-light: #EFF6FF;
+
+  --cuadre-bg-canvas: #F8FAFC;
+  --cuadre-bg-card: #FFFFFF;
+  --cuadre-border-input: #CBD5E1;
+
+  --cuadre-radius-card: 14px;
+  --cuadre-radius-btn: 12px;
+  --cuadre-radius-input: 12px;
+  --cuadre-radius-chip: 10px;
+  --cuadre-radius-sheet: 20px;
+  --cuadre-radius-badge: 999px;
+
+  --cuadre-card-shadow-flat: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --cuadre-font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* Dark mode theme token overrides */
@@ -80,8 +115,16 @@
   --cuadre-text-main: #f8fafc;
   --cuadre-text-body: #e2e8f0;
   --cuadre-text-muted: #94a3b8; /* Slate 400 - Contrast 6.1:1 on #0f172a (WCAG AA PASS) */
-  --cuadre-bg-body: #0f172a;
-  --cuadre-bg-surface: #1e293b;
-  --cuadre-bg-subtle: #334155;
-  --cuadre-border-color: #334155;
+  --cuadre-bg-body: #090d16;
+  --cuadre-bg-canvas: #090d16;
+  --cuadre-bg-surface: #0f172a;
+  --cuadre-bg-card: #0f172a;
+  --cuadre-bg-subtle: #1e293b;
+  --cuadre-border-color: #1e293b;
+  --cuadre-border-input: #334155;
+  --cuadre-glass-bg: rgba(15, 23, 42, 0.85);
+  --cuadre-glass-border: rgba(255, 255, 255, 0.09);
+  --cuadre-card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.35);
+  --cuadre-card-shadow-hover: 0 12px 36px -4px rgba(0, 0, 0, 0.5);
+  --cuadre-card-shadow-flat: 0 1px 2px rgba(0, 0, 0, 0.4);
 }

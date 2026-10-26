@@ -173,4 +173,37 @@ describe('PermissionService module access', () => {
       'Stock',
     ]);
   });
+
+  it('denies administrative modules to an Admin if stripped from allowedModules', () => {
+    currentRole = 'Admin';
+    allowedModules = ['sales', 'inventory', 'cashregister'];
+
+    expect(service.hasModule('users')).toBe(false);
+    expect(service.hasModule('admin-roles')).toBe(false);
+    expect(service.hasModule('admin-roles-matrix')).toBe(false);
+    expect(service.hasModule('admin-approvals')).toBe(false);
+    expect(service.hasModule('company-settings')).toBe(false);
+    expect(service.hasModule('profile')).toBe(false);
+
+    expect(service.hasModuleAccess('/users')).toBe(false);
+    expect(service.hasModuleAccess('/admin/roles')).toBe(false);
+    expect(service.hasModuleAccess('/admin/roles/matrix')).toBe(false);
+    expect(service.hasModuleAccess('/admin/approvals')).toBe(false);
+    expect(service.hasModuleAccess('/company/settings')).toBe(false);
+    expect(service.hasModuleAccess('/profile')).toBe(false);
+  });
+
+  it('allows administrative modules to an Admin only when explicitly included in allowedModules', () => {
+    currentRole = 'Admin';
+    allowedModules = ['sales', 'users', 'company-settings'];
+
+    expect(service.hasModule('users')).toBe(true);
+    expect(service.hasModule('company-settings')).toBe(true);
+    expect(service.hasModule('admin-roles')).toBe(false);
+    expect(service.hasModule('admin-approvals')).toBe(false);
+
+    expect(service.hasModuleAccess('/users')).toBe(true);
+    expect(service.hasModuleAccess('/company/settings')).toBe(true);
+    expect(service.hasModuleAccess('/admin/roles')).toBe(false);
+  });
 });

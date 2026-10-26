@@ -12,8 +12,11 @@ import { NotificationService } from '../../../cuadreEnv/services/notification.se
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import { IconDirective } from '@coreui/icons-angular';
 import { SendInvoiceEmailModalComponent } from '../../../../app/shared/components/send-invoice-email-modal/send-invoice-email-modal.component';
+import { SendWhatsAppModalComponent } from './send-whatsapp-modal/send-whatsapp-modal.component';
+import type { WhatsAppInvoiceData } from '../../services/whatsapp-share.service';
 
 import { CompanyService } from '../../../companies/services/company.service';
+import { formatInvoiceDateTime, formatInvoiceDate, formatInvoiceTime } from '../../../cuadreEnv/utils/rd-date.util';
 
 export interface CompletedSaleItem {
   productId?: number;
@@ -46,12 +49,13 @@ export interface CompletedSaleDto {
 @Component({
   selector: 'app-sale-completed-modal',
   standalone: true,
-  imports: [CommonModule, IconDirective, SendInvoiceEmailModalComponent],
+  imports: [CommonModule, IconDirective, SendInvoiceEmailModalComponent, SendWhatsAppModalComponent],
   templateUrl: './sale-completed-modal.component.html',
   styleUrls: ['./sale-completed-modal.component.scss'],
 })
 export class SaleCompletedModalComponent {
   @ViewChild('sendEmailModal') sendEmailModal!: SendInvoiceEmailModalComponent;
+  @ViewChild('sendWhatsAppModal') sendWhatsAppModal!: SendWhatsAppModalComponent;
 
   readonly translationService = inject(TranslationService);
   private notificationService = inject(NotificationService);
@@ -68,22 +72,15 @@ export class SaleCompletedModalComponent {
   isTicketMode = signal<boolean>(false);
 
   get formattedDate(): string {
-    if (this.saleData?.date) {
-      return new Date(this.saleData.date).toLocaleString('es-DO', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    }
-    return new Date().toLocaleString('es-DO', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatInvoiceDateTime(this.saleData?.date || new Date());
+  }
+
+  get formattedDateOnly(): string {
+    return formatInvoiceDate(this.saleData?.date || new Date());
+  }
+
+  get formattedTime(): string {
+    return formatInvoiceTime(this.saleData?.date || new Date());
   }
 
   get changeAmount(): number {
@@ -96,8 +93,10 @@ export class SaleCompletedModalComponent {
   }
 
   // =========================================================================
-  // Facturación Electrónica DGII (e-CF - Ley 32-23)
+  // Facturación Electrónica DGII (e-CF - Ley 32-23) - Pausado a futuro
   // =========================================================================
+  readonly isDgiiActive = false;
+
   get isB2B(): boolean {
     const rnc = (this.saleData?.customerRnc || '').replace(/[^0-9]/g, '');
     return rnc.length >= 9 && rnc !== '000000000';
@@ -223,6 +222,35 @@ export class SaleCompletedModalComponent {
       this.sendEmailModal.open(emailData);
     } else {
       this.isEmailModalOpen = true;
+    }
+  }
+
+  sendWhatsAppInvoice(): void {
+    if (!this.saleData) return;
+    const invNo = this.saleData.invoiceNumber || `VTA-${this.saleData.id || '101'}`;
+    const dateStr = this.formattedDate;
+
+    const data: WhatsAppInvoiceData = {
+      invoiceNumber: invNo,
+      ncf: this.eNcfNumber || (this.saleData as any).ncf || undefined,
+      date: dateStr,
+      customerName: this.saleData.customerName || 'Consumidor Final',
+      items: (this.saleData.items || []).map((it) => ({
+        productName: it.productName,
+        quantity: it.quantity,
+        total: it.total,
+      })),
+      subtotal: this.saleData.subtotal || 0,
+      itbis: this.saleData.itbis || 0,
+      total: this.saleData.total || 0,
+      paymentMethod: this.saleData.paymentMethod || 'Efectivo',
+      amountReceived: this.saleData.amountReceived || undefined,
+      change: this.changeAmount || undefined,
+      destinationPhone: '',
+    };
+
+    if (this.sendWhatsAppModal) {
+      this.sendWhatsAppModal.open(data);
     }
   }
 

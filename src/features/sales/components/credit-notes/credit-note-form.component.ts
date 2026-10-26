@@ -53,6 +53,7 @@ export class CreditNoteFormComponent implements OnInit {
     clientRnc?: string;
     originalNcf: string;
     warehouseId: number;
+    warehouseName?: string;
     creationDate: string;
     items: ProductDetails[];
   } | null = null;

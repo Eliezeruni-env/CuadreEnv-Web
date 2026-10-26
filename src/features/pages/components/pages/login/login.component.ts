@@ -48,10 +48,17 @@ export class LoginComponent {
   showNoModulesDialog = signal<boolean>(false);
 
   constructor() {
+    const rememberedUser = typeof window !== 'undefined'
+      ? (localStorage.getItem('cuadre_remember_user') || localStorage.getItem('cuadre_last_email') || '')
+      : '';
+    const wasRemembered = typeof window !== 'undefined'
+      ? localStorage.getItem('cuadre_remember_me_checked') === 'true'
+      : false;
+
     this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
+      email: [rememberedUser, [Validators.required, Validators.email]],
       password: ['', [Validators.required]],
-      rememberMe: [false],
+      rememberMe: [wasRemembered],
     });
   }
 
@@ -74,6 +81,7 @@ export class LoginComponent {
 
     const email = this.loginForm.value.email?.trim() || '';
     const password = this.loginForm.value.password || '';
+    const rememberMe = !!this.loginForm.value.rememberMe;
     const deviceId = getStableDeviceId();
 
     try {
@@ -81,7 +89,21 @@ export class LoginComponent {
         email,
         password,
         deviceId,
+        rememberMe,
       });
+
+      // Persistencia de recordar usuario
+      if (typeof window !== 'undefined' && window.localStorage) {
+        if (rememberMe) {
+          localStorage.setItem('cuadre_remember_user', email);
+          localStorage.setItem('cuadre_remember_me_checked', 'true');
+          localStorage.setItem('cuadre_last_email', email);
+        } else {
+          localStorage.removeItem('cuadre_remember_user');
+          localStorage.removeItem('cuadre_remember_me_checked');
+          localStorage.removeItem('cuadre_last_email');
+        }
+      }
 
       if (this.authService.allowedModules().length === 0) {
         this.showNoModulesDialog.set(true);
@@ -89,7 +111,16 @@ export class LoginComponent {
       }
 
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-      const targetUrl = returnUrl && !returnUrl.includes('/login') ? returnUrl : '/dashboard';
+      const isMobileDevice =
+        typeof window !== 'undefined' &&
+        (window.innerWidth <= 768 ||
+          /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent.toLowerCase()) ||
+          window.matchMedia('(display-mode: standalone)').matches ||
+          (navigator as any).standalone === true);
+
+      const targetUrl = returnUrl && !returnUrl.includes('/login')
+        ? returnUrl
+        : (isMobileDevice ? '/mobile' : '/dashboard');
 
       const companyId = this.authService.companyId();
       const isSuperUser = this.authService.isSuperUser();
@@ -107,7 +138,7 @@ export class LoginComponent {
 
       // Log técnico seguro (nunca contraseñas ni tokens)
       console.error('[Login Diagnostic]', {
-        url: error?.url || 'http://localhost:8080/v1/auth/login',
+        url: error?.url || 'API',
         method: 'POST',
         status,
         statusText: error?.statusText,
@@ -128,7 +159,7 @@ export class LoginComponent {
       }
 
       if (status === 0) {
-        this.errorMessage.set('No se pudo conectar con la API en http://localhost:8080/v1. Verifique que el backend esté disponible.');
+        this.errorMessage.set('No se pudo conectar con el servidor. Verifique que el backend esté disponible.');
         return;
       }
 

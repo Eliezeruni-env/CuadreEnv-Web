@@ -23,6 +23,7 @@ import { WarehouseService } from '../../../inventory/services/warehouse.service'
 import { StockService } from '../../../inventory/services/stock.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
+import { ModuleAccessService } from '../../../cuadreEnv/services/module-access.service';
 import type { CustomerDto, ProductDto } from '../../../cuadreEnv/types/api';
 import type { Warehouse } from '../../../../app/models/warehouse';
 import {
@@ -56,6 +57,7 @@ export class CreateReceivableModalComponent implements OnInit {
   private readonly warehouseService = inject(WarehouseService);
   private readonly stockService = inject(StockService);
   private readonly notificationService = inject(NotificationService);
+  private readonly moduleAccess = inject(ModuleAccessService, { optional: true });
   private readonly fb = inject(FormBuilder);
 
   @Input() visible = false;
@@ -71,6 +73,9 @@ export class CreateReceivableModalComponent implements OnInit {
   isLoading = signal<boolean>(false);
   isSavingCustomer = signal<boolean>(false);
   isQuickCustomer = signal<boolean>(false);
+
+  // Wizard Stepper (Step 1: Cliente & Valores, Step 2: Productos & Almacén, Step 3: Plan de Cuotas)
+  currentStep = signal<1 | 2 | 3>(1);
 
   // Product addition mode: from inventory catalog OR custom product of any type
   productMode = signal<'catalog' | 'custom'>('catalog');
@@ -115,6 +120,16 @@ export class CreateReceivableModalComponent implements OnInit {
   }
 
   async loadWarehouses() {
+    if (this.moduleAccess && !this.moduleAccess.hasModule('inventory')) {
+      const local = this.warehouseService.getLocalWarehouses();
+      const list = local.length > 0 ? local : [this.warehouseService.createDefaultMainWarehouse()];
+      this.warehouses.set(list);
+      const currentWhId = this.receivableForm.get('warehouseId')?.value || list[0].id;
+      this.selectedWarehouseId.set(currentWhId);
+      this.receivableForm.patchValue({ warehouseId: currentWhId }, { emitEvent: false });
+      return;
+    }
+
     try {
       const res = await this.warehouseService.getWarehouses();
       if (res?.success && res.data && res.data.length > 0) {
@@ -125,12 +140,17 @@ export class CreateReceivableModalComponent implements OnInit {
         this.receivableForm.patchValue({ warehouseId: currentWhId }, { emitEvent: false });
         await this.loadWarehouseStock(currentWhId);
       }
-    } catch (e: any) {
-      console.error('Error loading warehouses:', e);
+    } catch {
+      const local = this.warehouseService.getLocalWarehouses();
+      const list = local.length > 0 ? local : [this.warehouseService.createDefaultMainWarehouse()];
+      this.warehouses.set(list);
     }
   }
 
   async loadWarehouseStock(warehouseId: number) {
+    if (this.moduleAccess && !this.moduleAccess.hasModule('inventory')) {
+      return;
+    }
     try {
       const stockRes = await this.stockService.getStock({ warehouseId });
       const map = new Map<number, number>();
@@ -140,8 +160,8 @@ export class CreateReceivableModalComponent implements OnInit {
         }
       }
       this.warehouseStockMap.set(map);
-    } catch (e: any) {
-      console.error('Error loading stock for warehouse:', e);
+    } catch {
+      // Stock not available for warehouse
     }
   }
 
@@ -162,7 +182,7 @@ export class CreateReceivableModalComponent implements OnInit {
   getSelectedWarehouseName(): string {
     const whId = Number(this.receivableForm.get('warehouseId')?.value) || this.selectedWarehouseId();
     const found = this.warehouses().find((w) => w.id === whId);
-    return found?.name || 'Almacén Principal';
+    return found?.name || (whId ? `Almacén #${whId}` : 'Sin almacén asignado');
   }
 
   async loadCustomers() {
@@ -206,6 +226,7 @@ export class CreateReceivableModalComponent implements OnInit {
   }
 
   resetForm() {
+    this.currentStep.set(1);
     const today = new Date().toISOString().split('T')[0];
     const mainWh = this.warehouses().find((w) => w.isMain) || this.warehouses()[0];
     const defaultWhId = mainWh ? mainWh.id : 1;
@@ -236,6 +257,59 @@ export class CreateReceivableModalComponent implements OnInit {
       deductStock: true,
       warehouseId: defaultWhId,
     });
+  }
+
+  canAdvanceFromStep1(): boolean {
+    const val = this.receivableForm.value;
+    const hasCustomer = this.isQuickCustomer()
+      ? !!val.quickCustomerName?.trim()
+      : !!val.customerId;
+
+    if (!hasCustomer) {
+      this.notificationService.warning('Selecciona o registra un cliente para continuar.');
+      return false;
+    }
+
+    if (!val.description?.trim()) {
+      this.receivableForm.patchValue({ description: 'Venta a crédito de mercancía' });
+    }
+
+    return true;
+  }
+
+  goToStep(targetStep: 1 | 2 | 3) {
+    if (targetStep === this.currentStep()) return;
+
+    if (targetStep > 1 && this.currentStep() === 1) {
+      if (!this.canAdvanceFromStep1()) return;
+    }
+
+    if (targetStep === 3) {
+      const items = this.selectedItems();
+      if (items.length > 0) {
+        const itemsTotal = items.reduce((acc, it) => acc + it.subtotal, 0);
+        this.receivableForm.patchValue({ totalAmount: itemsTotal });
+      }
+      this.calculateInstallments();
+    }
+
+    this.currentStep.set(targetStep);
+  }
+
+  nextStep() {
+    if (this.currentStep() === 1) {
+      this.goToStep(2);
+    } else if (this.currentStep() === 2) {
+      this.goToStep(3);
+    }
+  }
+
+  prevStep() {
+    if (this.currentStep() === 3) {
+      this.goToStep(2);
+    } else if (this.currentStep() === 2) {
+      this.goToStep(1);
+    }
   }
 
   toggleQuickCustomer() {

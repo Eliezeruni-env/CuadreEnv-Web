@@ -1,5 +1,8 @@
+const isBrowser = typeof window !== 'undefined';
+const baseOrigin = isBrowser && window.location?.origin ? window.location.origin : 'http://localhost:8080';
+
 export const environment = {
   production: false,
-  API_BASE_URL: 'http://localhost:8080',
-  apiUrl: 'http://localhost:8080/v1',
+  API_BASE_URL: baseOrigin,
+  apiUrl: `${baseOrigin}/v1`,
 };

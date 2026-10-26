@@ -14,7 +14,7 @@ import {
   ReactiveFormsModule,
   FormsModule,
 } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   CashRegisterService,
   type CashRegisterSessionDto,
@@ -23,7 +23,7 @@ import {
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
-import { QuickSaleModalComponent } from './quick-sale-modal.component';
+import { formatDateInRD } from '../../../cuadreEnv/utils/rd-date.util';
 import { ManualMovementModalComponent } from './manual-movement-modal.component';
 import { CloseRegisterModalComponent } from './close-register-modal.component';
 import {
@@ -59,7 +59,6 @@ import { UserService } from '../../../users/services/user.service';
     FormControlDirective,
     FormDirective,
     FormSelectDirective,
-    QuickSaleModalComponent,
     ManualMovementModalComponent,
     CloseRegisterModalComponent,
     SaleCompletedModalComponent,
@@ -76,9 +75,9 @@ export class CashRegisterComponent implements OnInit {
   public readonly authService = inject(AuthService);
   private readonly userService = inject(UserService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
 
-  @ViewChild('quickSaleModal') quickSaleModal!: QuickSaleModalComponent;
   @ViewChild('manualMovementModal') manualMovementModal!: ManualMovementModalComponent;
   @ViewChild('closeRegisterModal') closeRegisterModal!: CloseRegisterModalComponent;
   @ViewChild('saleCompletedModal') saleCompletedModal!: SaleCompletedModalComponent;
@@ -95,6 +94,12 @@ export class CashRegisterComponent implements OnInit {
 
   showMovementMenu = signal<boolean>(false);
   isPauseModalOpen = signal<boolean>(false);
+
+  // Turno Detail Modal
+  isSessionDetailModalOpen = signal<boolean>(false);
+  isLoadingSessionDetail = signal<boolean>(false);
+  selectedSessionDetail = signal<any | null>(null);
+  sessionDetailTab = signal<'resumen' | 'ventas' | 'productos' | 'movimientos'>('resumen');
 
   // Pagination signals
   movementsPage = signal<number>(1);
@@ -171,15 +176,61 @@ export class CashRegisterComponent implements OnInit {
 
   // Computed properties
   readonly currentDateFormatted = computed(() => {
-    const d = new Date();
-    const options: Intl.DateTimeFormatOptions = {
+    const str = formatDateInRD(new Date(), {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-    };
-    const str = d.toLocaleDateString('es-DO', options);
+    });
     return `Hoy, ${str}`;
+  });
+
+  readonly currentCalculatedBalance = computed(() => {
+    const session = this.activeSession();
+    if (!session) return 0;
+    const initial = Number(session.initialAmount) || 0;
+    return Math.max(0, initial + this.totalEntradas() - this.totalSalidas());
+  });
+
+  readonly totalVentasCount = computed(() => {
+    return this.movements().filter((m) =>
+      m.category === 'Ventas' ||
+      (m.description || '').toLowerCase().includes('venta') ||
+      (m.description || '').toLowerCase().includes('factura') ||
+      m.saleId != null
+    ).length;
+  });
+
+  readonly totalVentasMonto = computed(() => {
+    return this.movements()
+      .filter((m) =>
+        m.category === 'Ventas' ||
+        (m.description || '').toLowerCase().includes('venta') ||
+        (m.description || '').toLowerCase().includes('factura') ||
+        m.saleId != null
+      )
+      .reduce((acc, m) => acc + (m.inAmount || 0), 0);
+  });
+
+  readonly totalIngresosCount = computed(() => {
+    return this.movements().filter((m) => m.type === 'Entrada' || (m.inAmount != null && m.inAmount > 0)).length;
+  });
+
+  readonly totalEgresosCount = computed(() => {
+    return this.movements().filter((m) => m.type === 'Salida' || (m.outAmount != null && m.outAmount > 0)).length;
+  });
+
+  readonly activeTabLabel = computed(() => {
+    switch (this.activeTab()) {
+      case 'ventas':
+        return 'Ventas en efectivo';
+      case 'ingresos':
+        return 'Ingresos';
+      case 'egresos':
+        return 'Egresos';
+      default:
+        return 'Movimientos';
+    }
   });
 
   readonly filteredMovements = computed(() => {
@@ -187,13 +238,20 @@ export class CashRegisterComponent implements OnInit {
     const tab = this.activeTab();
 
     if (tab === 'ventas') {
-      return list.filter((m) => m.category === 'Ventas');
+      return list.filter((m) =>
+        m.category === 'Ventas' ||
+        (m.description || '').toLowerCase().includes('venta') ||
+        (m.description || '').toLowerCase().includes('factura') ||
+        m.saleId != null
+      );
     }
     if (tab === 'ingresos') {
-      return list.filter((m) => m.type === 'Entrada' && m.category !== 'Ventas');
+      // Todos los ingresos y entradas reales en caja (ventas, cobros, depósitos manuales)
+      return list.filter((m) => m.type === 'Entrada' || (m.inAmount != null && m.inAmount > 0));
     }
     if (tab === 'egresos') {
-      return list.filter((m) => m.type === 'Salida');
+      // Todas las salidas y egresos reales de caja (gastos, retiros, compras)
+      return list.filter((m) => m.type === 'Salida' || (m.outAmount != null && m.outAmount > 0));
     }
     return list;
   });
@@ -273,11 +331,11 @@ export class CashRegisterComponent implements OnInit {
     const list = [defaultItem];
 
     try {
-      const res = await this.userService.getUsers({ active: true, pageSize: 50 });
-      if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
-        for (const u of res.data) {
+      const cashiers = await this.userService.getCashiers();
+      if (Array.isArray(cashiers) && cashiers.length > 0) {
+        for (const u of cashiers) {
           const fullName = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.userName || u.email;
-          if (!list.some((existing) => existing.email === u.email)) {
+          if (!list.some((existing) => existing.id === u.id || existing.email === u.email)) {
             list.push({
               id: u.id ?? 0,
               name: fullName,
@@ -440,11 +498,13 @@ export class CashRegisterComponent implements OnInit {
     }
   }
 
-  openQuickSaleModal() {
+  navigateToPos() {
     this.showMovementMenu.set(false);
-    if (this.quickSaleModal) {
-      this.quickSaleModal.open();
-    }
+    this.router.navigate(['/pos']);
+  }
+
+  openQuickSaleModal() {
+    this.navigateToPos();
   }
 
   openManualMovementModal(type: 'Entrada' | 'Salida') {
@@ -472,10 +532,14 @@ export class CashRegisterComponent implements OnInit {
     try {
       const sessionRes = await this.cashRegisterService.getActiveSession();
       if (sessionRes?.success && sessionRes.data) {
-        this.activeSession.set(sessionRes.data);
-        this.closeRegisterModal.open(sessionRes.data);
+        const session = { ...sessionRes.data };
+        session.currentBalance = this.currentCalculatedBalance();
+        this.activeSession.set(session);
+        this.closeRegisterModal.open(session);
       } else if (this.activeSession()) {
-        this.closeRegisterModal.open(this.activeSession()!);
+        const session = { ...this.activeSession()! };
+        session.currentBalance = this.currentCalculatedBalance();
+        this.closeRegisterModal.open(session);
       } else {
         this.notificationService.warning('No se encontró una sesión de caja activa para cerrar.');
       }
@@ -517,5 +581,46 @@ export class CashRegisterComponent implements OnInit {
       }
     }
     this.pendingPosAction = null;
+  }
+
+  // =========================================================================
+  // Turno Detail Modal Handlers
+  // =========================================================================
+  async openSessionDetail(session: CashRegisterSessionDto) {
+    this.selectedSessionDetail.set({
+      session,
+      sales: [],
+      movements: [],
+      productSummary: [],
+      totals: {
+        cashSales: 0,
+        cardSales: 0,
+        transferSales: 0,
+        totalSales: 0,
+        cashIn: 0,
+        cashOut: 0,
+      },
+    });
+    this.sessionDetailTab.set('resumen');
+    this.isSessionDetailModalOpen.set(true);
+    this.isLoadingSessionDetail.set(true);
+
+    try {
+      const detail = await this.cashRegisterService.getSessionDetail(session.id, session);
+      this.selectedSessionDetail.set(detail);
+    } catch (e) {
+      console.warn('Error loading session detail:', e);
+    } finally {
+      this.isLoadingSessionDetail.set(false);
+    }
+  }
+
+  closeSessionDetailModal() {
+    this.isSessionDetailModalOpen.set(false);
+    this.selectedSessionDetail.set(null);
+  }
+
+  setSessionDetailTab(tab: 'resumen' | 'ventas' | 'productos' | 'movimientos') {
+    this.sessionDetailTab.set(tab);
   }
 }

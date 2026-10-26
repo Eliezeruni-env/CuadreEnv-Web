@@ -45,11 +45,79 @@
         </button>
       </div>
 
+      <!-- Stepper Navigation (Wizard) -->
+      <div class="wizard-stepper-container">
+        <div class="stepper-nav">
+          <div class="stepper-progress-track">
+            <div
+              class="stepper-progress-bar"
+              [style.width]="currentStep() === 1 ? '0%' : currentStep() === 2 ? '50%' : '100%'"
+            ></div>
+          </div>
+
+          <!-- Step 1 Node -->
+          <button
+            type="button"
+            class="step-node"
+            [class.active]="currentStep() === 1"
+            [class.completed]="currentStep() > 1"
+            (click)="goToStep(1)"
+          >
+            <div class="step-circle">
+              @if (currentStep() > 1) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              } @else {
+                <span>1</span>
+              }
+            </div>
+            <span class="step-label">1. Cliente y Concepto</span>
+          </button>
+
+          <!-- Step 2 Node -->
+          <button
+            type="button"
+            class="step-node"
+            [class.active]="currentStep() === 2"
+            [class.completed]="currentStep() > 2"
+            (click)="goToStep(2)"
+          >
+            <div class="step-circle">
+              @if (currentStep() > 2) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              } @else {
+                <span>2</span>
+              }
+            </div>
+            <span class="step-label">2. Productos y Almacén</span>
+          </button>
+
+          <!-- Step 3 Node -->
+          <button
+            type="button"
+            class="step-node"
+            [class.active]="currentStep() === 3"
+            (click)="goToStep(3)"
+          >
+            <div class="step-circle">
+              <span>3</span>
+            </div>
+            <span class="step-label">3. Valores y Plan de Cuotas</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Body -->
       <div class="custom-modal-body">
         <form cForm [formGroup]="receivableForm">
-          <!-- Top Row: Client & Sale Details (2 Columns) -->
-          <div class="row g-3 mb-3">
+          <!-- CASO / PASO 1 (Imagen 1): Información del Cliente + Concepto y Valores -->
+          @if (currentStep() === 1) {
+            <div class="wizard-step-pane">
+              <!-- Top Row: Client & Sale Details (2 Columns) -->
+              <div class="row g-3">
             <!-- Section 1: Información del cliente -->
             <div class="col-lg-6">
               <div class="executive-card h-100">
@@ -203,85 +271,54 @@
               </div>
             </div>
 
-            <!-- Section 2: Concepto y Valores de la Venta -->
-            <div class="col-lg-6">
-              <div class="executive-card h-100">
-                <div class="card-section-header">
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="step-badge">02</span>
-                    <h6 class="section-title mb-0">Concepto y Valores de la Venta</h6>
-                  </div>
-                </div>
-
-                <div class="mb-3">
-                  <label class="custom-form-label required-label">Descripción / Concepto Comercial</label>
-                  <input
-                    type="text"
-                    cFormControl
-                    class="elegant-input"
-                    formControlName="description"
-                    placeholder="Ej. Venta a crédito de mercancía / Apartado con cuotas"
-                  />
-                </div>
-
-                <div class="row g-2 mb-3">
-                  <div class="col-sm-6">
-                    <label class="custom-form-label required-label">Monto Total de Venta</label>
-                    <div class="input-group elegant-input-group">
-                      <span class="input-group-text currency-addon fw-bold text-primary">RD$</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        cFormControl
-                        class="elegant-input fw-bold font-monospace text-primary"
-                        formControlName="totalAmount"
-                        placeholder="0.00"
-                        (input)="calculateInstallments()"
-                      />
+            <!-- Section 2: Concepto Comercial & Resumen de Flujo -->
+            <div class="col-lg-5">
+              <div class="executive-card h-100 d-flex flex-column justify-content-between">
+                <div>
+                  <div class="card-section-header">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="step-badge">02</span>
+                      <h6 class="section-title mb-0">Concepto Comercial</h6>
                     </div>
                   </div>
-                  <div class="col-sm-6">
-                    <label class="custom-form-label text-success fw-bold">Abono Inicial / Apartado</label>
-                    <div class="input-group elegant-input-group">
-                      <span class="input-group-text currency-addon fw-bold text-success">RD$</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        cFormControl
-                        class="elegant-input fw-bold font-monospace text-success border-success"
-                        formControlName="downPayment"
-                        placeholder="0.00"
-                        (input)="calculateInstallments()"
-                      />
+
+                  <div class="mb-3">
+                    <label class="custom-form-label required-label">Descripción / Motivo de la Venta</label>
+                    <input
+                      type="text"
+                      cFormControl
+                      class="elegant-input"
+                      formControlName="description"
+                      placeholder="Ej. Venta a crédito de mercancía / Apartado con cuotas"
+                    />
+                    <div class="form-text text-muted mt-1" style="font-size: 0.75rem;">
+                      Si lo dejas en blanco, se autogenerará con los productos que selecciones en el siguiente paso.
                     </div>
                   </div>
                 </div>
 
-                <!-- Financial Balance Summary Bar -->
-                <div class="balance-summary-bar">
-                  <div class="balance-item">
-                    <span class="balance-label">Total Venta</span>
-                    <span class="balance-val font-monospace">RD$ {{ (receivableForm.get('totalAmount')?.value || 0) | number:'1.2-2' }}</span>
-                  </div>
-                  <div class="balance-divider">−</div>
-                  <div class="balance-item">
-                    <span class="balance-label text-success">Abono Hoy</span>
-                    <span class="balance-val text-success font-monospace">RD$ {{ (receivableForm.get('downPayment')?.value || 0) | number:'1.2-2' }}</span>
-                  </div>
-                  <div class="balance-divider">=</div>
-                  <div class="balance-item highlight">
-                    <span class="balance-label text-indigo">Saldo a Financiar</span>
-                    <span class="balance-val text-indigo font-monospace fw-bold">RD$ {{ remainingBalance() | number:'1.2-2' }}</span>
+                <!-- Workflow Guidance Notice -->
+                <div class="p-3 rounded-3" style="background: #f8fafc; border: 1px dashed #cbd5e1;">
+                  <div class="d-flex align-items-start gap-2">
+                    <div style="color: #4f46e5; margin-top: 1px;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </div>
+                    <div style="font-size: 0.78rem; color: #475569; line-height: 1.4;">
+                      <strong>Flujo de Venta:</strong> En el siguiente paso seleccionarás los productos del almacén. El <strong>Monto Total</strong> se calculará automáticamente antes de definir el abono y las cuotas de pago.
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+      }
 
-          <!-- Section 3: Artículos / Productos a Financiar o Apartar & Almacén -->
-          <div class="executive-card mb-3">
+          <!-- CASO / PASO 2 (Imagen 2): Asignar Productos & Almacén de Despacho -->
+          @if (currentStep() === 2) {
+            <div class="wizard-step-pane">
+              <!-- Section 3: Artículos / Productos a Financiar o Apartar & Almacén -->
+              <div class="executive-card mb-2">
             <div class="card-section-header flex-wrap gap-2">
               <div>
                 <div class="d-flex align-items-center gap-2">
@@ -590,132 +627,265 @@
                 </div>
               </div>
             }
-          </div>
-
-          <!-- Section 4: Plan de pago Box -->
-          <div class="executive-card payment-plan-card mb-2">
-            <div class="card-section-header">
-              <div class="d-flex align-items-center gap-2">
-                <span class="step-badge">04</span>
-                <h6 class="section-title mb-0">Plan de Financiamiento y Cuotas</h6>
-              </div>
-              <span class="badge bg-indigo text-white px-3 py-1.5 font-monospace fw-bold" style="font-size: 0.83rem;">
-                Saldo a Financiar: RD$ {{ remainingBalance() | number:'1.2-2' }}
-              </span>
-            </div>
-
-            <!-- Installment Amount & Quantity -->
-            <div class="row g-3 mb-3">
-              <div class="col-md-6">
-                <label class="custom-form-label required-label">Monto por Cuota (Calculada)</label>
-                <div class="input-group elegant-input-group">
-                  <span class="input-group-text currency-addon fw-semibold">RD$</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    cFormControl
-                    class="elegant-input font-monospace fw-bold text-primary"
-                    formControlName="installmentAmount"
-                    placeholder="0.00"
-                  />
-                </div>
-              </div>
-              <div class="col-md-6">
-                <label class="custom-form-label required-label">Cantidad de Cuotas</label>
-                <div class="input-group elegant-input-group">
-                  <input
-                    type="number"
-                    min="1"
-                    cFormControl
-                    class="elegant-input font-monospace fw-bold"
-                    formControlName="totalInstallments"
-                    placeholder="1"
-                    (input)="calculateInstallments()"
-                  />
-                  <span class="input-group-text addon-icon text-muted">Cuotas</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Start Date & Frequency -->
-            <div class="row g-3 mb-3">
-              <div class="col-md-6">
-                <label class="custom-form-label required-label">Fecha del Primer Vencimiento / Cuota</label>
-                <input
-                  type="date"
-                  cFormControl
-                  class="elegant-input"
-                  formControlName="startDate"
-                />
-              </div>
-              <div class="col-md-6">
-                <label class="custom-form-label required-label">Frecuencia de Pago</label>
-                <select cSelect class="elegant-select" formControlName="frequency">
-                  <option value="Semanal">Semanal</option>
-                  <option value="Quincenal">Quincenal</option>
-                  <option value="Mensual">Mensual</option>
-                  <option value="Diaria">Diaria</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Info Notice Box -->
-            <div class="plan-info-alert">
-              <div class="info-alert-icon-box">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="16" x2="12" y2="12"></line>
-                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-              </div>
-              <div class="info-alert-text">
-                @if (receivableForm.get('downPayment')?.value > 0) {
-                  El cliente aparta la venta con un abono inicial de <strong>RD$ {{ receivableForm.get('downPayment')?.value | number:'1.2-2' }}</strong>. Las cuotas programadas cubrirán el saldo restante de <strong>RD$ {{ remainingBalance() | number:'1.2-2' }}</strong>.
-                } @else {
-                  Se generará un plan de pago con cuotas fijas de <strong>RD$ {{ (receivableForm.get('installmentAmount')?.value || 0) | number:'1.2-2' }}</strong> para saldar el monto total según la frecuencia seleccionada.
-                }
-              </div>
             </div>
           </div>
-        </form>
+        }
+
+          <!-- CASO / PASO 3: Valores de la Venta, Abono Inicial y Plan de Cuotas -->
+          @if (currentStep() === 3) {
+            <div class="wizard-step-pane">
+              <div class="row g-3">
+                <!-- Subsección: Valores de la Venta & Abono Inicial -->
+                <div class="col-lg-6">
+                  <div class="executive-card h-100">
+                    <div class="card-section-header">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="step-badge">03</span>
+                        <h6 class="section-title mb-0">Valores de la Venta y Abono</h6>
+                      </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                      <div class="col-sm-6">
+                        <label class="custom-form-label required-label">Monto Total de Venta</label>
+                        <div class="input-group elegant-input-group">
+                          <span class="input-group-text currency-addon fw-bold text-primary">RD$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            cFormControl
+                            class="elegant-input fw-bold font-monospace text-primary"
+                            formControlName="totalAmount"
+                            placeholder="0.00"
+                            (input)="calculateInstallments()"
+                          />
+                        </div>
+                        @if (selectedItems().length > 0) {
+                          <div class="form-text text-muted mt-1" style="font-size: 0.72rem;">
+                            ✓ Calculado de {{ selectedItems().length }} producto(s) asignado(s)
+                          </div>
+                        }
+                      </div>
+                      <div class="col-sm-6">
+                        <label class="custom-form-label text-success fw-bold">Abono Inicial / Apartado</label>
+                        <div class="input-group elegant-input-group">
+                          <span class="input-group-text currency-addon fw-bold text-success">RD$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            cFormControl
+                            class="elegant-input fw-bold font-monospace text-success border-success"
+                            formControlName="downPayment"
+                            placeholder="0.00"
+                            (input)="calculateInstallments()"
+                          />
+                        </div>
+                        <div class="form-text text-muted mt-1" style="font-size: 0.72rem;">
+                          Monto entregado hoy por el cliente
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Financial Balance Summary Bar -->
+                    <div class="balance-summary-bar">
+                      <div class="balance-item">
+                        <span class="balance-label">Total Venta</span>
+                        <span class="balance-val font-monospace">RD$ {{ (receivableForm.get('totalAmount')?.value || 0) | number:'1.2-2' }}</span>
+                      </div>
+                      <div class="balance-divider">−</div>
+                      <div class="balance-item">
+                        <span class="balance-label text-success">Abono Hoy</span>
+                        <span class="balance-val text-success font-monospace">RD$ {{ (receivableForm.get('downPayment')?.value || 0) | number:'1.2-2' }}</span>
+                      </div>
+                      <div class="balance-divider">=</div>
+                      <div class="balance-item highlight">
+                        <span class="balance-label text-indigo">Saldo a Financiar</span>
+                        <span class="balance-val text-indigo font-monospace fw-bold">RD$ {{ remainingBalance() | number:'1.2-2' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Subsección: Plan de Financiamiento y Cuotas -->
+                <div class="col-lg-6">
+                  <div class="executive-card payment-plan-card h-100">
+                    <div class="card-section-header">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="step-badge">04</span>
+                        <h6 class="section-title mb-0">Plan de Financiamiento y Cuotas</h6>
+                      </div>
+                      <span class="badge bg-indigo text-white px-2.5 py-1 font-monospace fw-bold" style="font-size: 0.78rem;">
+                        Saldo: RD$ {{ remainingBalance() | number:'1.2-2' }}
+                      </span>
+                    </div>
+
+                    <!-- Installment Amount & Quantity -->
+                    <div class="row g-2 mb-3">
+                      <div class="col-sm-6">
+                        <label class="custom-form-label required-label">Monto por Cuota (Calculada)</label>
+                        <div class="input-group elegant-input-group">
+                          <span class="input-group-text currency-addon fw-semibold">RD$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            cFormControl
+                            class="elegant-input font-monospace fw-bold text-primary"
+                            formControlName="installmentAmount"
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+                      <div class="col-sm-6">
+                        <label class="custom-form-label required-label">Cantidad de Cuotas</label>
+                        <div class="input-group elegant-input-group">
+                          <input
+                            type="number"
+                            min="1"
+                            cFormControl
+                            class="elegant-input font-monospace fw-bold"
+                            formControlName="totalInstallments"
+                            placeholder="1"
+                            (input)="calculateInstallments()"
+                          />
+                          <span class="input-group-text addon-icon text-muted">Cuotas</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Start Date & Frequency -->
+                    <div class="row g-2 mb-3">
+                      <div class="col-sm-6">
+                        <label class="custom-form-label required-label">Fecha 1er Vencimiento</label>
+                        <input
+                          type="date"
+                          cFormControl
+                          class="elegant-input"
+                          formControlName="startDate"
+                        />
+                      </div>
+                      <div class="col-sm-6">
+                        <label class="custom-form-label required-label">Frecuencia de Pago</label>
+                        <select cSelect class="elegant-select" formControlName="frequency">
+                          <option value="Semanal">Semanal</option>
+                          <option value="Quincenal">Quincenal</option>
+                          <option value="Mensual">Mensual</option>
+                          <option value="Diaria">Diaria</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Info Notice Box -->
+                    <div class="plan-info-alert">
+                      <div class="info-alert-icon-box">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="16" x2="12" y2="12"></line>
+                          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                      </div>
+                      <div class="info-alert-text">
+                        @if (receivableForm.get('downPayment')?.value > 0) {
+                          Abono inicial de <strong>RD$ {{ receivableForm.get('downPayment')?.value | number:'1.2-2' }}</strong>. Cuotas de <strong>RD$ {{ (receivableForm.get('installmentAmount')?.value || 0) | number:'1.2-2' }}</strong> para el saldo de <strong>RD$ {{ remainingBalance() | number:'1.2-2' }}</strong>.
+                        } @else {
+                          Plan con cuotas fijas de <strong>RD$ {{ (receivableForm.get('installmentAmount')?.value || 0) | number:'1.2-2' }}</strong> para saldar el total de <strong>RD$ {{ (receivableForm.get('totalAmount')?.value || 0) | number:'1.2-2' }}</strong>.
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+      </form>
       </div>
 
       <!-- Footer -->
-      <div class="custom-modal-footer">
-        <button
-          type="button"
-          class="btn btn-outline-secondary px-4 py-2"
-          (click)="close()"
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          class="btn btn-primary-custom px-4 py-2"
-          [disabled]="isLoading() || receivableForm.invalid"
-          (click)="saveReceivable()"
-        >
-          @if (isLoading()) {
-            <c-spinner size="sm" class="me-2"></c-spinner>
-            <span>Guardando...</span>
+      <div class="custom-modal-footer d-flex align-items-center justify-content-between">
+        <div>
+          @if (currentStep() === 1) {
+            <button
+              type="button"
+              class="btn btn-outline-secondary px-4 py-2"
+              (click)="close()"
+            >
+              Cancelar
+            </button>
           } @else {
-            <span class="d-flex align-items-center gap-1.5">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Guardar Venta / Apartado</span>
-            </span>
+            <button
+              type="button"
+              class="btn btn-outline-secondary px-4 py-2 d-flex align-items-center gap-1.5"
+              (click)="prevStep()"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+              <span>{{ currentStep() === 2 ? 'Volver a Cliente' : 'Volver a Productos' }}</span>
+            </button>
           }
-        </button>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          @if (currentStep() === 1) {
+            <button
+              type="button"
+              class="btn btn-primary-custom px-4 py-2 d-flex align-items-center gap-1.5"
+              (click)="nextStep()"
+            >
+              <span>Continuar a Productos</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+          }
+
+          @if (currentStep() === 2) {
+            <button
+              type="button"
+              class="btn btn-primary-custom px-4 py-2 d-flex align-items-center gap-1.5"
+              (click)="nextStep()"
+            >
+              <span>Continuar a Valores y Cuotas</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+          }
+
+          @if (currentStep() === 3) {
+            <button
+              type="button"
+              class="btn btn-primary-custom px-4 py-2"
+              [disabled]="isLoading() || receivableForm.invalid"
+              (click)="saveReceivable()"
+            >
+              @if (isLoading()) {
+                <c-spinner size="sm" class="me-2"></c-spinner>
+                <span>Guardando...</span>
+              } @else {
+                <span class="d-flex align-items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Confirmar y Crear Venta / Apartado</span>
+                </span>
+              }
+            </button>
+          }
+        </div>
       </div>
     </div>
   </div>
