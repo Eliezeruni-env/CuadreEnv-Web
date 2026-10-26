@@ -17,6 +17,7 @@
     "dev:mobile": "ng serve --host 0.0.0.0 --ssl",
     "start:dev": "ng serve -o",
     "build": "ng build",
+    "postbuild": "node -e \"const fs=require('fs'); fs.cpSync('dist/coreui-free-angular-admin-template/browser', 'dist/cloudflare', { recursive: true });\"",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
