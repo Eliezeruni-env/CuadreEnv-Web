@@ -1,0 +1,95 @@
+<div class="pos-main-container h-100">
+  <div class="row g-3">
+    <!-- Products Catalog Grid -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm rounded-3 p-3 h-100">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="fw-bold text-dark mb-0">Catálogo Rápido</h5>
+          <div class="input-group" style="max-width: 280px;">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Buscar producto..."
+              [value]="searchQuery"
+              (input)="onSearch($event)"
+            />
+          </div>
+        </div>
+
+        <div class="row g-2 overflow-auto" style="max-height: calc(100vh - 200px);">
+          @for (p of filteredProducts; track p.id) {
+            <div class="col-sm-6 col-md-4">
+              <div
+                class="card product-card p-3 border rounded-3 h-100 text-center cursor-pointer"
+                (click)="addToCart(p)"
+              >
+                <div class="fw-bold text-dark text-truncate mb-1">{{ p.name }}</div>
+                <div class="text-secondary small mb-2">{{ p.category }}</div>
+                <div class="fs-5 fw-bold text-primary font-monospace">RD$ {{ p.price | number:'1.2-2' }}</div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Ticket / Cart Sidebar -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm rounded-3 p-3 h-100 d-flex flex-column">
+        <h5 class="fw-bold text-dark mb-3">Ticket Actual</h5>
+
+        <div class="cart-items flex-grow-1 overflow-auto mb-3" style="max-height: 380px;">
+          @if (cart.length === 0) {
+            <div class="text-center py-5 text-secondary">
+              <p class="mb-0">El ticket está vacío.</p>
+            </div>
+          } @else {
+            <div class="list-group list-group-flush">
+              @for (item of cart; track item.id; let idx = $index) {
+                <div class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between">
+                  <div>
+                    <div class="fw-semibold text-dark">{{ item.name }}</div>
+                    <small class="text-secondary">{{ item.quantity }} x RD$ {{ item.price | number:'1.2-2' }}</small>
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold font-monospace text-dark">RD$ {{ (item.quantity * item.price) | number:'1.2-2' }}</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger p-1" (click)="removeFromCart(idx)">
+                      &times;
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Total & Action Buttons -->
+        <div class="border-top pt-3">
+          <div class="d-flex justify-content-between fs-4 fw-bold mb-3">
+            <span>Total:</span>
+            <span class="text-primary font-monospace">RD$ {{ totalAmount | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="d-grid gap-2">
+            <button
+              type="button"
+              class="btn btn-success btn-lg fw-bold py-2 shadow-sm"
+              [disabled]="cart.length === 0"
+              (click)="proceedToPayment()"
+            >
+              Cobrar RD$ {{ totalAmount | number:'1.2-2' }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              [disabled]="cart.length === 0"
+              (click)="clearCart()"
+            >
+              Cancelar Ticket
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

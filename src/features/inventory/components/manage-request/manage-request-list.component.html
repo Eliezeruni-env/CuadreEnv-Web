@@ -1,0 +1,367 @@
+<div class="container-fluid py-3">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+      <h3 class="fw-bold text-dark mb-1">Bandeja de Autorizaciones y Aprobaciones</h3>
+      <p class="text-secondary small mb-0">Gestión de solicitudes de inventario, recepciones con discrepancia y auditoría</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-primary d-flex align-items-center gap-1 shadow-xs fw-semibold px-3" (click)="openProductTimeline()">
+        <span>📜 Línea de Tiempo de Producto</span>
+      </button>
+      <button type="button" class="btn btn-light border" (click)="loadRequests()">
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+    <div class="p-3 border-bottom bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <select class="form-select form-select-sm" style="width: 200px;" [(ngModel)]="statusFilter">
+          <option [ngValue]="0">Todos los Estados</option>
+          <option [ngValue]="1">🟡 Pendientes de Revisión</option>
+          <option [ngValue]="2">🟢 Aprobadas</option>
+          <option [ngValue]="3">🔴 Rechazadas</option>
+        </select>
+      </div>
+      <input
+        type="text"
+        class="form-control form-control-sm"
+        placeholder="Buscar por número, solicitante, motivo..."
+        style="width: 280px;"
+        [(ngModel)]="searchTerm"
+      />
+    </div>
+
+    <div class="table-responsive">
+      <table class="table align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">No. Solicitud</th>
+            <th>Tipo de Operación</th>
+            <th>Solicitante</th>
+            <th>Fecha Solicitud</th>
+            <th>Motivo / Comentario</th>
+            <th class="text-center">Estado</th>
+            <th class="text-center pe-4">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading()) {
+            <tr>
+              <td colspan="7" class="text-center py-5 text-secondary">
+                <span class="spinner-border spinner-border-sm me-2"></span>
+                Cargando solicitudes...
+              </td>
+            </tr>
+          } @else if (filteredRequests().length === 0) {
+            <tr>
+              <td colspan="7" class="text-center py-5 text-secondary">
+                No se encontraron solicitudes de autorización registradas.
+              </td>
+            </tr>
+          } @else {
+            @for (req of pagedRequests(); track req.id) {
+              <tr>
+                <td class="ps-4">
+                  <div class="fw-bold font-monospace text-primary">{{ req.requestNumber }}</div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">{{ req.typeName }}</span>
+                </td>
+                <td class="fw-semibold text-dark">{{ req.creatorName }}</td>
+                <td class="text-secondary">
+                  {{ req.createdAt | date:'dd/MM/yyyy hh:mm a' }}
+                </td>
+                <td class="text-secondary text-truncate" style="max-width: 260px;">
+                  {{ req.comment }}
+                </td>
+                <td class="text-center">
+                  @if (req.statusId === 1) {
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                      Pendiente
+                    </span>
+                  } @else if (req.statusId === 2) {
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                      Aprobado
+                    </span>
+                  } @else {
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                      Rechazado
+                    </span>
+                  }
+                </td>
+                <td class="text-center pe-4">
+                  <button type="button" class="btn btn-sm btn-light border text-primary fw-semibold" (click)="viewRequest(req)">
+                    Examinar
+                  </button>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-list-pagination
+      [currentPage]="currentPage()"
+      [pageSize]="pageSize()"
+      [totalItems]="filteredRequests().length"
+      label="solicitudes"
+      (pageChange)="onPageChange($event)"
+    ></app-list-pagination>
+  </div>
+</div>
+
+<!-- Modal Approval / Timeline Viewer -->
+@if (selectedRequest) {
+  <div class="custom-modal-backdrop" (click)="selectedRequest = null">
+    <div class="custom-modal-content" (click)="$event.stopPropagation()" style="max-width: 720px;">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+        <div class="d-flex align-items-center gap-2">
+          <h6 class="fw-bold mb-0 text-dark">Detalle de Solicitud {{ selectedRequest.requestNumber }}</h6>
+          <span
+            class="badge"
+            [ngClass]="selectedRequest.statusId === 1 ? 'bg-warning text-dark' : selectedRequest.statusId === 2 ? 'bg-success text-white' : 'bg-danger text-white'"
+          >
+            {{ selectedRequest.statusName }}
+          </span>
+        </div>
+        <button type="button" class="btn-close" (click)="selectedRequest = null"></button>
+      </div>
+
+      <div class="p-4" style="max-height: 75vh; overflow-y: auto;">
+        <!-- Header Info -->
+        <div class="row g-2 mb-3 small">
+          <div class="col-sm-6">
+            <div class="p-2 bg-light rounded-2 border">
+              <span class="text-secondary d-block">Tipo de Operación:</span>
+              <strong class="text-dark">{{ selectedRequest.typeName }}</strong>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="p-2 bg-light rounded-2 border">
+              <span class="text-secondary d-block">Solicitado por:</span>
+              <strong class="text-dark">{{ selectedRequest.creatorName }} ({{ selectedRequest.createdAt | date:'dd/MM/yyyy hh:mm a' }})</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="p-3 bg-light rounded-3 border mb-3">
+          <div class="text-secondary small fw-semibold">Justificación / Motivo:</div>
+          <p class="mb-0 text-dark">{{ selectedRequest.comment }}</p>
+        </div>
+
+        <!-- Payload Discrepancy Items Table -->
+        @if (selectedRequest.payloadParsed?.items) {
+          <h6 class="fw-bold text-dark mb-2">Ítems Involucrados en la Operación:</h6>
+          <div class="table-responsive border rounded-2 mb-3">
+            <table class="table table-sm align-middle mb-0 small">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Producto</th>
+                  <th class="text-center">Cant. Solicitada / Recibida</th>
+                  <th class="text-end">Costo Unit.</th>
+                  <th class="text-end">Subtotal</th>
+                  <th class="text-center pe-3">Trazabilidad</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (it of selectedRequest.payloadParsed.items; track $index) {
+                  <tr>
+                    <td class="ps-3 fw-semibold">{{ it.productName }}</td>
+                    <td class="text-center font-monospace fw-bold text-primary">
+                      {{ it.quantityReceived ?? it.quantity }} uds
+                      @if (it.quantityOrdered !== undefined && it.quantityOrdered !== it.quantityReceived) {
+                        <span class="text-muted small"> (Ordenado: {{ it.quantityOrdered }})</span>
+                      }
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ (it.unitCost || it.cost || it.price) ? 'RD$ ' + ((it.unitCost || it.cost || it.price) | number:'1.2-2') : '-' }}
+                    </td>
+                    <td class="text-end font-monospace fw-bold text-dark">
+                      RD$ {{ (((it.quantityReceived ?? it.quantity ?? 0) * (it.unitCost || it.cost || it.price || 0))) | number:'1.2-2' }}
+                    </td>
+                    <td class="text-center pe-3">
+                      <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 small" (click)="openProductTimeline(it.productId)" title="Ver línea de tiempo de este producto">
+                        📜 Historial
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <!-- Timeline Audit Log -->
+        <h6 class="fw-bold text-dark mb-2">Línea de Tiempo / Auditoría:</h6>
+        <div class="timeline-container border rounded-3 p-3 bg-white mb-3">
+          @for (item of selectedRequest.timeline; track $index) {
+            <div class="timeline-item d-flex gap-3 pb-3">
+              <div class="timeline-icon bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                ✓
+              </div>
+              <div class="timeline-content">
+                <div class="d-flex align-items-center gap-2">
+                  <strong class="text-dark small">{{ item.action }}</strong>
+                  <span class="text-secondary" style="font-size: 0.72rem;">{{ item.timestamp | date:'dd/MM/yyyy hh:mm a' }}</span>
+                </div>
+                <div class="text-secondary small">Por: <span class="fw-semibold text-dark">{{ item.userName }}</span></div>
+                @if (item.comment) {
+                  <div class="text-muted small mt-1 font-italic">"{{ item.comment }}"</div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Action Inputs if Pending -->
+        @if (selectedRequest.statusId === 1) {
+          <div class="p-3 bg-warning-subtle border border-warning-subtle rounded-3">
+            <h6 class="fw-bold text-dark mb-2">Resolución de Solicitud (Supervisor)</h6>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold text-secondary">Comentario de Aprobación o Motivo de Rechazo:</label>
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                placeholder="Escriba el comentario de resolución..."
+                [(ngModel)]="approvalComment"
+              />
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="p-3 border-top bg-light d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-light border" (click)="selectedRequest = null">Cerrar</button>
+        @if (selectedRequest.statusId === 1) {
+          <button
+            type="button"
+            class="btn btn-danger fw-semibold"
+            [disabled]="isProcessing"
+            (click)="rejectionReason = approvalComment; rejectSelected()"
+          >
+            Rechazar
+          </button>
+          <button
+            type="button"
+            class="btn btn-success fw-semibold"
+            [disabled]="isProcessing"
+            (click)="approveSelected()"
+          >
+            Aprobar y Aplicar a Inventario
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- DEDICATED PRODUCT LIFECYCLE & TIMELINE MODAL -->
+@if (isProductTimelineOpen()) {
+  <div class="custom-modal-backdrop" (click)="closeProductTimeline()">
+    <div class="custom-modal-content" (click)="$event.stopPropagation()" style="max-width: 840px;">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-primary text-white rounded-top">
+        <div class="d-flex align-items-center gap-2">
+          <span class="fs-5">📜</span>
+          <div>
+            <h6 class="fw-bold mb-0 text-white">Línea de Tiempo y Trazabilidad del Producto</h6>
+            <small class="text-white-50">Historial de vida: Registro inicial, autorizaciones, movimientos de stock y auditoría</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" (click)="closeProductTimeline()"></button>
+      </div>
+
+      <div class="p-4 bg-light" style="max-height: 75vh; overflow-y: auto;">
+        <!-- Product Selector Dropdown -->
+        <div class="card border-0 shadow-sm rounded-3 p-3 mb-3 bg-white">
+          <label class="form-label fw-bold text-dark small mb-1">Seleccionar Producto para Inspeccionar Trazabilidad:</label>
+          <select class="form-select" [ngModel]="selectedTimelineProduct()?.id" (ngModelChange)="selectProductForTimeline($event)">
+            @for (p of productsList(); track p.id) {
+              <option [ngValue]="p.id">
+                {{ p.description }} {{ p.barcode ? '(' + p.barcode + ')' : '' }} - Stock Total: {{ p.stock || 0 }} uds
+              </option>
+            }
+          </select>
+        </div>
+
+        @if (selectedTimelineProduct(); as prod) {
+          <!-- Product Card Snapshot -->
+          <div class="card border-0 shadow-sm rounded-3 p-3 mb-3 bg-white border-start border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+              <div>
+                <h5 class="fw-bold text-dark mb-1">{{ prod.description }}</h5>
+                <div class="text-secondary small font-monospace">
+                  <span>Código: {{ prod.barcode || prod.reference || 'N/A' }}</span> &bull;
+                  <span>Costo: RD$ {{ (prod.cost || 0) | number:'1.2-2' }}</span>
+                  @if (prod.expirationDate) {
+                    <span> &bull; Vence: {{ prod.expirationDate.split('T')[0] }}</span>
+                  }
+                </div>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-primary fs-6 px-3 py-1">Stock Global: {{ prod.stock || 0 }} uds</span>
+              </div>
+            </div>
+
+            <!-- Stock Distribution per Warehouse -->
+            @if (productWarehouseStocks().length > 0) {
+              <div class="mt-3 pt-2 border-top">
+                <span class="text-secondary small fw-bold text-uppercase d-block mb-1">Existencias Aisladas por Almacén:</span>
+                <div class="d-flex flex-wrap gap-2">
+                  @for (stk of productWarehouseStocks(); track stk.id) {
+                    <div class="p-2 border rounded-2 bg-light small d-flex align-items-center gap-2">
+                      <span class="fw-semibold">🏢 {{ stk.warehouseName }}:</span>
+                      <span class="badge bg-secondary font-monospace">{{ stk.quantity }} uds</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Chronological Lifecycle Timeline -->
+          <h6 class="fw-bold text-dark mb-2">Eventos y Decisiones de Inventario:</h6>
+          <div class="timeline-container border-0 rounded-3 p-3 bg-white shadow-sm">
+            @for (ev of productTimelineEvents(); track $index) {
+              <div class="d-flex gap-3 pb-3 border-bottom mb-3 last:border-0 last:mb-0">
+                <div class="timeline-dot-wrapper pt-1">
+                  <span class="badge rounded-circle p-2" [ngClass]="ev.badge || 'bg-secondary'">●</span>
+                </div>
+                <div class="flex-grow-1">
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span class="fw-bold text-dark small">{{ ev.action }}</span>
+                    <span class="text-muted font-monospace" style="font-size: 0.75rem;">
+                      {{ ev.timestamp | date:'dd/MM/yyyy hh:mm a' }}
+                    </span>
+                  </div>
+                  <div class="text-secondary small mt-1">
+                    {{ ev.detail }}
+                  </div>
+                  <div class="text-muted small mt-1" style="font-size: 0.72rem;">
+                    <strong>Operador / Responsable:</strong> {{ ev.user || 'Sistema' }}
+                  </div>
+                </div>
+              </div>
+            } @empty {
+              <div class="text-center py-4 text-muted small">
+                No hay movimientos registrados para este producto todavía.
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="p-3 border-top bg-white d-flex justify-content-end">
+        <button type="button" class="btn btn-secondary px-4 fw-semibold" (click)="closeProductTimeline()">
+          Cerrar Visor
+        </button>
+      </div>
+    </div>
+  </div>
+}

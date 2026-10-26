@@ -1,0 +1,33 @@
+.generic-filters-card {
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.filter-input-element {
+  height: 38px !important;
+  font-size: 0.84rem;
+  padding: 0.375rem 0.65rem;
+  border-radius: 6px;
+}
+
+.filter-clear-btn {
+  height: 38px !important;
+  width: 38px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 6px;
+  border-color: #cbd5e1;
+  color: #64748b;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #f1f5f9;
+    border-color: #94a3b8;
+    color: #1e293b;
+  }
+}

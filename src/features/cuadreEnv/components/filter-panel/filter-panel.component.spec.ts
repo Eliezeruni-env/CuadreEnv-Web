@@ -5,14 +5,9 @@ describe('FilterPanelComponent', () => {
   let component: FilterPanelComponent;
   let fixture: ComponentFixture<FilterPanelComponent>;
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [FilterPanelComponent],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(FilterPanelComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    component = TestBed.runInInjectionContext(() => new FilterPanelComponent());
   });
 
   it('should emit the current filters and clear them', () => {

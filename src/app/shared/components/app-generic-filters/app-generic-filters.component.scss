@@ -1,0 +1,19 @@
+.generic-filters-card {
+  border-radius: 0.75rem;
+  background-color: var(--cui-card-bg, #ffffff);
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+
+  .filters-header-title {
+    font-size: 0.95rem;
+    letter-spacing: -0.01em;
+  }
+
+  .form-control, .form-select {
+    border-color: var(--cui-border-color, #cbd5e1);
+    font-size: 0.875rem;
+    &:focus {
+      border-color: var(--cui-primary, #6366f1);
+      box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.15);
+    }
+  }
+}

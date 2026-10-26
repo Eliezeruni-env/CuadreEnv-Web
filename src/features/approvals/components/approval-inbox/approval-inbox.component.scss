@@ -1,0 +1,222 @@
+.approval-container {
+  --approval-navy: #252b46;
+  --approval-muted: #64748b;
+  --approval-border: #e3e8f0;
+
+  width: min(100%, 1120px);
+  margin-inline: auto;
+  padding: 1.25rem 1rem 2rem;
+  color: #263148;
+}
+
+.approval-page-header {
+  margin-bottom: 1.1rem !important;
+
+  h2 {
+    color: var(--approval-navy) !important;
+    font-size: 1.35rem !important;
+    letter-spacing: -0.03em;
+  }
+
+  p {
+    max-width: 720px;
+    color: var(--approval-muted) !important;
+    line-height: 1.5;
+  }
+}
+
+.approval-tabs {
+  flex-shrink: 0;
+  gap: 0.15rem;
+  padding: 0.25rem !important;
+  border-color: var(--approval-border) !important;
+  border-radius: 9px !important;
+  background: #f3f5f8 !important;
+
+  .btn {
+    min-height: 36px;
+    padding-inline: 0.85rem !important;
+    border: 0;
+    border-radius: 7px !important;
+    font-size: 0.8rem;
+    transition: color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      color: var(--approval-navy);
+      background: rgba(255, 255, 255, 0.65);
+    }
+
+    &.btn-white {
+      color: var(--approval-navy) !important;
+      background: #ffffff !important;
+      box-shadow: 0 1px 3px rgba(29, 40, 68, 0.12) !important;
+    }
+  }
+}
+
+.approval-card,
+.approval-empty-state,
+.approval-history-card {
+  border: 1px solid var(--approval-border) !important;
+  border-radius: 11px !important;
+  box-shadow: 0 2px 8px rgba(29, 40, 68, 0.055) !important;
+}
+
+.approval-card {
+  padding: 0.85rem 1rem 0.85rem 1.1rem !important;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+
+  &::before {
+    width: 3px;
+    background: #e6a23c;
+  }
+
+  &:hover {
+    box-shadow: 0 6px 16px rgba(29, 40, 68, 0.09) !important;
+    transform: translateY(-1px);
+  }
+
+  h5 {
+    color: var(--approval-navy) !important;
+    font-size: 0.87rem !important;
+    letter-spacing: 0.01em;
+  }
+}
+
+.entity-avatar {
+  width: 36px;
+  height: 36px;
+  margin-top: 0 !important;
+  border-radius: 8px !important;
+}
+
+.reason-box {
+  max-width: 690px;
+  padding: 0.5rem 0.65rem !important;
+  border-color: var(--approval-border) !important;
+  border-radius: 7px !important;
+  background: #f6f7f9 !important;
+
+  p {
+    color: #46536b !important;
+  }
+}
+
+.approval-actions {
+  flex-shrink: 0;
+
+  .btn {
+    min-height: 34px;
+    padding-inline: 0.75rem !important;
+    border-radius: 7px !important;
+    font-size: 0.76rem;
+    font-weight: 600 !important;
+    white-space: nowrap;
+  }
+
+  .btn-success {
+    --cui-btn-bg: #198754;
+    --cui-btn-border-color: #198754;
+    --cui-btn-hover-bg: #157347;
+    --cui-btn-hover-border-color: #157347;
+    box-shadow: 0 2px 4px rgba(25, 135, 84, 0.16) !important;
+  }
+}
+
+.approval-empty-state {
+  padding: 3rem 1.5rem !important;
+}
+
+.approval-history-card {
+  .table {
+    font-size: 0.8rem;
+
+    thead th {
+      padding-block: 0.75rem;
+      color: #66728a;
+      background: #f5f6f9;
+      border-bottom-color: var(--approval-border);
+      font-size: 0.68rem;
+      letter-spacing: 0.035em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    tbody td {
+      border-bottom-color: #edf0f5;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+  }
+}
+
+.custom-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.confirm-dialog {
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+  border: 1px solid rgba(227, 232, 240, 0.9);
+  border-radius: 13px;
+  background: #ffffff;
+  box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.25);
+  animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalScaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.97) translateY(7px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .approval-container {
+    padding: 0.75rem 0.65rem 1.5rem;
+  }
+
+  .approval-page-header {
+    align-items: flex-start !important;
+  }
+
+  .approval-tabs {
+    width: 100%;
+
+    .btn {
+      flex: 1;
+      justify-content: center;
+      padding-inline: 0.45rem !important;
+    }
+  }
+
+  .approval-card > .d-flex {
+    align-items: flex-start !important;
+  }
+
+  .approval-actions {
+    width: 100%;
+    margin-top: 0.25rem !important;
+
+    .btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}

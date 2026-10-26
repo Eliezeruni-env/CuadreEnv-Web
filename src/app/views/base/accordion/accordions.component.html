@@ -18,7 +18,8 @@
                 </button>
               </ng-template>
               <ng-template cTemplateId="accordionBodyTemplate">
-                <div [innerHTML]="getAccordionBodyText('first')" cBgColor="info" class="accordion-body" [gradient]="true"></div>
+                <div [innerHTML]="getAccordionBodyText('first')" cBgColor="info" class="accordion-body"
+                  [gradient]="true"></div>
               </ng-template>
             </c-accordion-item>
             <c-accordion-item #item1="cAccordionItem" [visible]="false">
@@ -108,16 +109,16 @@
         </p>
         <app-docs-example href="components/accordion#always-open">
           <c-accordion alwaysOpen class="shadow accordion-custom rounded-2">
-            @for(item of items; track item; let i = $index;) {
-              <c-accordion-item [visible]="i===1">
-                <ng-template cTemplateId="accordionHeader">
-                  Custom Accordion item #{{ i }}
-                </ng-template>
-                <ng-template cTemplateId="accordionBody">
-                  <small><i>{{ i }}.</i></small>
-                  <span [innerHTML]="getAccordionBodyText(i)"></span>
-                </ng-template>
-              </c-accordion-item>
+            @for(item of items; track $index; let i = $index;) {
+            <c-accordion-item [visible]="i===1">
+              <ng-template cTemplateId="accordionHeader">
+                Custom Accordion item #{{ i }}
+              </ng-template>
+              <ng-template cTemplateId="accordionBody">
+                <small><i>{{ i }}.</i></small>
+                <span [innerHTML]="getAccordionBodyText(i)"></span>
+              </ng-template>
+            </c-accordion-item>
             }
           </c-accordion>
         </app-docs-example>

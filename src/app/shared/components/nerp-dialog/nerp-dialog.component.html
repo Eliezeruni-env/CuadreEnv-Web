@@ -1,0 +1,63 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="onBackdropClick()">
+    <div
+      class="custom-modal-content"
+      [style.max-width]="maxWidth || '600px'"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Modal Header -->
+      <div class="custom-modal-header d-flex align-items-center justify-content-between p-3 p-md-4 border-bottom">
+        <div class="d-flex align-items-center gap-3">
+          @if (iconName || showDefaultIcon) {
+            <div class="modal-header-icon-box" [style.background]="iconBg || '#ede9fe'" [style.color]="iconColor || '#6366f1'">
+              <ng-content select="[dialog-icon]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+              </ng-content>
+            </div>
+          }
+          <div>
+            <h5 class="modal-title fw-bold text-dark mb-0">{{ title }}</h5>
+            @if (subtitle) {
+              <p class="modal-subtitle text-muted small mb-0">{{ subtitle }}</p>
+            }
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn-close shadow-none"
+          aria-label="Cerrar"
+          (click)="close()"
+        ></button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="custom-modal-body p-3 p-md-4">
+        <ng-content></ng-content>
+      </div>
+
+      <!-- Modal Footer -->
+      @if (showFooter) {
+        <div class="custom-modal-footer d-flex align-items-center justify-content-end gap-2 p-3 p-md-4 border-top bg-light-subtle">
+          <ng-content select="[dialog-footer]">
+            <button type="button" class="btn btn-sm btn-outline-secondary px-3" (click)="close()">
+              {{ cancelText || 'Cancelar' }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-primary px-4"
+              [disabled]="confirmDisabled || loading"
+              (click)="confirm.emit()"
+            >
+              @if (loading) {
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+              }
+              {{ confirmText || 'Guardar' }}
+            </button>
+          </ng-content>
+        </div>
+      }
+    </div>
+  </div>
+}

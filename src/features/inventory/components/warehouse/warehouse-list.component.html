@@ -1,0 +1,208 @@
+<div class="container-fluid py-3 list-warehouses-container">
+  @if (errorMessage()) {
+    <div class="alert alert-warning border shadow-sm" role="alert">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <!-- Top Bar -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
+    <div>
+      <h4 class="fw-bold mb-0 text-dark">Gestión de Almacenes y Depósitos</h4>
+      <small class="text-secondary">Administra los puntos de almacenamiento, sucursales y bodegas</small>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadWarehouses()" [disabled]="isLoading()">
+        Recargar
+      </button>
+      <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openCreateModal()">
+        <span>+ Nuevo Almacén</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Search Toolbar Card -->
+  <div class="card filter-toolbar-card p-3 mb-3">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-6">
+        <div class="input-group">
+          <span class="input-group-text bg-transparent border-end-0 text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input
+            type="text"
+            class="form-control border-start-0"
+            placeholder="Buscar por nombre, código o encargado..."
+            [(ngModel)]="searchTerm"
+          />
+        </div>
+      </div>
+      <div class="col-md-6 text-end">
+        <span class="text-secondary small">
+          Almacenes encontrados: <strong class="text-dark">{{ filteredWarehouses().length }}</strong>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="card shadow-sm border-0 mb-3 billing-table-card rounded-4 overflow-hidden">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 master-detail-table">
+          <thead class="table-light text-secondary text-uppercase font-size-xs">
+            <tr>
+              <th class="ps-3">Código / Nombre</th>
+              <th>Ubicación / Dirección</th>
+              <th>Teléfono</th>
+              <th>Responsable</th>
+              <th class="text-center">Tipo</th>
+              <th class="text-center">Estado</th>
+              <th class="text-center pe-3" style="width: 110px;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (isLoading()) {
+              <tr>
+                <td colspan="7" class="text-center py-5 text-secondary">
+                  <span class="spinner-border spinner-border-sm me-2"></span>
+                  Cargando almacenes...
+                </td>
+              </tr>
+            } @else if (filteredWarehouses().length === 0) {
+              <tr>
+                <td colspan="7" class="text-center py-5 text-secondary">
+                  {{ errorMessage() ? 'No se pudieron cargar los almacenes.' : 'No se encontraron almacenes registrados.' }}
+                </td>
+              </tr>
+            } @else {
+              @for (wh of pagedWarehouses(); track wh.id) {
+                <tr class="master-row">
+                  <td class="ps-3">
+                    <div class="fw-bold text-dark">{{ wh.name }}</div>
+                    <span class="badge bg-light text-secondary border font-monospace">{{ wh.code }}</span>
+                  </td>
+                  <td class="text-secondary">{{ wh.address || 'Sin dirección' }}</td>
+                  <td class="font-monospace text-secondary">{{ wh.phone || '-' }}</td>
+                  <td class="fw-semibold text-dark">{{ wh.managerName || 'Sin asignar' }}</td>
+                  <td class="text-center">
+                    @if (wh.isMain) {
+                      <span class="badge status-badge-primary px-2.5 py-1 rounded-pill">Principal</span>
+                    } @else {
+                      <span class="badge status-badge-neutral px-2.5 py-1 rounded-pill">Secundario</span>
+                    }
+                  </td>
+                  <td class="text-center">
+                    <span
+                      class="badge px-2.5 py-1 rounded-pill"
+                      [ngClass]="wh.isActive ? 'status-badge-success' : 'status-badge-danger'"
+                    >
+                      {{ wh.isActive ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </td>
+                  <td class="text-center pe-3">
+                    <div class="action-btn-group justify-content-center">
+                      <button type="button" class="btn-action-icon btn-action-edit" (click)="openEditModal(wh)" title="Editar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-action-icon"
+                        [ngClass]="wh.isActive ? 'btn-action-view' : 'btn-action-edit'"
+                        (click)="toggleActive(wh)"
+                        [title]="wh.isActive ? 'Desactivar' : 'Activar'"
+                      >
+                        @if (wh.isActive) {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="6" y="4" width="4" height="16"></rect>
+                            <rect x="14" y="4" width="4" height="16"></rect>
+                          </svg>
+                        } @else {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                          </svg>
+                        }
+                      </button>
+                      @if (!wh.isMain) {
+                        <button
+                          type="button"
+                          class="btn-action-icon btn-action-delete"
+                          (click)="deleteWarehouse(wh)"
+                          title="Eliminar Almacén"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginador Moderno -->
+      <kt-paginator
+        [currentPage]="currentPage()"
+        [totalItems]="filteredWarehouses().length"
+        [pageSize]="pageSize()"
+        (pageChange)="onPageChange($event)"
+      ></kt-paginator>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Form -->
+@if (isModalOpen) {
+  <div class="custom-modal-backdrop" (click)="isModalOpen = false">
+    <div class="custom-modal-content" (click)="$event.stopPropagation()" style="max-width: 520px;">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+        <h6 class="fw-bold mb-0 text-dark">{{ editingWarehouse ? 'Editar Almacén' : 'Nuevo Almacén' }}</h6>
+        <button type="button" class="btn-close" (click)="isModalOpen = false"></button>
+      </div>
+      <div class="p-4">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-secondary">Nombre del Almacén *</label>
+          <input type="text" class="form-control" [(ngModel)]="formModel.name" placeholder="Ej. Almacén Central" />
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label small fw-semibold text-secondary">Código Identificador</label>
+            <input type="text" class="form-control font-monospace" [(ngModel)]="formModel.code" placeholder="ALM-01" />
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold text-secondary">Teléfono de Contacto</label>
+            <input type="text" class="form-control" [(ngModel)]="formModel.phone" placeholder="(809) 555-0000" />
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-secondary">Dirección / Ubicación</label>
+          <input type="text" class="form-control" [(ngModel)]="formModel.address" placeholder="Calle, Sector, Ciudad" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-secondary">Encargado / Responsable</label>
+          <input type="text" class="form-control" [(ngModel)]="formModel.managerName" placeholder="Nombre completo" />
+        </div>
+        <div class="form-check form-switch mb-3">
+          <input class="form-check-input" type="checkbox" id="isMainCheck" [(ngModel)]="formModel.isMain" />
+          <label class="form-check-label small fw-semibold" for="isMainCheck">Definir como Almacén Principal</label>
+        </div>
+      </div>
+      <div class="p-3 border-top bg-light d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-light border" (click)="isModalOpen = false">Cancelar</button>
+        <button type="button" class="btn btn-cuadre-primary fw-semibold" (click)="saveWarehouse()">Guardar Almacén</button>
+      </div>
+    </div>
+  </div>
+}

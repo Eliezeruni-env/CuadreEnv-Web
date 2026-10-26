@@ -1,0 +1,26 @@
+.topcard-item {
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-left: 4px solid transparent;
+
+  &.border-start-primary { border-left-color: #4f46e5; }
+  &.border-start-success { border-left-color: #10b981; }
+  &.border-start-warning { border-left-color: #f59e0b; }
+  &.border-start-danger { border-left-color: #ef4444; }
+  &.border-start-info { border-left-color: #0ea5e9; }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08) !important;
+  }
+}
+
+.topcard-icon-box {
+  width: 48px;
+  height: 48px;
+}
+
+.font-size-xs {
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+}

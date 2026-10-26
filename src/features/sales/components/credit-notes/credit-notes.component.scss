@@ -1,0 +1,63 @@
+.font-size-xs {
+  font-size: 0.72rem;
+}
+
+.ncf-brand-badge {
+  background-color: #252b46 !important;
+  color: #ffffff !important;
+  border: 1px solid #252b46 !important;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #6b7785 !important;
+    border-color: #6b7785 !important;
+    color: #ffffff !important;
+  }
+}
+
+.custom-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  backdrop-filter: blur(4px);
+  padding: 1rem;
+}
+
+.invoice-print-container {
+  max-width: 680px;
+  width: 100%;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #creditNotePrintArea,
+  #creditNotePrintArea * {
+    visibility: visible;
+  }
+  #creditNotePrintArea {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px !important;
+  }
+  .custom-modal-backdrop {
+    position: static;
+    background: none;
+    padding: 0;
+  }
+}

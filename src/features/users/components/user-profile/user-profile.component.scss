@@ -1,0 +1,193 @@
+.profile-dashboard-wrap {
+  padding-bottom: 2.5rem;
+}
+
+// Hero Banner Styling
+.profile-hero-card {
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+}
+
+.hero-bg-gradient {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 45%, #2563eb 100%);
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.15), transparent 60%);
+    pointer-events: none;
+  }
+}
+
+.avatar-circle-lg {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  font-size: 1.6rem;
+  letter-spacing: -0.5px;
+  border: 3px solid rgba(255, 255, 255, 0.45);
+}
+
+.text-white-80 {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.text-white-90 {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.bg-white-10 {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.btn-white {
+  background-color: #ffffff;
+  border-color: #ffffff;
+  color: #1d4ed8;
+
+  &:hover {
+    background-color: #f8fafc;
+    color: #1e40af;
+    transform: translateY(-1px);
+  }
+}
+
+.btn-outline-danger-white {
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+
+  &:hover {
+    background-color: #dc2626;
+    border-color: #dc2626;
+    color: #ffffff;
+    transform: translateY(-1px);
+  }
+}
+
+// Subtly Tinted Badges
+.bg-emerald-subtle {
+  background-color: #ecfdf5;
+}
+.text-emerald {
+  color: #059669;
+}
+.border-emerald-subtle {
+  border-color: #a7f3d0;
+}
+
+.bg-amber-subtle {
+  background-color: #fffbeb;
+}
+.text-amber {
+  color: #d97706;
+}
+.border-amber-subtle {
+  border-color: #fde68a;
+}
+
+.bg-indigo-subtle {
+  background-color: #eef2ff;
+}
+.text-indigo {
+  color: #4f46e5;
+}
+
+// Detail Tiles Grid
+.detail-tile {
+  background-color: #f8fafc;
+  border-color: #e2e8f0 !important;
+  transition: all 0.15s ease-in-out;
+
+  &:hover {
+    background-color: #f1f5f9;
+    border-color: #cbd5e1 !important;
+  }
+}
+
+// Roles & Check Avatars
+.role-badge-box {
+  background-color: #f8fafc;
+  border-color: #e2e8f0 !important;
+  transition: all 0.15s ease-in-out;
+
+  &:hover {
+    border-color: #93c5fd !important;
+    background-color: #eff6ff;
+  }
+}
+
+.role-check-avatar {
+  width: 28px;
+  height: 28px;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+// Modules Permissions Stack
+.module-block {
+  background-color: #f8fafc;
+  border-color: #e2e8f0 !important;
+  transition: all 0.15s ease-in-out;
+
+  &:hover {
+    background-color: #ffffff;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  }
+}
+
+.btn-xs {
+  font-size: 0.74rem;
+  line-height: 1.3;
+}
+
+// Custom Modal Styles
+.custom-logout-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1055;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.custom-logout-modal-content {
+  background: #ffffff;
+  border-radius: 1.15rem;
+  box-shadow: 0 25px 40px -12px rgba(0, 0, 0, 0.28);
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+  animation: modalScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.logout-icon-box {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes modalScaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

@@ -1,0 +1,23 @@
+.search-modal-box {
+  max-width: 540px;
+}
+
+.search-items-list {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.search-item-row {
+  transition: all 0.12s ease-in-out;
+  &:hover {
+    background-color: var(--cui-tertiary-bg, #f1f5f9);
+  }
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.extra-small {
+  font-size: 0.78rem;
+}

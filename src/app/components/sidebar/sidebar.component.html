@@ -1,0 +1,135 @@
+<aside
+  class="app-sidebar"
+  [class.collapsed]="!sidebarVisible"
+  [class.mobile-open]="mobileOpen"
+>
+  <!-- Brand Header -->
+  <div class="sidebar-header d-flex align-items-center justify-content-between px-3">
+    <a [routerLink]="['/dashboard']" class="brand-link d-flex align-items-center gap-2 text-decoration-none">
+      @if (sidebarVisible) {
+        <img src="assets/brand/cuadreEnv-logo-white.png" alt="CuadreEnv" style="height: 42px; width: auto; max-width: 180px; object-fit: contain;" />
+      } @else {
+        <img src="assets/brand/cuadreEnv-signet-white.png" alt="CuadreEnv" style="height: 36px; width: auto; object-fit: contain;" />
+      }
+    </a>
+    <button
+      type="button"
+      class="btn btn-sm btn-link text-white-50 d-lg-none p-0"
+      (click)="closeMobileSidebar.emit()"
+      aria-label="Cerrar menú"
+    >
+      <svg cIcon name="cilX" style="width: 20px; height: 20px;"></svg>
+    </button>
+  </div>
+
+  <!-- Navigation List -->
+  <div class="sidebar-nav-container">
+    <ul class="nav-list list-unstyled m-0 p-2">
+      @for (item of menuItems(); track item.path || item.title) {
+        @if (item.isTitle) {
+          @if (sidebarVisible) {
+            <li class="nav-section-title px-3 pt-3 pb-1 text-uppercase text-secondary fw-bold font-size-xs">
+              {{ item.title }}
+            </li>
+          }
+        } @else {
+          <li
+            class="nav-item position-relative mb-1"
+            (mouseenter)="onItemMouseEnter(item, $event)"
+            (mouseleave)="onItemMouseLeave()"
+          >
+            <!-- Parent Item without children -->
+            @if (!item.children || item.children.length === 0) {
+              <a
+                [routerLink]="[item.path]"
+                routerLinkActive="active"
+                class="nav-link-custom d-flex align-items-center gap-3 px-3 py-2 rounded text-decoration-none"
+              >
+                <div class="icon-box d-flex align-items-center justify-content-center">
+                  <svg cIcon [name]="item.icon" class="nav-icon"></svg>
+                </div>
+                @if (sidebarVisible) {
+                  <span class="nav-text text-truncate">{{ item.title }}</span>
+                  @if (item.badge) {
+                    <span class="badge ms-auto" [ngClass]="item.badgeClass || 'bg-primary'">{{ item.badge }}</span>
+                  }
+                }
+              </a>
+            } @else {
+              <!-- Parent Item with accordion children -->
+              <div
+                class="nav-link-custom d-flex align-items-center justify-content-between px-3 py-2 rounded cursor-pointer"
+                [class.expanded]="item.isExpanded"
+                (click)="toggleAccordion(item)"
+              >
+                <div class="d-flex align-items-center gap-3">
+                  <div class="icon-box d-flex align-items-center justify-content-center">
+                    <svg cIcon [name]="item.icon" class="nav-icon"></svg>
+                  </div>
+                  @if (sidebarVisible) {
+                    <span class="nav-text text-truncate">{{ item.title }}</span>
+                  }
+                </div>
+                @if (sidebarVisible) {
+                  <svg
+                    cIcon
+                    name="cilChevronRight"
+                    class="chevron-icon"
+                    [class.rotate-90]="item.isExpanded"
+                    style="width: 14px; height: 14px;"
+                  ></svg>
+                }
+              </div>
+
+              <!-- Accordion Child Menu (When Expanded in Normal View) -->
+              @if (sidebarVisible && item.isExpanded) {
+                <ul class="sub-nav-list list-unstyled ps-4 pe-2 py-1 m-0">
+                  @for (sub of item.children; track sub.path) {
+                    <li class="mb-1">
+                      <a
+                        [routerLink]="[sub.path]"
+                        routerLinkActive="active"
+                        class="sub-nav-link d-flex align-items-center gap-2 px-3 py-1-5 rounded text-decoration-none small"
+                      >
+                        <span class="bullet-dot"></span>
+                        <span class="text-truncate">{{ sub.title }}</span>
+                      </a>
+                    </li>
+                  }
+                </ul>
+              }
+            }
+          </li>
+        }
+      }
+    </ul>
+  </div>
+
+  <!-- Floating Flyout Submenu when collapsed (!sidebarVisible) -->
+  @if (!sidebarVisible && hoveredItem && hoveredItem.children && hoveredItem.children.length > 0) {
+    <div
+      class="floating-submenu-flyout shadow-lg rounded p-2"
+      [style.top.px]="floatingTop"
+      (mouseenter)="cancelHoverLeave()"
+      (mouseleave)="onItemMouseLeave()"
+    >
+      <div class="flyout-header px-2 py-1 mb-1 border-bottom fw-bold text-white small">
+        {{ hoveredItem.title }}
+      </div>
+      <ul class="list-unstyled m-0 p-0">
+        @for (sub of hoveredItem.children; track sub.path) {
+          <li class="mb-1">
+            <a
+              [routerLink]="[sub.path]"
+              routerLinkActive="active"
+              class="flyout-link d-flex align-items-center gap-2 px-2 py-1-5 rounded text-decoration-none small text-white-75"
+            >
+              <span class="bullet-dot"></span>
+              <span>{{ sub.title }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</aside>

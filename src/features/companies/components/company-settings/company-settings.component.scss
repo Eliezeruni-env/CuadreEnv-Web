@@ -1,0 +1,25 @@
+.company-settings-container {
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.logo-preview-box {
+  width: 140px;
+  height: 80px;
+  border: 2px dashed #cbd5e1;
+  background-color: #f8fafc;
+
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+}
+
+.border-dashed {
+  border-style: dashed !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}

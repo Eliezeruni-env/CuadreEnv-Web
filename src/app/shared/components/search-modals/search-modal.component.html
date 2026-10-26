@@ -1,0 +1,57 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="close()">
+    <div class="custom-modal-content search-modal-box" (click)="$event.stopPropagation()">
+      <!-- Header with Live Search Input -->
+      <div class="p-3 border-bottom bg-light-subtle">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="fw-bold mb-0 text-dark">{{ title || 'Buscar y Seleccionar' }}</h6>
+          <button type="button" class="btn-close shadow-none" (click)="close()"></button>
+        </div>
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0 text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input
+            type="text"
+            class="form-control border-start-0 ps-0"
+            [placeholder]="placeholder || 'Escriba para filtrar...'"
+            [value]="searchTerm()"
+            (input)="onSearch($event)"
+            autofocus
+          />
+        </div>
+      </div>
+
+      <!-- Items List -->
+      <div class="search-items-list p-2">
+        @if (filteredItems().length === 0) {
+          <div class="text-center py-4 text-muted small">
+            No se encontraron coincidencias.
+          </div>
+        } @else {
+          @for (item of filteredItems(); track item.id || $index) {
+            <div
+              class="search-item-row d-flex align-items-center justify-content-between p-2 rounded cursor-pointer"
+              (click)="selectItem(item)"
+            >
+              <div>
+                <div class="fw-semibold text-dark small">{{ item.name || item.description || item.title }}</div>
+                @if (item.subtitle || item.phone || item.email || item.barcode) {
+                  <div class="text-muted extra-small">
+                    {{ item.subtitle || item.phone || item.email || ('Ref: ' + (item.reference || item.barcode)) }}
+                  </div>
+                }
+              </div>
+              <button type="button" class="btn btn-sm btn-primary py-1 px-3 extra-small">
+                Seleccionar
+              </button>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+}

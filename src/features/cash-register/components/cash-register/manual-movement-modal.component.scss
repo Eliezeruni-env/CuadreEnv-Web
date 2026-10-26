@@ -1,0 +1,75 @@
+.manual-movement-container {
+  max-width: 500px;
+  width: 100%;
+  border-radius: 16px;
+}
+.movement-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bg-income {
+  background: #dcfce7;
+}
+.bg-expense {
+  background: #fee2e2;
+}
+.movement-type-toggle {
+  display: flex;
+  background: var(--cui-tertiary-bg, #f1f5f9);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+}
+.toggle-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.55rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--cui-secondary-color, #64748b);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.toggle-btn.active-income {
+  background: #ffffff;
+  color: #15803d;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.toggle-btn.active-expense {
+  background: #ffffff;
+  color: #b91c1c;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.required-label::after {
+  content: ' *';
+  color: #ef4444;
+}
+.form-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--cui-secondary-color, #64748b);
+  margin-bottom: 0.3rem;
+}
+.currency-addon {
+  background-color: var(--cui-tertiary-bg, #f8fafc);
+}
+.btn-success-custom {
+  background: #15803d !important;
+  border-color: #15803d !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  border-radius: 8px;
+}
+.btn-danger-custom {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  border-radius: 8px;
+}

@@ -1,0 +1,183 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="close()">
+    <div
+      class="custom-modal-content manual-movement-container"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Header -->
+      <div class="custom-modal-header border-0 pb-0">
+        <div class="d-flex align-items-center gap-3">
+          <div
+            class="movement-icon-box"
+            [class.bg-income]="movementType() === 'Entrada'"
+            [class.bg-expense]="movementType() === 'Salida'"
+          >
+            @if (movementType() === 'Entrada') {
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="text-success"
+              >
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            } @else {
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="text-danger"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            }
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0 text-body">
+              {{ movementType() === 'Entrada' ? 'Registrar Ingreso de Efectivo' : 'Registrar Salida / Gasto' }}
+            </h5>
+            <span class="text-muted small">
+              {{ movementType() === 'Entrada' ? 'Entrada manual de dinero a la caja' : 'Retiro o desembolso de dinero de la caja' }}
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          (click)="close()"
+          aria-label="Close"
+        ></button>
+      </div>
+
+      <!-- Body -->
+      <div class="custom-modal-body pt-3">
+        <!-- Type Selector Tabs -->
+        <div class="movement-type-toggle mb-3">
+          <button
+            type="button"
+            class="toggle-btn"
+            [class.active-income]="movementType() === 'Entrada'"
+            (click)="setMovementType('Entrada')"
+          >
+            🟢 Ingreso (+)
+          </button>
+          <button
+            type="button"
+            class="toggle-btn"
+            [class.active-expense]="movementType() === 'Salida'"
+            (click)="setMovementType('Salida')"
+          >
+            🔴 Salida / Gasto (-)
+          </button>
+        </div>
+
+        <form cForm [formGroup]="form">
+          <!-- Monto -->
+          <div class="mb-3">
+            <label class="form-label required-label">Monto</label>
+            <div class="input-group">
+              <span class="input-group-text currency-addon fw-semibold">RD$</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                cFormControl
+                formControlName="amount"
+                placeholder="0.00"
+              />
+            </div>
+            @if (form.get('amount')?.touched && form.get('amount')?.invalid) {
+              <div class="text-danger small mt-1">El monto debe ser mayor a cero.</div>
+            }
+          </div>
+
+          <!-- Categoría -->
+          <div class="mb-3">
+            <label class="form-label required-label">Categoría</label>
+            <select cSelect formControlName="category">
+              @if (movementType() === 'Entrada') {
+                <option value="Ingresos">Ingreso General</option>
+                <option value="Cobros">Cobro de Cuenta / Cliente</option>
+                <option value="Aporte">Aporte de Capital</option>
+                <option value="Ajuste">Ajuste Positivo</option>
+              } @else {
+                <option value="Gastos menores">Gastos menores / Caja chica</option>
+                <option value="Pago a proveedor">Pago a proveedor</option>
+                <option value="Retiro a banco">Retiro / Depósito bancario</option>
+                <option value="Transporte y envíos">Transporte, combustible y fletes</option>
+                <option value="Servicios básicos">Servicios básicos (Electricidad/Agua/Internet)</option>
+                <option value="Adelanto o nómina">Adelanto / Nómina de empleados</option>
+                <option value="Ajuste / Otro">Ajuste negativo / Otro desembolso</option>
+              }
+            </select>
+          </div>
+
+          <!-- Descripción -->
+          <div class="mb-3">
+            <label class="form-label required-label">Concepto / Descripción</label>
+            <input
+              type="text"
+              cFormControl
+              formControlName="description"
+              [placeholder]="movementType() === 'Entrada' ? 'Ej. Cobro adicional cliente, aporte inicial...' : 'Ej. Compra de suministros, transporte, pago servicio...'"
+            />
+            @if (form.get('description')?.touched && form.get('description')?.invalid) {
+              <div class="text-danger small mt-1">La descripción es obligatoria.</div>
+            }
+          </div>
+
+          <!-- Referencia -->
+          <div>
+            <label class="form-label">Comprobante / Referencia (opcional)</label>
+            <input
+              type="text"
+              cFormControl
+              formControlName="reference"
+              placeholder="Ej. Recibo #123, Factura proveedor, etc."
+            />
+          </div>
+        </form>
+      </div>
+
+      <!-- Footer -->
+      <div class="custom-modal-footer">
+        <button
+          cButton
+          color="light"
+          class="border px-4"
+          (click)="close()"
+        >
+          Cancelar
+        </button>
+        <button
+          cButton
+          class="btn-save px-4"
+          [class.btn-success-custom]="movementType() === 'Entrada'"
+          [class.btn-danger-custom]="movementType() === 'Salida'"
+          [disabled]="isLoading() || form.invalid"
+          (click)="saveMovement()"
+        >
+          @if (isLoading()) {
+            <c-spinner size="sm" class="me-2"></c-spinner>
+            Guardando...
+          } @else {
+            {{ movementType() === 'Entrada' ? 'Registrar Ingreso' : 'Registrar Salida' }}
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

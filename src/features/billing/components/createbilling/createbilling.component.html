@@ -1,0 +1,63 @@
+<div class="container-fluid py-3 create-billing-container">
+  <!-- Top Header / Bar -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 bg-white p-3 rounded shadow-sm">
+    <div class="d-flex align-items-center gap-3">
+      <button class="btn btn-outline-secondary btn-sm" type="button" (click)="goBack()" title="Volver al listado">
+        ← Volver
+      </button>
+      <div>
+        <h4 class="fw-bold mb-0 text-dark">
+          {{ isQuotationConversion ? 'Convertir Cotización a Factura' : 'Emisión de Factura Empresarial' }}
+        </h4>
+        <small class="text-muted">
+          {{ isQuotationConversion ? 'Generando comprobante fiscal a partir de la cotización #' + quotationId : 'Facturación y POS con asignación automática de NCF' }}
+        </small>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <button
+        class="btn btn-outline-secondary px-3"
+        type="button"
+        (click)="goBack()"
+      >
+        Cancelar
+      </button>
+      <button
+        class="btn btn-primary px-4 fw-bold shadow-sm d-flex align-items-center gap-2"
+        type="button"
+        [disabled]="isSubmitting || productDetails.length === 0"
+        (click)="submitBilling()"
+      >
+        @if (isSubmitting) {
+          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          <span>Procesando...</span>
+        } @else {
+          <span>Emitir Factura Fiscal</span>
+        }
+      </button>
+    </div>
+  </div>
+
+  <!-- Step 1: Cliente & Comprobante -->
+  <app-client-search
+    [initialHeader]="currentHeader"
+    (headerChange)="onHeaderChange($event)"
+  ></app-client-search>
+
+  <!-- Step 2: Buscador de Productos -->
+  <app-product-search
+    [warehouseId]="currentHeader.warehouseId"
+    [detailToEdit]="detailToEdit"
+    (productAdded)="onProductAdded($event)"
+    (productUpdated)="onProductUpdated($event)"
+  ></app-product-search>
+
+  <!-- Step 3: Tabla de Productos y Totales -->
+  <app-product-table
+    [details]="productDetails"
+    (editIndex)="onEditLine($event)"
+    (deleteIndex)="onDeleteLine($event)"
+    (clearRequested)="onClearLines()"
+  ></app-product-table>
+</div>

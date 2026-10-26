@@ -95,6 +95,7 @@ export class CreateCompanyComponent implements OnInit {
       if (createdResult?.company?.id) {
         if (createdResult.tokens) {
           this.authService.applyTokenResponse(createdResult.tokens);
+          await this.authService.refreshModuleEntitlements();
         } else {
           await this.authService.refreshSession();
         }

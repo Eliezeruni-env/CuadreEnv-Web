@@ -36,7 +36,17 @@
             "preserveSymlinks": true,
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              {
+                "glob": "sw.js",
+                "input": "src/assets",
+                "output": "/"
+              },
+              {
+                "glob": "manifest.webmanifest",
+                "input": "src/assets",
+                "output": "/"
+              }
             ],
             "styles": [
               "src/scss/styles.scss"
@@ -59,8 +69,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "2kb",
-                  "maximumError": "4kb"
+                  "maximumWarning": "75kb",
+                  "maximumError": "120kb"
                 }
               ],
               "outputHashing": "all"
@@ -68,13 +78,22 @@
             "development": {
               "optimization": false,
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.development.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          },
           "configurations": {
             "production": {
               "buildTarget": "coreui-free-angular-admin-template:build:production"

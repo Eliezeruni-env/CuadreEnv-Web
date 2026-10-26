@@ -1,102 +1,346 @@
-<c-container breakpoint="lg" class="py-4">
+<div class="container-fluid py-3 list-sales-container">
   <!-- Alerts -->
   @if (errorMessage()) {
-  <c-alert color="danger" dismissible class="mb-4">
-    {{ errorMessage() }}
-  </c-alert>
+    <c-alert color="danger" dismissible class="mb-3">
+      {{ errorMessage() }}
+    </c-alert>
   }
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <!-- Top Bar -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
     <div>
-      <h2 class="fw-bold text-dark mb-1">{{ translationService.t('sales.title') }}</h2>
-      <p class="text-body-secondary mb-0">{{ translationService.t('sales.subtitle') }}</p>
+      <h4 class="fw-bold mb-0 text-dark">Registro de Ventas y Comprobantes</h4>
+      <small class="text-secondary">Control de ventas al contado, a crédito y facturación comercial</small>
     </div>
-    @if (authService.hasRole(['Admin', 'Manager', 'Employee'])) {
-    <button cButton color="primary" class="d-flex align-items-center py-2 px-3 shadow-sm border-0"
-      (click)="openCreateModal()">
-      <svg cIcon name="cilPlus" class="me-2"></svg>
-      {{ translationService.t('sales.new') }}
-    </button>
-    }
+
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadData()">
+        Recargar
+      </button>
+      @if (authService.hasRole(['Admin', 'Manager', 'Employee'])) {
+        <button class="btn btn-outline-success fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openQuickSaleDirect()">
+          <span>Venta Rápida (POS)</span>
+        </button>
+        <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openCreateModal()">
+          <span>+ Nueva Venta</span>
+        </button>
+      }
+    </div>
   </div>
 
-  <app-filter-panel [title]="translationService.t('sales.filterTitle')" [config]="filterConfig" [values]="filters()"
-    (filtersChange)="onFiltersChange($event)"></app-filter-panel>
+  <!-- Filtros -->
+  <app-filter-panel
+    [title]="translationService.t('sales.filterTitle')"
+    [config]="filterConfig()"
+    [values]="filters()"
+    (filtersChange)="onFiltersChange($event)"
+  ></app-filter-panel>
 
-  <c-card class="shadow-sm border-0 mb-4">
-    <c-card-body class="p-0">
+  <!-- Sales Table Card -->
+  <div class="card shadow-sm border-0 mb-3 billing-table-card rounded-4 overflow-hidden">
+    <div class="card-body p-0">
       @if (isLoading() && sales().length === 0) {
-      <div class="py-5 text-center">
-        <c-spinner color="primary" class="mb-3"></c-spinner>
-        <p class="text-body-secondary mb-0">{{ translationService.t('common.loading') }}</p>
-      </div>
+        <div class="py-5 text-center text-muted">
+          <c-spinner color="primary" class="mb-2"></c-spinner>
+          <p class="small mb-0">{{ translationService.t('common.loading') }}</p>
+        </div>
       } @else if (sales().length === 0) {
-      <!-- Empty State -->
-      <div class="py-5 text-center px-4">
-        <svg cIcon name="cilCart" size="xl" class="text-body-secondary mb-3" style="width: 48px; height: 48px;"></svg>
-        <h4 class="fw-bold text-dark">{{ translationService.t('sales.emptyTitle') }}</h4>
-        <p class="text-body-secondary mt-1 max-width-320 mx-auto">{{ translationService.t('sales.emptyBody') }}</p>
-        <button cButton color="primary" class="mt-3 px-4" (click)="openCreateModal()">
-          {{ translationService.t('sales.first') }}
-        </button>
-      </div>
+        <!-- Empty State -->
+        <div class="py-5 text-center px-4">
+          <h5 class="fw-bold text-dark">{{ translationService.t('sales.emptyTitle') }}</h5>
+          <p class="text-secondary small max-width-320 mx-auto">{{ translationService.t('sales.emptyBody') }}</p>
+          <button class="btn btn-cuadre-primary mt-2 px-4" (click)="openCreateModal()">
+            {{ translationService.t('sales.first') }}
+          </button>
+        </div>
       } @else {
-      <app-table [columns]="[
-          { field: 'id', label: translationService.t('sales.table.saleId') },
-          { field: 'date', label: translationService.t('sales.table.date') },
-          { field: 'customer', label: translationService.t('sales.table.customer') },
-          { field: 'total', label: translationService.t('sales.table.total') },
-          { field: 'paid', label: translationService.t('sales.table.paid') },
-          { field: 'status', label: translationService.t('sales.table.status') },
-          { field: 'actions', label: translationService.t('common.actions') }
-        ]" [rows]="getFilteredSales()" [loading]="isLoading()" [emptyMessage]="translationService.t('sales.emptyBody')"
-        [rowTemplate]="saleRowTpl">
-      </app-table>
+        <!-- Master-Detail Table -->
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 master-detail-table">
+            <thead class="table-light text-secondary text-uppercase font-size-xs">
+              <tr>
+                <th style="width: 44px;" class="ps-3 text-center"></th>
+                <th>No. Factura</th>
+                <th>Fecha / Hora</th>
+                <th>Cliente</th>
+                <th class="text-center">Origen</th>
+                <th class="text-end">Monto Total</th>
+                <th class="text-end">Cobrado</th>
+                <th class="text-center">Estado</th>
+                <th class="text-center pe-3" style="width: 140px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (pagedSales().length === 0) {
+                <tr>
+                  <td colspan="9" class="text-center py-5 text-muted">
+                    <span class="fw-semibold">No se encontraron ventas con los filtros aplicados</span>
+                  </td>
+                </tr>
+              } @else {
+                @for (sale of pagedSales(); track sale.id) {
+                  <!-- Master Row -->
+                  <tr [class.table-active]="isSaleExpanded(sale.id)" class="master-row">
+                    <td class="ps-3 text-center">
+                      <button
+                        class="expand-btn"
+                        [class.expanded]="isSaleExpanded(sale.id)"
+                        type="button"
+                        (click)="toggleDetail(sale)"
+                        [title]="isSaleExpanded(sale.id) ? 'Colapsar detalle' : 'Expandir productos vendidos'"
+                      >
+                        {{ isSaleExpanded(sale.id) ? '−' : '+' }}
+                      </button>
+                    </td>
+                    <td>
+                      <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                        <span class="fw-bold text-dark font-monospace">
+                          #{{ sale.id }}
+                        </span>
+                        @if (isServicioSale(sale)) {
+                          <span class="badge border rounded-pill px-2 py-0.5 font-size-xs fw-bold shadow-xs"
+                                style="background-color: #f3e8ff; color: #7e22ce; border-color: #d8b4fe;"
+                                title="Venta de Servicio">
+                            🛠️ Servicio
+                          </span>
+                        }
+                      </div>
+                    </td>
+                    <td class="text-muted small">
+                      {{ sale.creationDate | date:'dd/MM/yyyy hh:mm a' }}
+                    </td>
+                    <td>
+                      <div class="fw-semibold text-dark">{{ getCustomerName(sale.customerId) }}</div>
+                      <small class="text-muted font-monospace">ID Cliente: {{ sale.customerId || 'General' }}</small>
+                    </td>
+                    <td class="text-center">
+                      @if (isServicioSale(sale)) {
+                        <span class="badge border px-2.5 py-1 rounded-pill fw-semibold shadow-xs"
+                              style="background-color: #ede9fe; color: #6b21a8; border-color: #c4b5fd;"
+                              title="Factura de Servicios / Mano de Obra">
+                          🛠️ Venta de Servicio {{ sale.cashRegisterId ? '(Caja #' + sale.cashRegisterId + ')' : '' }}
+                        </span>
+                      } @else if (sale.originChannel === 'POS_PRESENCIAL' || (!sale.originChannel && sale.cashRegisterId)) {
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill" title="Venta Presencial en Mostrador">
+                          🏪 POS {{ sale.cashRegisterId ? '(Caja #' + sale.cashRegisterId + ')' : '' }}
+                        </span>
+                      } @else if (sale.originChannel === 'CREDITO') {
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 rounded-pill" title="Venta a Crédito">
+                          📋 Crédito
+                        </span>
+                      } @else if (sale.originChannel === 'ONLINE') {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill" title="Tienda Online">
+                          🌐 Online
+                        </span>
+                      } @else {
+                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 rounded-pill" title="Venta Administrativa">
+                          🏢 Admin
+                        </span>
+                      }
+                    </td>
+                    <td class="text-end fw-bold text-dark">
+                      RD$ {{ sale.total | number:'1.2-2' }}
+                    </td>
+                    <td class="text-end font-monospace fw-semibold text-success">
+                      RD$ {{ sale.paidAmount | number:'1.2-2' }}
+                    </td>
+                    <td class="text-center">
+                      @if (sale.paidAmount >= sale.total) {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill">
+                          {{ translationService.t('sales.status.paid') }}
+                        </span>
+                      } @else if (sale.paidAmount > 0) {
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1 rounded-pill">
+                          {{ translationService.t('sales.status.partial') }}
+                        </span>
+                      } @else {
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 rounded-pill">
+                          {{ translationService.t('sales.status.pending') }}
+                        </span>
+                      }
+                    </td>
+                    <td class="text-center pe-3">
+                      <div class="action-btn-group justify-content-center">
+                        <!-- Imprimir Factura / Ticket -->
+                        <button
+                          class="btn-action-icon btn-action-print"
+                          type="button"
+                          (click)="openInvoiceForSale(sale)"
+                          title="Imprimir / Ver Comprobante"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                            <rect x="6" y="14" width="12" height="8"></rect>
+                          </svg>
+                        </button>
+                        <!-- Ver Detalle Modal -->
+                        <button
+                          class="btn-action-icon btn-action-view"
+                          type="button"
+                          (click)="openDetailModal(sale)"
+                          [title]="translationService.t('sales.viewDetails')"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                        </button>
+                        <!-- Devolución / Nota de Crédito -->
+                        <button
+                          class="btn-action-icon btn-action-void"
+                          type="button"
+                          (click)="openCreditNoteForSale(sale)"
+                          title="Emitir Nota de Crédito / Devolución"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 14 4 9 9 4"></polyline>
+                            <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
 
-      <ng-template #saleRowTpl let-sale>
-        <tr>
-          <td class="ps-4 font-monospace small">#{{ sale.id }}</td>
-          <td>{{ sale.creationDate | date:'short' }}</td>
-          <td class="fw-semibold text-dark">{{ getCustomerName(sale.customerId) }}</td>
-          <td class="text-end fw-bold text-dark">\${{ sale.total | number:'1.2-2' }}</td>
-          <td class="text-end text-success fw-semibold">\${{ sale.paidAmount | number:'1.2-2' }}</td>
-          <td class="text-center">
-            <span
-              [ngClass]="sale.isCancelled ? 'badge bg-danger-subtle text-danger border border-danger' : 'badge bg-success-subtle text-success border border-success'">
-              {{ sale.isCancelled ? 'Cancelled' : 'Processed' }}
-            </span>
-          </td>
-          <td class="text-center pe-4 action-cell">
-            <div class="desktop-actions d-flex justify-content-center gap-1">
-              <button cButton color="light" size="sm" class="border" (click)="viewSaleDetail(sale)">
-                <svg cIcon name="cilZoom" size="sm"></svg>
-              </button>
-            </div>
+                  <!-- Detail Row Expandible (Subtabla de Productos) -->
+                  @if (isSaleExpanded(sale.id)) {
+                    <tr class="detail-row">
+                      <td colspan="9">
+                        <div class="card border border-secondary-subtle shadow-xs rounded-3 overflow-hidden my-2">
+                          <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <span class="fw-bold small text-secondary text-uppercase d-flex align-items-center gap-2">
+                              @if (isServicioSale(sale)) {
+                                <span class="badge border rounded-pill px-2 py-0.5 font-size-xs fw-bold"
+                                      style="background-color: #f3e8ff; color: #7e22ce; border-color: #d8b4fe;">
+                                  🛠️ Servicios Facturados
+                                </span>
+                                ({{ getSaleItems(sale).length }} ítems • {{ getTotalQuantity(sale) }} unidades)
+                              } @else {
+                                Detalle de Artículos Vendidos ({{ getSaleItems(sale).length }} ítems • {{ getTotalQuantity(sale) }} unidades)
+                              }
+                            </span>
+                            <div class="small font-monospace">
+                              <span class="text-muted me-3">Subtotal: <strong>RD$ {{ (sale.total / 1.18) | number:'1.2-2' }}</strong></span>
+                              <span class="text-muted me-3">ITBIS (18%): <strong>RD$ {{ (sale.total - (sale.total / 1.18)) | number:'1.2-2' }}</strong></span>
+                              <span class="text-success fw-bold">Total Venta: RD$ {{ sale.total | number:'1.2-2' }}</span>
+                            </div>
+                          </div>
+                          <div class="card-body p-0">
+                            <table class="table table-sm table-bordered mb-0 align-middle">
+                              <thead class="table-light text-muted font-size-xs">
+                                <tr>
+                                  <th class="ps-3 py-2">Código</th>
+                                  <th class="py-2">Descripción del Producto</th>
+                                  <th class="text-center py-2" style="width: 100px;">Cant.</th>
+                                  <th class="text-end py-2" style="width: 120px;">Precio Unit.</th>
+                                  <th class="text-center py-2" style="width: 90px;">Descuento</th>
+                                  <th class="text-end py-2" style="width: 120px;">Subtotal</th>
+                                  <th class="text-end py-2" style="width: 110px;">ITBIS (18%)</th>
+                                  <th class="text-end pe-3 py-2" style="width: 130px;">Importe Total</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (item of getSaleItems(sale); track $index) {
+                                  <tr>
+                                    <td class="ps-3 font-monospace small text-secondary">{{ item.productCode }}</td>
+                                    <td class="fw-semibold text-dark">{{ item.productName }}</td>
+                                    <td class="text-center">
+                                      <span class="badge bg-secondary-subtle text-dark border px-2 py-0.5 rounded-pill font-monospace fw-bold">
+                                        {{ item.quantity }} ud.
+                                      </span>
+                                    </td>
+                                    <td class="text-end font-monospace">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
+                                    <td class="text-center">
+                                      {{ item.discount > 0 ? (item.discount + '%') : '—' }}
+                                    </td>
+                                    <td class="text-end font-monospace text-secondary">RD$ {{ item.subtotal | number:'1.2-2' }}</td>
+                                    <td class="text-end font-monospace text-secondary">RD$ {{ item.itbis | number:'1.2-2' }}</td>
+                                    <td class="text-end pe-3 font-monospace fw-bold text-success">RD$ {{ item.total | number:'1.2-2' }}</td>
+                                  </tr>
+                                }
+                              </tbody>
+                              <tfoot class="table-light">
+                                <tr class="fw-bold font-monospace">
+                                  <td colspan="2" class="ps-3 text-secondary">Totales del Desglose:</td>
+                                  <td class="text-center text-dark">{{ getTotalQuantity(sale) }} uds</td>
+                                  <td></td>
+                                  <td></td>
+                                  <td class="text-end text-secondary">RD$ {{ (sale.total / 1.18) | number:'1.2-2' }}</td>
+                                  <td class="text-end text-secondary">RD$ {{ (sale.total - (sale.total / 1.18)) | number:'1.2-2' }}</td>
+                                  <td class="text-end pe-3 text-success fs-6">RD$ {{ sale.total | number:'1.2-2' }}</td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              }
+            </tbody>
+          </table>
+        </div>
 
-            <details class="mobile-actions">
-              <summary class="btn btn-light btn-sm">⋯</summary>
-              <div class="mobile-actions-menu">
-                <button cButton color="light" size="sm" class="border w-100" (click)="viewSaleDetail(sale)">
-                  <svg cIcon name="cilZoom" size="sm"></svg> View
-                </button>
-              </div>
-            </details>
-          </td>
-        </tr>
-      </ng-template>
+        <!-- Paginador Moderno -->
+        <kt-paginator
+          [currentPage]="currentPage()"
+          [totalItems]="getFilteredSalesCount()"
+          [pageSize]="pageSize"
+          (pageChange)="onPageChange($event)"
+        ></kt-paginator>
       }
-    </c-card-body>
-  </c-card>
+    </div>
+  </div>
+</div>
 
-  @if (!isLoading() && getFilteredSalesCount() > 0) {
-  <app-list-pagination [currentPage]="currentPage()" [totalItems]="getFilteredSalesCount()" [pageSize]="pageSize"
-    [label]="'ventas'" (pageChange)="onPageChange($event)"></app-list-pagination>
-  }
-</c-container>
+<!-- Choice Modal for + Nueva Venta -->
+<app-new-sale-choice-modal
+  #newSaleChoiceModal
+  [(visible)]="isChoiceModalOpen"
+  (optionSelected)="onSaleOptionChosen($event)"
+></app-new-sale-choice-modal>
 
-<!-- Decoupled Child Modals -->
-<app-create-sale-modal #createSaleModal [(visible)]="isCreateModalOpen" (saved)="loadData()">
-</app-create-sale-modal>
+<!-- Quick Sale Modal (Contado -> Caja) -->
+<app-quick-sale-modal
+  #quickSaleModal
+  [(visible)]="isQuickSaleModalOpen"
+  (completed)="onSaleCreated()"
+  (saleCompleted)="onQuickSaleCompleted($event)"
+></app-quick-sale-modal>
 
-<app-sale-detail-modal [(visible)]="isDetailModalOpen" [sale]="selectedSale" (cancelled)="loadData()">
-</app-sale-detail-modal>
+<!-- Create Receivable Modal (Crédito -> Cobros) -->
+<app-create-receivable-modal
+  #createReceivableModal
+  [(visible)]="isCreateReceivableModalOpen"
+  (saved)="onSaleCreated()"
+></app-create-receivable-modal>
+
+<!-- Create Service Sale Modal (Servicios / Mano de Obra) -->
+<app-create-service-sale-modal
+  #createServiceSaleModal
+  [(visible)]="isCreateServiceModalOpen"
+  (saved)="onSaleCreated()"
+  (saleCompleted)="onQuickSaleCompleted($event)"
+></app-create-service-sale-modal>
+
+<!-- Modals for details & legacy creation -->
+<app-create-sale-modal #createSaleModal [(visible)]="isCreateModalOpen"
+  (saleCreated)="onSaleCreated()"></app-create-sale-modal>
+<app-sale-detail-modal #saleDetailModal [(visible)]="isDetailModalOpen" [sale]="selectedSale"
+  (closed)="selectedSale = null"></app-sale-detail-modal>
+
+<!-- Completed Sale / Invoice View & Printable Modal -->
+<app-sale-completed-modal
+  #saleCompletedModal
+  [(visible)]="isSaleCompletedModalOpen"
+  [saleData]="lastCompletedSale"
+  (newSaleRequested)="openCreateModal()"
+  (closed)="loadData()"
+></app-sale-completed-modal>
+
+<!-- Credit Note & Return Modal Form -->
+<app-credit-note-form
+  #creditNoteFormModal
+  (creditNoteCreated)="loadData()"
+></app-credit-note-form>

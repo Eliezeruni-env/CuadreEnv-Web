@@ -1,0 +1,439 @@
+<div class="distribution-container p-4">
+  <!-- Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <div class="header-icon-box">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="3" width="15" height="13"></rect>
+            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+            <circle cx="5.5" cy="18.5" r="2.5"></circle>
+            <circle cx="18.5" cy="18.5" r="2.5"></circle>
+          </svg>
+        </div>
+        <div>
+          <h2 class="page-title mb-0">Rutas de Distribución & Surtidores</h2>
+          <p class="text-muted small mb-0">Control de camiones, carga de mercancía, ventas al paso en colmados y liquidación con caja</p>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" (click)="openCreateRouteModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Nueva Hoja de Despacho
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Metrics -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-card shadow-sm">
+        <div class="metric-icon bg-primary-subtle text-primary">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+        </div>
+        <div>
+          <div class="metric-label">Camiones en Calle</div>
+          <div class="metric-value">{{ totalActiveTrucks() }} Activos</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-card shadow-sm">
+        <div class="metric-icon bg-info-subtle text-info">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        </div>
+        <div>
+          <div class="metric-label">Total Cargado Hoy</div>
+          <div class="metric-value">RD$ {{ totalDispatchedToday() | number:'1.2-2' }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-card shadow-sm">
+        <div class="metric-icon bg-success-subtle text-success">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        </div>
+        <div>
+          <div class="metric-label">Cobrado en Ruta</div>
+          <div class="metric-value text-success">RD$ {{ totalCollectedToday() | number:'1.2-2' }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-card shadow-sm">
+        <div class="metric-icon bg-warning-subtle text-warning">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        </div>
+        <div>
+          <div class="metric-label">Rutas Registradas</div>
+          <div class="metric-value">{{ routes().length }} Rutas</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Layout -->
+  <div class="row g-4">
+    <!-- List of Routes -->
+    <div class="col-12 col-lg-5 col-xl-4">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0 fw-semibold fs-6">Hojas de Ruta / Despachos</h5>
+          <span class="badge bg-secondary-subtle text-secondary">{{ routes().length }}</span>
+        </div>
+        <div class="list-group list-group-flush route-list overflow-auto" style="max-height: 680px;">
+          @for (route of routes(); track route.id) {
+            <div
+              class="list-group-item list-group-item-action p-3 route-item"
+              [class.active-route]="activeRoute()?.id === route.id"
+              (click)="activeRoute.set(route)"
+            >
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <span class="badge bg-dark me-2">{{ route.routeCode }}</span>
+                  <span class="fw-bold">{{ route.routeName }}</span>
+                </div>
+                <span
+                  class="badge"
+                  [ngClass]="{
+                    'bg-warning-subtle text-warning border border-warning': route.status === 'Cargando Camión',
+                    'bg-primary-subtle text-primary border border-primary': route.status === 'En Ruta de Reparto',
+                    'bg-success-subtle text-success border border-success': route.status === 'Liquidada / Cerrada'
+                  }"
+                >
+                  {{ route.status }}
+                </span>
+              </div>
+              <div class="small text-muted mb-2">
+                <div><strong>Chofer/Surtidor:</strong> {{ route.driverName }}</div>
+                <div><strong>Vehículo:</strong> {{ route.vehiclePlate }}</div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center pt-2 border-top small">
+                <span class="text-muted">{{ route.items.length }} tipos de producto</span>
+                <span class="fw-bold text-success">Cobrado: RD$ {{ (route.totalCollectedCash + route.totalCollectedTransfer) | number:'1.2-2' }}</span>
+              </div>
+            </div>
+          } @empty {
+            <div class="p-4 text-center text-muted">
+              No hay rutas de distribución registradas. Haz clic en "Nueva Hoja de Despacho".
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Route Detail & Management -->
+    <div class="col-12 col-lg-7 col-xl-8">
+      @if (activeRoute(); as route) {
+        <div class="card shadow-sm border-0 mb-4">
+          <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+              <div class="d-flex align-items-center gap-2">
+                <h5 class="mb-0 fw-bold">{{ route.routeName }} ({{ route.routeCode }})</h5>
+                <span
+                  class="badge"
+                  [ngClass]="{
+                    'bg-warning-subtle text-warning': route.status === 'Cargando Camión',
+                    'bg-primary-subtle text-primary': route.status === 'En Ruta de Reparto',
+                    'bg-success-subtle text-success': route.status === 'Liquidada / Cerrada'
+                  }"
+                >
+                  {{ route.status }}
+                </span>
+              </div>
+              <div class="text-muted small">
+                Chofer: <strong>{{ route.driverName }}</strong> | Vehículo: <strong>{{ route.vehiclePlate }}</strong> | Fecha: {{ route.date }}
+              </div>
+            </div>
+
+            <!-- Route Actions Bar -->
+            <div class="d-flex flex-wrap gap-2">
+              @if (route.status === 'Cargando Camión') {
+                <button class="btn btn-sm btn-outline-primary" (click)="openLoadStockModal(route)">
+                  📦 Cargar Mercancía
+                </button>
+                <button class="btn btn-sm btn-success" (click)="dispatchRouteToStreet(route)">
+                  🚚 Despachar a la Calle
+                </button>
+              }
+              @if (route.status === 'En Ruta de Reparto') {
+                <button class="btn btn-sm btn-primary" (click)="openRouteSaleModal(route)">
+                  🛒 Venta en Ruta
+                </button>
+                <button class="btn btn-sm btn-warning text-dark" (click)="openLiquidationModal(route)">
+                  💵 Liquidar y Cerrar
+                </button>
+              }
+              @if (route.status === 'Liquidada / Cerrada') {
+                <span class="badge bg-success-subtle text-success py-2 px-3">
+                  ✓ Ruta Liquidada en Caja
+                </span>
+              }
+            </div>
+          </div>
+
+          <div class="card-body p-0">
+            <!-- Items on Truck Table -->
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-muted small text-uppercase">
+                  <tr>
+                    <th>Producto</th>
+                    <th class="text-center">Cargado</th>
+                    <th class="text-center">Vendido</th>
+                    <th class="text-center">Queda en Camión</th>
+                    <th class="text-end">Precio Venta</th>
+                    <th class="text-end">Total Vendido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (it of route.items; track it.productId) {
+                    <tr>
+                      <td class="fw-semibold">{{ it.productName }}</td>
+                      <td class="text-center badge-cell">
+                        <span class="badge bg-light text-dark border">{{ it.loadedQuantity }}</span>
+                      </td>
+                      <td class="text-center text-primary fw-bold">{{ it.soldQuantity }}</td>
+                      <td class="text-center">
+                        <span class="badge" [class.bg-warning-subtle]="(it.loadedQuantity - it.soldQuantity) > 0" [class.text-warning]="(it.loadedQuantity - it.soldQuantity) > 0" [class.bg-secondary-subtle]="(it.loadedQuantity - it.soldQuantity) === 0">
+                          {{ it.loadedQuantity - it.soldQuantity }}
+                        </span>
+                      </td>
+                      <td class="text-end">RD$ {{ it.unitPrice | number:'1.2-2' }}</td>
+                      <td class="text-end fw-bold text-success">RD$ {{ it.totalSoldAmount | number:'1.2-2' }}</td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="6" class="text-center py-4 text-muted">
+                        No hay mercancía cargada en este camión todavía. Haz clic en "📦 Cargar Mercancía".
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Route Financial Summary -->
+            <div class="p-3 bg-light border-top">
+              <div class="row g-3">
+                <div class="col-sm-4">
+                  <div class="border rounded p-2 bg-white text-center">
+                    <span class="text-muted small d-block">Efectivo Cobrado</span>
+                    <strong class="text-success fs-5">RD$ {{ route.totalCollectedCash | number:'1.2-2' }}</strong>
+                  </div>
+                </div>
+                <div class="col-sm-4">
+                  <div class="border rounded p-2 bg-white text-center">
+                    <span class="text-muted small d-block">Transferencias</span>
+                    <strong class="text-info fs-5">RD$ {{ route.totalCollectedTransfer | number:'1.2-2' }}</strong>
+                  </div>
+                </div>
+                <div class="col-sm-4">
+                  <div class="border rounded p-2 bg-white text-center">
+                    <span class="text-muted small d-block">Créditos a Clientes</span>
+                    <strong class="text-warning fs-5">RD$ {{ route.totalCreditSales | number:'1.2-2' }}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      } @else {
+        <div class="card shadow-sm border-0 p-5 text-center text-muted">
+          <p>Selecciona una ruta del listado para gestionar el camión y ver el manifiesto.</p>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Modal: Crear Nueva Hoja de Ruta -->
+  @if (isCreateRouteModalOpen()) {
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.65);">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+          <div class="modal-header bg-dark text-white">
+            <h5 class="modal-title fs-6">Nueva Hoja de Despacho / Ruta Surtidor</h5>
+            <button type="button" class="btn-close btn-close-white" (click)="isCreateRouteModalOpen.set(false)"></button>
+          </div>
+          <form [formGroup]="routeForm" (ngSubmit)="saveNewRoute()">
+            <div class="modal-body p-4">
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Nombre o Zona de Ruta</label>
+                <input type="text" class="form-control" formControlName="routeName" placeholder="Ej: Ruta Este / San Pedro y La Romana">
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Nombre del Chofer / Surtidor</label>
+                <input type="text" class="form-control" formControlName="driverName" placeholder="Ej: Juan Pérez">
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Vehículo / Placa</label>
+                <input type="text" class="form-control" formControlName="vehiclePlate" placeholder="Ej: L345910 (Camión Isuzu Blanco)">
+              </div>
+            </div>
+            <div class="modal-footer bg-light">
+              <button type="button" class="btn btn-outline-secondary" (click)="isCreateRouteModalOpen.set(false)">Cancelar</button>
+              <button type="submit" class="btn btn-primary" [disabled]="routeForm.invalid">Crear Ruta</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal: Cargar Mercancía al Camión -->
+  @if (isLoadStockModalOpen(); as rLoad) {
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.65);">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title fs-6">Cargar Mercancía al Camión: {{ selectedRouteForLoad()?.routeName }}</h5>
+            <button type="button" class="btn-close btn-close-white" (click)="isLoadStockModalOpen.set(false)"></button>
+          </div>
+          <div class="modal-body p-4">
+            <p class="text-muted small mb-3">
+              Selecciona los productos y las cantidades que saldrán del almacén central para ser cargadas en el vehículo.
+            </p>
+            <div class="table-responsive" style="max-height: 380px;">
+              <table class="table table-hover align-middle">
+                <thead class="table-light small">
+                  <tr>
+                    <th>Producto</th>
+                    <th>Stock Almacén</th>
+                    <th style="width: 140px;">Cargar Cantidad</th>
+                    <th style="width: 100px;">Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (prod of products(); track prod.id) {
+                    <tr>
+                      <td class="fw-semibold">{{ prod.description }}</td>
+                      <td>
+                        <span class="badge bg-secondary-subtle text-secondary">{{ prod.stock || 0 }} disponibles</span>
+                      </td>
+                      <td>
+                        <input #qtyInput type="number" min="1" [max]="prod.stock || 999" value="10" class="form-control form-control-sm text-center">
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-primary w-100"
+                          (click)="addStockToRoute(prod.id!, +qtyInput.value)"
+                        >
+                          + Cargar
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-success" (click)="isLoadStockModalOpen.set(false)">Listo, Terminar Carga</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal: Registrar Venta en Ruta -->
+  @if (isRouteSaleModalOpen(); as rSale) {
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.65);">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+          <div class="modal-header bg-dark text-white">
+            <h5 class="modal-title fs-6">Registrar Venta en Calle / Colmado</h5>
+            <button type="button" class="btn-close btn-close-white" (click)="isRouteSaleModalOpen.set(false)"></button>
+          </div>
+          <div class="modal-body p-4">
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Cliente / Negocio</label>
+              <input type="text" class="form-control" [value]="routeSaleClientName()" (input)="routeSaleClientName.set($any($event.target).value)" placeholder="Ej: Colmado La Esperanza">
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Forma de Pago del Cliente</label>
+              <select class="form-select" [value]="routeSalePaymentMethod()" (change)="routeSalePaymentMethod.set($any($event.target).value)">
+                <option value="Efectivo">Efectivo</option>
+                <option value="Transferencia">Transferencia Bancaria</option>
+                <option value="Credito">Crédito a Cobrar</option>
+              </select>
+            </div>
+            <hr>
+            <h6 class="small fw-bold text-muted mb-2">Selecciona Producto a Despachar de este Camión:</h6>
+            @if (selectedRouteForSale(); as route) {
+              <div class="d-flex flex-column gap-2">
+                @for (item of route.items; track item.productId) {
+                  @let available = item.loadedQuantity - item.soldQuantity - item.returnedQuantity;
+                  <div class="border rounded p-2 d-flex justify-content-between align-items-center">
+                    <div>
+                      <div class="fw-bold small">{{ item.productName }}</div>
+                      <div class="text-muted smaller">Disponible en camión: {{ available }} | RD$ {{ item.unitPrice | number:'1.2-2' }} c/u</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <input #saleQty type="number" min="1" [max]="available" value="1" class="form-control form-control-sm text-center" style="width: 70px;">
+                      <button
+                        class="btn btn-sm btn-success"
+                        [disabled]="available <= 0"
+                        (click)="recordRouteSale(item.productId, +saleQty.value)"
+                      >
+                        Vender
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-outline-secondary" (click)="isRouteSaleModalOpen.set(false)">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal: Liquidación Final de Ruta -->
+  @if (isLiquidateModalOpen(); as rLiq) {
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.65);">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+          <div class="modal-header bg-warning text-dark">
+            <h5 class="modal-title fs-6 fw-bold">Liquidar y Cerrar Ruta de Reparto</h5>
+            <button type="button" class="btn-close" (click)="isLiquidateModalOpen.set(false)"></button>
+          </div>
+          @if (selectedRouteForLiquidation(); as route) {
+            <div class="modal-body p-4">
+              <p class="small text-muted mb-3">
+                Al confirmar la liquidación, la mercancía sobrante en el camión será reintegrada al inventario del almacén y el dinero en efectivo recaudado por el chofer ingresará automáticamente a la Caja Registradora.
+              </p>
+              <div class="card bg-light border-0 p-3 mb-3">
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="text-muted">Total Efectivo a Entregar:</span>
+                  <strong class="text-success fs-5">RD$ {{ route.totalCollectedCash | number:'1.2-2' }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="text-muted">Transferencias Reportadas:</span>
+                  <strong class="text-info">RD$ {{ route.totalCollectedTransfer | number:'1.2-2' }}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                  <span class="text-muted">Créditos Otorgados:</span>
+                  <strong class="text-warning">RD$ {{ route.totalCreditSales | number:'1.2-2' }}</strong>
+                </div>
+              </div>
+              <div class="alert alert-info py-2 small mb-0">
+                Chofer responsable: <strong>{{ route.driverName }}</strong> ({{ route.vehiclePlate }})
+              </div>
+            </div>
+            <div class="modal-footer bg-light">
+              <button type="button" class="btn btn-outline-secondary" (click)="isLiquidateModalOpen.set(false)">Cancelar</button>
+              <button type="button" class="btn btn-success fw-bold" (click)="confirmLiquidation(route)">
+                Confirmar Liquidación y Enviar a Caja
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

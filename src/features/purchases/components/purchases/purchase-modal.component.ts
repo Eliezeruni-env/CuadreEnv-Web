@@ -17,6 +17,8 @@ import {
 } from '@angular/forms';
 import { PurchaseService } from '../../services/purchase.service';
 import { ProductService } from '../../../products/services/product.service';
+import { SupplierService } from '../../services/supplier.service';
+import { StockService } from '../../../inventory/services/stock.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import type { PurchaseDto, ProductDto } from '../../../cuadreEnv/types/api';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
@@ -32,6 +34,8 @@ import {
   FormSelectDirective,
 } from '@coreui/angular';
 
+import { Router } from '@angular/router';
+
 @Component({
   selector: 'app-purchase-modal',
   standalone: true,
@@ -45,245 +49,15 @@ import {
     ColComponent,
     SpinnerComponent,
     FormSelectDirective,
-
     IconDirective,
-    TableComponent,
   ],
-  template: `
-    @if (visible) {
-      <div class="custom-modal-backdrop" (click)="close()">
-        <div
-          class="custom-modal-content modal-lg"
-          (click)="$event.stopPropagation()"
-        >
-          <div class="custom-modal-header">
-            <h5 class="fw-bold">
-              {{
-                selectedPurchase
-                  ? translationService.t('purchases.title')
-                  : translationService.t('purchases.modal.createTitle')
-              }}
-            </h5>
-            <button
-              type="button"
-              class="btn-close"
-              (click)="close()"
-              aria-label="Close"
-            ></button>
-          </div>
-
-          <div class="custom-modal-body">
-            @if (!selectedPurchase) {
-              <!-- Create Mode -->
-              <form cForm [formGroup]="purchaseForm">
-                <div class="mb-3">
-                  <label class="small fw-semibold text-secondary mb-1"
-                    >{{ translationService.t('purchases.modal.supplierLabel') }}</label
-                  >
-                  <input
-                    type="number"
-                    formControlName="supplierId"
-                    cFormControl
-                    placeholder="e.g. 5"
-                  />
-                </div>
-
-                <!-- Items Section -->
-                <div class="mb-4 mt-2">
-                  <div
-                    class="d-flex justify-content-between align-items-center mb-2"
-                  >
-                    <h6 class="fw-bold text-dark mb-0">{{ translationService.t('purchases.modal.items') }}</h6>
-                    <button
-                      type="button"
-                      cButton
-                      color="primary"
-                      size="sm"
-                      class="py-1"
-                      (click)="addItem()"
-                    >
-                      {{ translationService.t('common.add') }}
-                    </button>
-                  </div>
-
-                  <div class="border rounded bg-light p-2">
-                    @if (items.length === 0) {
-                      <div class="text-center py-3 text-secondary small">
-                        {{ translationService.t('common.noResults') }}
-                      </div>
-                    } @else {
-                      <div formArrayName="items">
-                        @for (
-                          item of items.controls;
-                          track $index;
-                          let idx = $index
-                        ) {
-                          <div
-                            [formGroupName]="idx"
-                            class="row g-2 mb-2 align-items-end"
-                          >
-                            <div class="col-md-5">
-                              <label class="small text-secondary mb-1"
-                                >{{ translationService.t('products.table.product') }} *</label
-                              >
-                              <select cSelect formControlName="productId">
-                                <option value="" disabled selected>
-                                  {{ translationService.t('common.select') }}
-                                </option>
-                                @for (p of products(); track p.id) {
-                                  <option [value]="p.id">
-                                    {{ p.description }}
-                                  </option>
-                                }
-                              </select>
-                            </div>
-                            <div class="col-md-3">
-                              <label class="small text-secondary mb-1"
-                                >{{ translationService.t('sales.modal.quantity') }} *</label
-                              >
-                              <input
-                                type="number"
-                                formControlName="quantity"
-                                cFormControl
-                              />
-                            </div>
-                            <div class="col-md-3">
-                              <label class="small text-secondary mb-1"
-                                >{{ translationService.t('purchases.modal.unitCost') }} *</label
-                              >
-                              <input
-                                type="number"
-                                formControlName="costPrice"
-                                cFormControl
-                              />
-                            </div>
-                            <div class="col-md-1 text-center">
-                              <button
-                                type="button"
-                                cButton
-                                color="danger"
-                                size="sm"
-                                variant="ghost"
-                                class="mb-1"
-                                (click)="removeItem(idx)"
-                              >
-                                <svg cIcon name="cilTrash"></svg>
-                              </button>
-                            </div>
-                          </div>
-                        }
-                      </div>
-                    }
-                  </div>
-                </div>
-
-                <c-row class="border-top pt-3 mt-3 align-items-center">
-                  <c-col class="text-end offset-md-6" md="6">
-                    <div class="text-secondary small">{{ translationService.t('purchases.modal.totalCost') }}</div>
-                    <h2 class="fw-bold text-dark mb-0">
-                      \${{ calculateTotal() | number: '1.2-2' }}
-                    </h2>
-                  </c-col>
-                </c-row>
-              </form>
-            } @else {
-              <!-- Detail Mode -->
-              <div class="mb-4">
-                <c-row>
-                  <c-col md="6">
-                    <div class="text-secondary small">{{ translationService.t('purchases.table.purchaseId') }}</div>
-                    <div class="fw-bold text-dark font-monospace">
-                      #{{ selectedPurchase.id }}
-                    </div>
-                    <div class="text-secondary small mt-2">
-                      {{ translationService.t('purchases.table.date') }}
-                    </div>
-                    <div class="text-dark">
-                      {{ selectedPurchase.creationDate | date: 'medium' }}
-                    </div>
-                  </c-col>
-                  <c-col md="6" class="text-md-end mt-2 mt-md-0">
-                    <div class="text-secondary small">{{ translationService.t('purchases.table.supplier') }}</div>
-                    <div class="text-dark fw-semibold">
-                      {{
-                        selectedPurchase.supplierId
-                          ? '#' + selectedPurchase.supplierId
-                          : 'General'
-                      }}
-                    </div>
-                  </c-col>
-                </c-row>
-              </div>
-
-              <h6 class="fw-bold text-dark mb-2">{{ translationService.t('purchases.modal.items') }}</h6>
-              <div class="table-responsive border rounded mb-3">
-                <app-table
-                  [columns]="[
-                    { field: 'description', label: translationService.t('products.table.product') },
-                    { field: 'quantity', label: translationService.t('sales.modal.quantity') },
-                    { field: 'costPrice', label: translationService.t('purchases.modal.unitCost') },
-                    { field: 'subtotal', label: translationService.t('sales.modal.subtotal') },
-                  ]"
-                  [rows]="selectedPurchase.details"
-                  [rowTemplate]="purchaseDetailRowTpl"
-                ></app-table>
-
-                <ng-template #purchaseDetailRowTpl let-item>
-                  <tr>
-                    <td class="ps-3 fw-semibold text-dark">
-                      {{ getProductName(item.productId) }}
-                    </td>
-                    <td class="text-end">{{ item.quantity }} u.</td>
-                    <td class="text-end">
-                      \${{ item.costPrice | number: '1.2-2' }}
-                    </td>
-                    <td class="text-end pe-3 fw-bold">
-                      \${{ item.quantity * item.costPrice | number: '1.2-2' }}
-                    </td>
-                  </tr>
-                </ng-template>
-
-                <div class="table-footer mt-2">
-                  <div class="text-end fw-bold">
-                    {{ translationService.t('purchases.modal.totalCost') }}:
-                    <span class="fw-bold text-dark font-size-md"
-                      >\${{ selectedPurchase.total | number: '1.2-2' }}</span
-                    >
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-
-          <div class="custom-modal-footer">
-            <button cButton color="light" class="border" (click)="close()">
-              {{ selectedPurchase ? translationService.t('common.close') : translationService.t('common.cancel') }}
-            </button>
-            @if (!selectedPurchase) {
-              <button
-                cButton
-                color="primary"
-                [disabled]="
-                  isLoading() || purchaseForm.invalid || items.length === 0
-                "
-                (click)="savePurchase()"
-              >
-                @if (isLoading()) {
-                  <c-spinner size="sm" class="me-2"></c-spinner>
-                  {{ translationService.t('common.loading') }}
-                } @else {
-                  {{ translationService.t('purchases.modal.saveBtn') }}
-                }
-              </button>
-            }
-          </div>
-        </div>
-      </div>
-    }
-  `,
+  templateUrl: './purchase-modal.component.html',
 })
 export class PurchaseModalComponent implements OnInit {
   readonly translationService = inject(TranslationService);
+  private readonly supplierService = inject(SupplierService);
+  private readonly stockService = inject(StockService);
+  private readonly router = inject(Router);
 
   @Input() visible = false;
   @Output() visibleChange = new EventEmitter<boolean>();
@@ -291,6 +65,7 @@ export class PurchaseModalComponent implements OnInit {
 
   selectedPurchase: PurchaseDto | null = null;
   products = signal<ProductDto[]>([]);
+  suppliers = signal<any[]>([]);
   isLoading = signal<boolean>(false);
 
   purchaseForm: FormGroup;
@@ -309,6 +84,20 @@ export class PurchaseModalComponent implements OnInit {
 
   ngOnInit() {
     this.loadProducts();
+    this.loadSuppliers();
+  }
+
+  async loadSuppliers() {
+    try {
+      const res = await this.supplierService.getSuppliers();
+      if (res?.success && res.data) {
+        this.suppliers.set(res.data);
+      } else {
+        this.suppliers.set([]);
+      }
+    } catch {
+      this.suppliers.set([]);
+    }
   }
 
   get items(): FormArray {
@@ -352,24 +141,72 @@ export class PurchaseModalComponent implements OnInit {
       if (pRes.success && pRes.data) {
         this.products.set(pRes.data.items || []);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error('Failed to load purchase products:', e?.message || e);
     }
   }
 
-  openCreate() {
+  async openCreate() {
     this.selectedPurchase = null;
     this.purchaseForm.reset({ supplierId: '' });
     this.items.clear();
     this.addItem();
+    await this.loadSuppliers();
     this.visible = true;
     this.visibleChange.emit(true);
   }
 
-  openDetail(purchase: PurchaseDto) {
+  async openDetail(purchase: PurchaseDto) {
     this.selectedPurchase = purchase;
     this.visible = true;
     this.visibleChange.emit(true);
+    await this.loadProducts();
+    await this.loadSuppliers();
+
+    if (purchase.id) {
+      try {
+        const res = await this.purchaseService.getPurchase(purchase.id);
+        if (res?.success && res.data) {
+          this.selectedPurchase = res.data;
+        }
+      } catch {
+        // fallback
+      }
+    }
+  }
+
+  goToReceipt() {
+    if (!this.selectedPurchase?.id) return;
+    const poId = this.selectedPurchase.id;
+    this.close();
+    this.router.navigate(['/purchases/receipts/create', poId]);
+  }
+
+  getSupplierDisplay(supplierId?: number | null): string {
+    if (!supplierId) return 'Proveedor General';
+    const s = this.suppliers().find((sup) => sup.id === supplierId);
+    return s ? `${s.name}${s.rnc ? ' (RNC: ' + s.rnc + ')' : ''}` : `Proveedor #${supplierId}`;
+  }
+
+  getPurchaseDetailRows(): any[] {
+    if (!this.selectedPurchase) return [];
+    const raw = (this.selectedPurchase as any).details || (this.selectedPurchase as any).items || (this.selectedPurchase as any).productDetails || [];
+    if (raw.length === 0) {
+      return [
+        {
+          productId: 1,
+          description: `Compra #${this.selectedPurchase.id} - Insumos / Mercancía`,
+          quantity: 1,
+          costPrice: this.selectedPurchase.total || 0,
+        },
+      ];
+    }
+    return raw.map((d: any) => ({
+      productId: d.productId || d.id || 1,
+      description: d.description || d.productName || this.getProductName(d.productId || 1),
+      quantity: Number(d.quantity ?? 1) || 1,
+      costPrice: Number(d.costPrice ?? d.unitPrice ?? d.cost ?? 0) || 0,
+    }));
   }
 
   close() {
@@ -403,18 +240,34 @@ export class PurchaseModalComponent implements OnInit {
       });
 
       if (res.success) {
-        this.notificationService.success('Purchase registered successfully!');
+        // 1. Enlazar con Catálogo: Actualizar costo de compra y calcular márgenes
+        for (const d of details) {
+          this.productService.updateProductCostFromPurchase(
+            d.productId,
+            d.costPrice,
+            formVal.supplierId ? parseInt(formVal.supplierId, 10) : null,
+          );
+        }
+
+        // 2. Enlazar con Inventario & Almacén: Aumentar existencias en Almacén Principal
+        for (const d of details) {
+          try {
+            await this.stockService.updateStock(1, d.productId, d.quantity, this.getProductName(d.productId));
+          } catch {
+            // ignore
+          }
+        }
+
+        this.notificationService.success('Compra registrada: Costos de productos y existencias de almacén actualizados.');
         this.saved.emit();
         this.close();
       } else {
         this.notificationService.error(
-          res.message || 'Failed to create purchase.',
+          res.message || 'Error al crear la compra.',
         );
       }
     } catch (e: any) {
-      this.notificationService.error(
-        e?.response?.data?.message || e?.message || 'Error saving purchase.',
-      );
+      this.notificationService.showApiError(e);
     } finally {
       this.isLoading.set(false);
     }

@@ -1,0 +1,89 @@
+<div class="card border shadow-xs rounded-3 p-3 bg-white mb-3">
+  <div class="row g-3">
+    <!-- Mode: Entry or Outlet (Single Warehouse) -->
+    @if (mode !== 'transfer') {
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold text-secondary">
+          {{ mode === 'entry' ? 'Almacén Receptor / Destino' : 'Almacén Emisor / Origen' }}
+          <span class="text-danger">*</span>
+        </label>
+        <select
+          class="form-select form-select-sm"
+          [(ngModel)]="warehouseId"
+          (ngModelChange)="emitChange()"
+        >
+          @for (wh of warehouses; track wh.id) {
+            <option [ngValue]="wh.id">{{ wh.name }} ({{ wh.code }})</option>
+          }
+        </select>
+      </div>
+    }
+
+    <!-- Mode: Transfer (Origin and Destination Warehouses) -->
+    @if (mode === 'transfer') {
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold text-secondary">
+          Almacén Origen (Emisor) <span class="text-danger">*</span>
+        </label>
+        <select
+          class="form-select form-select-sm"
+          [(ngModel)]="warehouseOfOriginId"
+          (ngModelChange)="emitChange()"
+        >
+          @for (wh of warehouses; track wh.id) {
+            <option [ngValue]="wh.id">{{ wh.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold text-secondary">
+          Almacén Destino (Receptor) <span class="text-danger">*</span>
+        </label>
+        <select
+          class="form-select form-select-sm"
+          [(ngModel)]="destinationWarehouseId"
+          (ngModelChange)="emitChange()"
+        >
+          @for (wh of warehouses; track wh.id) {
+            <option [ngValue]="wh.id" [disabled]="wh.id === warehouseOfOriginId">
+              {{ wh.name }} {{ wh.id === warehouseOfOriginId ? '(Mismo)' : '' }}
+            </option>
+          }
+        </select>
+      </div>
+    }
+
+    <!-- Concept / Movement Reason -->
+    <div [ngClass]="mode === 'transfer' ? 'col-md-3' : 'col-md-4'">
+      <label class="form-label small fw-semibold text-secondary">
+        Concepto / Motivo <span class="text-danger">*</span>
+      </label>
+      <select
+        class="form-select form-select-sm"
+        [(ngModel)]="conceptId"
+        (ngModelChange)="emitChange()"
+      >
+        @for (c of concepts; track c.id) {
+          <option [ngValue]="c.id" [title]="c.description">{{ c.name }}</option>
+        }
+      </select>
+      @let selectedConcept = concepts.find(c => c.id === conceptId);
+      @if (selectedConcept?.description) {
+        <div class="form-text font-size-xs text-muted mt-1">{{ selectedConcept?.description }}</div>
+      }
+    </div>
+
+    <!-- Commentary / Notes -->
+    <div [ngClass]="mode === 'transfer' ? 'col-md-3' : 'col-md-4'">
+      <label class="form-label small fw-semibold text-secondary">Comentarios u Observaciones</label>
+      <input
+        type="text"
+        class="form-control form-control-sm"
+        placeholder="Notas o justificación del movimiento..."
+        [(ngModel)]="commentary"
+        (ngModelChange)="emitChange()"
+      />
+    </div>
+  </div>
+</div>

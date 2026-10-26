@@ -1,0 +1,1056 @@
+// ----------------------------------------------------
+// Close Register Modal - Modern Financial / POS System
+// ----------------------------------------------------
+
+.close-register-container {
+  max-width: 760px;
+  width: 95%;
+  border-radius: 20px;
+  background: var(--cui-card-bg, #ffffff);
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.28);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+  animation: modal-pop 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-pop {
+  from {
+    transform: scale(0.96) translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+// ----------------------------------------------------
+// Header Elements
+// ----------------------------------------------------
+.close-icon-box {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+  transition: all 0.25s ease;
+
+  &.is-audit {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    color: #10b981;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  }
+}
+
+.modal-title-text {
+  font-size: 1.15rem;
+  letter-spacing: -0.015em;
+  color: var(--cui-body-color, #1e293b);
+}
+
+.badge-blind-audit {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-close-custom {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(148, 163, 184, 0.12);
+    color: #334155;
+    transform: rotate(90deg);
+  }
+}
+
+// ----------------------------------------------------
+// 1. Session Info Strip
+// ----------------------------------------------------
+.session-info-strip {
+  background: var(--cui-tertiary-bg, #f8fafc);
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+}
+
+.session-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--cui-body-color, #1e293b);
+  background: var(--cui-card-bg, #ffffff);
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+
+  svg {
+    color: #3b82f6;
+  }
+}
+
+.cashier-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(148, 163, 184, 0.1);
+  padding: 0.25rem 0.65rem 0.25rem 0.35rem;
+  border-radius: 20px;
+
+  .cashier-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #252b46;
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cashier-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--cui-body-color, #475569);
+  }
+}
+
+.btn-supervisor-toggle {
+  background: transparent;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(100, 116, 139, 0.08);
+    border-color: #94a3b8;
+    color: #334155;
+  }
+
+  &.active {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #d97706;
+  }
+}
+
+.supervisor-peek-alert {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 0.6rem 0.85rem;
+  animation: fadeIn 0.2s ease;
+
+  .peek-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #92400e;
+  }
+
+  .peek-value {
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #b45309;
+  }
+
+  .peek-notice {
+    font-size: 0.68rem;
+    color: #b45309;
+    display: block;
+    margin-top: 0.15rem;
+  }
+}
+
+// ----------------------------------------------------
+// 2. Hero Amount Input Card
+// ----------------------------------------------------
+.hero-amount-card {
+  background: linear-gradient(145deg, var(--cui-card-bg, #ffffff) 0%, var(--cui-tertiary-bg, #f8fafc) 100%);
+  border: 1.5px solid var(--cui-border-color, #e2e8f0);
+  border-radius: 16px;
+  padding: 1.1rem 1.25rem;
+  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.04);
+}
+
+.amount-hero-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--cui-body-color, #1e293b);
+
+  &.required-label::after {
+    content: ' *';
+    color: #ef4444;
+  }
+}
+
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  border: 1px solid #a7f3d0;
+  animation: fadeIn 0.2s ease;
+}
+
+.hero-input-container {
+  display: flex;
+  align-items: center;
+  background: var(--cui-card-bg, #ffffff);
+  border: 2px solid #cbd5e1;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+
+  &:focus-within {
+    border-color: #252b46;
+    box-shadow: 0 0 0 4px rgba(37, 43, 70, 0.12);
+  }
+
+  .hero-currency-tag {
+    background: #f1f5f9;
+    color: #334155;
+    font-size: 1.15rem;
+    font-weight: 800;
+    padding: 0.75rem 1.1rem;
+    border-right: 1.5px solid #e2e8f0;
+    user-select: none;
+  }
+
+  .hero-money-input {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--cui-body-color, #0f172a);
+    padding: 0.6rem 1rem;
+    background: transparent;
+    letter-spacing: -0.02em;
+
+    &::placeholder {
+      color: #94a3b8;
+      font-weight: 600;
+    }
+  }
+}
+
+.hero-hint-text {
+  font-size: 0.74rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.btn-clear-count {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #fef2f2;
+    text-decoration: underline;
+  }
+}
+
+// ----------------------------------------------------
+// 3. Denominations Accordion & Grid
+// ----------------------------------------------------
+.denominations-panel {
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--cui-card-bg, #ffffff);
+}
+
+.denominations-header {
+  padding: 0.85rem 1.1rem;
+  background: var(--cui-tertiary-bg, #f8fafc);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+
+  .denom-header-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #e0e7ff;
+    color: #4f46e5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .denom-header-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--cui-body-color, #1e293b);
+    display: block;
+  }
+
+  .denom-header-subtitle {
+    font-size: 0.72rem;
+    color: #64748b;
+    display: block;
+  }
+}
+
+.denom-sum-chip {
+  background: #252b46;
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  letter-spacing: -0.01em;
+}
+
+.btn-toggle-accordion {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+
+  .chevron-icon {
+    transition: transform 0.25s ease;
+
+    &.rotate-180 {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.denominations-body {
+  padding: 1rem 1.1rem;
+  border-top: 1px solid var(--cui-border-color, #e2e8f0);
+  background: var(--cui-card-bg, #ffffff);
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-bottom: 0.45rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1.5px solid #e2e8f0;
+
+  .category-subtotal {
+    font-weight: 800;
+    color: #252b46;
+    font-size: 0.82rem;
+  }
+}
+
+.denom-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.denom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 10px;
+  background: var(--cui-tertiary-bg, #f8fafc);
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+  }
+
+  &.has-qty {
+    background: rgba(37, 43, 70, 0.04);
+    border-color: rgba(37, 43, 70, 0.2);
+  }
+}
+
+// Dominican Bill Badges with authentic accents
+.denom-badge-wrap {
+  width: 96px;
+  flex-shrink: 0;
+}
+
+.denom-badge {
+  display: inline-block;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  white-space: nowrap;
+
+  &.bill-badge {
+    border: 1px solid transparent;
+
+    &[data-value="2000"] {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-color: #bfdbfe;
+    }
+    &[data-value="1000"] {
+      background: #fef2f2;
+      color: #b91c1c;
+      border-color: #fecaca;
+    }
+    &[data-value="500"] {
+      background: #ecfeff;
+      color: #0e7490;
+      border-color: #a5f3fc;
+    }
+    &[data-value="200"] {
+      background: #fff7ed;
+      color: #c2410c;
+      border-color: #fed7aa;
+    }
+    &[data-value="100"] {
+      background: #f5f3ff;
+      color: #6d28d9;
+      border-color: #ddd6fe;
+    }
+    &[data-value="50"] {
+      background: #ecfdf5;
+      color: #047857;
+      border-color: #a7f3d0;
+    }
+  }
+
+  &.coin-badge {
+    border-radius: 12px;
+    font-weight: 700;
+
+    &[data-value="25"] {
+      background: #fffbeb;
+      color: #b45309;
+      border: 1px solid #fcd34d;
+    }
+    &[data-value="10"] {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    &[data-value="5"] {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+    &[data-value="1"] {
+      background: #f8fafc;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+    }
+  }
+}
+
+// Stepper controls
+.denom-stepper {
+  display: flex;
+  align-items: center;
+  background: var(--cui-card-bg, #ffffff);
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  overflow: hidden;
+
+  .stepper-btn {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.12s ease;
+
+    &:hover:not(:disabled) {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    &:disabled {
+      color: #cbd5e1;
+      cursor: not-allowed;
+    }
+  }
+
+  .stepper-input {
+    width: 44px;
+    height: 26px;
+    text-align: center;
+    border: none;
+    border-left: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+    outline: none;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--cui-body-color, #1e293b);
+    padding: 0;
+    background: transparent;
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+}
+
+.denom-subtotal {
+  text-align: right;
+  min-width: 80px;
+
+  .subtotal-val {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #94a3b8;
+    transition: all 0.15s ease;
+
+    &.highlight {
+      font-weight: 800;
+      color: var(--cui-body-color, #0f172a);
+    }
+  }
+}
+
+.denom-summary-card {
+  background: var(--cui-tertiary-bg, #f8fafc);
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+  border-radius: 12px;
+  padding: 0.85rem;
+
+  .summary-divider {
+    height: 1px;
+    background: var(--cui-border-color, #e2e8f0);
+    margin: 0.25rem 0;
+  }
+
+  .summary-grand-total {
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+  }
+}
+
+// ----------------------------------------------------
+// 4. Notes Section
+// ----------------------------------------------------
+.notes-section {
+  .notes-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--cui-body-color, #475569);
+    margin-bottom: 0.35rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .notes-input {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid var(--cui-border-color, #cbd5e1);
+    background: var(--cui-card-bg, #ffffff);
+    color: var(--cui-body-color, #1e293b);
+    font-size: 0.82rem;
+    padding: 0.55rem 0.85rem;
+    transition: all 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: #252b46;
+      box-shadow: 0 0 0 3px rgba(37, 43, 70, 0.08);
+    }
+
+    &::placeholder {
+      color: #94a3b8;
+      font-size: 0.78rem;
+    }
+  }
+}
+
+// ----------------------------------------------------
+// 4b. Reglas Financieras / SaaS (Lote, Destino, Warning)
+// ----------------------------------------------------
+.zero-warning-banner {
+  animation: fadeIn 0.25s ease;
+  border-left: 4px solid #ef4444 !important;
+}
+
+.electronic-payments-card,
+.cash-destination-card {
+  background: var(--cui-tertiary-bg, #f8fafc);
+  border-color: var(--cui-border-color, #e2e8f0) !important;
+  transition: all 0.2s ease;
+}
+
+.icon-bubble {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &.electronic-icon {
+    background: #e0f2fe;
+    color: #0284c7;
+  }
+
+  &.destination-icon {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+}
+
+.pending-operations-card {
+  border-left: 4px solid #dc2626 !important;
+  animation: fadeIn 0.25s ease;
+}
+
+// ----------------------------------------------------
+// 5. Post-Close Audit Result Screen
+// ----------------------------------------------------
+.audit-result-wrapper {
+  animation: fadeIn 0.3s ease;
+}
+
+.audit-status-hero {
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 1rem;
+
+  .hero-icon-circle {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &.exact {
+      background: #10b981;
+      color: #ffffff;
+      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+    }
+
+    &.shortage {
+      background: #ef4444;
+      color: #ffffff;
+      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
+    }
+
+    &.surplus {
+      background: #3b82f6;
+      color: #ffffff;
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+    }
+  }
+
+  &.status-exact {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 1px solid #a7f3d0;
+  }
+
+  &.status-shortage {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 1px solid #fecaca;
+  }
+
+  &.status-surplus {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 1px solid #bfdbfe;
+  }
+}
+
+.audit-metric-card {
+  background: var(--cui-card-bg, #ffffff);
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+  border-radius: 14px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+
+  .metric-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+  }
+
+  .metric-value {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+
+    .currency-symbol {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #94a3b8;
+    }
+  }
+
+  .metric-hint {
+    font-size: 0.68rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+  }
+
+  &.highlight-card {
+    border-color: #cbd5e1;
+    background: linear-gradient(180deg, var(--cui-card-bg, #ffffff) 0%, #f8fafc 100%);
+  }
+
+  &.diff-card {
+    &.diff-exact {
+      background: #f0fdf4;
+      border-color: #86efac;
+      .metric-value {
+        color: #15803d;
+      }
+    }
+    &.diff-shortage {
+      background: #fef2f2;
+      border-color: #fca5a5;
+      .metric-value {
+        color: #b91c1c;
+      }
+    }
+    &.diff-surplus {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      .metric-value {
+        color: #1d4ed8;
+      }
+    }
+  }
+}
+
+.audit-details-card {
+  background: var(--cui-tertiary-bg, #f8fafc);
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+
+// ----------------------------------------------------
+// 6. Action Buttons in Footer
+// ----------------------------------------------------
+.btn-cancel-modal {
+  background: transparent;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #94a3b8;
+  }
+}
+
+.btn-confirm-close {
+  background: linear-gradient(135deg, #252b46 0%, #171b2d 100%);
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1.45rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 43, 70, 0.28);
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(37, 43, 70, 0.38);
+    background: linear-gradient(135deg, #2d3554 0%, #1e2338 100%);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+.btn-finish-audit {
+  background: #10b981;
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1.75rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.28);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.36);
+  }
+}
+
+// ----------------------------------------------------
+// Dark Theme Overrides
+// ----------------------------------------------------
+[data-coreui-theme="dark"] {
+  .close-register-container {
+    background: #0f172a;
+    border-color: #1e293b;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6);
+  }
+
+  .badge-blind-audit {
+    background: #1e293b;
+    color: #94a3b8;
+    border-color: #334155;
+  }
+
+  .session-info-strip {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .session-badge {
+    background: #0f172a;
+    border-color: #334155;
+  }
+
+  .cashier-pill {
+    background: rgba(255, 255, 255, 0.05);
+
+    .cashier-avatar {
+      background: #38bdf8;
+      color: #0f172a;
+    }
+  }
+
+  .hero-amount-card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .hero-input-container {
+    background: #0f172a;
+    border-color: #475569;
+
+    .hero-currency-tag {
+      background: #1e293b;
+      color: #94a3b8;
+      border-right-color: #334155;
+    }
+
+    .hero-money-input {
+      color: #f8fafc;
+    }
+  }
+
+  .denominations-panel {
+    border-color: #334155;
+    background: #0f172a;
+  }
+
+  .denominations-header {
+    background: #1e293b;
+
+    &:hover {
+      background: #243048;
+    }
+  }
+
+  .denominations-body {
+    background: #0f172a;
+    border-top-color: #334155;
+  }
+
+  .denom-row {
+    background: #1e293b;
+
+    &:hover {
+      background: #243048;
+    }
+
+    &.has-qty {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+  }
+
+  .denom-stepper {
+    background: #0f172a;
+    border-color: #334155;
+
+    .stepper-btn {
+      color: #94a3b8;
+      &:hover:not(:disabled) {
+        background: #334155;
+        color: #f8fafc;
+      }
+    }
+
+    .stepper-input {
+      border-color: #334155;
+      color: #f8fafc;
+    }
+  }
+
+  .denom-summary-card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .notes-input {
+    background: #0f172a;
+    border-color: #334155;
+    color: #f8fafc;
+  }
+
+  .audit-metric-card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .electronic-payments-card,
+  .cash-destination-card {
+    background: #1e293b;
+    border-color: #334155 !important;
+  }
+
+  .icon-bubble.electronic-icon {
+    background: rgba(2, 132, 199, 0.2);
+    color: #38bdf8;
+  }
+
+  .icon-bubble.destination-icon {
+    background: rgba(22, 163, 74, 0.2);
+    color: #4ade80;
+  }
+
+  .audit-details-card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .btn-cancel-modal {
+    border-color: #475569;
+    color: #cbd5e1;
+
+    &:hover {
+      background: #1e293b;
+      color: #ffffff;
+    }
+  }
+
+  .btn-confirm-close {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+    }
+  }
+}
+
+// Fade in utility
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

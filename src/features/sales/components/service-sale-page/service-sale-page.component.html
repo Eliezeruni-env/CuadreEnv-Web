@@ -1,0 +1,261 @@
+<div class="container-fluid py-3 service-sale-page-container">
+  <!-- Top Bar Navigation -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
+    <div class="d-flex align-items-center gap-3">
+      <a [routerLink]="['/sales']" class="btn btn-outline-secondary d-flex align-items-center gap-1 px-3 shadow-xs">
+        <svg cIcon name="cilArrowLeft" style="width: 16px; height: 16px;"></svg>
+        <span>Volver a Ventas</span>
+      </a>
+      <div>
+        <h4 class="fw-bold mb-0 text-dark">Venta de Servicios & Mano de Obra</h4>
+        <small class="text-secondary">Facturación de servicios profesionales, asesorías, reparaciones y mano de obra (sin control de stock físico)</small>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-info-subtle text-info border px-3 py-2 fs-6 rounded-pill d-flex align-items-center gap-2">
+        <svg cIcon name="cilWrench" style="width: 16px; height: 16px;"></svg>
+        <span>Módulo de Servicios</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-8 col-xl-8 d-flex flex-column gap-3">
+      <div class="card border rounded-4 shadow-sm bg-white p-3">
+        <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+          <span class="badge bg-info rounded-circle px-2">1</span>
+          <span>Cliente y Condiciones de Cobro</span>
+        </h6>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold text-secondary mb-1">Cliente *</label>
+            <select class="form-select form-select-lg border" [value]="selectedCustomerId ?? ''" (change)="onCustomerChange($event)">
+              <option value="">Consumidor Final (General / Sin RNC)</option>
+              @for (c of customers(); track c.id) {
+                <option [value]="c.id">{{ c.name }} {{ c.identification ? '(' + c.identification + ')' : '' }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold text-secondary mb-1">Modalidad de Cobro *</label>
+            <div class="btn-group w-100" role="group" style="height: 48px;">
+              <button
+                type="button"
+                class="btn fw-semibold"
+                [class.btn-success]="paymentMode === 'CASH'"
+                [class.btn-outline-secondary]="paymentMode !== 'CASH'"
+                (click)="setPaymentMode('CASH')"
+              >
+                Contado (Caja)
+              </button>
+              <button
+                type="button"
+                class="btn fw-semibold"
+                [class.btn-primary]="paymentMode === 'CREDIT'"
+                [class.btn-outline-secondary]="paymentMode !== 'CREDIT'"
+                (click)="setPaymentMode('CREDIT')"
+              >
+                A Crédito (Cobros)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        @if (paymentMode === 'CREDIT') {
+          <div class="alert alert-primary p-3 mt-3 mb-0 rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+              <span class="fw-semibold d-block">Facturación a Crédito:</span>
+              <small class="text-secondary">Se generará automáticamente una cuenta por cobrar en el módulo de Cobros.</small>
+            </div>
+            <div style="max-width: 200px;">
+              <label class="small text-secondary fw-semibold mb-1">Fecha límite de pago</label>
+              <input type="date" class="form-control" [(ngModel)]="dueDate" />
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Step 2: Servicios a Facturar -->
+      <div class="card border rounded-4 shadow-sm bg-white p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+            <span class="badge bg-info rounded-circle px-2">2</span>
+            <span>Servicios a Facturar</span>
+          </h6>
+          <a
+            routerLink="/services"
+            class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 shadow-xs px-3"
+            title="Ir al Catálogo de Servicios"
+          >
+            <svg cIcon name="cilBriefcase" style="width: 14px; height: 14px;"></svg>
+            <span>Catálogo de Servicios</span>
+          </a>
+        </div>
+
+        <!-- Add existing service from catalog -->
+        <div class="row g-2 align-items-end mb-3">
+          <div class="col-md-8">
+            <label class="form-label small fw-semibold text-secondary mb-1">Seleccionar servicio del catálogo</label>
+            <select class="form-select" [(ngModel)]="selectedServiceId">
+              <option [ngValue]="null">-- Elige un servicio del catálogo --</option>
+              @for (s of servicesList(); track s.id) {
+                <option [ngValue]="s.id">
+                  {{ s.code }} — {{ s.description }} (RD$ {{ s.price | number:'1.2-2' }})
+                </option>
+              }
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-semibold text-secondary mb-1">Cant.</label>
+            <input type="number" min="1" class="form-control text-center font-monospace" [(ngModel)]="serviceQuantity" />
+          </div>
+          <div class="col-md-2">
+            <button
+              type="button"
+              class="btn btn-secondary w-100 fw-semibold"
+              [disabled]="!selectedServiceId"
+              (click)="addSelectedService()"
+            >
+              + Agregar
+            </button>
+          </div>
+        </div>
+
+        <!-- Table of Added Services -->
+        <div class="table-responsive border rounded-3 mb-0">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light font-size-xs text-uppercase text-secondary">
+              <tr>
+                <th class="ps-3">Código</th>
+                <th>Servicio</th>
+                <th class="text-end" style="width: 140px;">Precio Unit. (RD$)</th>
+                <th class="text-center" style="width: 120px;">Cantidad</th>
+                <th class="text-end" style="width: 130px;">Subtotal (RD$)</th>
+                <th style="width: 44px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of cart; track item.serviceId; let i = $index) {
+                <tr>
+                  <td class="ps-3">
+                    <span class="badge bg-primary-subtle text-primary font-monospace">{{ item.serviceCode }}</span>
+                  </td>
+                  <td class="fw-semibold text-dark">{{ item.serviceName }}</td>
+                  <td class="text-end font-monospace">
+                    <input
+                      type="number"
+                      min="0"
+                      step="50"
+                      class="form-control form-control-sm text-end font-monospace d-inline-block"
+                      style="width: 110px;"
+                      [ngModel]="item.unitPrice"
+                      (ngModelChange)="updateItemPrice(i, $event)"
+                    />
+                  </td>
+                  <td class="text-center">
+                    <div class="d-inline-flex align-items-center border rounded-2 bg-light">
+                      <button type="button" class="btn btn-sm btn-link text-secondary px-2 py-0" (click)="updateQuantity(i, -1)">-</button>
+                      <span class="px-2 font-monospace fw-bold">{{ item.quantity }}</span>
+                      <button type="button" class="btn btn-sm btn-link text-secondary px-2 py-0" (click)="updateQuantity(i, 1)">+</button>
+                    </div>
+                  </td>
+                  <td class="text-end font-monospace fw-bold text-dark">
+                    RD$ {{ (item.quantity * item.unitPrice) | number:'1.2-2' }}
+                  </td>
+                  <td class="text-center pe-2">
+                    <button type="button" class="btn btn-sm text-danger border-0 p-0" (click)="removeCartItem(i)" title="Eliminar servicio">
+                      <svg cIcon name="cilTrash" style="width: 16px; height: 16px;"></svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+              @if (cart.length === 0) {
+                <tr>
+                  <td colspan="6" class="text-center py-5 text-secondary">
+                    <svg cIcon name="cilBriefcase" style="width: 36px; height: 36px;" class="mb-2 opacity-50"></svg>
+                    <p class="mb-0 fw-semibold text-dark">No hay servicios agregados</p>
+                    <small class="text-muted">Selecciona un servicio arriba o agrégalo desde el Catálogo de Servicios para facturarlo.</small>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDE: Notes & Summary (Col-lg-4) -->
+    <div class="col-lg-4 col-xl-4">
+      <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 d-flex flex-column justify-content-between">
+        <div>
+          <!-- Notas / Alcance del Servicio -->
+          <h6 class="fw-bold text-dark mb-2">Notas del Servicio</h6>
+          <p class="text-secondary small mb-2">Detalles, garantía o especificaciones que saldrán en la factura:</p>
+          <textarea
+            class="form-control mb-3"
+            rows="4"
+            placeholder="Ej. Servicio realizado en el local del cliente. Incluye 30 días de garantía sobre la mano de obra instalada."
+            [(ngModel)]="serviceNotes"
+          ></textarea>
+
+          <hr class="my-3" />
+
+          <!-- Resumen Numérico -->
+          <h6 class="fw-bold text-dark mb-3">Liquidación de la Factura</h6>
+
+          <div class="d-flex justify-content-between align-items-center mb-2 small text-secondary">
+            <span>Subtotal Servicios:</span>
+            <span class="font-monospace text-dark fw-semibold">RD$ {{ subtotal | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mb-3 small text-secondary">
+            <div class="form-check form-switch m-0">
+              <input class="form-check-input" type="checkbox" id="itbisSwitch" [(ngModel)]="applyItbis" />
+              <label class="form-check-label" for="itbisSwitch">Aplicar ITBIS (18%)</label>
+            </div>
+            <span class="font-monospace text-dark">RD$ {{ itbisAmount | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="p-3 bg-light rounded-3 border mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-bold fs-5 text-dark">Total a Cobrar:</span>
+              <span class="font-monospace fw-bold fs-3 text-primary">
+                RD$ {{ totalAmount | number:'1.2-2' }}
+              </span>
+            </div>
+            <small class="text-secondary d-block mt-1">
+              Modalidad: <strong>{{ paymentMode === 'CASH' ? 'Contado (Caja)' : 'A Crédito (' + dueDate + ')' }}</strong>
+            </small>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <button
+          type="button"
+          class="btn btn-primary btn-lg w-100 py-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
+          [disabled]="isSubmitting || cart.length === 0"
+          (click)="submitServiceSale()"
+        >
+          @if (isSubmitting) {
+            <c-spinner size="sm" class="me-1"></c-spinner>
+            <span>Generando factura...</span>
+          } @else {
+            <svg cIcon name="cilCheck" style="width: 20px; height: 20px;"></svg>
+            <span>Facturar Servicio RD$ {{ totalAmount | number:'1.2-2' }}</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt Modal Upon Completion -->
+<app-sale-completed-modal
+  [(visible)]="isSaleCompletedModalOpen"
+  [saleData]="lastCompletedSale"
+  (newSaleRequested)="isSaleCompletedModalOpen = false; cart = []; serviceNotes = ''"
+  (closed)="onReceiptClosed()"
+></app-sale-completed-modal>

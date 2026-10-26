@@ -1,4 +1,5 @@
 /* You can add global styles to this file, and also import other style files */
+@use "../styles/design-tokens.css";
 
 // Import styles with default layout.
 @use "@coreui/coreui/scss/coreui" as * with ($enable-deprecation-messages: false);
@@ -93,5 +94,331 @@
   .table-responsive .mobile-actions .mobile-actions-menu button {
     width: 100%;
     text-align: left;
+  }
+}
+
+// Global Print Isolation Stylesheet
+@media print {
+  @page {
+    margin: 5mm;
+    size: auto;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Completely hide application layout, sidebars, headers, footers, toasts, dialog action buttons, pagination, filters */
+  c-sidebar,
+  .sidebar,
+  c-header,
+  .header,
+  c-footer,
+  .footer,
+  .modal-top-bar,
+  .custom-modal-footer,
+  .modal-footer,
+  .btn,
+  .btn-close,
+  .toaster-container,
+  .toast,
+  c-toaster,
+  .filter-panel,
+  .filter-toolbar-card,
+  .search-input-wrapper,
+  .pagination-container,
+  kt-paginator,
+  app-list-pagination,
+  .no-print,
+  .d-print-none {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Make ONLY the active printable document sheet visible */
+  body * {
+    visibility: hidden;
+  }
+
+  #invoicePrintArea,
+  #invoicePrintArea *,
+  #billingPrintArea,
+  #billingPrintArea *,
+  #entryVoucherPrint,
+  #entryVoucherPrint *,
+  #outletVoucherPrint,
+  #outletVoucherPrint *,
+  #transferVoucherPrint,
+  #transferVoucherPrint *,
+  #cashReceiptPrintArea,
+  #cashReceiptPrintArea *,
+  .printable-sheet,
+  .printable-sheet * {
+    visibility: visible !important;
+  }
+
+  #invoicePrintArea,
+  #billingPrintArea,
+  #entryVoucherPrint,
+  #outletVoucherPrint,
+  #transferVoucherPrint,
+  #cashReceiptPrintArea,
+  .printable-sheet {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .custom-modal-backdrop {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    inset: auto !important;
+  }
+
+  .custom-modal-content,
+  .completed-modal-container,
+  .invoice-modal-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+  }
+}
+
+// -------------------------------------------------------------
+// CuadreEnv Global Master-Detail & Unified Table System
+// -------------------------------------------------------------
+:root {
+  --cuadre-dark: #1e2237;
+  --cuadre-red: #c0263f;
+  --cuadre-red-hover: #a51d34;
+  --cuadre-slate: #64748b;
+  --cuadre-bg-subtle: #f8fafc;
+  --cuadre-border: #e2e8f0;
+}
+
+.bg-cuadre-dark {
+  background-color: var(--cuadre-dark) !important;
+}
+
+.text-cuadre-red {
+  color: var(--cuadre-red) !important;
+}
+
+.bg-cuadre-red {
+  background-color: var(--cuadre-red) !important;
+}
+
+.btn-primary-custom,
+.btn-cuadre-primary {
+  background: #252b46 !important;
+  border-color: #252b46 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  transition: all 0.2s ease;
+
+  &:hover, &:focus, &:active {
+    background: #6b7785 !important;
+    border-color: #6b7785 !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 43, 70, 0.25) !important;
+  }
+}
+
+// Global Breadcrumb Color Scheme: Normal #252b46, Hover #6b7785
+.breadcrumb,
+.breadcrumb-item,
+c-breadcrumb-router {
+  a,
+  .breadcrumb-item a {
+    color: #252b46 !important;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.15s ease-in-out;
+
+    &:hover {
+      color: #6b7785 !important;
+      text-decoration: underline;
+    }
+  }
+
+  .breadcrumb-item.active {
+    color: #6b7785;
+    font-weight: 500;
+  }
+}
+
+.btn-cuadre-red {
+  background-color: var(--cuadre-red) !important;
+  border-color: var(--cuadre-red) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: var(--cuadre-red-hover) !important;
+    border-color: var(--cuadre-red-hover) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(192, 38, 63, 0.25) !important;
+  }
+}
+
+.filter-toolbar-card {
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid var(--cuadre-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.master-detail-table {
+  thead {
+    th {
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      color: #64748b;
+      background-color: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 0.75rem 1rem;
+    }
+  }
+
+  tbody {
+    tr.master-row {
+      transition: background-color 0.15s ease;
+      cursor: pointer;
+
+      &:hover {
+        background-color: #f8fafc;
+      }
+
+      &.table-active {
+        background-color: #f1f5f9;
+      }
+
+      td {
+        padding: 0.85rem 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+      }
+    }
+  }
+}
+
+.expand-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #475569;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #e2e8f0;
+    color: #0f172a;
+  }
+
+  &.expanded {
+    background-color: #1e2237;
+    color: #ffffff;
+    border-color: #1e2237;
+  }
+}
+
+.detail-row {
+  background-color: #f8fafc !important;
+  animation: fadeInDetail 0.2s ease-in-out;
+
+  > td {
+    padding: 1rem 1.25rem !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+  }
+}
+
+@keyframes fadeInDetail {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.action-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+
+  .btn-action-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    font-size: 0.85rem;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      border-color: #cbd5e1;
+    }
+
+    &.btn-action-view:hover {
+      color: #1e2237;
+      border-color: #1e2237;
+      background-color: #f1f5f9;
+    }
+
+    &.btn-action-print:hover {
+      color: #0284c7;
+      border-color: #0284c7;
+      background-color: #e0f2fe;
+    }
+
+    &.btn-action-edit:hover {
+      color: #d97706;
+      border-color: #d97706;
+      background-color: #fef3c7;
+    }
+
+    &.btn-action-delete:hover,
+    &.btn-action-void:hover {
+      color: var(--cuadre-red);
+      border-color: var(--cuadre-red);
+      background-color: #fef2f2;
+    }
   }
 }

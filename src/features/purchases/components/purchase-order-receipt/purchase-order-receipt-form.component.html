@@ -1,0 +1,291 @@
+<div class="container-fluid py-3">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+      <h3 class="fw-bold text-dark mb-1">Recepción de Mercancía en Almacén</h3>
+      <p class="text-secondary small mb-0">Conteo físico, verificación contra Orden de Compra y control de discrepancias</p>
+    </div>
+    <button type="button" class="btn btn-light border" (click)="cancel()">
+      Volver al Listado
+    </button>
+  </div>
+
+  <!-- Stepper Indicator -->
+  <div class="card border-0 shadow-sm rounded-4 p-3 bg-white mb-4">
+    <div class="d-flex justify-content-around align-items-center text-center">
+      <div class="step-badge-box" [class.active-step]="currentStep() === 1" [class.completed-step]="currentStep() > 1">
+        <div class="step-circle mb-1">1</div>
+        <div class="step-label small fw-semibold">1. Buscar Orden</div>
+      </div>
+      <div class="step-connector" [class.active-connector]="currentStep() > 1"></div>
+      <div class="step-badge-box" [class.active-step]="currentStep() === 2" [class.completed-step]="currentStep() > 2">
+        <div class="step-circle mb-1">2</div>
+        <div class="step-label small fw-semibold">2. Conteo Físico</div>
+      </div>
+      <div class="step-connector" [class.active-connector]="currentStep() > 2"></div>
+      <div class="step-badge-box" [class.active-step]="currentStep() === 3">
+        <div class="step-circle mb-1">3</div>
+        <div class="step-label small fw-semibold">3. Confirmación</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 1: Select or Search Order -->
+  @if (currentStep() === 1) {
+    <!-- Explanation Banner -->
+    <div class="card border-0 rounded-4 bg-primary-subtle text-primary-emphasis p-3 mb-4 shadow-xs">
+      <div class="d-flex align-items-start gap-3">
+        <div class="p-2 bg-white rounded-circle text-primary shadow-xs">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+        </div>
+        <div>
+          <h6 class="fw-bold mb-1 text-dark">¿Cómo funciona la Recepción de Mercancía?</h6>
+          <p class="small mb-0 text-secondary">
+            Una <strong>Orden de Compra</strong> representa el pedido acordado con el proveedor. En este módulo, el personal de almacén realiza el <strong>conteo físico real</strong> de los productos al momento de recibirlos del camión o transportista.
+            Al confirmar la recepción, el inventario del almacén seleccionado <strong>se incrementa de inmediato</strong>. Si el conteo coincide exactamente, se completa la orden; si hay variaciones (sobrantes o faltantes), se envía a la <strong>Bandeja de Aprobaciones</strong> para auditoría de un supervisor.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Available Orders List -->
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0">Órdenes de Compra Pendientes de Recepción</h5>
+            <span class="badge bg-primary rounded-pill px-3">{{ availableOrders().length }} pendientes</span>
+          </div>
+
+          @if (availableOrders().length === 0) {
+            <div class="py-5 text-center text-muted">
+              <p class="mb-2">No hay órdenes de compra pendientes de recibir en este momento.</p>
+              <button class="btn btn-outline-primary btn-sm px-3" routerLink="/purchases">
+                Ver Módulo de Compras
+              </button>
+            </div>
+          } @else {
+            <div class="d-flex flex-column gap-2" style="max-height: 480px; overflow-y: auto;">
+              @for (order of availableOrders(); track order.id) {
+                <div class="card border rounded-3 p-3 bg-light hover-shadow transition">
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                      <div class="d-flex align-items-center gap-2 mb-1">
+                        <strong class="font-monospace text-primary fs-6">{{ order.orderNumber }}</strong>
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                          {{ order.statusName }}
+                        </span>
+                      </div>
+                      <div class="fw-semibold text-dark">{{ order.supplierName }}</div>
+                      <div class="text-secondary small">
+                        Fecha: {{ order.orderDate | date:'dd/MM/yyyy' }} · {{ (order.productDetails || []).length }} productos en la orden
+                      </div>
+                    </div>
+
+                    <div class="text-end d-flex flex-column align-items-end gap-1">
+                      <div class="font-monospace fw-bold text-dark fs-6">
+                        RD$ {{ order.total | number:'1.2-2' }}
+                      </div>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-primary fw-semibold px-3 shadow-xs"
+                        (click)="selectOrderDirectly(order)"
+                      >
+                        📥 Iniciar Conteo Físico →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Search Box Sidebar -->
+      <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+          <h5 class="fw-bold text-dark mb-2">Búsqueda Directa</h5>
+          <p class="text-secondary small mb-3">Si tienes el comprobante o número impreso, ingrésalo o escanéalo aquí:</p>
+
+          <div class="input-group mb-3">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Ej: OC-000101 o 101"
+              [(ngModel)]="searchPoNumber"
+              (keydown.enter)="searchOrder()"
+            />
+            <button
+              type="button"
+              class="btn btn-primary fw-semibold px-3"
+              [disabled]="isSearching() || !searchPoNumber.trim()"
+              (click)="searchOrder()"
+            >
+              @if (isSearching()) {
+                <span class="spinner-border spinner-border-sm"></span>
+              } @else {
+                Buscar
+              }
+            </button>
+          </div>
+
+          <div class="p-3 bg-light rounded-3 border small text-secondary mt-auto">
+            <strong class="text-dark d-block mb-1">Consejo Operativo:</strong>
+            El personal de almacén no necesita saber códigos contables: únicamente selecciona la orden pendiente que está descargando el camión e introduce las unidades físicas contadas.
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Step 2: Physical Count -->
+  @if (currentStep() === 2 && selectedOrder) {
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+      <!-- Order Info Banner -->
+      <div class="row g-3 p-3 bg-light rounded-3 border mb-4 align-items-center">
+        <div class="col-md-3">
+          <span class="text-secondary small d-block">Orden de Compra:</span>
+          <strong class="font-monospace fs-6 text-primary">{{ selectedOrder.orderNumber }}</strong>
+        </div>
+        <div class="col-md-4">
+          <span class="text-secondary small d-block">Suplidor / Proveedor:</span>
+          <strong class="text-dark">{{ selectedOrder.supplierName }}</strong>
+          <span class="text-muted small d-block">RNC: {{ selectedOrder.supplierRnc || '-' }}</span>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold text-secondary mb-1">Almacén Receptor:</label>
+          <select class="form-select form-select-sm" [(ngModel)]="selectedWarehouseId">
+            @for (w of warehouses; track w.id) {
+              <option [ngValue]="w.id">{{ w.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-2 text-end">
+          <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+            {{ selectedOrder.statusName }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Physical Counting Grid -->
+      <h6 class="fw-bold text-dark mb-3">Conteo Físico de Productos Recibidos:</h6>
+      <div class="table-responsive border rounded-3 mb-4">
+        <table class="table table-hover align-middle mb-0 small">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Producto</th>
+              <th>Código</th>
+              <th class="text-center" style="width: 130px;">Cant. Ordenada</th>
+              <th class="text-center" style="width: 150px;">Cant. Recibida (Físico)</th>
+              <th class="text-end" style="width: 130px;">Costo Unit.</th>
+              <th class="text-end pe-3" style="width: 140px;">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of receiptLines; track line.productId) {
+              <tr>
+                <td class="ps-3">
+                  <div class="fw-bold text-dark">{{ line.productName }}</div>
+                </td>
+                <td class="font-monospace text-secondary">{{ line.barCode || '-' }}</td>
+                <td class="text-center font-monospace fs-6">{{ line.quantityOrdered }} uds</td>
+                <td class="text-center">
+                  <input
+                    type="number"
+                    min="0"
+                    class="form-control form-control-sm text-center font-monospace fw-bold"
+                    [ngModel]="line.quantityReceived"
+                    (ngModelChange)="updateReceivedQty(line, $event)"
+                    style="max-width: 100px; margin: 0 auto;"
+                  />
+                </td>
+                <td class="text-end font-monospace">RD$ {{ line.unitCost | number:'1.2-2' }}</td>
+                <td class="text-end pe-3 font-monospace fw-bold text-primary">
+                  RD$ {{ line.subTotal | number:'1.2-2' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <td colspan="3" class="ps-3 fw-bold">Totales de Recepción:</td>
+              <td class="text-center font-monospace fw-bold text-primary fs-6">{{ totalReceivedUnits }} uds</td>
+              <td></td>
+              <td class="text-end pe-3 font-monospace fw-bold text-primary fs-6">
+                RD$ {{ totalReceiptAmount | number:'1.2-2' }}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-between">
+        <button type="button" class="btn btn-light border" (click)="prevStep()">
+          ← Cambiar Orden
+        </button>
+        <button type="button" class="btn btn-primary fw-semibold px-4" (click)="nextStep()">
+          Continuar a Confirmación →
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Step 3: Confirmation -->
+  @if (currentStep() === 3 && selectedOrder) {
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mx-auto" style="max-width: 700px;">
+      <h5 class="fw-bold text-dark mb-3 text-center">Confirmación de Ingreso a Almacén</h5>
+
+      <!-- Discrepancy Alert if variations detected -->
+      @if (hasDiscrepancies()) {
+        <div class="alert alert-warning border border-warning-subtle rounded-3 p-3 mb-4">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <strong>Se detectaron variaciones en el conteo físico</strong>
+          </div>
+          <p class="small mb-0">
+            Las cantidades físicas recibidas no coinciden exactamente con lo ordenado en <strong>{{ selectedOrder.orderNumber }}</strong>.
+            Al procesar, se generará una solicitud en la <strong>Bandeja de Autorizaciones (Manage Requests)</strong> para la aprobación del supervisor antes de aplicar al stock físico.
+          </p>
+        </div>
+      } @else {
+        <div class="alert alert-success border border-success-subtle rounded-3 p-3 mb-4">
+          <strong>✓ Conteo físico conforme:</strong> Todas las cantidades coinciden con la orden de compra. El stock se sumará de forma inmediata.
+        </div>
+      }
+
+      <div class="mb-3">
+        <label class="form-label small fw-semibold text-secondary">Comentarios del Almacenista / Observaciones:</label>
+        <textarea
+          class="form-control"
+          rows="3"
+          placeholder="Notas adicionales sobre la entrega, estado del transporte o bultos..."
+          [(ngModel)]="receptionComments"
+        ></textarea>
+      </div>
+
+      <div class="d-flex justify-content-between pt-3 border-top">
+        <button type="button" class="btn btn-light border" (click)="prevStep()">
+          ← Modificar Conteo
+        </button>
+        <button
+          type="button"
+          class="btn fw-semibold px-4 shadow-sm"
+          [ngClass]="hasDiscrepancies() ? 'btn-warning text-dark' : 'btn-success text-white'"
+          [disabled]="isSubmitting()"
+          (click)="processReception()"
+        >
+          @if (isSubmitting()) {
+            <span class="spinner-border spinner-border-sm me-1"></span>
+            Procesando...
+          } @else {
+            {{ hasDiscrepancies() ? 'Solicitar Autorización de Recepción' : 'Ingresar a Inventario' }}
+          }
+        </button>
+      </div>
+    </div>
+  }
+</div>

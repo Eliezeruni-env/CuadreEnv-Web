@@ -1,0 +1,389 @@
+<c-container fluid class="px-4 py-4">
+  <!-- Error Alert -->
+  @if (errorMessage()) {
+    <c-alert color="danger" dismissible class="mb-4 shadow-sm">
+      <svg cIcon name="cilWarning" class="me-2"></svg>
+      {{ errorMessage() }}
+    </c-alert>
+  }
+
+  <!-- Header Section -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-dark mb-1">Configuración de Productos</h3>
+      <p class="text-body-secondary mb-0">Gestiona las categorías y tipos de producto disponibles en el sistema.</p>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="custom-nav-tabs-wrapper mb-4">
+    <ul class="nav nav-tabs custom-nav-tabs border-0">
+      <li class="nav-item">
+        <button class="nav-link" [class.active]="activeTab() === 'categories'" (click)="setTab('categories')">
+          <svg cIcon name="cilTags" class="me-2"></svg>
+          Categorías
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" [class.active]="activeTab() === 'types'" (click)="setTab('types')">
+          <svg cIcon name="cilStorage" class="me-2"></svg>
+          Tipos de Producto
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" [class.active]="activeTab() === 'units'" (click)="setTab('units')">
+          <svg cIcon name="cilBalanceScale" class="me-2"></svg>
+          Unidades de Medida
+        </button>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Content Sections -->
+  <!-- 1. Categories Tab -->
+  @if (activeTab() === 'categories') {
+    <c-card class="shadow-sm border-0 mb-4">
+      <c-card-body class="p-0">
+        <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+          <span class="fw-semibold text-secondary">Listado de Categorías</span>
+          <button cButton color="primary" size="sm" (click)="openCreateCategory()">
+            <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Categoría
+          </button>
+        </div>
+
+        @if (isLoading() && categories().length === 0) {
+          <div class="text-center py-5">
+            <c-spinner color="primary"></c-spinner>
+          </div>
+        } @else if (categories().length === 0) {
+          <div class="text-center py-5 px-4">
+            <svg cIcon name="cilTags" size="xl" class="text-body-secondary mb-3" style="width: 48px; height: 48px;"></svg>
+            <h5 class="fw-bold text-dark">No hay categorías registradas</h5>
+            <p class="text-body-secondary mt-1">Crea una categoría para clasificar tus productos.</p>
+          </div>
+        } @else {
+          <div class="table-responsive">
+            <table cTable hover class="mb-0 border-0 align-middle">
+              <thead class="table-light text-uppercase font-size-xs fw-bold text-secondary">
+                <tr>
+                  <th scope="col" class="ps-4" style="width: 100px;">ID</th>
+                  <th scope="col">Descripción</th>
+                  <th scope="col" class="text-center" style="width: 120px;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (cat of paginatedCategories; track cat.id) {
+                  <tr>
+                    <td class="ps-4 font-monospace small">#{{ cat.id }}</td>
+                    <td class="fw-semibold text-dark">{{ cat.description }}</td>
+                    <td class="text-center">
+                      <div class="d-flex justify-content-center gap-1">
+                        <button cButton color="light" size="sm" class="border" title="Editar" (click)="openEditCategory(cat)">
+                          <svg cIcon name="cilPencil" size="sm" class="text-primary"></svg>
+                        </button>
+                        <button cButton color="danger" size="sm" class="text-white border-0" title="Eliminar" (click)="deleteCategory(cat)">
+                          <svg cIcon name="cilTrash" size="sm"></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+
+            <app-list-pagination
+              [currentPage]="categoriesPage()"
+              [totalItems]="categoriesTotal()"
+              [pageSize]="categoriesPageSize"
+              [label]="'categorías'"
+              (pageChange)="onCategoriesPageChange($event)">
+            </app-list-pagination>
+          </div>
+        }
+      </c-card-body>
+    </c-card>
+  }
+
+  <!-- 2. Product Types Tab -->
+  @if (activeTab() === 'types') {
+    <c-card class="shadow-sm border-0 mb-4">
+      <c-card-body class="p-0">
+        <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+          <span class="fw-semibold text-secondary">Listado de Tipos de Producto</span>
+          <button cButton color="primary" size="sm" (click)="openCreateType()">
+            <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Tipo
+          </button>
+        </div>
+
+        @if (isLoading() && productTypes().length === 0) {
+          <div class="text-center py-5">
+            <c-spinner color="primary"></c-spinner>
+          </div>
+        } @else if (productTypes().length === 0) {
+          <div class="text-center py-5 px-4">
+            <svg cIcon name="cilStorage" size="xl" class="text-body-secondary mb-3" style="width: 48px; height: 48px;"></svg>
+            <h5 class="fw-bold text-dark">No hay tipos de producto registrados</h5>
+            <p class="text-body-secondary mt-1">Crea un tipo para clasificar cómo se comportan tus productos.</p>
+          </div>
+        } @else {
+          <div class="table-responsive">
+            <table cTable hover class="mb-0 border-0 align-middle">
+              <thead class="table-light text-uppercase font-size-xs fw-bold text-secondary">
+                <tr>
+                  <th scope="col" class="ps-4" style="width: 100px;">ID</th>
+                  <th scope="col">Descripción</th>
+                  <th scope="col" class="text-center" style="width: 150px;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (type of productTypes(); track type.id) {
+                  <tr>
+                    <td class="ps-4 font-monospace small">#{{ type.id }}</td>
+                    <td class="fw-semibold text-dark">{{ type.description }}</td>
+                    <td class="text-center">
+                      <div class="d-flex justify-content-center gap-1">
+                        <button cButton color="light" size="sm" class="border" title="Editar" (click)="openEditType(type)">
+                          <svg cIcon name="cilPencil" size="sm" class="text-primary"></svg>
+                        </button>
+                        <button cButton color="danger" size="sm" class="text-white border-0" title="Eliminar" (click)="deleteType(type)">
+                          <svg cIcon name="cilTrash" size="sm"></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+
+            <app-list-pagination
+              [currentPage]="productTypesPage()"
+              [totalItems]="productTypesTotal()"
+              [pageSize]="productTypesPageSize"
+              [label]="'tipos'"
+              (pageChange)="onProductTypesPageChange($event)">
+            </app-list-pagination>
+          </div>
+        }
+      </c-card-body>
+    </c-card>
+  }
+  <!-- 3. Units of Measurement Tab -->
+  @if (activeTab() === 'units') {
+    <c-card class="shadow-sm border-0 mb-4">
+      <c-card-body class="p-0">
+        <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+          <div>
+            <span class="fw-semibold text-secondary">Listado de Unidades de Medida</span>
+            <small class="d-block text-muted">Configura unidades para ventas por peso, volumen, longitud o unidades enteras.</small>
+          </div>
+          <button cButton color="primary" size="sm" (click)="openCreateUnit()">
+            <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Unidad
+          </button>
+        </div>
+
+        @if (isLoading() && units().length === 0) {
+          <div class="text-center py-5">
+            <c-spinner color="primary"></c-spinner>
+          </div>
+        } @else if (units().length === 0) {
+          <div class="text-center py-5 px-4">
+            <svg cIcon name="cilBalanceScale" size="xl" class="text-body-secondary mb-3" style="width: 48px; height: 48px;"></svg>
+            <h5 class="fw-bold text-dark">No hay unidades de medida registradas</h5>
+            <p class="text-body-secondary mt-1">Crea unidades de medida para asociarlas a tus productos.</p>
+          </div>
+        } @else {
+          <div class="table-responsive">
+            <table cTable hover class="mb-0 border-0 align-middle">
+              <thead class="table-light text-uppercase font-size-xs fw-bold text-secondary">
+                <tr>
+                  <th scope="col" class="ps-4" style="width: 80px;">ID</th>
+                  <th scope="col">Nombre</th>
+                  <th scope="col" style="width: 110px;">Símbolo</th>
+                  <th scope="col">Modo de Venta / Pesaje</th>
+                  <th scope="col">Descripción</th>
+                  <th scope="col" class="text-center" style="width: 140px;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (u of paginatedUnits; track u.id) {
+                  <tr>
+                    <td class="ps-4 font-monospace small">#{{ u.id }}</td>
+                    <td class="fw-semibold text-dark">
+                      {{ u.name }}
+                      @if (u.isSystem) {
+                        <span class="badge bg-light text-secondary border ms-1 font-size-xs">Sistema</span>
+                      }
+                    </td>
+                    <td>
+                      <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace px-2 py-1">
+                        {{ u.symbol }}
+                      </span>
+                    </td>
+                    <td>
+                      @if (u.allowsDecimals) {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                          ✓ Permite Decimales (Pesaje / Granel)
+                        </span>
+                      } @else {
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                          Entero (Conteo estricto)
+                        </span>
+                      }
+                    </td>
+                    <td class="text-muted small">{{ u.description || '—' }}</td>
+                    <td class="text-center">
+                      <div class="d-flex justify-content-center gap-1">
+                        <button cButton color="light" size="sm" class="border" title="Editar" (click)="openEditUnit(u)">
+                          <svg cIcon name="cilPencil" size="sm" class="text-primary"></svg>
+                        </button>
+                        @if (!u.isSystem) {
+                          <button cButton color="danger" size="sm" class="text-white border-0" title="Eliminar" (click)="deleteUnit(u)">
+                            <svg cIcon name="cilTrash" size="sm"></svg>
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+
+            <app-list-pagination
+              [currentPage]="unitsPage()"
+              [totalItems]="unitsTotal()"
+              [pageSize]="unitsPageSize"
+              [label]="'unidades'"
+              (pageChange)="onUnitsPageChange($event)">
+            </app-list-pagination>
+          </div>
+        }
+      </c-card-body>
+    </c-card>
+  }
+</c-container>
+
+<!-- Modals -->
+
+<!-- 1. Category Create/Edit Modal -->
+@if (isCategoryModalVisible) {
+  <div class="custom-modal-backdrop" (click)="closeCategoryModal()">
+    <div class="custom-modal-content" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header">
+        <h5 class="fw-bold">{{ editingCategory ? 'Editar Categoría' : 'Nueva Categoría' }}</h5>
+        <button type="button" class="btn-close" (click)="closeCategoryModal()" aria-label="Close"></button>
+      </div>
+      <div class="custom-modal-body">
+        <form cForm [formGroup]="categoryForm">
+          <div class="mb-3">
+            <label class="small fw-semibold text-secondary mb-1">Nombre/Descripción *</label>
+            <input formControlName="description" cFormControl placeholder="Ej. Alimentos, Bebidas, etc." />
+            @if (categoryForm.get('description')?.touched && categoryForm.get('description')?.invalid) {
+              <div class="text-danger small mt-1">La descripción es requerida (máx. 100 caracteres).</div>
+            }
+          </div>
+        </form>
+      </div>
+      <div class="custom-modal-footer">
+        <button cButton color="light" class="border" (click)="closeCategoryModal()">Cancelar</button>
+        <button cButton color="primary" [disabled]="isLoading() || categoryForm.invalid" (click)="saveCategory()">
+          @if (isLoading()) {
+            <c-spinner size="sm" class="me-2"></c-spinner> Guardando...
+          } @else {
+            {{ editingCategory ? 'Guardar Cambios' : 'Crear Categoría' }}
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- 2. Product Type Create/Edit Modal -->
+@if (isTypeModalVisible) {
+  <div class="custom-modal-backdrop" (click)="closeTypeModal()">
+    <div class="custom-modal-content" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header">
+        <h5 class="fw-bold">{{ editingType ? 'Editar Tipo de Producto' : 'Nuevo Tipo de Producto' }}</h5>
+        <button type="button" class="btn-close" (click)="closeTypeModal()" aria-label="Close"></button>
+      </div>
+      <div class="custom-modal-body">
+        <form cForm [formGroup]="typeForm">
+          <div class="mb-3">
+            <label class="small fw-semibold text-secondary mb-1">Nombre/Descripción *</label>
+            <input formControlName="description" cFormControl placeholder="Ej. Servicio, Físico, Combo, etc." />
+            @if (typeForm.get('description')?.touched && typeForm.get('description')?.invalid) {
+              <div class="text-danger small mt-1">La descripción es requerida (máx. 100 caracteres).</div>
+            }
+          </div>
+        </form>
+      </div>
+      <div class="custom-modal-footer">
+        <button cButton color="light" class="border" (click)="closeTypeModal()">Cancelar</button>
+        <button cButton color="primary" [disabled]="isLoading() || typeForm.invalid" (click)="saveType()">
+          @if (isLoading()) {
+            <c-spinner size="sm" class="me-2"></c-spinner> Guardando...
+          } @else {
+            Guardar
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- 3. Unit of Measurement Create/Edit Modal -->
+@if (isUnitModalVisible) {
+  <div class="custom-modal-backdrop" (click)="closeUnitModal()">
+    <div class="custom-modal-content" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header">
+        <h5 class="fw-bold">{{ editingUnit ? 'Editar Unidad de Medida' : 'Nueva Unidad de Medida' }}</h5>
+        <button type="button" class="btn-close" (click)="closeUnitModal()" aria-label="Close"></button>
+      </div>
+      <div class="custom-modal-body">
+        <form cForm [formGroup]="unitForm">
+          <div class="mb-3">
+            <label class="small fw-semibold text-secondary mb-1">Nombre de la Unidad *</label>
+            <input formControlName="name" cFormControl placeholder="Ej. Libra, Kilogramo, Metro, Litro, etc." />
+            @if (unitForm.get('name')?.touched && unitForm.get('name')?.invalid) {
+              <div class="text-danger small mt-1">El nombre es requerido (máx. 80 caracteres).</div>
+            }
+          </div>
+
+          <div class="mb-3">
+            <label class="small fw-semibold text-secondary mb-1">Símbolo / Abreviatura *</label>
+            <input formControlName="symbol" cFormControl placeholder="Ej. lb, kg, m, L, und, etc." />
+            @if (unitForm.get('symbol')?.touched && unitForm.get('symbol')?.invalid) {
+              <div class="text-danger small mt-1">El símbolo es requerido (máx. 15 caracteres).</div>
+            }
+          </div>
+
+          <div class="mb-3 p-3 bg-light rounded-3 border">
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="allowsDecimalsCheck" formControlName="allowsDecimals">
+              <label class="form-check-label fw-bold text-dark" for="allowsDecimalsCheck">
+                Permitir venta con decimales (Pesaje / Granel / Fracciones)
+              </label>
+            </div>
+            <small class="text-muted d-block mt-1">
+              Actívalo para productos que se venden por peso (ej: 0.75 lb, 1.5 kg) o medida. Si está desactivado, el POS registrará cantidades enteras (1, 2, 3...).
+            </small>
+          </div>
+
+          <div class="mb-3">
+            <label class="small fw-semibold text-secondary mb-1">Descripción (Opcional)</label>
+            <input formControlName="description" cFormControl placeholder="Ej. Para carnes, embutidos y productos a granel" />
+          </div>
+        </form>
+      </div>
+      <div class="custom-modal-footer">
+        <button cButton color="light" class="border" (click)="closeUnitModal()">Cancelar</button>
+        <button cButton color="primary" [disabled]="isLoading() || unitForm.invalid" (click)="saveUnit()">
+          @if (isLoading()) {
+            <c-spinner size="sm" class="me-2"></c-spinner> Guardando...
+          } @else {
+            {{ editingUnit ? 'Guardar Cambios' : 'Crear Unidad' }}
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

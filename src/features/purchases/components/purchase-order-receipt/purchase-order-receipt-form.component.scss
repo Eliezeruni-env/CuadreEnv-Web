@@ -1,0 +1,52 @@
+.step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  margin: 0 auto;
+  border: 2px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.active-step .step-circle {
+  background: #252b46 !important;
+  color: #ffffff !important;
+  border-color: #252b46 !important;
+  box-shadow: 0 4px 6px -1px rgba(37, 43, 70, 0.25);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #6b7785 !important;
+    border-color: #6b7785 !important;
+  }
+}
+
+.completed-step .step-circle {
+  background: #252b46 !important;
+  color: #ffffff !important;
+  border-color: #252b46 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #6b7785 !important;
+    border-color: #6b7785 !important;
+  }
+}
+
+.step-connector {
+  flex-grow: 1;
+  height: 2px;
+  background: #e2e8f0;
+  margin: 0 1rem;
+}
+
+.active-connector {
+  background: #10b981;
+}

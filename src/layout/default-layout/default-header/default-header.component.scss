@@ -1,0 +1,63 @@
+.custom-logout-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.custom-logout-modal-content {
+  background: #ffffff;
+  border-radius: 1.25rem;
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  animation: scaleUp 0.2s ease-out;
+}
+
+.logout-icon-box {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.hover-border-primary:hover {
+  border-color: var(--cui-primary, #0d6efd) !important;
+  background-color: rgba(var(--cui-primary-rgb, 13, 110, 253), 0.04) !important;
+}
+
+.bg-purple-subtle {
+  background-color: rgba(147, 51, 234, 0.12) !important;
+}
+
+.text-purple {
+  color: #7e22ce !important;
+}
+
+.border-purple-subtle {
+  border-color: rgba(147, 51, 234, 0.25) !important;
+}
+

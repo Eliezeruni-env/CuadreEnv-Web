@@ -1,0 +1,56 @@
+<div class="container-fluid py-3">
+  <!-- Header Toolbar -->
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+      <h3 class="fw-bold text-dark mb-1">Nueva Entrada de Almacén</h3>
+      <p class="text-secondary small mb-0">Registra ingresos directos por compras, ajustes positivos o recepciones</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-light border" (click)="cancel()">
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="btn btn-success fw-semibold d-flex align-items-center gap-2 shadow-sm"
+        [disabled]="isSaving() || productDetails.length === 0"
+        (click)="saveEntry()"
+      >
+        @if (isSaving()) {
+          <span class="spinner-border spinner-border-sm"></span>
+          Guardando...
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          Procesar Entrada
+        }
+      </button>
+    </div>
+  </div>
+
+  <!-- Reusable General Data Header Form -->
+  <app-inventory-general-data
+    mode="entry"
+    [header]="header"
+    (headerChange)="onHeaderChange($event)"
+  ></app-inventory-general-data>
+
+  <!-- Reusable Product Search & Add Component -->
+  <app-product-search
+    mode="entry"
+    [warehouseId]="header.warehouseId || 1"
+    [detailToEdit]="detailToEdit"
+    (productAdded)="onProductAdded($event)"
+    (productUpdated)="onProductUpdated($event)"
+  ></app-product-search>
+
+  <!-- Reusable Product Movement Table Component -->
+  <app-product-table
+    mode="entry"
+    [items]="productDetails"
+    (editIndex)="onEditIndex($event)"
+    (deleteIndex)="onDeleteIndex($event)"
+  ></app-product-table>
+</div>

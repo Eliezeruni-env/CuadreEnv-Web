@@ -1,1 +1,445 @@
-/* Register specific styles */
+/* =========================================================
+   REGISTER COMPONENT STYLES
+   Realistic SaaS Design matching CuadreEnv brand standards
+   ========================================================= */
+
+.auth-page-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  background-color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.register-split-layout {
+  display: flex;
+  width: 100%;
+  max-width: 1020px;
+  min-height: 600px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 20px 45px -12px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(226, 232, 240, 0.9);
+  overflow: hidden;
+}
+
+/* =========================================================
+   LEFT SIDEBAR: Brand & Value Propositions
+   ========================================================= */
+.register-sidebar-panel {
+  width: 350px;
+  flex-shrink: 0;
+  background: linear-gradient(165deg, #0b132b 0%, #0f1c3f 50%, #071024 100%);
+  color: #ffffff;
+  padding: 44px 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -20%;
+    left: -20%;
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -15%;
+    right: -20%;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+}
+
+.sidebar-content-inner {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Sidebar Brand */
+.sidebar-brand {
+  .sidebar-logo {
+    max-height: 42px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+  }
+
+  .sidebar-hero-text {
+    font-size: 0.88rem;
+    color: #94a3b8;
+    line-height: 1.5;
+    margin-top: 14px;
+    margin-bottom: 0;
+  }
+}
+
+/* Benefits List */
+.benefits-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.benefit-item {
+  .benefit-icon-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &.bg-purple-badge {
+      background: rgba(139, 92, 246, 0.18);
+      color: #a78bfa;
+      border: 1px solid rgba(139, 92, 246, 0.28);
+    }
+
+    &.bg-green-badge {
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.28);
+    }
+
+    &.bg-amber-badge {
+      background: rgba(245, 158, 11, 0.18);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.28);
+    }
+  }
+
+  .benefit-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 2px;
+  }
+
+  .benefit-desc {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    line-height: 1.4;
+  }
+}
+
+/* Step Indicator Dots */
+.step-dots {
+  .step-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &.active {
+      background: #3b82f6;
+      width: 22px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    }
+  }
+}
+
+/* =========================================================
+   RIGHT PANEL: Registration Form Area
+   ========================================================= */
+.register-form-panel {
+  flex: 1;
+  background-color: #ffffff;
+  padding: 44px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  @media (max-width: 768px) {
+    padding: 32px 24px;
+  }
+}
+
+.form-container-inner {
+  width: 100%;
+  max-width: 540px;
+  margin: 0 auto;
+}
+
+.mobile-logo {
+  max-height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Progress Bar & Step Label */
+.progress-section {
+  .step-indicator-text {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #4f46e5;
+    letter-spacing: 0.4px;
+  }
+
+  .progress-track {
+    height: 5px;
+    width: 100%;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
+    border-radius: 999px;
+    transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Step Titles */
+.step-title-block {
+  .step-main-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.4px;
+    margin-bottom: 4px;
+  }
+
+  .step-subtitle {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin-bottom: 0;
+  }
+}
+
+/* Alerts */
+.auth-alert-danger {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+
+  .alert-icon {
+    color: #ef4444;
+  }
+}
+
+.auth-alert-success {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+
+  .alert-icon {
+    color: #16a34a;
+  }
+}
+
+/* Input Fields */
+.input-field-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  height: 48px;
+  padding: 0 14px;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    border-color: #cbd5e1;
+  }
+
+  &:focus-within {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+  }
+
+  &.is-invalid {
+    border-color: #ef4444;
+    background-color: #fffafb;
+
+    &:focus-within {
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+    }
+  }
+
+  .field-icon {
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+  }
+
+  .form-control-custom {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.92rem;
+    color: #0f172a;
+    width: 100%;
+
+    &::placeholder {
+      color: #94a3b8;
+    }
+  }
+
+  .btn-toggle-eye {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: #334155;
+    }
+  }
+}
+
+.validation-error {
+  font-size: 0.75rem;
+  color: #ef4444;
+  margin-top: 5px;
+  padding-left: 4px;
+  font-weight: 500;
+}
+
+/* Buttons */
+.btn-auth-success {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  height: 48px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.28);
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(22, 163, 74, 0.35);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  .btn-arrow-icon {
+    transition: transform 0.2s ease;
+  }
+
+  &:hover:not(:disabled) .btn-arrow-icon {
+    transform: translateX(3px);
+  }
+}
+
+.btn-auth-back {
+  background-color: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  height: 48px;
+  padding: 0 20px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    background-color: #f8fafc;
+    border-color: #cbd5e1;
+    color: #0f172a;
+  }
+}
+
+/* Info Alert Card */
+.info-alert-card {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 14px 16px;
+
+  .info-icon-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .info-alert-text {
+    font-size: 0.85rem;
+    color: #166534;
+    line-height: 1.45;
+    font-weight: 500;
+  }
+}
+
+/* Links & Disclaimers */
+.auth-link {
+  color: #2563eb;
+  text-decoration: none;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+  }
+}
+
+.terms-disclaimer {
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+/* Step Transition */
+.animate-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

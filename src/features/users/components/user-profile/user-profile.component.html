@@ -1,0 +1,758 @@
+<div class="profile-dashboard-wrap fade-in">
+  <!-- Top Profile Hero Banner -->
+  <div class="profile-hero-card card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+    <div class="hero-bg-gradient p-4 p-md-4.5 d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <!-- User Identification & Avatar -->
+      <div class="d-flex align-items-center gap-3.5 flex-wrap">
+        <div class="position-relative">
+          <div class="avatar-circle-lg bg-white text-primary fw-bold d-flex align-items-center justify-content-center shadow">
+            {{ userInitials() }}
+          </div>
+          <span class="position-absolute bottom-0 end-0 p-1.5 bg-success border border-2 border-white rounded-circle" title="En línea"></span>
+        </div>
+
+        <div>
+          <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+            <h2 class="fw-bold mb-0 text-white fs-3">
+              {{ userProfile()?.firstName }} {{ userProfile()?.lastName }}
+            </h2>
+            <span class="badge bg-emerald-subtle text-emerald border border-emerald-subtle rounded-pill px-2.5 py-1" style="font-size: 0.75rem;">
+              ● Colaborador Activo
+            </span>
+            @if (isAdministrator()) {
+              <span class="badge bg-amber-subtle text-amber border border-amber-subtle rounded-pill px-2.5 py-1" style="font-size: 0.75rem;">
+                ★ Administrador de Empresa
+              </span>
+            }
+          </div>
+
+          <div class="text-white-80 small d-flex align-items-center gap-2 flex-wrap" style="font-size: 0.85rem;">
+            <span class="font-monospace text-white-90 bg-white-10 px-2 py-0.5 rounded">
+              @{{ userProfile()?.userName || userProfile()?.email?.split('@')?.[0] }}
+            </span>
+            <span>·</span>
+            <span class="text-white-90">{{ userProfile()?.email }}</span>
+            <span>·</span>
+            <span>Empresa: <strong class="text-white">{{ companyName() }}</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        @if (!isEditing()) {
+          <button
+            type="button"
+            class="btn btn-white btn-sm px-3.5 py-2 rounded-3 fw-semibold text-primary shadow-xs d-flex align-items-center gap-2 transition-all"
+            (click)="startEditing()"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            <span>Editar Mis Datos</span>
+          </button>
+        } @else {
+          <button
+            type="button"
+            class="btn btn-light btn-sm px-3 py-2 rounded-3 fw-medium text-secondary"
+            (click)="cancelEditing()"
+            [disabled]="isSaving()"
+          >
+            Cancelar Edición
+          </button>
+          <button
+            type="button"
+            class="btn btn-success btn-sm px-3.5 py-2 rounded-3 fw-semibold text-white shadow-xs d-flex align-items-center gap-2"
+            (click)="saveProfile()"
+            [disabled]="isSaving() || editForm.invalid"
+          >
+            @if (isSaving()) {
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              <span>Guardando...</span>
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Guardar Cambios</span>
+            }
+          </button>
+        }
+
+        <button
+          type="button"
+          class="btn btn-outline-danger-white btn-sm px-3.5 py-2 rounded-3 fw-semibold d-flex align-items-center gap-2 transition-all"
+          (click)="promptLogout()"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Cerrar Sesión</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Operational Alerts (Cash register / Approvals) -->
+  @if (hasOpenCashRegister()) {
+    <div class="alert alert-warning border-warning-subtle d-flex align-items-center justify-content-between p-3.5 rounded-4 mb-4 shadow-sm bg-warning-subtle text-warning-emphasis">
+      <div class="d-flex align-items-center gap-3">
+        <div class="p-2.5 bg-warning text-dark rounded-3 d-flex align-items-center justify-content-center shadow-xs">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </div>
+        <div>
+          <h6 class="fw-bold mb-0.5 fs-6">Atención: Tienes un Turno de Caja Abierto</h6>
+          <p class="mb-0 small text-secondary-emphasis">
+            La caja registradora <strong>{{ openCashRegisterName() }}</strong> está en sesión activa. Recuerda hacer el cuadre y arqueo antes de retirarte del sistema.
+          </p>
+        </div>
+      </div>
+      <button type="button" class="btn btn-warning btn-sm text-dark fw-bold px-3.5 py-2 rounded-3 shadow-2xs" (click)="goToCashRegister()">
+        Ir al Cuadre de Caja &rarr;
+      </button>
+    </div>
+  }
+
+  @if (isAdministrator() && approvalService.pendingCount() > 0) {
+    <div class="alert alert-info border-info-subtle d-flex align-items-center justify-content-between p-3.5 rounded-4 mb-4 shadow-sm bg-info-subtle text-info-emphasis">
+      <div class="d-flex align-items-center gap-3">
+        <div class="p-2.5 bg-primary text-white rounded-3 d-flex align-items-center justify-content-center shadow-xs">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h6 class="fw-bold mb-0.5 fs-6">Bandeja de Aprobaciones Pendientes</h6>
+          <p class="mb-0 small text-secondary-emphasis">
+            Hay <strong>{{ approvalService.pendingCount() }} solicitud(es) de borrado crítico</strong> emitidas por auditores esperando tu decisión.
+          </p>
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary btn-sm fw-semibold px-3.5 py-2 rounded-3 shadow-2xs" (click)="goToApprovals()">
+        Revisar Solicitudes &rarr;
+      </button>
+    </div>
+  }
+
+  <!-- Main Grid Layout -->
+  <div class="row g-4">
+    <!-- Left Column: Personal Data & Company Info (42%) -->
+    <div class="col-xl-5 col-lg-5">
+      <!-- Card: Mis Datos de Colaborador (With Edit Form) -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2.5 border-bottom">
+          <div class="d-flex align-items-center gap-2.5">
+            <div class="p-2 bg-primary-subtle text-primary rounded-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <div>
+              <h5 class="fw-bold text-dark mb-0 fs-6">Mis Datos de Colaborador</h5>
+              <small class="text-secondary" style="font-size: 0.74rem;">Información personal y de contacto</small>
+            </div>
+          </div>
+
+          @if (!isEditing()) {
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary py-1 px-2.5 rounded-2 d-flex align-items-center gap-1.5"
+              (click)="startEditing()"
+              title="Editar mis datos personales"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              <span style="font-size: 0.75rem;">Editar</span>
+            </button>
+          }
+        </div>
+
+        <!-- View Mode: Elegant Tile Grid -->
+        @if (!isEditing()) {
+          <div class="detail-tiles-grid">
+            <div class="detail-tile p-3 rounded-3 bg-light-subtle border mb-2">
+              <span class="text-secondary small fw-medium d-block mb-1" style="font-size: 0.74rem;">Nombre Completo</span>
+              <div class="fw-bold text-dark fs-6">{{ userProfile()?.firstName }} {{ userProfile()?.lastName }}</div>
+            </div>
+
+            <div class="row g-2 mb-2">
+              <div class="col-sm-6">
+                <div class="detail-tile p-3 rounded-3 bg-light-subtle border h-100">
+                  <span class="text-secondary small fw-medium d-block mb-1" style="font-size: 0.74rem;">Cédula de Identidad</span>
+                  <div class="font-monospace fw-bold text-dark">{{ userProfile()?.identification || '001-1234567-8' }}</div>
+                </div>
+              </div>
+              <div class="col-sm-6">
+                <div class="detail-tile p-3 rounded-3 bg-light-subtle border h-100">
+                  <span class="text-secondary small fw-medium d-block mb-1" style="font-size: 0.74rem;">Teléfono Personal</span>
+                  <div class="font-monospace fw-bold text-dark">{{ userProfile()?.phoneNumber || '(809) 555-0144' }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-tile p-3 rounded-3 bg-light-subtle border mb-2">
+              <span class="text-secondary small fw-medium d-block mb-1" style="font-size: 0.74rem;">Correo Electrónico (Acceso)</span>
+              <div class="fw-semibold text-dark text-break">{{ userProfile()?.email }}</div>
+              <small class="text-success d-flex align-items-center gap-1 mt-0.5" style="font-size: 0.7rem;">
+                ✓ Credencial de acceso corporativa
+              </small>
+            </div>
+
+            <div class="detail-tile p-3 rounded-3 bg-light-subtle border mb-2">
+              <span class="text-secondary small fw-medium d-block mb-1" style="font-size: 0.74rem;">Contacto de Emergencia</span>
+              <div class="text-dark fw-medium">{{ userProfile()?.emergencyContact || 'No especificado' }}</div>
+            </div>
+
+            <div class="detail-tile p-3 rounded-3 bg-light-subtle border d-flex justify-content-between align-items-center">
+              <div>
+                <span class="text-secondary small fw-medium d-block mb-0.5" style="font-size: 0.74rem;">Estatus de Cuenta</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1">
+                  ● Habilitado para operar
+                </span>
+              </div>
+              <span class="text-muted small font-monospace">UID: #{{ userProfile()?.id }}</span>
+            </div>
+          </div>
+        } @else {
+          <!-- Edit Mode: Interactive Form -->
+          <form [formGroup]="editForm" (ngSubmit)="saveProfile()" class="edit-form-wrap">
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold text-secondary small mb-1">
+                  Nombre <span class="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  formControlName="firstName"
+                  placeholder="ej. Juan"
+                  [class.is-invalid]="editForm.get('firstName')?.invalid && editForm.get('firstName')?.touched"
+                />
+              </div>
+
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold text-secondary small mb-1">
+                  Apellido <span class="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  formControlName="lastName"
+                  placeholder="ej. Pérez"
+                  [class.is-invalid]="editForm.get('lastName')?.invalid && editForm.get('lastName')?.touched"
+                />
+              </div>
+
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold text-secondary small mb-1">
+                  Cédula <span class="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  class="form-control form-control-sm font-monospace"
+                  formControlName="identification"
+                  appCedulaMask
+                  placeholder="000-0000000-0"
+                  [class.is-invalid]="editForm.get('identification')?.invalid && editForm.get('identification')?.touched"
+                />
+              </div>
+
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold text-secondary small mb-1">
+                  Teléfono <span class="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  class="form-control form-control-sm font-monospace"
+                  formControlName="phoneNumber"
+                  appPhoneMask
+                  placeholder="(809) 000-0000"
+                  [class.is-invalid]="editForm.get('phoneNumber')?.invalid && editForm.get('phoneNumber')?.touched"
+                />
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-semibold text-secondary small mb-1">
+                  Contacto de Emergencia <span class="text-muted fw-normal">(Opcional)</span>
+                </label>
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  formControlName="emergencyContact"
+                  placeholder="ej. Familiar - (809) 555-1234"
+                />
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4 pt-2 border-top">
+              <button type="button" class="btn btn-sm btn-outline-secondary px-3" (click)="cancelEditing()" [disabled]="isSaving()">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-sm btn-primary px-3.5 d-flex align-items-center gap-1.5" [disabled]="isSaving() || editForm.invalid">
+                @if (isSaving()) {
+                  <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  <span>Guardando...</span>
+                } @else {
+                  <span>Guardar Información</span>
+                }
+              </button>
+            </div>
+          </form>
+        }
+      </div>
+
+      <!-- Card: Empresa / Tenant Activo -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2.5 border-bottom">
+          <div class="d-flex align-items-center gap-2.5">
+            <div class="p-2 bg-indigo-subtle text-indigo rounded-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+            </div>
+            <div>
+              <h5 class="fw-bold text-dark mb-0 fs-6">Empresa / Tenant Activo</h5>
+              <small class="text-secondary" style="font-size: 0.74rem;">Organización donde operas en esta sesión</small>
+            </div>
+          </div>
+          <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.72rem;">
+            Tenant #{{ authService.companyId() || '1' }}
+          </span>
+        </div>
+
+        <div class="company-details-list small">
+          <div class="p-2.5 rounded-3 bg-light-subtle border mb-2 d-flex justify-content-between align-items-center">
+            <span class="text-secondary fw-medium">Razón Social</span>
+            <span class="fw-bold text-dark text-end">{{ companyService.currentSettings().companyName || 'CuadreEnv Soluciones SRL' }}</span>
+          </div>
+
+          <div class="p-2.5 rounded-3 bg-light-subtle border mb-2 d-flex justify-content-between align-items-center">
+            <span class="text-secondary fw-medium">Nombre Comercial</span>
+            <span class="fw-semibold text-dark text-end">{{ companyService.currentSettings().commercialName || companyName() }}</span>
+          </div>
+
+          <div class="p-2.5 rounded-3 bg-light-subtle border mb-2 d-flex justify-content-between align-items-center">
+            <span class="text-secondary fw-medium">RNC Fiscal</span>
+            <span class="fw-bold font-monospace text-primary text-end">{{ companyService.currentSettings().rnc || '1-01-00000-0' }}</span>
+          </div>
+
+          <div class="p-2.5 rounded-3 bg-light-subtle border mb-2 d-flex justify-content-between align-items-center">
+            <span class="text-secondary fw-medium">Teléfono Corporativo</span>
+            <span class="font-monospace text-dark text-end">{{ companyService.currentSettings().phone || '(809) 555-0199' }}</span>
+          </div>
+
+          <div class="p-2.5 rounded-3 bg-light-subtle border d-flex justify-content-between align-items-start">
+            <span class="text-secondary fw-medium">Dirección Fiscal</span>
+            <span class="text-dark text-end" style="max-width: 65%;">{{ companyService.currentSettings().address || 'Santo Domingo, República Dominicana' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card: Cuentas Bancarias de la Empresa para Transferencias -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 mt-4 bg-white">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2.5 border-bottom">
+          <div class="d-flex align-items-center gap-2.5">
+            <div class="p-2 bg-success-subtle text-success rounded-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <div>
+              <h5 class="fw-bold text-dark mb-0 fs-6">Cuentas Bancarias de la Empresa</h5>
+              <small class="text-secondary" style="font-size: 0.74rem;">Se muestran al cliente en el POS al pagar con transferencia</small>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-sm btn-primary py-1 px-2.5 rounded-2 d-flex align-items-center gap-1.5 fw-semibold shadow-xs"
+            (click)="openAddBankModal()"
+          >
+            <span>+ Nueva Cuenta</span>
+          </button>
+        </div>
+
+        @if (bankAccounts().length === 0) {
+          <div class="p-3 text-center border rounded-3 bg-light-subtle text-muted small">
+            No hay cuentas bancarias configuradas. Agrega una cuenta para que tus cajeros puedan mostrársela a los clientes en transferencias.
+          </div>
+        } @else {
+          <div class="d-flex flex-column gap-2">
+            @for (acc of bankAccounts(); track acc.id) {
+              <div class="p-3 rounded-3 border bg-light-subtle d-flex flex-column gap-1.5 transition-all">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fs-6">🏦</span>
+                    <strong class="text-dark">{{ acc.bankName }}</strong>
+                    <span class="badge bg-light text-secondary border font-size-2xs">{{ acc.accountType || 'Corriente' }}</span>
+                    @if (acc.isDefault) {
+                      <span class="badge bg-success-subtle text-success border border-success-subtle font-size-2xs">
+                        ★ Predeterminada POS
+                      </span>
+                    }
+                  </div>
+
+                  <div class="d-flex align-items-center gap-1">
+                    @if (!acc.isDefault) {
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-outline-secondary py-0.5 px-2 rounded font-size-2xs"
+                        (click)="setDefaultBankAccount(acc.id)"
+                        title="Marcar como predeterminada"
+                      >
+                        Hacer principal
+                      </button>
+                    }
+                    <button
+                      type="button"
+                      class="btn btn-xs btn-outline-danger py-0.5 px-2 rounded font-size-2xs"
+                      (click)="deleteBankAccount(acc.id)"
+                      title="Eliminar cuenta"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center small font-monospace">
+                  <span class="text-secondary">No. Cuenta:</span>
+                  <strong class="text-dark fs-6">{{ acc.accountNumber }}</strong>
+                </div>
+
+                @if (acc.holderName || acc.holderRnc) {
+                  <div class="d-flex justify-content-between align-items-center small text-secondary">
+                    <span>Titular: <strong>{{ acc.holderName || 'Empresa' }}</strong></span>
+                    @if (acc.holderRnc) {
+                      <span class="font-monospace">RNC: {{ acc.holderRnc }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Right Column: Roles & Granular RBAC Permissions (58%) -->
+    <div class="col-xl-7 col-lg-7">
+      <!-- Card: Roles Asignados -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2.5 border-bottom">
+          <div class="d-flex align-items-center gap-2.5">
+            <div class="p-2 bg-info-subtle text-info rounded-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </div>
+            <div>
+              <h5 class="fw-bold text-dark mb-0 fs-6">Roles Asignados en la Empresa</h5>
+              <small class="text-secondary" style="font-size: 0.74rem;">Perfiles de responsabilidad activos en tu sesión</small>
+            </div>
+          </div>
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1">
+            {{ activeRoles().length }} {{ activeRoles().length === 1 ? 'rol asignado' : 'roles asignados' }}
+          </span>
+        </div>
+
+        <div class="roles-cards-wrap d-flex flex-wrap gap-2.5 mb-3">
+          @for (roleName of activeRoles(); track roleName) {
+            <div class="role-badge-box p-3 rounded-3 border d-flex align-items-center gap-3 bg-light-subtle flex-grow-1">
+              <div class="role-check-avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-xs">
+                ✓
+              </div>
+              <div>
+                <div class="fw-bold text-dark fs-6">{{ roleName }}</div>
+                <small class="text-secondary d-block" style="font-size: 0.72rem;">
+                  {{ roleName.toLowerCase().includes('admin') ? 'Control maestro de empresa y seguridad' : 'Perfil operativo subordinado' }}
+                </small>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="p-3 bg-light rounded-3 text-secondary small d-flex align-items-start gap-2" style="font-size: 0.78rem;">
+          <span class="text-primary fs-6">💡</span>
+          <div>
+            <strong>Multi-Rol CuadreEnv:</strong> Si posees más de un rol asignado por tu administrador, tus permisos son <em>acumulativos</em>. Puedes atender el POS, facturación o consultas de inventario de forma unificada.
+          </div>
+        </div>
+      </div>
+
+      <!-- Card: Permisos Operativos por Módulo (RBAC) -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2.5 border-bottom">
+          <div class="d-flex align-items-center gap-2.5">
+            <div class="p-2 bg-secondary-subtle text-secondary rounded-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <div>
+              <h5 class="fw-bold text-dark mb-0 fs-6">Permisos Operativos por Módulo</h5>
+              <small class="text-secondary" style="font-size: 0.74rem;">Capacidades autorizadas según tu perfil</small>
+            </div>
+          </div>
+
+          <span class="badge bg-light text-dark border px-2.5 py-1.5" style="font-size: 0.74rem;">
+            <strong class="text-primary">{{ totalAllowedPermissions() }}</strong> permisos asignados
+          </span>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="d-flex flex-wrap gap-1.5 mb-3">
+          <button
+            type="button"
+            class="btn btn-xs py-1 px-2.5 rounded-pill fw-medium transition-all"
+            [ngClass]="activeModuleFilter() === 'all' ? 'btn-primary text-white shadow-2xs' : 'btn-light border text-secondary'"
+            (click)="setModuleFilter('all')"
+          >
+            Todos ({{ modules.length }})
+          </button>
+          <button
+            type="button"
+            class="btn btn-xs py-1 px-2.5 rounded-pill fw-medium transition-all"
+            [ngClass]="activeModuleFilter() === 'commercial' ? 'btn-primary text-white shadow-2xs' : 'btn-light border text-secondary'"
+            (click)="setModuleFilter('commercial')"
+          >
+            Ventas & Finanzas
+          </button>
+          <button
+            type="button"
+            class="btn btn-xs py-1 px-2.5 rounded-pill fw-medium transition-all"
+            [ngClass]="activeModuleFilter() === 'inventory' ? 'btn-primary text-white shadow-2xs' : 'btn-light border text-secondary'"
+            (click)="setModuleFilter('inventory')"
+          >
+            Inventario & Clientes
+          </button>
+          <button
+            type="button"
+            class="btn btn-xs py-1 px-2.5 rounded-pill fw-medium transition-all"
+            [ngClass]="activeModuleFilter() === 'admin' ? 'btn-primary text-white shadow-2xs' : 'btn-light border text-secondary'"
+            (click)="setModuleFilter('admin')"
+          >
+            Control & Auditoría
+          </button>
+        </div>
+
+        <!-- Modules Permissions List -->
+        <div class="modules-perm-stack">
+          @for (mod of filteredModules(); track mod.key) {
+            <div class="module-block p-3 rounded-3 border mb-2.5 bg-light-subtle transition-all">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="fw-bold text-dark fs-6">{{ mod.label }}</span>
+                  <span class="text-secondary small d-none d-md-inline" style="font-size: 0.74rem;">· {{ mod.description }}</span>
+                </div>
+                <span class="badge bg-white text-secondary border shadow-2xs" style="font-size: 0.7rem;">
+                  {{ getModulePermissionCount(mod.key) }} / {{ actions.length }}
+                </span>
+              </div>
+
+              <div class="d-flex flex-wrap gap-1.5 align-items-center">
+                @for (act of actions; track act.key) {
+                  @if (hasPermission(mod.key, act.key)) {
+                    <span
+                      class="badge rounded-pill d-flex align-items-center gap-1 shadow-2xs py-1 px-2"
+                      [ngClass]="'bg-' + act.badgeColor + '-subtle text-' + act.badgeColor + ' border border-' + act.badgeColor + '-subtle'"
+                      style="font-size: 0.72rem; font-weight: 500;"
+                    >
+                      ✓ {{ act.label }}
+                    </span>
+                  }
+                }
+                @if (getModulePermissionCount(mod.key) === 0) {
+                  <span class="text-muted small fst-italic font-size-xs">Sin permisos activos en este módulo</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmación de Cierre de Sesión con Control de Pendientes -->
+@if (isLogoutModalVisible()) {
+  <div class="custom-logout-modal-backdrop" (click)="cancelLogout()">
+    <div class="custom-logout-modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-body p-4 text-center">
+        @if (hasOpenCashRegister()) {
+          <div class="logout-icon-box bg-warning-subtle text-warning mb-3 mx-auto shadow-xs">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <h5 class="fw-bold text-dark mb-2">Turno de Caja Abierto</h5>
+          <p class="text-secondary small mb-3">
+            Detectamos que la caja <strong>{{ openCashRegisterName() }}</strong> se encuentra actualmente abierta.
+            Cerrar sesión sin realizar el cuadre y arqueo de caja puede generar descuadres en tu turno operativo.
+          </p>
+          <div class="alert alert-warning py-2.5 px-3 small text-start mb-4 border-warning">
+            ⚠️ <strong>Recomendación del Sistema:</strong> Cierra el turno en el módulo de caja antes de retirarte.
+          </div>
+          <div class="d-flex flex-column gap-2">
+            <button type="button" class="btn btn-primary fw-semibold py-2" (click)="goToCashRegister()">
+              Ir al Cierre y Cuadre de Caja
+            </button>
+            <button type="button" class="btn btn-outline-danger fw-semibold py-2" (click)="confirmLogout()">
+              Forzar Cierre de Sesión
+            </button>
+            <button type="button" class="btn btn-light border text-secondary py-2" (click)="cancelLogout()">
+              Cancelar y Continuar Trabajando
+            </button>
+          </div>
+        } @else {
+          <div class="logout-icon-box bg-danger-subtle text-danger mb-3 mx-auto shadow-xs">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </div>
+          <h5 class="fw-bold text-dark mb-2">¿Deseas cerrar sesión?</h5>
+          <p class="text-secondary small mb-4">
+            Estás a punto de salir del sistema CuadreEnv. Tendrás que ingresar tus credenciales nuevamente para acceder.
+          </p>
+          <div class="d-flex justify-content-center gap-2">
+            <button type="button" class="btn btn-light border px-4 py-2" (click)="cancelLogout()">
+              Cancelar
+            </button>
+            <button type="button" class="btn btn-danger px-4 py-2 fw-semibold shadow-sm" (click)="confirmLogout()">
+              Cerrar Sesión
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Agregar Cuenta Bancaria de la Empresa -->
+@if (isAddBankModalOpen()) {
+  <div class="custom-modal-backdrop" (click)="closeAddBankModal()">
+    <div class="custom-modal-content" style="max-width: 520px;" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header">
+        <div class="d-flex align-items-center gap-2.5">
+          <div class="p-2 bg-success-subtle text-success rounded-3 fs-6 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+            🏦
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0 text-dark fs-6">Nueva Cuenta Bancaria de la Empresa</h5>
+            <small class="text-secondary" style="font-size: 0.74rem;">Visible en cobros rápidos por transferencia</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="closeAddBankModal()" aria-label="Close"></button>
+      </div>
+
+      <form [formGroup]="bankForm" (ngSubmit)="saveBankAccount()">
+        <div class="custom-modal-body">
+          <!-- Sugerencias de bancos -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1.5">Bancos habituales en RD</label>
+            <div class="d-flex flex-wrap gap-1.5">
+              <button type="button" class="btn btn-xs btn-outline-secondary bg-light" (click)="selectBankSuggestion('Banco Popular Dominicano')">Popular</button>
+              <button type="button" class="btn btn-xs btn-outline-secondary bg-light" (click)="selectBankSuggestion('Banreservas')">Banreservas</button>
+              <button type="button" class="btn btn-xs btn-outline-secondary bg-light" (click)="selectBankSuggestion('Banco BHD')">BHD</button>
+              <button type="button" class="btn btn-xs btn-outline-secondary bg-light" (click)="selectBankSuggestion('Scotiabank')">Scotiabank</button>
+              <button type="button" class="btn btn-xs btn-outline-secondary bg-light" (click)="selectBankSuggestion('Banco Santa Cruz')">Santa Cruz</button>
+              <button type="button" class="btn btn-xs btn-outline-secondary bg-light" (click)="selectBankSuggestion('Qik Banco Digital')">Qik</button>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-dark mb-1">Nombre del Banco <span class="text-danger">*</span></label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Ej. Banco Popular Dominicano"
+              formControlName="bankName"
+              [class.is-invalid]="bankForm.get('bankName')?.invalid && bankForm.get('bankName')?.touched"
+            />
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-sm-7">
+              <label class="form-label small fw-semibold text-dark mb-1">Número de Cuenta <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control font-monospace"
+                placeholder="Ej. 792019481"
+                formControlName="accountNumber"
+                [class.is-invalid]="bankForm.get('accountNumber')?.invalid && bankForm.get('accountNumber')?.touched"
+              />
+            </div>
+            <div class="col-sm-5">
+              <label class="form-label small fw-semibold text-dark mb-1">Tipo de Cuenta</label>
+              <select class="form-select" formControlName="accountType">
+                <option value="Corriente">Cta. Corriente</option>
+                <option value="Ahorros">Cta. de Ahorros</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-sm-7">
+              <label class="form-label small fw-semibold text-dark mb-1">Titular de la Cuenta</label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Nombre de la empresa o titular"
+                formControlName="accountHolder"
+              />
+            </div>
+            <div class="col-sm-5">
+              <label class="form-label small fw-semibold text-dark mb-1">RNC / Cédula</label>
+              <input
+                type="text"
+                class="form-control font-monospace"
+                placeholder="Ej. 132-94812-1"
+                formControlName="rncOrCedula"
+              />
+            </div>
+          </div>
+
+          <div class="form-check p-2.5 bg-light rounded-3 border d-flex align-items-center gap-2 mb-1">
+            <input class="form-check-input m-0" type="checkbox" id="chkDefaultBank" formControlName="isDefault" />
+            <label class="form-check-label small text-dark fw-medium" for="chkDefaultBank">
+              Marcar como cuenta principal / predeterminada para cobros en el POS
+            </label>
+          </div>
+        </div>
+
+        <div class="custom-modal-footer">
+          <button type="button" class="btn btn-light border px-4" (click)="closeAddBankModal()">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary px-4 fw-semibold"
+            [disabled]="bankForm.invalid || isSavingBank()"
+          >
+            @if (isSavingBank()) {
+              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+              <span>Guardando...</span>
+            } @else {
+              <span>Guardar Cuenta</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

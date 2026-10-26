@@ -1,0 +1,137 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="close()">
+    <div class="custom-modal-content send-email-modal-card" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="modal-header-custom p-3 p-md-4 border-bottom d-flex justify-content-between align-items-center bg-white">
+        <div class="d-flex align-items-center gap-3">
+          <div class="email-icon-box bg-primary-subtle text-primary d-flex align-items-center justify-content-center rounded-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+              <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0 text-dark">Enviar Factura por Correo</h5>
+            <small class="text-secondary">Envía el comprobante digital al cliente en formato PDF</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="close()" aria-label="Close"></button>
+      </div>
+
+      <!-- Modal Body Form -->
+      <div class="p-3 p-md-4 bg-light-subtle">
+        <form [formGroup]="emailForm" (ngSubmit)="sendEmail()">
+          <!-- Info Badge -->
+          @if (invoiceData) {
+            <div class="p-3 bg-white border rounded-3 mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2 shadow-xs">
+              <div>
+                <span class="text-secondary small d-block">Documento a enviar:</span>
+                <strong class="font-monospace text-primary fs-6">{{ invoiceData.invoiceNumber }}</strong>
+                @if (invoiceData.ncf) {
+                  <span class="badge bg-secondary-subtle text-secondary font-monospace ms-2 border">NCF: {{ invoiceData.ncf }}</span>
+                }
+              </div>
+              <div class="text-end">
+                <span class="text-secondary small d-block">Total Factura:</span>
+                <strong class="text-dark fs-6 font-monospace">RD$ {{ (invoiceData.totalAmount || 0) | number:'1.2-2' }}</strong>
+              </div>
+            </div>
+          }
+
+          <!-- Email Input -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">
+              Correo Electrónico del Destinatario <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0 text-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+              </span>
+              <input
+                type="email"
+                class="form-control border-start-0"
+                placeholder="cliente@ejemplo.com"
+                formControlName="email"
+                [class.is-invalid]="emailForm.get('email')?.touched && emailForm.get('email')?.invalid"
+              />
+            </div>
+            @if (emailForm.get('email')?.touched && emailForm.get('email')?.invalid) {
+              <div class="text-danger small mt-1">Por favor ingrese un correo electrónico válido.</div>
+            }
+          </div>
+
+          <!-- Subject Input -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">
+              Asunto del Mensaje <span class="text-danger">*</span>
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Asunto..."
+              formControlName="subject"
+              [class.is-invalid]="emailForm.get('subject')?.touched && emailForm.get('subject')?.invalid"
+            />
+            @if (emailForm.get('subject')?.touched && emailForm.get('subject')?.invalid) {
+              <div class="text-danger small mt-1">El asunto es requerido.</div>
+            }
+          </div>
+
+          <!-- Message Textarea -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">
+              Mensaje personalizado (Opcional)
+            </label>
+            <textarea
+              class="form-control"
+              rows="4"
+              placeholder="Escriba un mensaje para el cliente..."
+              formControlName="message"
+            ></textarea>
+          </div>
+
+          <!-- Attachment Pill -->
+          <div class="p-2 px-3 bg-white border rounded-3 d-flex align-items-center justify-content-between shadow-xs mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="bg-danger-subtle text-danger p-1 rounded font-monospace small fw-bold">PDF</div>
+              <div>
+                <div class="small fw-semibold text-dark">Factura_{{ invoiceData?.invoiceNumber || 'Documento' }}.pdf</div>
+                <small class="text-muted">Comprobante fiscal con validez DGII (Generado automáticamente)</small>
+              </div>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch" formControlName="attachPdf" id="attachCheck">
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-3 bg-white border-top d-flex justify-content-end align-items-center gap-2">
+        <button type="button" class="btn btn-light border px-3" (click)="close()" [disabled]="isSending()">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary d-flex align-items-center gap-2 px-4 fw-bold shadow-sm"
+          (click)="sendEmail()"
+          [disabled]="isSending() || emailForm.invalid"
+        >
+          @if (isSending()) {
+            <c-spinner size="sm"></c-spinner>
+            <span>Enviando correo...</span>
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            <span>Enviar Factura</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

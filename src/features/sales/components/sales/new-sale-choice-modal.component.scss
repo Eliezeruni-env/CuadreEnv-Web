@@ -1,0 +1,89 @@
+.choice-modal-container {
+  max-width: 840px;
+  width: 100%;
+  border-radius: 16px;
+}
+.choice-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ede9fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sale-option-card {
+  background: var(--cui-card-bg, #ffffff);
+  border: 2px solid var(--cui-border-color, #e2e8f0);
+  border-radius: 14px;
+  padding: 1.3rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  }
+}
+.card-contado:hover {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
+.card-credito:hover {
+  border-color: #4f46e5;
+  background: #eef2ff;
+}
+.card-servicio:hover {
+  border-color: #0891b2;
+  background: #ecfeff;
+}
+.option-icon-wrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+.bg-icon-green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+.bg-icon-indigo {
+  background: #ede9fe;
+  color: #4f46e5;
+}
+.bg-icon-cyan {
+  background: #cffafe;
+  color: #0891b2;
+}
+.badge-contado {
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 0.72rem;
+  font-weight: 700;
+  align-self: flex-start;
+  border: 1px solid #bbf7d0;
+}
+.badge-credito {
+  background: #e0e7ff;
+  color: #3730a3;
+  font-size: 0.72rem;
+  font-weight: 700;
+  align-self: flex-start;
+  border: 1px solid #c7d2fe;
+}
+.badge-servicio {
+  background: #cffafe;
+  color: #0e7490;
+  font-size: 0.72rem;
+  font-weight: 700;
+  align-self: flex-start;
+  border: 1px solid #a5f3fc;
+}
+.option-arrow {
+  margin-top: auto;
+}

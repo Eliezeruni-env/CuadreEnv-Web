@@ -1,0 +1,146 @@
+.app-sidebar {
+  width: 260px;
+  background-color: #0f172a;
+  color: #94a3b8;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  border-right: 1px solid #1e293b;
+
+  &.collapsed {
+    width: 72px;
+
+    .brand-text {
+      display: none;
+    }
+  }
+}
+
+.sidebar-header {
+  height: 64px;
+  border-bottom: 1px solid #1e293b;
+  flex-shrink: 0;
+}
+
+.brand-logo {
+  height: 38px;
+  width: auto;
+  border-radius: 6px;
+}
+
+.sidebar-nav-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+
+.nav-link-custom {
+  color: #94a3b8;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+
+  &.active {
+    color: #ffffff;
+    background-color: #4f46e5;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+
+    .nav-icon {
+      color: #ffffff;
+    }
+  }
+}
+
+.icon-box {
+  width: 22px;
+  height: 22px;
+}
+
+.nav-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.chevron-icon {
+  transition: transform 0.2s ease;
+
+  &.rotate-90 {
+    transform: rotate(90deg);
+  }
+}
+
+.sub-nav-link {
+  color: #64748b;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: #e2e8f0;
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+
+  &.active {
+    color: #818cf8;
+    font-weight: 600;
+  }
+}
+
+.bullet-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  opacity: 0.6;
+}
+
+.font-size-xs {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Floating submenu when collapsed */
+.floating-submenu-flyout {
+  position: fixed;
+  left: 76px;
+  width: 200px;
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  z-index: 1050;
+  animation: flyoutFade 0.15s ease;
+}
+
+.flyout-link {
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff !important;
+  }
+
+  &.active {
+    color: #818cf8 !important;
+    font-weight: 600;
+  }
+}
+
+@keyframes flyoutFade {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

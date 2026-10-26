@@ -1,0 +1,33 @@
+<c-modal #modal [visible]="visible()" (visibleChange)="handleVisibleChange($event)" alignment="center">
+  <form (ngSubmit)="confirm()" style="display: contents;">
+    <input type="text" name="username" autocomplete="username" style="display:none;" aria-hidden="true" tabindex="-1" />
+    <c-modal-header>
+      <h5 cModalTitle>Autenticación Requerida</h5>
+      <button type="button" cButtonClose (click)="close()"></button>
+    </c-modal-header>
+    <c-modal-body>
+      <div class="mb-3">
+        <p class="text-muted">Por motivos de seguridad, se requiere autorización de supervisor para continuar con la acción de <strong>{{ actionLabel() }}</strong>.</p>
+        
+        <label cLabel for="posPin">Contraseña de Supervisor</label>
+        <input 
+          cFormControl 
+          id="posPin" 
+          name="posPin"
+          type="password" 
+          [ngModel]="pin()" 
+          (ngModelChange)="pin.set($event)"
+          placeholder="Ingrese su contraseña"
+          autocomplete="current-password"
+        />
+        <div *ngIf="errorMessage()" class="text-danger mt-2 small">
+          {{ errorMessage() }}
+        </div>
+      </div>
+    </c-modal-body>
+    <c-modal-footer>
+      <button type="button" cButton color="secondary" variant="ghost" (click)="close()">Cancelar</button>
+      <button type="submit" cButton color="primary">{{ actionLabel() }}</button>
+    </c-modal-footer>
+  </form>
+</c-modal>

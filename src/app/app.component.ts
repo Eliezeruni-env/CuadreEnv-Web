@@ -13,10 +13,14 @@ import { ColorModeService } from '@coreui/angular';
 import { IconSetService } from '@coreui/icons-angular';
 import { iconSubset } from './icons/icon-subset';
 
+import { ModuleAccessService } from '../features/cuadreEnv/services/module-access.service';
+
 @Component({
   selector: 'app-root',
-  template: '<router-outlet />',
+  standalone: true,
   imports: [RouterOutlet],
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css'],
 })
 export class AppComponent implements OnInit {
   title = 'CuadreEnv';
@@ -25,6 +29,7 @@ export class AppComponent implements OnInit {
   readonly #activatedRoute: ActivatedRoute = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #titleService = inject(Title);
+  readonly #moduleAccessService = inject(ModuleAccessService);
 
   readonly #colorModeService = inject(ColorModeService);
   readonly #iconSetService = inject(IconSetService);
@@ -40,6 +45,18 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Inicialización de módulos al cargar la aplicación
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const storedModules = sessionStorage.getItem('allowedModules');
+      if (storedModules) {
+        try {
+          this.#moduleAccessService.init(JSON.parse(storedModules));
+        } catch {
+          // ignore
+        }
+      }
+    }
+
     this.#router.events
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe((evt) => {
@@ -47,6 +64,28 @@ export class AppComponent implements OnInit {
           return;
         }
       });
+
+    // Clean up legacy hardcoded mock cache keys if present
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const legacyMockKeys = [
+          'cuadreenv_purchase_orders_db',
+          'cuadreenv_po_receipts_db',
+          'cuadreenv_purchases_db',
+          'cuadreenv_local_sales_cache',
+          'cuadreEnv_inventory_movements',
+          'cuadreenv_stock_matrix_db',
+        ];
+        for (const k of legacyMockKeys) {
+          const val = localStorage.getItem(k);
+          if (val && (val.includes('Distribuidora Nacional') || val.includes('Coca Cola 2L Regular') || val.includes('Arroz Premium'))) {
+            localStorage.removeItem(k);
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
 
     this.#activatedRoute.queryParams
       .pipe(

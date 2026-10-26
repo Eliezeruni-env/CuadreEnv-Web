@@ -1,0 +1,518 @@
+<div class="container-fluid py-3 company-settings-container">
+  <!-- Top Bar -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
+    <div>
+      <h4 class="fw-bold mb-0 text-dark">Configuración de la Empresa & Facturación</h4>
+      <small class="text-secondary">Personaliza los datos del negocio, logo, RNC y la leyenda de pie de factura</small>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadSettings()" [disabled]="isLoading() || isSaving()">
+        Recargar
+      </button>
+      @if (isReadOnly()) {
+        <span class="badge bg-secondary-subtle text-secondary border px-3 py-2 rounded-pill font-monospace">
+          🔒 Solo Lectura
+        </span>
+      } @else {
+        <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-4" (click)="onSubmit()" [disabled]="isSaving() || (form.invalid && form.touched)">
+          @if (isSaving()) {
+            <span class="spinner-border spinner-border-sm"></span>
+            <span>Guardando...</span>
+          } @else {
+            <span>Guardar Cambios</span>
+          }
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (isReadOnly()) {
+    <div class="alert alert-warning border-warning-subtle rounded-4 d-flex align-items-center gap-2 mb-3 shadow-xs">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <div class="small">
+        <strong>Modo Solo Lectura:</strong> Tu rol actual solo tiene permisos para visualizar la configuración de la empresa. Las modificaciones están restringidas a Administradores y Auditores.
+      </div>
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="row g-3">
+      <!-- Columna Izquierda: Identidad y Datos Generales -->
+      <div class="col-lg-7">
+        <div class="card shadow-sm border-0 rounded-4 mb-3">
+          <div class="card-header bg-white py-3 border-bottom">
+            <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+              Datos Institucionales de la Empresa
+            </h6>
+          </div>
+          <div class="card-body p-4">
+            <!-- Logo Upload & Preview -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold text-secondary small mb-2">Logo de la Empresa</label>
+              <div class="d-flex align-items-center gap-3">
+                <div class="logo-preview-box border rounded-3 d-flex align-items-center justify-content-center bg-light overflow-hidden">
+                  @if (logoPreview()) {
+                    <img [src]="logoPreview()" alt="Logo Empresa" class="img-fluid object-fit-contain" />
+                  } @else {
+                    <div class="text-center p-2 text-muted">
+                      <small style="font-size: 0.72rem;">Sin logo</small>
+                    </div>
+                  }
+                </div>
+
+                <div>
+                  <label class="btn btn-sm btn-cuadre-primary mb-1 cursor-pointer">
+                    <span>Subir Logo (PNG/JPG)</span>
+                    <input type="file" accept="image/*" class="d-none" (change)="onLogoFileSelected($event)" />
+                  </label>
+                  @if (logoPreview()) {
+                    <button type="button" class="btn btn-sm btn-outline-danger ms-2 mb-1" (click)="removeLogo()">
+                      ✕ Quitar
+                    </button>
+                  }
+                  <div class="text-muted small mt-1" style="font-size: 0.75rem;">
+                    Recomendado: 400x150 px con fondo transparente (máx. 2MB).
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Nombre de la Empresa -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold text-secondary small mb-1">
+                Razón Social / Nombre de la Empresa <span class="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                formControlName="companyName"
+                placeholder="ej. Distribuidora del Caribe SRL"
+                [class.is-invalid]="form.get('companyName')?.invalid && form.get('companyName')?.touched"
+              />
+              @if (form.get('companyName')?.invalid && form.get('companyName')?.touched) {
+                <small class="text-danger mt-1 d-block">
+                  El nombre de la empresa es obligatorio (mínimo 3 caracteres).
+                </small>
+              }
+            </div>
+
+            <!-- Nombre Comercial -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold text-secondary small mb-1">
+                Nombre Comercial (Fantasía)
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                formControlName="commercialName"
+                placeholder="ej. CuadreEnv Soluciones"
+              />
+            </div>
+
+            <div class="row g-2 mb-3">
+              <!-- RNC -->
+              <div class="col-md-6">
+                <label class="form-label fw-semibold text-secondary small mb-1">
+                  RNC de la Empresa <span class="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  class="form-control font-monospace"
+                  formControlName="rnc"
+                  appRncMask
+                  placeholder="1-01-00000-0"
+                  [class.is-invalid]="form.get('rnc')?.invalid && form.get('rnc')?.touched"
+                />
+                @if (form.get('rnc')?.invalid && form.get('rnc')?.touched) {
+                  <small class="text-danger mt-1 d-block">
+                    El RNC es obligatorio (formato 9 u 11 dígitos).
+                  </small>
+                }
+              </div>
+
+              <!-- Teléfono -->
+              <div class="col-md-6">
+                <label class="form-label fw-semibold text-secondary small mb-1">
+                  Teléfono Principal <span class="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  class="form-control font-monospace"
+                  formControlName="phone"
+                  appPhoneMask
+                  placeholder="(809) 000-0000"
+                  [class.is-invalid]="form.get('phone')?.invalid && form.get('phone')?.touched"
+                />
+                @if (form.get('phone')?.invalid && form.get('phone')?.touched) {
+                  <small class="text-danger mt-1 d-block">
+                    El teléfono es obligatorio.
+                  </small>
+                }
+              </div>
+            </div>
+
+            <!-- Ubicación / Dirección -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold text-secondary small mb-1">
+                Dirección / Ubicación Física <span class="text-danger">*</span>
+              </label>
+              <textarea
+                class="form-control"
+                rows="2"
+                formControlName="address"
+                placeholder="ej. Av. 27 de Febrero #200, Santo Domingo, República Dominicana"
+                [class.is-invalid]="form.get('address')?.invalid && form.get('address')?.touched"
+              ></textarea>
+              @if (form.get('address')?.invalid && form.get('address')?.touched) {
+                <small class="text-danger mt-1 d-block">
+                  La dirección física es obligatoria.
+                </small>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Cuentas Bancarias de la Empresa -->
+        <div class="card shadow-sm border-0 rounded-4 mb-3">
+          <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+              <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                <span>Cuentas Bancarias para Cobros y Transferencias</span>
+              </h6>
+              <small class="text-secondary">
+                Cuentas registradas para que los cajeros las provean al cliente al pagar por transferencia.
+              </small>
+            </div>
+            @if (!isAddingAccount() && !isReadOnly()) {
+              <button type="button" class="btn btn-sm btn-outline-primary fw-semibold d-flex align-items-center gap-1" (click)="startAddAccount()">
+                <span>+ Agregar Cuenta</span>
+              </button>
+            }
+          </div>
+
+          <div class="card-body p-4">
+            <!-- Form to add new account -->
+            @if (isAddingAccount()) {
+              <div class="p-3 bg-light rounded-3 border mb-3">
+                <h6 class="fw-bold text-dark small mb-3">Nueva Cuenta Bancaria</h6>
+                <div class="row g-2 mb-2">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-secondary mb-1">Nombre del Banco *</label>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm"
+                      placeholder="ej. Banco BHD, Banreservas, Scotiabank..."
+                      [ngModel]="newBankName()"
+                      (ngModelChange)="newBankName.set($event)"
+                      [ngModelOptions]="{standalone: true}"
+                    />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-secondary mb-1">Número de Cuenta *</label>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm font-monospace"
+                      placeholder="ej. 1234567890"
+                      [ngModel]="newBankAccount()"
+                      (ngModelChange)="newBankAccount.set($event)"
+                      [ngModelOptions]="{standalone: true}"
+                    />
+                  </div>
+                </div>
+
+                <div class="row g-2 mb-2">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-secondary mb-1">Tipo de Cuenta</label>
+                    <select
+                      class="form-select form-select-sm"
+                      [ngModel]="newBankType()"
+                      (ngModelChange)="newBankType.set($event)"
+                      [ngModelOptions]="{standalone: true}"
+                    >
+                      <option value="Cta. Corriente">Cta. Corriente</option>
+                      <option value="Cta. Ahorros">Cta. Ahorros</option>
+                      <option value="Cta. Digital">Cta. Digital</option>
+                      <option value="ACH Inmediato">ACH Inmediato</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-secondary mb-1">Nombre del Titular</label>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm"
+                      placeholder="Nombre empresa"
+                      [ngModel]="newBankHolder()"
+                      (ngModelChange)="newBankHolder.set($event)"
+                      [ngModelOptions]="{standalone: true}"
+                    />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-secondary mb-1">RNC / Cédula Titular</label>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm font-monospace"
+                      placeholder="ej. 132-94812-1"
+                      [ngModel]="newBankRnc()"
+                      (ngModelChange)="newBankRnc.set($event)"
+                      [ngModelOptions]="{standalone: true}"
+                    />
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                  <button type="button" class="btn btn-sm btn-light border" (click)="cancelAddAccount()">Cancelar</button>
+                  <button type="button" class="btn btn-sm btn-primary" (click)="saveAccount()">Guardar Cuenta</button>
+                </div>
+              </div>
+            }
+
+            <!-- Accounts List -->
+            @if (bankAccounts().length === 0) {
+              <div class="text-center py-4 text-muted">
+                <p class="small mb-1">No hay cuentas bancarias registradas.</p>
+                <button type="button" class="btn btn-sm btn-outline-primary mt-1" (click)="startAddAccount()">
+                  + Agregar primera cuenta
+                </button>
+              </div>
+            } @else {
+              <div class="list-group list-group-flush gap-2">
+                @for (acc of bankAccounts(); track acc.id) {
+                  <div class="list-group-item d-flex align-items-center justify-content-between p-3 rounded-3 border bg-white shadow-2xs">
+                    <div>
+                      <div class="fw-bold text-dark d-flex align-items-center gap-2">
+                        <span>{{ acc.bankName }}</span>
+                        <span class="badge bg-light text-secondary border font-size-xs">{{ acc.accountType || 'Cta. Bancaria' }}</span>
+                        @if (acc.isDefault) {
+                          <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-size-xs">Principal</span>
+                        }
+                      </div>
+                      <div class="small font-monospace text-secondary mt-1">
+                        No. Cuenta: <strong class="text-dark">{{ acc.accountNumber }}</strong>
+                        @if (acc.holderName) {
+                          <span class="ms-2">· Titular: {{ acc.holderName }}</span>
+                        }
+                        @if (acc.holderRnc) {
+                          <span class="ms-1 font-monospace">({{ acc.holderRnc }})</span>
+                        }
+                      </div>
+                    </div>
+
+                    @if (!isReadOnly()) {
+                      <div class="d-flex align-items-center gap-1.5">
+                        @if (!acc.isDefault) {
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-outline-secondary"
+                            (click)="setDefaultAccount(acc.id)"
+                            title="Marcar como cuenta principal"
+                          >
+                            Hacer Principal
+                          </button>
+                        }
+                        <button
+                          type="button"
+                          class="btn btn-xs btn-outline-danger"
+                          (click)="removeAccount(acc.id)"
+                          title="Eliminar cuenta bancaria"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna Derecha: Parámetros de Facturación y Preview -->
+      <div class="col-lg-5">
+        <div class="card shadow-sm border-0 rounded-4 mb-3">
+          <div class="card-header bg-white py-3 border-bottom">
+            <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+              Leyenda & Pie de Factura
+            </h6>
+          </div>
+          <div class="card-body p-4">
+            <!-- Frase Bonita al Pie de la Factura -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold text-secondary small mb-1">
+                Frase Bonita / Leyenda de Garantía al Final de la Factura <span class="text-danger">*</span>
+              </label>
+              <textarea
+                class="form-control"
+                rows="3"
+                formControlName="invoiceFooterPhrase"
+                placeholder="ej. ¡Gracias por su preferencia! Garantía válida por 30 días con su factura."
+                [class.is-invalid]="form.get('invoiceFooterPhrase')?.invalid && form.get('invoiceFooterPhrase')?.touched"
+              ></textarea>
+              @if (form.get('invoiceFooterPhrase')?.invalid && form.get('invoiceFooterPhrase')?.touched) {
+                <small class="text-danger mt-1 d-block">
+                  La frase de pie de factura es requerida.
+                </small>
+              }
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label fw-semibold text-secondary small mb-1">Moneda Base</label>
+                <select class="form-select form-select-sm" formControlName="currency">
+                  <option value="DOP">DOP (RD$)</option>
+                  <option value="USD">USD ($)</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label fw-semibold text-secondary small mb-1">ITBIS por defecto (%)</label>
+                <input
+                  type="number"
+                  class="form-control form-control-sm font-monospace"
+                  formControlName="defaultTaxPercentage"
+                  min="0"
+                  max="100"
+                />
+              </div>
+            </div>
+
+            <!-- Reglas de Inventario y Despacho -->
+            <div class="border-top pt-3 mt-3">
+              <h6 class="fw-bold text-dark mb-2 small text-uppercase d-flex align-items-center gap-1.5">
+                <span>Control de Inventario y Stock</span>
+              </h6>
+              <div class="p-2.5 bg-light rounded-3 border mb-2">
+                <div class="form-check form-switch mb-1">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="allowNegativeStockCheck"
+                    formControlName="allowNegativeStock"
+                  />
+                  <label class="form-check-label small fw-bold text-dark" for="allowNegativeStockCheck">
+                    Permitir ventas sin inventario (Stock Negativo)
+                  </label>
+                </div>
+                <small class="text-secondary d-block ps-4" style="font-size: 0.75rem; line-height: 1.25;">
+                  Activa esta opción si vendes servicios, comida rápida o productos que se despachan antes de registrar la entrada de compras. El sistema no bloqueará las ventas cuando el stock esté en 0.
+                </small>
+              </div>
+            </div>
+
+            <!-- Parámetros del Diseñador de Ticket Térmico -->
+            <div class="border-top pt-3 mt-3">
+              <h6 class="fw-bold text-dark mb-2 small text-uppercase d-flex align-items-center gap-1.5">
+                <span>Plantilla de Impresión de Tickets (80mm / 58mm)</span>
+              </h6>
+
+              <div class="row g-2 mb-2">
+                <div class="col-6">
+                  <label class="form-label text-secondary small mb-1 fw-semibold">Instagram en Ticket</label>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    formControlName="ticketInstagram"
+                    placeholder="@tuempresa"
+                  />
+                </div>
+                <div class="col-6">
+                  <label class="form-label text-secondary small mb-1 fw-semibold">WhatsApp Soporte</label>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm font-monospace"
+                    formControlName="ticketWhatsapp"
+                    placeholder="(809) 555-0199"
+                  />
+                </div>
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="form-label text-secondary small mb-1 fw-semibold">Ancho de Ticket POS</label>
+                  <select class="form-select form-select-sm" formControlName="ticketPaperSize">
+                    <option value="80mm">80 mm (Estándar POS)</option>
+                    <option value="58mm">58 mm (Portátil / Mini)</option>
+                    <option value="letter">Carta A4 (Factura Legal)</option>
+                  </select>
+                </div>
+                <div class="col-6 d-flex align-items-end">
+                  <div class="form-check form-switch mb-1">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="ticketQrCheck"
+                      formControlName="ticketShowQr"
+                    />
+                    <label class="form-check-label small fw-semibold" for="ticketQrCheck">
+                      Imprimir QR en Ticket
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Thermal Ticket Preview Box -->
+            <div class="mt-3 p-3 border rounded-3 bg-light">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-secondary small fw-bold">Vista Previa de Ticket Térmico POS:</span>
+                <span class="badge bg-secondary-subtle text-secondary border font-monospace small" style="font-size: 0.68rem;">
+                  {{ form.get('ticketPaperSize')?.value || '80mm' }}
+                </span>
+              </div>
+              
+              <div class="bg-white p-3 border rounded-2 shadow-2xs font-monospace text-center mx-auto" style="max-width: 280px; font-size: 0.72rem; line-height: 1.35; border: 1px dashed #cbd5e1 !important;">
+                @if (logoPreview()) {
+                  <img [src]="logoPreview()" alt="Logo" style="max-height: 36px; max-width: 120px; object-fit: contain;" class="mb-1" />
+                } @else {
+                  <div class="fw-bold fs-6 text-dark text-uppercase">
+                    {{ form.get('commercialName')?.value || form.get('companyName')?.value || 'CUADRE-ENV SRL' }}
+                  </div>
+                }
+                <div class="text-secondary small">RNC: {{ form.get('rnc')?.value || '1-01-00000-0' }}</div>
+                <div class="text-secondary small">{{ form.get('address')?.value || 'Santo Domingo, R.D.' }}</div>
+                <div class="text-secondary small">Tel: {{ form.get('phone')?.value || '(809) 555-0199' }}</div>
+                
+                @if (form.get('ticketInstagram')?.value || form.get('ticketWhatsapp')?.value) {
+                  <div class="text-muted small mt-0.5">
+                    {{ form.get('ticketInstagram')?.value ? 'IG: ' + form.get('ticketInstagram')?.value : '' }}
+                    {{ form.get('ticketWhatsapp')?.value ? ' · WS: ' + form.get('ticketWhatsapp')?.value : '' }}
+                  </div>
+                }
+                
+                <div class="border-top border-bottom border-dark border-dashed my-2 py-1 text-start">
+                  <div class="d-flex justify-content-between fw-bold">
+                    <span>1x Producto Demo</span>
+                    <span>RD$ 150.00</span>
+                  </div>
+                  <div class="d-flex justify-content-between text-muted" style="font-size: 0.68rem;">
+                    <span>ITBIS (18%)</span>
+                    <span>RD$ 27.00</span>
+                  </div>
+                  <div class="d-flex justify-content-between fw-bold border-top border-dotted mt-1 pt-1">
+                    <span>TOTAL:</span>
+                    <span>RD$ 177.00</span>
+                  </div>
+                </div>
+
+                @if (form.get('ticketShowQr')?.value !== false) {
+                  <div class="my-1.5 d-flex justify-content-center">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=CUADRE_ENV_DEMO_TICKET" alt="QR" style="width: 60px; height: 60px;" />
+                  </div>
+                  <div class="text-muted" style="font-size: 0.6rem;">Escanear para comprobante digital</div>
+                }
+
+                <div class="fst-italic text-dark mt-2 fw-medium" style="font-size: 0.7rem;">
+                  "{{ form.get('invoiceFooterPhrase')?.value || '¡Gracias por su preferencia!' }}"
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

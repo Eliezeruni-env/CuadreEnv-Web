@@ -1,0 +1,437 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="close()">
+    <div
+      class="custom-modal-content credit-note-modal-container"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Modal Header -->
+      <div class="custom-modal-header d-flex justify-content-between align-items-center p-3 border-bottom bg-white">
+        <div class="d-flex align-items-center gap-3">
+          <div class="credit-note-icon-box shadow-sm">
+            <svg cIcon name="cilDescription" style="width: 20px; height: 20px;" class="text-primary"></svg>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0 text-dark">Nueva Nota de Crédito / Devolución</h5>
+            <span class="text-secondary small">Asistente de devolución vinculada a factura fiscal</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          (click)="close()"
+          aria-label="Close"
+        ></button>
+      </div>
+
+      <!-- Stepper Progress Header -->
+      <div class="stepper-header bg-light border-bottom px-4 py-2.5">
+        <div class="d-flex justify-content-between position-relative">
+          <!-- Step 1 Indicator -->
+          <div
+            class="stepper-step-item d-flex align-items-center gap-2"
+            [class.active]="currentStep === 1"
+            [class.completed]="currentStep > 1"
+          >
+            <div class="step-badge">1</div>
+            <span class="small fw-semibold">1. Buscar Factura</span>
+          </div>
+
+          <div class="stepper-line flex-grow-1 mx-2 align-self-center"></div>
+
+          <!-- Step 2 Indicator -->
+          <div
+            class="stepper-step-item d-flex align-items-center gap-2"
+            [class.active]="currentStep === 2"
+            [class.completed]="currentStep > 2"
+          >
+            <div class="step-badge">2</div>
+            <span class="small fw-semibold">2. Selección de Ítems</span>
+          </div>
+
+          <div class="stepper-line flex-grow-1 mx-2 align-self-center"></div>
+
+          <!-- Step 3 Indicator -->
+          <div
+            class="stepper-step-item d-flex align-items-center gap-2"
+            [class.active]="currentStep === 3"
+          >
+            <div class="step-badge">3</div>
+            <span class="small fw-semibold">3. Impacto en Caja & Stock</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Body (Stepper Steps) -->
+      <div class="custom-modal-body p-4 overflow-auto" style="max-height: calc(88vh - 140px);">
+        <!-- ==================== PASO 1: BÚSQUEDA Y VALIDACIÓN DE FACTURA ==================== -->
+        @if (currentStep === 1) {
+          <div class="step-pane">
+            <h6 class="fw-bold text-dark mb-2">Paso 1: Búsqueda y Validación de Factura</h6>
+            <p class="text-secondary small mb-4">
+              Ingresa el número de factura original (ej. <code>FAC-00123</code> o <code>VTA-000123</code>) para validar sus datos fiscales y precargar los productos.
+            </p>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-8">
+                <label class="form-label small fw-semibold text-secondary">Número de Factura / Venta</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <svg cIcon name="cilSearch" style="width: 14px; height: 14px;"></svg>
+                  </span>
+                  <input
+                    type="text"
+                    class="form-control font-monospace"
+                    placeholder="Ej. FAC-00123 o VTA-000123"
+                    [(ngModel)]="searchInvoiceTerm"
+                    (keyup.enter)="searchInvoice()"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-primary px-4 fw-semibold"
+                    [disabled]="isSearchingInvoice || !searchInvoiceTerm.trim()"
+                    (click)="searchInvoice()"
+                  >
+                    @if (isSearchingInvoice) {
+                      <c-spinner size="sm" class="me-1"></c-spinner>
+                      Buscando...
+                    } @else {
+                      Buscar Factura
+                    }
+                  </button>
+                </div>
+                <div class="form-text small text-muted">
+                  Formato esperado: <code>FAC-00001</code>, <code>VTA-000001</code> o ID numérico.
+                </div>
+              </div>
+            </div>
+
+            <!-- Factura Encontrada Preview Card -->
+            @if (loadedInvoice) {
+              <div class="card border border-success-subtle rounded-3 p-3 bg-light mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                      Factura Válida Encontrada
+                    </span>
+                    <span class="fw-bold font-monospace text-dark">{{ loadedInvoice.billingNumber }}</span>
+                  </div>
+                  <span class="text-secondary small">
+                    Fecha: {{ loadedInvoice.creationDate | date:'dd/MM/yyyy hh:mm a' }}
+                  </span>
+                </div>
+
+                <div class="row g-2 small text-secondary">
+                  <div class="col-md-4">
+                    <span class="text-dark fw-semibold">Cliente:</span> {{ loadedInvoice.clientName }}
+                  </div>
+                  <div class="col-md-4">
+                    <span class="text-dark fw-semibold">NCF Original:</span>
+                    <span class="font-monospace text-primary fw-semibold">{{ loadedInvoice.originalNcf }}</span>
+                  </div>
+                  <div class="col-md-4">
+                    <span class="text-dark fw-semibold">Almacén:</span> {{ loadedInvoice.warehouseName || ('Almacén #' + loadedInvoice.warehouseId) }}
+                  </div>
+                </div>
+
+                <div class="mt-3 pt-2 border-top">
+                  <span class="text-dark fw-semibold small">Productos en la factura ({{ loadedInvoice.items.length }}):</span>
+                  <ul class="list-unstyled mb-0 mt-1 small">
+                    @for (item of loadedInvoice.items; track item.productId) {
+                      <li class="d-flex justify-content-between py-0.5">
+                        <span>• {{ item.productName }} (Facturado: {{ item.quantity }})</span>
+                        <span class="badge bg-secondary-subtle text-secondary font-size-xs">
+                          Disponible para devolver: {{ item.maxReturnQuantity }}
+                        </span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- ==================== PASO 2: SELECCIÓN DE ÍTEMS A DEVOLVER ==================== -->
+        @if (currentStep === 2 && loadedInvoice) {
+          <div class="step-pane">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h6 class="fw-bold text-dark mb-0">Paso 2: Selección de Ítems a Devolver</h6>
+                <span class="text-secondary small">Factura: <b>{{ loadedInvoice.billingNumber }}</b> ({{ loadedInvoice.clientName }})</span>
+              </div>
+              <div class="badge bg-primary-subtle text-primary border">
+                NCF Original: {{ loadedInvoice.originalNcf }}
+              </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="table-responsive border rounded-3 overflow-hidden mb-3 bg-white">
+              <table class="table align-middle mb-0 small">
+                <thead class="table-light">
+                  <tr>
+                    <th class="ps-3" style="width: 40px;">
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        [checked]="isAllSelected()"
+                        (change)="toggleSelectAll($event)"
+                      />
+                    </th>
+                    <th>Producto</th>
+                    <th class="text-end" style="width: 100px;">Precio Unit.</th>
+                    <th class="text-center" style="width: 120px;">Cant. Facturada</th>
+                    <th class="text-center" style="width: 130px;">A Devolver</th>
+                    <th class="text-end" style="width: 90px;">ITBIS (18%)</th>
+                    <th class="text-end pe-3" style="width: 110px;">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of loadedInvoice.items; track item.productId; let idx = $index) {
+                    <tr [class.table-light]="!selectedProductIds.has(item.productId)">
+                      <td class="ps-3">
+                        <input
+                          type="checkbox"
+                          class="form-check-input"
+                          [disabled]="(item.maxReturnQuantity || 0) <= 0"
+                          [checked]="selectedProductIds.has(item.productId)"
+                          (change)="toggleItemSelection(item.productId)"
+                        />
+                      </td>
+                      <td>
+                        <div class="fw-bold text-dark">{{ item.productName }}</div>
+                        @if ((item.maxReturnQuantity || 0) <= 0) {
+                          <span class="badge bg-danger-subtle text-danger font-size-xs">Totalmente devuelto</span>
+                        } @else {
+                          <span class="text-secondary font-monospace" style="font-size: 0.72rem;">
+                            Máx permitido: {{ item.maxReturnQuantity }}
+                          </span>
+                        }
+                      </td>
+                      <td class="text-end font-monospace">RD$ {{ item.price | number:'1.2-2' }}</td>
+                      <td class="text-center font-monospace">{{ item.quantity }}</td>
+                      <td class="text-center">
+                        <input
+                          type="number"
+                          min="1"
+                          [max]="item.maxReturnQuantity || 1"
+                          class="form-control form-control-sm text-center font-monospace fw-bold"
+                          [disabled]="!selectedProductIds.has(item.productId) || (item.maxReturnQuantity || 0) <= 0"
+                          [ngModel]="returnQuantities[item.productId] || 1"
+                          (ngModelChange)="updateReturnQuantity(item.productId, $event, item.maxReturnQuantity || 1)"
+                          style="width: 70px; margin: 0 auto;"
+                        />
+                      </td>
+                      <td class="text-end font-monospace text-secondary">
+                        RD$ {{ getItemItbis(item) | number:'1.2-2' }}
+                      </td>
+                      <td class="text-end pe-3 font-monospace fw-bold text-dark">
+                        RD$ {{ getItemSubtotal(item) | number:'1.2-2' }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Parameters (Type, Method, Observations) -->
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-secondary">Tipo de Nota de Crédito</label>
+                <select class="form-select form-select-sm" [(ngModel)]="creditNoteType">
+                  <option [ngValue]="1">1: Devolución total</option>
+                  <option [ngValue]="2">2: Devolución parcial</option>
+                  <option [ngValue]="3">3: Ajuste de precio</option>
+                </select>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-secondary">Método de Reembolso</label>
+                <select class="form-select form-select-sm" [(ngModel)]="refundMethod">
+                  <option value="CASH">Efectivo (Descuenta de Caja)</option>
+                  <option value="CREDIT">Crédito a Favor / Balance</option>
+                  <option value="BALANCE">Ajuste Contable</option>
+                </select>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-secondary">Motivo / Observaciones</label>
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  placeholder="Ej. Producto defectuoso, cambio..."
+                  [(ngModel)]="observations"
+                />
+              </div>
+            </div>
+
+            <!-- Recalculated Return Totals Summary -->
+            <div class="card border rounded-3 p-3 bg-light mt-3">
+              <div class="row text-center">
+                <div class="col-md-3 border-end">
+                  <div class="text-secondary small">Ítems Seleccionados</div>
+                  <div class="fw-bold fs-6">{{ selectedProductIds.size }}</div>
+                </div>
+                <div class="col-md-3 border-end">
+                  <div class="text-secondary small">Subtotal a Reembolsar</div>
+                  <div class="fw-semibold font-monospace">RD$ {{ calculatedSubtotal | number:'1.2-2' }}</div>
+                </div>
+                <div class="col-md-3 border-end">
+                  <div class="text-secondary small">ITBIS (18%)</div>
+                  <div class="fw-semibold font-monospace">RD$ {{ calculatedItbis | number:'1.2-2' }}</div>
+                </div>
+                <div class="col-md-3">
+                  <div class="text-secondary small fw-bold">Total Nota de Crédito</div>
+                  <div class="fw-bold text-primary font-monospace fs-5">
+                    RD$ {{ calculatedTotal | number:'1.2-2' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- ==================== PASO 3: IMPACTO EN ALMACÉN Y CAJA ==================== -->
+        @if (currentStep === 3 && loadedInvoice) {
+          <div class="step-pane">
+            <h6 class="fw-bold text-dark mb-2">Paso 3: Confirmación de Impacto en Almacén y Caja</h6>
+            <p class="text-secondary small mb-4">
+              Revisa los efectos operativos y fiscales antes de emitir la Nota de Crédito.
+            </p>
+
+            <div class="row g-3 mb-4">
+              <!-- Impacto en Almacén -->
+              <div class="col-md-6">
+                <div class="card border rounded-3 p-3 bg-white h-100 shadow-sm">
+                  <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="p-2 bg-info-subtle text-info rounded-2">
+                      <svg cIcon name="cilLayers" style="width: 18px; height: 18px;"></svg>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-0">1. Reingreso a Inventario (WarehouseEntry)</h6>
+                  </div>
+
+                  <div class="small text-secondary mb-2">
+                    Los siguientes productos serán sumados nuevamente al stock de <b>{{ loadedInvoice.warehouseName || ('Almacén #' + loadedInvoice.warehouseId) }}</b>:
+                  </div>
+
+                  <ul class="list-group list-group-flush small">
+                    @for (item of getSelectedItemsList(); track item.productId) {
+                      <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                        <span>{{ item.productName }}</span>
+                        <span class="badge bg-success-subtle text-success border">
+                          +{{ returnQuantities[item.productId] }} unid.
+                        </span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Impacto en Caja & NCF -->
+              <div class="col-md-6">
+                <div class="card border rounded-3 p-3 bg-white h-100 shadow-sm">
+                  <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="p-2 bg-success-subtle text-success rounded-2">
+                      <svg cIcon name="cilDollar" style="width: 18px; height: 18px;"></svg>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-0">2. Impacto en Caja & Fiscal</h6>
+                  </div>
+
+                  <div class="small text-secondary mb-3">
+                    @if (refundMethod === 'CASH') {
+                      <div class="alert alert-warning py-2 px-3 small mb-2 border">
+                        Se registrará un <b>Egreso de Efectivo</b> por <b>RD$ {{ calculatedTotal | number:'1.2-2' }}</b> en la sesión de caja activa.
+                      </div>
+                    } @else {
+                      <div class="alert alert-info py-2 px-3 small mb-2 border">
+                        El monto de <b>RD$ {{ calculatedTotal | number:'1.2-2' }}</b> quedará disponible como saldo a favor del cliente.
+                      </div>
+                    }
+                  </div>
+
+                  <div class="d-flex justify-content-between align-items-center small mb-2 pb-2 border-bottom">
+                    <span class="text-secondary">Tipo de Operación:</span>
+                    <span class="badge bg-primary text-white font-monospace">Nota de Crédito Interna</span>
+                  </div>
+
+                  <div class="d-flex justify-content-between align-items-center small mb-2">
+                    <span class="text-secondary">Factura afectada:</span>
+                    <span class="fw-bold font-monospace text-dark">{{ loadedInvoice.billingNumber }}</span>
+                  </div>
+
+                  <div class="d-flex justify-content-between align-items-center small mb-2">
+                    <span class="text-secondary">Cliente:</span>
+                    <span class="fw-bold text-dark">{{ loadedInvoice.clientName }}</span>
+                  </div>
+
+                  <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                    <span class="fw-bold text-dark">Total a Devolver:</span>
+                    <span class="fw-bold text-danger font-monospace fs-5">
+                      RD$ {{ calculatedTotal | number:'1.2-2' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Modal Footer Controls -->
+      <div class="custom-modal-footer d-flex justify-content-between align-items-center p-3 border-top bg-light">
+        @if (currentStep > 1) {
+          <button
+            type="button"
+            class="btn btn-outline-secondary px-4 fw-semibold"
+            (click)="prevStep()"
+          >
+            &laquo; Anterior
+          </button>
+        } @else {
+          <button
+            type="button"
+            class="btn btn-light border px-4"
+            (click)="close()"
+          >
+            Cancelar
+          </button>
+        }
+
+        <div class="d-flex gap-2">
+          @if (currentStep === 1) {
+            <button
+              type="button"
+              class="btn btn-primary px-4 fw-bold"
+              [disabled]="!loadedInvoice"
+              (click)="nextStep()"
+            >
+              Continuar al Paso 2 &raquo;
+            </button>
+          } @else if (currentStep === 2) {
+            <button
+              type="button"
+              class="btn btn-primary px-4 fw-bold"
+              [disabled]="selectedProductIds.size === 0 || calculatedTotal <= 0"
+              (click)="nextStep()"
+            >
+              Revisar y Confirmar &raquo;
+            </button>
+          } @else if (currentStep === 3) {
+            <button
+              type="button"
+              class="btn btn-danger px-4 fw-bold text-white shadow-sm"
+              [disabled]="isSubmitting"
+              (click)="emitCreditNote()"
+            >
+              @if (isSubmitting) {
+                <c-spinner size="sm" class="me-2"></c-spinner>
+                Emitiendo Nota...
+              } @else {
+                Emitir Nota de Crédito (RD$ {{ calculatedTotal | number:'1.2-2' }})
+              }
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}

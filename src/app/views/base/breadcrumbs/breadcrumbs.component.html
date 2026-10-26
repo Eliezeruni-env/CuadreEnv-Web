@@ -22,39 +22,39 @@
         <app-docs-example href="components/breadcrumb">
           @let items = breadcrumbItems();
           <c-breadcrumb class="mb-2">
-            @for (item of items; track item; let i = $index, isLast = $last) {
-              <c-breadcrumb-item [active]="isLast" [url]="item.url">
-                {{ item.label }}
-              </c-breadcrumb-item>
+            @for (item of items; track item.label; let i = $index, isLast = $last) {
+            <c-breadcrumb-item [active]="isLast" [url]="item.url">
+              {{ item.label }}
+            </c-breadcrumb-item>
             }
           </c-breadcrumb>
           <hr>
           <c-breadcrumb class="mb-2">
-            @for (item of items.slice(0, 1); track item; let i = $index, isLast = $last) {
-              <c-breadcrumb-item [active]="isLast" [url]="item.url">
-                {{ item.label }}
-              </c-breadcrumb-item>
+            @for (item of items.slice(0, 1); track item.label; let i = $index, isLast = $last) {
+            <c-breadcrumb-item [active]="isLast" [url]="item.url">
+              {{ item.label }}
+            </c-breadcrumb-item>
             }
           </c-breadcrumb>
           <c-breadcrumb class="mb-2">
-            @for (item of items.slice(0, 2); track item; let i = $index, isLast = $last) {
-              <c-breadcrumb-item [active]="isLast" [url]="item.url">
-                {{ item.label }}
-              </c-breadcrumb-item>
+            @for (item of items.slice(0, 2); track item.label; let i = $index, isLast = $last) {
+            <c-breadcrumb-item [active]="isLast" [url]="item.url">
+              {{ item.label }}
+            </c-breadcrumb-item>
             }
           </c-breadcrumb>
           <c-breadcrumb class="mb-2">
-            @for (item of items.slice(0, 3); track item; let i = $index, isLast = $last) {
-              <c-breadcrumb-item [active]="isLast" [url]="item.url">
-                {{ item.label }}
-              </c-breadcrumb-item>
+            @for (item of items.slice(0, 3); track item.label; let i = $index, isLast = $last) {
+            <c-breadcrumb-item [active]="isLast" [url]="item.url">
+              {{ item.label }}
+            </c-breadcrumb-item>
             }
           </c-breadcrumb>
           <c-breadcrumb class="mb-2">
-            @for (item of items.slice(0, 4); track item; let i = $index, isLast = $last) {
-              <c-breadcrumb-item [active]="isLast" [url]="item.url">
-                <span [class.mark]="isLast">{{ item.label }}</span>
-              </c-breadcrumb-item>
+            @for (item of items.slice(0, 4); track item.label; let i = $index, isLast = $last) {
+            <c-breadcrumb-item [active]="isLast" [url]="item.url">
+              <span [class.mark]="isLast">{{ item.label }}</span>
+            </c-breadcrumb-item>
             }
           </c-breadcrumb>
           <hr>

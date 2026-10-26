@@ -1,0 +1,28 @@
+<div class="pos-fullscreen-layout min-vh-100 d-flex flex-column">
+  <!-- POS Top Bar -->
+  <header class="pos-topbar d-flex align-items-center justify-content-between px-3 py-2 bg-dark text-white border-bottom border-secondary">
+    <div class="d-flex align-items-center gap-3">
+      <a routerLink="/dashboard" class="btn btn-sm btn-outline-light d-flex align-items-center gap-1">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        Volver al ERP
+      </a>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-primary text-white fw-bold px-2 py-1">POS / CAJA</span>
+        <span class="fw-semibold text-white small">Terminal de Punto de Venta</span>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+        🟢 En línea
+      </span>
+    </div>
+  </header>
+
+  <!-- POS Main Content -->
+  <main class="pos-content flex-grow-1 p-3 bg-light">
+    <router-outlet></router-outlet>
+  </main>
+</div>

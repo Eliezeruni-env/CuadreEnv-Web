@@ -1,8 +1,9 @@
-import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CustomerService } from '../../services/customer.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
+import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import type { CustomerDto } from '../../../cuadreEnv/types/api';
 import { IconDirective } from '@coreui/icons-angular';
@@ -22,6 +23,7 @@ import {
 } from '@coreui/angular';
 import { TableComponent } from '../../../cuadreEnv/components/table/table.component';
 import { ListPaginationComponent } from '../../../cuadreEnv/components/list-pagination/list-pagination.component';
+import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/kt-paginator.component';
 
 @Component({
   selector: 'app-customers',
@@ -29,23 +31,18 @@ import { ListPaginationComponent } from '../../../cuadreEnv/components/list-pagi
   standalone: true,
   imports: [
     CommonModule,
-    ContainerComponent,
-    CardComponent,
-    CardBodyComponent,
-    TableComponent,
-    ButtonDirective,
-    IconDirective,
     AlertComponent,
     SpinnerComponent,
     CustomerModalComponent,
     FilterPanelComponent,
-    ListPaginationComponent,
+    KtPaginatorComponent,
   ],
 })
 export class CustomersComponent implements OnInit {
   @ViewChild('customerModal') customerModal!: CustomerModalComponent;
 
   readonly translationService = inject(TranslationService);
+  private confirmService = inject(ConfirmDialogService);
 
   customers = signal<CustomerDto[]>([]);
   isLoading = signal<boolean>(false);
@@ -55,55 +52,58 @@ export class CustomersComponent implements OnInit {
   pageSize = 10;
   totalItems = signal<number>(0);
 
-  get filterConfig(): FilterConfig[] {
-    return [
-      {
-        key: 'search',
-        label: this.translationService.t('customers.filterSearch'),
-        type: 'text',
-        placeholder: this.translationService.t('customers.filterSearch'),
-      },
-      {
-        key: 'status',
-        label: this.translationService.t('customers.filterStatus'),
-        type: 'select',
-        options: [
-          {
-            label: this.translationService.t('customers.filterAll'),
-            value: '',
-          },
-          {
-            label: this.translationService.t('customers.filterActive'),
-            value: 'active',
-          },
-          {
-            label: this.translationService.t('customers.filterInactive'),
-            value: 'inactive',
-          },
-        ],
-      },
-    ];
-  }
+  readonly filterConfig = computed<FilterConfig[]>(() => [
+    {
+      key: 'search',
+      label: this.translationService.t('customers.filterSearch'),
+      type: 'text',
+      placeholder: this.translationService.t('customers.filterSearch'),
+    },
+    {
+      key: 'status',
+      label: this.translationService.t('customers.filterStatus'),
+      type: 'select',
+      options: [
+        {
+          label: this.translationService.t('customers.filterAll'),
+          value: '',
+        },
+        {
+          label: this.translationService.t('customers.filterActive'),
+          value: 'active',
+        },
+        {
+          label: this.translationService.t('customers.filterInactive'),
+          value: 'inactive',
+        },
+      ],
+    },
+  ]);
 
   get columns() {
     return [
       {
-        field: 'name',
-        label: this.translationService.t('customers.table.name'),
+        field: 'id',
+        label: 'ID',
       },
       {
-        field: 'identification',
-        label: this.translationService.t('customers.table.identification'),
+        field: 'name',
+        label: this.translationService.t('customers.table.name') + ' / Identificación',
       },
       {
         field: 'email',
-        label: this.translationService.t('customers.table.email'),
+        label: this.translationService.t('customers.table.email') + ' / Teléfono',
       },
       {
-        field: 'phone',
-        label: this.translationService.t('customers.table.phone'),
+        field: 'status',
+        label: 'Estado',
+        align: 'center',
       },
-      { field: 'actions', label: this.translationService.t('common.actions') },
+      {
+        field: 'actions',
+        label: this.translationService.t('common.actions'),
+        align: 'center',
+      },
     ];
   }
 
@@ -119,11 +119,18 @@ export class CustomersComponent implements OnInit {
     this.loadCustomers();
   }
 
+  loadData() {
+    this.loadCustomers();
+  }
+
   async loadCustomers() {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     try {
-      const res = await this.customerService.getCustomers();
+      const res = await this.customerService.getCustomers({
+        pageNumber: 1,
+        pageSize: 100,
+      });
       if (res.success && res.data) {
         this.customers.set(res.data);
         this.totalItems.set(this.getFilteredCustomersCount());
@@ -131,9 +138,8 @@ export class CustomersComponent implements OnInit {
         this.errorMessage.set(res.message || 'Failed to load customers.');
       }
     } catch (e: any) {
-      this.errorMessage.set(
-        e?.response?.data?.message || e?.message || 'Error loading customers.',
-      );
+      const mapped = this.notificationService.showApiError(e);
+      this.errorMessage.set(mapped.message);
     } finally {
       this.isLoading.set(false);
     }
@@ -149,7 +155,7 @@ export class CustomersComponent implements OnInit {
     this.currentPage.set(page);
   }
 
-  private getFilteredCustomersBase(): CustomerDto[] {
+  readonly filteredCustomersBase = computed(() => {
     const activeFilters = this.filters();
     const search = String((activeFilters['search'] as string | undefined) || '')
       .trim()
@@ -177,17 +183,23 @@ export class CustomersComponent implements OnInit {
 
       return matchesSearch && matchesStatus;
     });
-  }
+  });
 
-  getFilteredCustomersCount(): number {
-    return this.getFilteredCustomersBase().length;
-  }
+  readonly filteredCustomersCount = computed(() => this.filteredCustomersBase().length);
 
-  getFilteredCustomers(): CustomerDto[] {
-    return this.getFilteredCustomersBase().slice(
+  readonly pagedCustomers = computed(() => {
+    return this.filteredCustomersBase().slice(
       (this.currentPage() - 1) * this.pageSize,
       this.currentPage() * this.pageSize,
     );
+  });
+
+  getFilteredCustomersCount(): number {
+    return this.filteredCustomersCount();
+  }
+
+  getFilteredCustomers(): CustomerDto[] {
+    return this.pagedCustomers();
   }
 
   openCreateModal() {
@@ -205,19 +217,57 @@ export class CustomersComponent implements OnInit {
   }
 
   async deleteCustomer(id: number) {
-    if (!confirm('Are you sure you want to delete this customer?')) return;
+    const customer = this.customers().find((c) => c.id === id);
+    const confirmed = await this.confirmService.confirm({
+      title: '¿Eliminar cliente?',
+      message: '¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer.',
+      itemName: customer?.name || `Cliente #${id}`,
+      itemType: 'Cliente',
+      confirmText: 'Eliminar',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     this.isLoading.set(true);
     try {
       await this.customerService.deleteCustomer(id);
-      this.notificationService.success('Customer deleted successfully.');
+      this.notificationService.success('Cliente eliminado exitosamente.');
       this.loadCustomers();
     } catch (e: any) {
-      this.notificationService.error(
-        e?.response?.data?.message || e?.message || 'Error deleting customer.',
-      );
+      this.notificationService.showApiError(e);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  async toggleCustomerStatus(customer: CustomerDto) {
+    if (!customer.id) return;
+    const newStatus = customer.active === false;
+    const actionLabel = newStatus ? 'activar' : 'desactivar';
+
+    const confirmed = await this.confirmService.confirm({
+      title: `¿${newStatus ? 'Activar' : 'Desactivar'} cliente?`,
+      message: `¿Estás seguro de que deseas ${actionLabel} al cliente "${customer.name}"?`,
+      itemName: customer.name,
+      itemType: 'Cliente',
+      confirmText: newStatus ? 'Activar' : 'Desactivar',
+      variant: newStatus ? 'primary' : 'warning',
+    });
+    if (!confirmed) return;
+
+    this.isLoading.set(true);
+    try {
+      await this.customerService.updateCustomer({
+        ...customer,
+        active: newStatus
+      });
+      this.notificationService.success(`Cliente "${customer.name}" ${newStatus ? 'activado' : 'desactivado'} exitosamente.`);
+      await this.loadCustomers();
+    } catch (e: any) {
+      this.notificationService.showApiError(e);
     } finally {
       this.isLoading.set(false);
     }
   }
 }
+

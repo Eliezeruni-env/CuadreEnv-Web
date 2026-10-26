@@ -1,0 +1,83 @@
+@if (state(); as dialog) {
+  <div
+    class="custom-modal-backdrop confirm-dialog-backdrop"
+    (click)="onBackdropClick($event)"
+  >
+    <div
+      class="custom-modal-content confirm-dialog-card"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'confirm-dialog-title'"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="confirm-dialog-body text-center p-4">
+        <!-- Icon Header with Pulse Badge -->
+        <div
+          class="icon-wrapper mx-auto mb-3"
+          [ngClass]="'variant-' + (dialog.variant || 'danger')"
+        >
+          <svg
+            cIcon
+            [name]="dialog.icon || 'cilTrash'"
+            class="confirm-icon"
+          ></svg>
+        </div>
+
+        <!-- Title -->
+        <h5 id="confirm-dialog-title" class="fw-bold mb-2 text-dark">
+          {{ dialog.title }}
+        </h5>
+
+        <!-- Message -->
+        <p class="text-body-secondary mb-3 confirm-dialog-message">
+          {{ dialog.message }}
+        </p>
+
+        <!-- Item Name Highlight Box -->
+        @if (dialog.itemName) {
+          <div class="item-highlight-box p-2 px-3 rounded mb-3 text-start">
+            <span class="small text-secondary d-block font-size-xs text-uppercase fw-semibold">
+              {{ dialog.itemType || 'Registro seleccionado' }}
+            </span>
+            <span class="fw-bold text-dark font-monospace text-truncate d-block">
+              {{ dialog.itemName }}
+            </span>
+          </div>
+        }
+
+        <!-- Additional Details / Warning -->
+        @if (dialog.details) {
+          <div class="alert alert-warning py-2 px-3 small text-start mb-3 border-0 bg-warning-subtle text-warning-emphasis">
+            <div class="d-flex align-items-center">
+              <svg cIcon name="cilWarning" class="me-2 flex-shrink-0" style="width: 14px; height: 14px;"></svg>
+              <span>{{ dialog.details }}</span>
+            </div>
+          </div>
+        }
+
+        <!-- Action Buttons -->
+        <div class="d-flex gap-2 justify-content-end mt-4 pt-2 border-top">
+          <button
+            type="button"
+            cButton
+            color="light"
+            class="border px-3"
+            (click)="cancel()"
+          >
+            {{ dialog.cancelText || 'Cancelar' }}
+          </button>
+          <button
+            type="button"
+            cButton
+            [color]="dialog.variant === 'warning' ? 'warning' : (dialog.variant === 'primary' ? 'primary' : 'danger')"
+            class="px-4 text-white fw-semibold shadow-sm"
+            (click)="confirm()"
+            autofocus
+          >
+            {{ dialog.confirmText || 'Eliminar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

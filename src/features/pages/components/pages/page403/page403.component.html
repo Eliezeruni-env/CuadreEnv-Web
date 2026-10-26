@@ -1,0 +1,68 @@
+<main class="min-vh-100 d-flex align-items-center justify-content-center px-3 py-5 bg-light">
+  <div class="card border-0 shadow-lg text-center p-4 p-md-5 rounded-4 bg-white" style="max-width: 36rem;">
+    <!-- Icon / Badge -->
+    <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle bg-danger-subtle text-danger mx-auto mb-4" style="width: 5rem; height: 5rem;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+    </div>
+
+    <!-- Status Code & Header -->
+    <div class="mb-2">
+      <span class="badge bg-danger-subtle text-danger fw-bold px-3 py-2 rounded-pill font-monospace" style="font-size: 0.85rem;">
+        ERROR 403 • ACCESO DENEGADO
+      </span>
+    </div>
+
+    @if (hasAssignedModules()) {
+      <h2 class="h3 fw-bold text-dark mb-2">Módulo No Disponible o Desactivado</h2>
+      
+      <div class="alert alert-warning border border-warning-subtle text-start rounded-3 my-3 p-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+          <strong class="text-dark">{{ moduleFriendlyName() }}</strong>
+          @if (requestedModuleCode()) {
+            <span class="badge bg-secondary font-monospace" style="font-size: 11px;">{{ requestedModuleCode() }}</span>
+          }
+        </div>
+        <div class="text-secondary small">
+          Este módulo se encuentra <strong>desactivado o no ha sido asignado</strong> a tu usuario desde el <strong>Gestor de Usuarios y Suscripciones (USM)</strong>.
+        </div>
+      </div>
+
+      <p class="text-secondary small mb-4">
+        Si requieres acceso a estas funciones para tus labores operativas, solicita al administrador de tu empresa que habilite este módulo en tu perfil desde USM.
+      </p>
+
+      <div class="d-flex flex-column flex-sm-row justify-content-center gap-2">
+        <a class="btn btn-primary fw-bold px-4 py-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2" [routerLink]="['/dashboard']">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Ir al Dashboard</span>
+        </a>
+
+        <button type="button" class="btn btn-outline-secondary px-3 py-2 rounded-3" (click)="switchAccount()">
+          Cambiar de cuenta
+        </button>
+      </div>
+    } @else {
+      <h2 class="h3 fw-bold text-dark mb-2">Cuenta sin Módulos Asignados</h2>
+      <p class="text-secondary mb-4">
+        Tu usuario aún no tiene módulos asignados en el sistema desde USM. Comunícate con tu administrador para activar tu suscripción.
+      </p>
+
+      <div class="d-flex flex-column flex-sm-row justify-content-center gap-2">
+        <a class="btn btn-primary fw-bold px-4 py-2 rounded-3 shadow-sm" [routerLink]="['/dashboard']">
+          Ir al Dashboard
+        </a>
+        <button type="button" class="btn btn-outline-secondary px-3 py-2 rounded-3" (click)="switchAccount()">
+          Iniciar sesión con otra cuenta
+        </button>
+      </div>
+    }
+  </div>
+</main>

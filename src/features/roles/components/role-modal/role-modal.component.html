@@ -1,0 +1,126 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="close()">
+    <div class="custom-modal-content role-modal-dialog" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="modal-header d-flex justify-content-between align-items-center py-2.5 px-3 border-bottom bg-white">
+        <div class="d-flex align-items-center gap-2">
+          <div class="badge-icon bg-primary-subtle text-primary p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
+          <div>
+            <h5 class="fw-bold text-dark mb-0 fs-6">
+              {{ editingRoleId() ? 'Editar Rol' : 'Crear Nuevo Rol' }}
+            </h5>
+            <small class="text-secondary" style="font-size: 0.76rem;">
+              {{ editingRoleId() ? 'Modifica el nombre y descripción del rol' : 'Define un nuevo perfil de acceso para los colaboradores de tu empresa' }}
+            </small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="close()" aria-label="Cerrar"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="modal-body p-3">
+          @if (isSystemRole()) {
+            <div class="alert alert-warning-subtle border border-warning-subtle py-2 px-3 small d-flex align-items-center gap-2 rounded-3 mb-3 text-warning-emphasis">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              <span>Este es un rol predeterminado del sistema. Su nombre no debe alterarse de forma crítica.</span>
+            </div>
+          }
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-secondary small mb-1">
+              Nombre del Rol <span class="text-danger">*</span>
+            </label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              formControlName="name"
+              placeholder="ej. Supervisor de Turno, Cajero Nocturno, Vendedor Senior"
+              [readonly]="isSystemRole()"
+              [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched"
+            />
+            @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              <small class="text-danger d-block mt-0.5" style="font-size: 0.7rem;">El nombre del rol es requerido (mínimo 2 letras).</small>
+            }
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-secondary small mb-1">
+              Descripción del Rol <span class="text-muted fw-normal">(Opcional)</span>
+            </label>
+            <textarea
+              class="form-control form-control-sm"
+              rows="2"
+              formControlName="description"
+              placeholder="Describe las responsabilidades o nivel de autorización de este rol..."
+            ></textarea>
+          </div>
+
+          <!-- Módulos con Acceso Rápido -->
+          <div class="mb-2">
+            <div class="d-flex justify-content-between align-items-center mb-1.5">
+              <label class="form-label fw-semibold text-secondary small mb-0">
+                Módulos Habilitados
+              </label>
+              <span class="text-muted" style="font-size: 0.72rem;">
+                {{ selectedModuleKeys().size }} seleccionados
+              </span>
+            </div>
+            <p class="text-secondary mb-2" style="font-size: 0.74rem;">
+              Selecciona a qué secciones tendrá acceso este rol. También podrás afinar permisos granulares en la Matriz de Permisos.
+            </p>
+
+            <div class="module-grid">
+              @for (mod of availableModules; track mod.key) {
+                <div
+                  class="module-chip p-2 rounded-3 border d-flex align-items-center gap-2 cursor-pointer"
+                  [class.active]="isModuleSelected(mod.key)"
+                  (click)="toggleModule(mod.key)"
+                >
+                  <input
+                    type="checkbox"
+                    class="form-check-input mt-0 flex-shrink-0"
+                    [checked]="isModuleSelected(mod.key)"
+                    (click)="$event.stopPropagation(); toggleModule(mod.key)"
+                  />
+                  <div class="text-truncate">
+                    <div class="fw-semibold text-dark" style="font-size: 0.78rem;">{{ mod.label }}</div>
+                    <div class="text-secondary text-truncate" style="font-size: 0.68rem;">{{ mod.description }}</div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer py-2 px-3 border-top bg-light-subtle d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary px-3" (click)="close()" [disabled]="isLoading()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-sm btn-primary px-3 d-flex align-items-center gap-1.5" [disabled]="isLoading() || form.invalid">
+            @if (isLoading()) {
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              <span>Guardando...</span>
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <span>{{ editingRoleId() ? 'Actualizar Rol' : 'Guardar Rol' }}</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

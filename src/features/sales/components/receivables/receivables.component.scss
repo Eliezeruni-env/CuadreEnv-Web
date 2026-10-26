@@ -1,0 +1,227 @@
+.receivables-page-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.btn-primary-custom {
+  background: #4f46e5 !important;
+  border-color: #4f46e5 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-primary-custom:hover {
+  background: #4338ca !important;
+  border-color: #4338ca !important;
+  transform: translateY(-1px);
+}
+
+.filter-toolbar-card {
+  background: var(--cui-card-bg, #ffffff);
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--cui-secondary-color, #94a3b8);
+  pointer-events: none;
+}
+
+.search-input {
+  padding-left: 42px;
+  border-radius: 10px;
+  border-color: var(--cui-border-color, #e2e8f0);
+  background-color: var(--cui-body-bg, #ffffff);
+  font-size: 0.9rem;
+}
+
+.search-input:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.filter-select {
+  border-radius: 0 10px 10px 0;
+  border-color: var(--cui-border-color, #e2e8f0);
+  font-size: 0.88rem;
+  background-color: var(--cui-body-bg, #ffffff);
+  cursor: pointer;
+}
+
+.receivable-card {
+  background: var(--cui-card-bg, #ffffff);
+  border: 1px solid var(--cui-border-color, #eef2f6) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.receivable-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.04) !important;
+}
+
+.receivable-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.receivable-card:hover .receivable-avatar {
+  transform: scale(1.05);
+}
+
+.avatar-icon {
+  color: #475569;
+}
+
+.client-title {
+  font-size: 1.02rem;
+  max-width: 170px;
+}
+
+.invoice-code {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  letter-spacing: 0.02em;
+}
+
+/* Status Pill with dot */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.status-pending {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fef3c7;
+}
+.status-pending .status-dot {
+  background: #f59e0b;
+}
+
+.status-partial {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #dbeafe;
+}
+.status-partial .status-dot {
+  background: #3b82f6;
+}
+
+.status-paid {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #d1fae5;
+}
+.status-paid .status-dot {
+  background: #10b981;
+}
+
+.status-overdue {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fee2e2;
+}
+.status-overdue .status-dot {
+  background: #ef4444;
+}
+
+:host-context([data-coreui-theme='dark']) {
+  .status-pending {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  .status-partial {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+  .status-paid {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+  .status-overdue {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+}
+
+.amount-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+}
+
+.amount-value {
+  font-size: 1.55rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.btn-card-action {
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.action-view {
+  color: #4f46e5;
+}
+
+.action-view:hover {
+  background: rgba(79, 70, 229, 0.08);
+  color: #4338ca;
+}
+
+.action-delete {
+  color: #ef4444;
+}
+
+.action-delete:hover {
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+}
+
+.empty-icon-box {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--cui-tertiary-bg, #f1f5f9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

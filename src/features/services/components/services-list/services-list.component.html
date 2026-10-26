@@ -1,0 +1,322 @@
+<div class="services-container py-3">
+  <!-- Header Card -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden bg-white">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-3 bg-primary-subtle text-primary rounded-4 shadow-xs">
+            <svg cIcon name="cilBriefcase" style="width: 32px; height: 32px;"></svg>
+          </div>
+          <div>
+            <h3 class="fw-bold mb-1 text-dark">Catálogo de Servicios</h3>
+            <p class="text-muted mb-0 small">
+              Administración de servicios profesionales, mano de obra especializada y tarifas de facturación.
+            </p>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <a
+            routerLink="/sales/service"
+            class="btn btn-outline-primary d-flex align-items-center gap-2 fw-semibold px-3 py-2 rounded-3 shadow-xs"
+          >
+            <svg cIcon name="cilCart" style="width: 16px; height: 16px;"></svg>
+            <span>Facturar Servicios</span>
+          </a>
+
+          <button
+            type="button"
+            class="btn btn-primary d-flex align-items-center gap-2 fw-semibold px-3 py-2 rounded-3 shadow-sm"
+            (click)="openCreateModal()"
+          >
+            <svg cIcon name="cilPlus" style="width: 16px; height: 16px;"></svg>
+            <span>+ Nuevo Servicio</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Summary Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-primary border-4">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted small fw-semibold text-uppercase">Total Servicios</div>
+            <h3 class="fw-bold text-dark mt-1 mb-0">{{ totalCount() }}</h3>
+          </div>
+          <div class="p-2.5 bg-light rounded-3 text-primary">
+            <svg cIcon name="cilBriefcase" style="width: 22px; height: 22px;"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-success border-4">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted small fw-semibold text-uppercase">Servicios Activos</div>
+            <h3 class="fw-bold text-success mt-1 mb-0">{{ activeCount() }}</h3>
+          </div>
+          <div class="p-2.5 bg-light rounded-3 text-success">
+            <svg cIcon name="cilCheckCircle" style="width: 22px; height: 22px;"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-info border-4">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted small fw-semibold text-uppercase">Tarifa Promedio</div>
+            <h3 class="fw-bold text-dark mt-1 mb-0 font-monospace">RD$ {{ avgPrice() | number: '1.2-2' }}</h3>
+          </div>
+          <div class="p-2.5 bg-light rounded-3 text-info">
+            <svg cIcon name="cilMoney" style="width: 22px; height: 22px;"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-warning border-4">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted small fw-semibold text-uppercase">Categorías</div>
+            <h3 class="fw-bold text-dark mt-1 mb-0">{{ categories().length }}</h3>
+          </div>
+          <div class="p-2.5 bg-light rounded-3 text-warning">
+            <svg cIcon name="cilTags" style="width: 22px; height: 22px;"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters and Table Card -->
+  <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+    <div class="card-header bg-white border-bottom p-3">
+      <div class="row g-2 align-items-center">
+        <!-- Search -->
+        <div class="col-md-5 col-lg-4">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-light border-end-0">
+              <svg cIcon name="cilSearch" style="width: 14px; height: 14px;"></svg>
+            </span>
+            <input
+              type="text"
+              class="form-control border-start-0 ps-0"
+              placeholder="Buscar por código, nombre o descripción..."
+              [(ngModel)]="searchQuery"
+            />
+          </div>
+        </div>
+
+        <!-- Category filter -->
+        <div class="col-md-4 col-lg-3">
+          <select class="form-select form-select-sm" [(ngModel)]="selectedCategoryId">
+            <option [ngValue]="null">Todas las categorías</option>
+            @for (cat of categories(); track cat.id) {
+              <option [ngValue]="cat.id">{{ cat.name || cat.description }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Status filter -->
+        <div class="col-md-3 col-lg-3">
+          <select class="form-select form-select-sm" [(ngModel)]="statusFilter">
+            <option value="ALL">Todos los estados</option>
+            <option value="ACTIVE">Solo Activos</option>
+            <option value="INACTIVE">Solo Inactivos</option>
+          </select>
+        </div>
+
+        <!-- Reload -->
+        <div class="col-md-12 col-lg-2 text-end">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 ms-auto"
+            (click)="loadServices()"
+            [disabled]="isLoading()"
+          >
+            @if (isLoading()) {
+              <c-spinner size="sm"></c-spinner>
+            } @else {
+              <svg cIcon name="cilReload" style="width: 14px; height: 14px;"></svg>
+            }
+            <span>Actualizar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 text-nowrap">
+        <thead class="table-light text-muted small fw-semibold text-uppercase">
+          <tr>
+            <th class="ps-4">Código</th>
+            <th>Servicio</th>
+            <th>Categoría</th>
+            <th class="text-end">Tarifa / Precio</th>
+            <th class="text-end">Costo Base</th>
+            <th class="text-center">Margen</th>
+            <th class="text-center">Estado</th>
+            <th class="text-end pe-4">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading()) {
+            <tr>
+              <td colspan="8" class="text-center py-5">
+                <c-spinner color="primary"></c-spinner>
+                <div class="text-muted small mt-2">Cargando catálogo de servicios...</div>
+              </td>
+            </tr>
+          } @else if (filteredServices().length === 0) {
+            <tr>
+              <td colspan="8" class="text-center py-5">
+                <div class="text-muted mb-3">
+                  <svg cIcon name="cilBriefcase" style="width: 48px; height: 48px; opacity: 0.3;"></svg>
+                </div>
+                <h6 class="fw-bold text-secondary">No se encontraron servicios</h6>
+                <p class="text-muted small mb-3">
+                  {{ searchQuery ? 'No hay resultados que coincidan con la búsqueda.' : 'Aún no has registrado ningún servicio en el catálogo.' }}
+                </p>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-primary px-3 rounded-pill"
+                  (click)="openCreateModal()"
+                >
+                  + Registrar Primer Servicio
+                </button>
+              </td>
+            </tr>
+          } @else {
+            @for (item of filteredServices(); track item.id || item.code) {
+              <tr>
+                <!-- Code -->
+                <td class="ps-4">
+                  <span class="badge bg-primary-subtle text-primary font-monospace px-2.5 py-1.5 fw-bold" style="font-size: 0.82rem;">
+                    {{ item.code }}
+                  </span>
+                </td>
+
+                <!-- Name & Description -->
+                <td>
+                  <div class="fw-bold text-dark">{{ item.name }}</div>
+                  @if (item.description) {
+                    <small class="text-muted d-block text-truncate" style="max-width: 320px;">
+                      {{ item.description }}
+                    </small>
+                  }
+                  @if (item.estimatedDuration) {
+                    <small class="text-secondary d-flex align-items-center gap-1 mt-0.5">
+                      <svg cIcon name="cilClock" style="width: 12px; height: 12px;"></svg>
+                      <span>{{ item.estimatedDuration }}</span>
+                    </small>
+                  }
+                </td>
+
+                <!-- Category -->
+                <td>
+                  <span class="badge bg-light text-dark border px-2 py-1">
+                    {{ item.categoryName || 'General' }}
+                  </span>
+                </td>
+
+                <!-- Price -->
+                <td class="text-end font-monospace fw-bold text-dark">
+                  RD$ {{ item.price | number: '1.2-2' }}
+                </td>
+
+                <!-- Cost -->
+                <td class="text-end font-monospace text-muted">
+                  RD$ {{ (item.cost || 0) | number: '1.2-2' }}
+                </td>
+
+                <!-- Profit Margin -->
+                <td class="text-center">
+                  @if (getProfitMargin(item) > 0) {
+                    <span class="badge bg-success-subtle text-success font-monospace">
+                      {{ getProfitMargin(item) }}%
+                    </span>
+                  } @else {
+                    <span class="badge bg-light text-muted font-monospace">0%</span>
+                  }
+                </td>
+
+                <!-- Status -->
+                <td class="text-center">
+                  <button
+                    type="button"
+                    class="btn btn-sm p-0 border-0"
+                    (click)="toggleStatus(item)"
+                    [title]="item.isActive ? 'Clic para desactivar' : 'Clic para activar'"
+                  >
+                    @if (item.isActive) {
+                      <span class="badge bg-success-subtle text-success px-2.5 py-1 rounded-pill">
+                        ● Activo
+                      </span>
+                    } @else {
+                      <span class="badge bg-secondary-subtle text-secondary px-2.5 py-1 rounded-pill">
+                        ○ Inactivo
+                      </span>
+                    }
+                  </button>
+                </td>
+
+                <!-- Actions -->
+                <td class="text-end pe-4">
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary d-inline-flex align-items-center gap-1"
+                      (click)="billService(item)"
+                      title="Facturar este servicio ahora"
+                    >
+                      <svg cIcon name="cilCart" style="width: 13px; height: 13px;"></svg>
+                      <span class="d-none d-sm-inline">Facturar</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary"
+                      (click)="openEditModal(item)"
+                      title="Editar servicio"
+                    >
+                      <svg cIcon name="cilPencil" style="width: 13px; height: 13px;"></svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger"
+                      (click)="deleteService(item)"
+                      title="Eliminar servicio"
+                    >
+                      <svg cIcon name="cilTrash" style="width: 13px; height: 13px;"></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer Count -->
+    @if (filteredServices().length > 0) {
+      <div class="card-footer bg-light py-2 px-4 d-flex justify-content-between align-items-center text-muted small">
+        <span>Mostrando <strong>{{ filteredServices().length }}</strong> servicios</span>
+        <span>Códigos oficiales asignados con prefijo <code>SERV-</code></span>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Embedded Service Modal -->
+<app-service-modal
+  (saved)="onServiceSaved($event)"
+></app-service-modal>

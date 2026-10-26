@@ -1,0 +1,3697 @@
+<div class="mobile-pos-app">
+
+  @if (!isMobileAuthenticated()) {
+    <!-- ======================================================== -->
+    <!-- LOGIN MÓVIL OBLIGATORIO (FLAT SAAS MINIMALISTA)          -->
+    <!-- ======================================================== -->
+    <div class="mobile-login-container p-4 d-flex flex-column justify-content-between" style="min-height: 100dvh;">
+      <div>
+        <!-- Cabecera de Marca -->
+        <div class="text-center pt-4 pb-3">
+          <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-4 mb-3" style="background-color: var(--cuadre-bg-subtle, #F1F5F9); border: 1px solid var(--cuadre-border-color, #E2E8F0);">
+            <img [src]="companyLogo() || 'assets/brand/android-chrome-192x192.png'" alt="Logo" width="48" height="48" style="border-radius: 10px; object-fit: contain;" />
+          </div>
+          <h1 class="h4 fw-bold text-dark mb-1">{{ tenantName() !== 'Mi Negocio' ? tenantName() : 'CuadreEnv Móvil' }}</h1>
+          <p class="text-muted small mb-0">{{ tenantName() !== 'Mi Negocio' ? 'Terminal de Punto de Venta & Caja' : 'Punto de Venta & Caja Móvil' }}</p>
+        </div>
+
+        <!-- Aviso informativo de seguridad -->
+        <div class="cuadre-card p-3 mb-3" style="background-color: var(--cuadre-bg-subtle, #F8FAFC); border: 1px solid var(--cuadre-border-color, #E2E8F0);">
+          <div class="d-flex align-items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-primary flex-shrink-0">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <div class="small">
+              <strong class="d-block text-dark">Acceso requerido para móvil</strong>
+              <span class="text-muted">Por seguridad de caja, debes iniciar sesión para operar esta terminal móvil.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alerta de Error -->
+        @if (mobileLoginError()) {
+          <div class="alert alert-danger d-flex align-items-center gap-2 p-2.5 rounded-3 mb-3 border-0 small bg-danger-subtle text-danger-emphasis" role="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>{{ mobileLoginError() }}</span>
+          </div>
+        }
+
+        <!-- Formulario de Login -->
+        <form (ngSubmit)="loginMobile()" class="d-flex flex-column gap-3">
+          <div>
+            <label class="cuadre-input-label mb-1" for="mobileEmail">Correo Electrónico o Usuario:</label>
+            <div class="cuadre-money-input-group">
+              <input
+                id="mobileEmail"
+                type="email"
+                class="money-input-field text-start"
+                style="padding-left: 14px;"
+                placeholder="ejemplo@empresa.com"
+                [(ngModel)]="mobileLoginEmail"
+                name="mobileEmail"
+                autocomplete="username"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="cuadre-input-label mb-1" for="mobilePassword">Contraseña:</label>
+            <div class="cuadre-money-input-group position-relative">
+              <input
+                id="mobilePassword"
+                [type]="showMobilePassword() ? 'text' : 'password'"
+                class="money-input-field text-start"
+                style="padding-left: 14px; padding-right: 48px;"
+                placeholder="••••••••"
+                [(ngModel)]="mobileLoginPassword"
+                name="mobilePassword"
+                autocomplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                class="btn position-absolute top-50 end-0 translate-middle-y border-0 text-muted p-2 me-1 d-flex align-items-center justify-content-center"
+                style="z-index: 5;"
+                (click)="showMobilePassword.set(!showMobilePassword())"
+                tabindex="-1"
+                aria-label="Ver u ocultar contraseña"
+              >
+                @if (showMobilePassword()) {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                }
+              </button>
+            </div>
+          </div>
+
+          <!-- Opciones: Recordar Usuario & Recuperar Contraseña -->
+          <div class="d-flex justify-content-between align-items-center mt-2 mb-1 px-1">
+            <label class="d-flex align-items-center gap-2 cursor-pointer user-select-none text-muted" style="font-size: 0.85rem;">
+              <input
+                type="checkbox"
+                [(ngModel)]="mobileRememberUser"
+                name="mobileRememberUser"
+                class="form-check-input"
+                style="width: 1.15rem; height: 1.15rem; cursor: pointer;"
+              />
+              <span>Recordar usuario</span>
+            </label>
+            <button
+              type="button"
+              class="btn btn-link p-0 text-decoration-none fw-semibold"
+              style="font-size: 0.85rem; color: var(--cuadre-primary, #2563eb);"
+              (click)="openMobileForgotPasswordModal()"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            class="btn-cuadre-primary btn-52 w-100 mt-2 fw-bold"
+            [disabled]="isMobileLoggingIn() || !mobileLoginEmail || !mobileLoginPassword"
+          >
+            @if (isMobileLoggingIn()) {
+              <span class="spinner-border spinner-border-sm me-2"></span>
+              <span>Verificando acceso...</span>
+            } @else {
+              <span>Ingresar a Terminal Móvil</span>
+            }
+          </button>
+        </form>
+      </div>
+
+      <!-- Pie / Alternar tema -->
+      <div class="pt-4 text-center">
+        <div class="d-flex justify-content-center gap-3 small text-muted">
+          <button type="button" class="btn btn-link btn-sm text-decoration-none text-secondary p-0" (click)="toggleTheme()">
+            {{ isDarkMode() ? '☀️ Modo Claro' : '🌙 Modo Oscuro' }}
+          </button>
+        </div>
+        <p class="text-muted font-size-xs mt-3 mb-1">CuadreEnv SaaS © 2026 · Facturación DGII & POS Móvil</p>
+      </div>
+    </div>
+  } @else {
+
+  <!-- ======================================================== -->
+  <!-- 1. TOPBAR (BLANCO, BORDE INFERIOR, 56PX)                 -->
+  <!-- ======================================================== -->
+  <header class="cuadre-topbar">
+    <button
+      type="button"
+      class="btn-topbar-action"
+      (click)="isSideMenuOpen.set(true)"
+      aria-label="Abrir menú de navegación"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" x2="20" y1="12" y2="12"/>
+        <line x1="4" x2="20" y1="6" y2="6"/>
+        <line x1="4" x2="20" y1="18" y2="18"/>
+      </svg>
+    </button>
+
+    <div class="topbar-brand d-flex align-items-center justify-content-center gap-2">
+      @if (companyLogo()) {
+        <img [src]="companyLogo()" alt="Logo Empresa" class="topbar-company-logo" style="max-height: 30px; max-width: 44px; object-fit: contain; border-radius: 6px; background: #fff; border: 1px solid var(--cuadre-border-color, #E2E8F0); padding: 1px;" />
+      }
+      <div class="d-flex flex-column text-start" style="line-height: 1.15;">
+        <h1 class="brand-name mb-0 text-truncate" style="font-size: 15px; font-weight: 700; max-width: 175px;">{{ tenantName() }}</h1>
+        <span class="brand-tenant" style="font-size: 11px; opacity: 0.85;">
+          @if (companyRnc()) {
+            RNC {{ companyRnc() }}
+          } @else {
+            Terminal Móvil
+          }
+        </span>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-1.5">
+      <button
+        type="button"
+        class="btn-topbar-action"
+        (click)="toggleTheme()"
+        [attr.aria-label]="isDarkMode() ? 'Activar modo claro' : 'Activar modo oscuro'"
+        title="Modo claro / oscuro"
+      >
+        @if (isDarkMode()) {
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        } @else {
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        }
+      </button>
+
+      <button
+        type="button"
+        class="btn-topbar-action"
+        (click)="logoutMobile()"
+        title="Bloquear / Cerrar Sesión"
+        aria-label="Bloquear terminal"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        class="btn-topbar-avatar"
+        (click)="setTab('mas')"
+        aria-label="Perfil y opciones"
+      >
+        <span class="avatar-initial">{{ (authService.currentUser()?.fullName || userName()).charAt(0).toUpperCase() }}</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ======================================================== -->
+  <!-- MAIN SCROLLABLE VIEW CONTAINER                           -->
+  <!-- ======================================================== -->
+  <main class="mobile-body-container">
+
+    <!-- ======================================================== -->
+    <!-- TAB 1: INICIO (PANTALLA 1: CERRADA / PANTALLA 3: ABIERTA) -->
+    <!-- ======================================================== -->
+    @if (activeTab() === 'inicio') {
+      <div class="view-content fade-in">
+
+        <!-- CAJABAR (CARD COMPACTA DE ESTADO) -->
+        <div class="cuadre-caja-bar mb-3" (click)="setTab('caja')" role="button" tabindex="0">
+          <div class="caja-bar-left">
+            <div class="cuadre-icon-chip chip-subtle chip-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="12" x="2" y="6" rx="2"/>
+                <circle cx="12" cy="12" r="2"/>
+                <path d="M6 12h.01M18 12h.01"/>
+              </svg>
+            </div>
+            <span class="caja-bar-text">
+              {{ activeSession()?.name || 'Caja #' + (authService.companyId() ? authService.companyId() + '0' : '10') }} · {{ authService.currentUser()?.fullName || userName() }}
+            </span>
+          </div>
+          <div class="caja-bar-right">
+            @if (activeSession()) {
+              <span class="cuadre-badge badge-ok">
+                <span class="badge-dot"></span> Caja abierta
+              </span>
+            } @else {
+              <span class="cuadre-badge badge-off">
+                <span class="badge-dot"></span> Caja cerrada
+              </span>
+            }
+          </div>
+        </div>
+
+        <!-- SALUDO (22PX/700) -->
+        <div class="greeting-section mb-3">
+          <h2 class="greeting-name mb-1">{{ greeting() }}, {{ userName() }}</h2>
+          <p class="greeting-subtitle mb-0">Aquí tienes el resumen de tu jornada.</p>
+        </div>
+
+        <!-- CARD CAJA ACTUAL / EFECTIVO EN CAJA -->
+        <div class="cuadre-card caja-status-card mb-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="cuadre-card-label">{{ activeSession() ? 'EFECTIVO EN CAJA' : 'CAJA ACTUAL' }}</span>
+            @if (activeSession()) {
+              <span class="cuadre-badge badge-ok">
+                <span class="badge-dot"></span> Turno activo
+              </span>
+            } @else {
+              <span class="cuadre-badge badge-off">
+                <span class="badge-dot"></span> Cerrada
+              </span>
+            }
+          </div>
+
+          <div class="caja-card-amount">
+            RD$ {{ totalCashInDrawers() | number:'1.2-2' }}
+          </div>
+
+          <div class="caja-card-info">
+            {{ activeSession()?.name || 'Caja Principal' }} · {{ activeSession() ? ('Abierta desde ' + (activeSession()?.openedAt ? (activeSession()?.openedAt | date:'shortTime') : 'Hoy')) : 'Sin turno activo' }}
+          </div>
+
+          @if (!activeSession()) {
+            <button
+              type="button"
+              class="btn-cuadre-primary btn-48 w-100 mt-2"
+              (click)="openMobileOpenRegisterModal()"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+              </svg>
+              <span>Abrir caja</span>
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="btn-cuadre-outline btn-44 w-100 mt-2"
+              (click)="setTab('caja')"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="12" x="2" y="6" rx="2"/>
+                <circle cx="12" cy="12" r="2"/>
+                <path d="M6 12h.01M18 12h.01"/>
+              </svg>
+              <span>Ver caja</span>
+            </button>
+          }
+        </div>
+
+        <!-- SECCIÓN: RESUMEN DE HOY (2 STAT-CARDS EN FILA) -->
+        <span class="cuadre-section-label">RESUMEN DE HOY</span>
+        <div class="stat-cards-grid mb-3">
+          <div class="cuadre-card stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Ventas de hoy</span>
+              <div class="cuadre-icon-chip chip-blue chip-xs">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="8" cy="21" r="1"/>
+                  <circle cx="19" cy="21" r="1"/>
+                  <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+                </svg>
+              </div>
+            </div>
+            <div class="stat-value">RD$ {{ todaySalesTotal() | number:'1.0-0' }}</div>
+            <div class="stat-subtext">{{ todayInvoicesCount() }} ventas</div>
+          </div>
+
+          <div class="cuadre-card stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Ticket promedio</span>
+              <div class="cuadre-icon-chip chip-blue chip-xs">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="20" height="12" x="2" y="6" rx="2"/>
+                  <circle cx="12" cy="12" r="2"/>
+                  <path d="M6 12h.01M18 12h.01"/>
+                </svg>
+              </div>
+            </div>
+            <div class="stat-value">RD$ {{ averageTicketDop() | number:'1.0-0' }}</div>
+            <div class="stat-subtext">RD$ por cliente</div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN: TOP SELLERS DE HOY -->
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="cuadre-section-label mb-0 mt-0">TOP 5 MÁS VENDIDOS HOY</span>
+          <span class="text-muted small" style="font-size: 11px;">Rentabilidad</span>
+        </div>
+        <div class="cuadre-card p-3 mb-3">
+          @if (topSellers().length > 0) {
+            <div class="d-flex flex-column gap-2">
+              @for (item of topSellers(); track item.name; let idx = $index) {
+                <div class="d-flex justify-content-between align-items-center py-1" [class.border-bottom]="!$last">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="badge rounded-pill bg-light text-dark font-monospace" style="width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px;">
+                      #{{ idx + 1 }}
+                    </span>
+                    <div>
+                      <strong class="d-block font-size-sm text-dark">{{ item.name }}</strong>
+                      <span class="text-muted small">{{ item.quantity }} uds vendidas</span>
+                    </div>
+                  </div>
+                  <strong class="font-monospace text-primary font-size-sm">
+                    RD$ {{ item.revenue | number:'1.0-0' }}
+                  </strong>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="text-center py-2 text-muted small">
+              Aún no se registran ventas el día de hoy.
+            </div>
+          }
+        </div>
+
+        <!-- SECCIÓN: OPERACIONES RÁPIDAS (2 CARDS EN FILA BLANCAS PLANAS) -->
+        <span class="cuadre-section-label">OPERACIONES RÁPIDAS</span>
+        <div class="quick-ops-grid mb-3">
+          <button
+            type="button"
+            class="cuadre-card quick-op-card"
+            (click)="setSalesCatalogType('products'); setTab('ventas')"
+          >
+            <div class="cuadre-icon-chip chip-blue">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="8" cy="21" r="1"/>
+                <circle cx="19" cy="21" r="1"/>
+                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+              </svg>
+            </div>
+            <div class="quick-op-info">
+              <strong class="quick-op-title">Vender productos</strong>
+              <span class="quick-op-sub">{{ products().length }} en catálogo</span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            class="cuadre-card quick-op-card"
+            (click)="openServiceBilling()"
+          >
+            <div class="cuadre-icon-chip chip-amber">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+              </svg>
+            </div>
+            <div class="quick-op-info">
+              <strong class="quick-op-title">Facturar servicios</strong>
+              <span class="quick-op-sub">Mano de obra</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- FILA DE ATAJOS DE 56PX DE ALTO -->
+        <div class="shortcuts-row mb-4">
+          <button type="button" class="cuadre-shortcut-btn" (click)="setTab('fiao')">
+            <div class="cuadre-icon-chip chip-amber chip-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" x2="8" y1="13" y2="13"/>
+                <line x1="16" x2="8" y1="17" y2="17"/>
+              </svg>
+            </div>
+            <span>Fiao (Deudas)</span>
+          </button>
+
+          <button type="button" class="cuadre-shortcut-btn" (click)="isClientsModalOpen.set(true)">
+            <div class="cuadre-icon-chip chip-blue chip-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+              </svg>
+            </div>
+            <span>Clientes</span>
+          </button>
+
+          <button type="button" class="cuadre-shortcut-btn" (click)="sendDailySummaryToOwnerWhatsApp()">
+            <div class="cuadre-icon-chip chip-emerald chip-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/>
+                <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/>
+              </svg>
+            </div>
+            <span>WhatsApp Dueño</span>
+          </button>
+
+          <button type="button" class="cuadre-shortcut-btn" (click)="setTab('caja')">
+            <div class="cuadre-icon-chip chip-subtle chip-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="12" x="2" y="6" rx="2"/>
+                <circle cx="12" cy="12" r="2"/>
+              </svg>
+            </div>
+            <span>Detalle caja</span>
+          </button>
+        </div>
+
+      </div>
+    }
+
+    <!-- ======================================================== -->
+    <!-- TAB 2: VENTAS (PANTALLA 4: VENDER PRODUCTOS / SERVICIOS) -->
+    <!-- ======================================================== -->
+    @if (activeTab() === 'ventas') {
+      <div class="view-content fade-in">
+
+        <!-- SUBBAR INTERNA (BOTÓN VOLVER 44PX + TÍTULO 16PX/700) -->
+        <div class="cuadre-subbar mb-2">
+          <button type="button" class="btn-subbar-back" (click)="setTab('inicio')" aria-label="Volver al inicio">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m12 19-7-7 7-7"/>
+              <path d="M19 12H5"/>
+            </svg>
+          </button>
+
+          <h2 class="subbar-title mb-0">
+            {{ salesCatalogType() === 'products' ? 'Nueva venta' : 'Facturar servicios' }}
+          </h2>
+
+          <div class="d-flex align-items-center gap-1">
+            <button
+              type="button"
+              class="btn-subbar-action position-relative"
+              (click)="openMobileHeldSalesModal()"
+              aria-label="Ventas en espera"
+              title="Ver ventas en espera"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+                <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+              </svg>
+              @if (draftStorageService.heldCount() > 0) {
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary" style="font-size: 10px; padding: 2px 5px;">{{ draftStorageService.heldCount() }}</span>
+              }
+            </button>
+
+            <button
+              type="button"
+              class="btn-subbar-action"
+              (click)="salesCatalogType() === 'products' ? clearCart() : clearServiceCart()"
+              aria-label="Vaciar selección actual"
+              [title]="salesCatalogType() === 'products' ? 'Limpiar venta' : 'Limpiar servicios'"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- AVISO DE VENTAS EN ESPERA PENDIENTES -->
+        @if (draftStorageService.heldCount() > 0) {
+          <div
+            class="d-flex justify-content-between align-items-center p-2.5 rounded-3 mb-2"
+            style="background-color: var(--cuadre-color-primary-light); border: 1px solid var(--cuadre-color-primary-border); cursor: pointer;"
+            (click)="openMobileHeldSalesModal()"
+          >
+            <div class="d-flex align-items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+                <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+              </svg>
+              <span class="small fw-bold text-primary">Tienes {{ draftStorageService.heldCount() }} {{ draftStorageService.heldCount() === 1 ? 'venta' : 'ventas' }} en espera</span>
+            </div>
+            <span class="cuadre-badge badge-info" style="font-size: 11px;">Recuperar &gt;</span>
+          </div>
+        }
+
+        <!-- SELECTOR SEGMENTADO PRODUCTOS VS SERVICIOS -->
+        <div class="catalog-segmented-control mb-2">
+          <button
+            type="button"
+            class="segmented-btn"
+            [class.active]="salesCatalogType() === 'products'"
+            (click)="setSalesCatalogType('products')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="21" r="1"/>
+              <circle cx="19" cy="21" r="1"/>
+              <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+            </svg>
+            <span>Productos</span>
+            @if (cart().length > 0) {
+              <span class="cuadre-badge badge-info ms-1">{{ totalCartItemsCount() }}</span>
+            }
+          </button>
+
+          <button
+            type="button"
+            class="segmented-btn"
+            [class.active]="salesCatalogType() === 'services'"
+            (click)="setSalesCatalogType('services')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+            </svg>
+            <span>Servicios</span>
+            @if (serviceCart().length > 0) {
+              <span class="cuadre-badge badge-warn ms-1">{{ totalServiceCartCount() }}</span>
+            }
+          </button>
+        </div>
+
+        @if (salesCatalogType() === 'products') {
+          <!-- INPUT DE BÚSQUEDA 48PX CON ICONO Y BOTÓN DE CÁMARA -->
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="cuadre-search-input-wrap flex-grow-1">
+              <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.3-4.3"/>
+              </svg>
+              <input
+                type="text"
+                class="cuadre-search-input"
+                placeholder="Buscar o escanear código..."
+                [(ngModel)]="searchTerm"
+              />
+              @if (searchTerm()) {
+                <button type="button" class="btn-clear-input" (click)="searchTerm.set('')" aria-label="Limpiar búsqueda">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              }
+            </div>
+            <button
+              type="button"
+              class="btn-camera-scan"
+              (click)="openCameraScanner()"
+              title="Escanear con cámara (Modo Ráfaga)"
+              aria-label="Escanear código de barra con la cámara del celular"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="btn-quick-amount-trigger"
+              (click)="openQuickAmountModal()"
+              title="Venta Libre / Monto Rápido"
+              aria-label="Agregar monto manual o artículo libre al carrito"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              <span>+ Monto</span>
+            </button>
+          </div>
+
+          <!-- CHIPS DE CATEGORÍA CON SCROLL HORIZONTAL (TODOS SELECCIONADO) -->
+          <div class="categories-scroll-row mb-2 no-scrollbar">
+            @for (cat of categories(); track cat.id) {
+              <button
+                type="button"
+                class="cuadre-chip"
+                [class.active]="selectedCategoryId() === cat.id"
+                (click)="selectedCategoryId.set(cat.id)"
+              >
+                {{ cat.label }}
+              </button>
+            }
+          </div>
+
+          <!-- UNA SOLA CARD CON FILAS DE PRODUCTO (STEPPER: − OUTLINE 44PX, QTY 15PX/700, + AZUL 44PX) -->
+          <div class="cuadre-card p-0 overflow-hidden mb-5">
+            @for (prod of filteredProducts(); track prod.id; let last = $last) {
+              <div
+                class="product-list-row"
+                [class.border-bottom]="!last"
+                [class.out-of-stock]="(prod.stock || 0) <= 0"
+                (click)="onProductClick(prod)"
+              >
+                <div class="product-info-col">
+                  <div class="d-flex align-items-center gap-1">
+                    <span class="product-row-name">{{ prod.description }}</span>
+                    @if (prod.imageUrl || prod.photoUrl) {
+                      <button
+                        type="button"
+                        class="btn-pos-photo-preview btn-mobile-photo"
+                        (click)="$event.stopPropagation(); openProductPhotoPreviewModal(prod)"
+                        title="Ver foto y código de barras del producto"
+                        aria-label="Ver foto"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                          <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        <span>Foto</span>
+                      </button>
+                    }
+                  </div>
+                  <div class="product-row-meta">
+                    <span class="product-row-price">RD$ {{ (prod.price || prod.cost * 1.3) | number:'1.2-2' }}</span>
+                    <span class="product-row-unit">· {{ prod.stock || 0 }} {{ getProductUnitSymbol(prod) }}</span>
+                    @if ((prod.stock || 0) <= 0) {
+                      <span class="cuadre-badge badge-bad ms-1">Agotado</span>
+                    } @else if ((prod.stock || 0) <= 5) {
+                      <span class="cuadre-badge badge-warn ms-1" title="Stock por agotarse">Bajo Stock</span>
+                    }
+                  </div>
+                </div>
+
+                <div class="product-stepper-col" (click)="$event.stopPropagation()">
+                  @if (getItemCartCount(prod.id) > 0) {
+                    <button
+                      type="button"
+                      class="btn-stepper-outline"
+                      (click)="decrementProductFromList(prod)"
+                      aria-label="Restar una unidad"
+                    >
+                      −
+                    </button>
+                    <span class="stepper-quantity">{{ getItemCartCount(prod.id) }}</span>
+                    <button
+                      type="button"
+                      class="btn-stepper-blue"
+                      [disabled]="(prod.stock || 0) <= getItemCartCount(prod.id)"
+                      (click)="onProductClick(prod)"
+                      aria-label="Sumar una unidad"
+                    >
+                      +
+                    </button>
+                  } @else {
+                    <button
+                      type="button"
+                      class="btn-stepper-blue"
+                      [disabled]="(prod.stock || 0) <= 0"
+                      (click)="onProductClick(prod)"
+                      aria-label="Agregar al carrito"
+                    >
+                      +
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (filteredProducts().length === 0 && !isLoading()) {
+              <div class="empty-state-box">
+                <p class="mb-0">No se encontraron productos con ese filtro.</p>
+              </div>
+            }
+          </div>
+
+          <!-- BARRA FIJA INFERIOR SOBRE EL TABBAR (BOTÓN AZUL 56PX) -->
+          @if (cart().length > 0) {
+            <div class="sticky-cart-bar">
+              <button
+                type="button"
+                class="btn-cuadre-blue btn-56 w-100"
+                (click)="isCartDrawerOpen.set(true)"
+              >
+                <span class="cart-bar-left">
+                  <span class="cart-icon-badge-wrap me-2" [class.cart-badge-bounce]="cartBadgeBounce()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="8" cy="21" r="1"/>
+                      <circle cx="19" cy="21" r="1"/>
+                      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+                    </svg>
+                    <span class="cart-counter-bubble" [class.cart-badge-bounce]="cartBadgeBounce()">{{ totalCartItemsCount() }}</span>
+                  </span>
+                  <span>Ver cuenta · {{ totalCartItemsCount() }} {{ totalCartItemsCount() === 1 ? 'artículo' : 'artículos' }}</span>
+                </span>
+                <span class="cart-bar-total">RD$ {{ cartTotal() | number:'1.2-2' }}</span>
+              </button>
+            </div>
+          }
+        } @else {
+          <!-- CATÁLOGO DE SERVICIOS -->
+          <div class="cuadre-search-input-wrap mb-2">
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.3-4.3"/>
+            </svg>
+            <input
+              type="text"
+              class="cuadre-search-input"
+              placeholder="Buscar servicio por nombre o código..."
+              [(ngModel)]="servicesSearchTerm"
+            />
+            @if (servicesSearchTerm()) {
+              <button type="button" class="btn-clear-input" (click)="servicesSearchTerm.set('')" aria-label="Limpiar búsqueda">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            }
+          </div>
+
+          <!-- CHIPS DE CATEGORÍA DE SERVICIOS -->
+          <div class="categories-scroll-row mb-2 no-scrollbar">
+            @for (cat of serviceCategories(); track cat) {
+              <button
+                type="button"
+                class="cuadre-chip"
+                [class.active]="selectedServiceCategory() === cat"
+                (click)="selectedServiceCategory.set(cat)"
+              >
+                {{ cat }}
+              </button>
+            }
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="cuadre-section-label mb-0 mt-0">Catálogo de Servicios</span>
+            <button
+              type="button"
+              class="btn-cuadre-outline btn-44 py-1 px-3"
+              (click)="openQuickServiceCreateModal()"
+            >
+              + Nuevo Servicio
+            </button>
+          </div>
+
+          <!-- FILAS DE SERVICIOS EN CARD ÚNICA -->
+          <div class="cuadre-card p-0 overflow-hidden mb-5">
+            @for (serv of filteredServices(); track serv.id || serv.code; let last = $last) {
+              <div
+                class="product-list-row"
+                [class.border-bottom]="!last"
+                (click)="addServiceToCart(serv)"
+              >
+                <div class="product-info-col">
+                  <span class="product-row-name">{{ serv.name }}</span>
+                  <div class="product-row-meta">
+                    <span class="product-row-price">RD$ {{ (serv.price || 0) | number:'1.2-2' }}</span>
+                    <span class="product-row-unit">· {{ serv.categoryName || 'Mano de Obra' }}</span>
+                  </div>
+                </div>
+
+                <div class="product-stepper-col" (click)="$event.stopPropagation()">
+                  @if (getServiceCartCount(serv.id) > 0) {
+                    <button
+                      type="button"
+                      class="btn-stepper-outline"
+                      (click)="decrementServiceFromList(serv)"
+                      aria-label="Restar servicio"
+                    >
+                      −
+                    </button>
+                    <span class="stepper-quantity">{{ getServiceCartCount(serv.id) }}</span>
+                    <button
+                      type="button"
+                      class="btn-stepper-blue"
+                      (click)="addServiceToCart(serv)"
+                      aria-label="Sumar servicio"
+                    >
+                      +
+                    </button>
+                  } @else {
+                    <button
+                      type="button"
+                      class="btn-stepper-blue"
+                      (click)="addServiceToCart(serv)"
+                      aria-label="Agregar servicio"
+                    >
+                      +
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (filteredServices().length === 0 && !isLoadingServices()) {
+              <div class="empty-state-box">
+                <p class="mb-2">No se encontraron servicios registrados.</p>
+                <button
+                  type="button"
+                  class="btn-cuadre-outline btn-44"
+                  (click)="openQuickServiceCreateModal()"
+                >
+                  + Crear Primer Servicio
+                </button>
+              </div>
+            }
+          </div>
+
+          <!-- BARRA FIJA INFERIOR PARA SERVICIOS -->
+          @if (serviceCart().length > 0) {
+            <div class="sticky-cart-bar">
+              <button
+                type="button"
+                class="btn-cuadre-blue btn-56 w-100"
+                (click)="isServiceCartDrawerOpen.set(true)"
+              >
+                <span class="cart-bar-left">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                  </svg>
+                  <span>Ver cuenta · {{ totalServiceCartCount() }} {{ totalServiceCartCount() === 1 ? 'servicio' : 'servicios' }}</span>
+                </span>
+                <span class="cart-bar-total">RD$ {{ serviceCartTotal() | number:'1.2-2' }}</span>
+              </button>
+            </div>
+          }
+        }
+
+      </div>
+    }
+
+    <!-- ======================================================== -->
+    <!-- TAB 3: CAJA (PANTALLA 6: CAJA DEL TURNO)                 -->
+    <!-- ======================================================== -->
+    @if (activeTab() === 'caja') {
+      <div class="view-content fade-in">
+
+        <!-- SUBBAR -->
+        <div class="cuadre-subbar mb-2">
+          <button type="button" class="btn-subbar-back" (click)="setTab('inicio')" aria-label="Volver">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m12 19-7-7 7-7"/>
+              <path d="M19 12H5"/>
+            </svg>
+          </button>
+          <h2 class="subbar-title mb-0">Mi Caja</h2>
+          <span style="width: 44px;"></span>
+        </div>
+
+        <!-- CAJABAR -->
+        <div class="cuadre-caja-bar mb-3">
+          <div class="caja-bar-left">
+            <div class="cuadre-icon-chip chip-subtle chip-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="12" x="2" y="6" rx="2"/>
+                <circle cx="12" cy="12" r="2"/>
+              </svg>
+            </div>
+            <span class="caja-bar-text">
+              {{ activeSession()?.name || 'Caja Principal' }} · {{ authService.currentUser()?.fullName || userName() }}
+            </span>
+          </div>
+          <div class="caja-bar-right">
+            @if (activeSession()) {
+              <span class="cuadre-badge badge-ok">
+                <span class="badge-dot"></span> Caja abierta
+              </span>
+            } @else {
+              <span class="cuadre-badge badge-off">
+                <span class="badge-dot"></span> Caja cerrada
+              </span>
+            }
+          </div>
+        </div>
+
+        <!-- CARD EFECTIVO ESPERADO -->
+        <div class="cuadre-card caja-esperado-card mb-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="cuadre-section-label mb-0 mt-0">EFECTIVO ESPERADO</span>
+            @if (activeSession()) {
+              <span class="cuadre-badge badge-ok">
+                <span class="badge-dot"></span> Turno activo
+              </span>
+            } @else {
+              <span class="cuadre-badge badge-off">
+                <span class="badge-dot"></span> Sin turno
+              </span>
+            }
+          </div>
+
+          <div class="caja-esperado-monto font-monospace">
+            RD$ {{ totalCashInDrawers() | number:'1.2-2' }}
+          </div>
+
+          @if (activeSession()) {
+            <hr class="my-1 border-light-subtle" />
+            <div class="caja-desglose-line">
+              <span>Fondo inicial:</span>
+              <span class="desglose-val font-monospace">RD$ {{ (activeSession()?.initialAmount || 0) | number:'1.2-2' }}</span>
+            </div>
+            <div class="caja-desglose-line">
+              <span>Ventas e ingresos:</span>
+              <span class="desglose-val font-monospace">RD$ {{ (activeSession()?.totalIn || 0) | number:'1.2-2' }}</span>
+            </div>
+            <div class="caja-desglose-line">
+              <span>Salidas / Retiros:</span>
+              <span class="desglose-val salida font-monospace">− RD$ {{ (activeSession()?.totalOut || 0) | number:'1.2-2' }}</span>
+            </div>
+          } @else {
+            <div class="caja-card-info text-muted">
+              Inicia tu turno de caja para registrar ventas en efectivo y movimientos.
+            </div>
+            <button
+              type="button"
+              class="btn-cuadre-primary btn-48 w-100 mt-2"
+              (click)="openMobileOpenRegisterModal()"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+              </svg>
+              <span>Abrir caja</span>
+            </button>
+          }
+        </div>
+
+        <!-- SECCIÓN: MOVIMIENTOS RECIENTES -->
+        <span class="cuadre-section-label">MOVIMIENTOS RECIENTES</span>
+        <div class="cuadre-card movements-flat-card mb-4">
+          @for (mov of recentMovements(); track mov.description) {
+            <div class="movement-row">
+              <div>
+                <span class="mov-desc">{{ mov.description }}</span>
+                <span class="mov-time">{{ mov.time }} · {{ mov.amount >= 0 ? 'Entrada' : 'Salida' }}</span>
+              </div>
+              <strong class="mov-amount-val font-monospace" [ngClass]="mov.amount >= 0 ? 'text-success' : 'text-danger'">
+                {{ mov.amount >= 0 ? '+' : '−' }} RD$ {{ Math.abs(mov.amount) | number:'1.2-2' }}
+              </strong>
+            </div>
+          }
+
+          @if (recentMovements().length === 0) {
+            <div class="empty-state-box">
+              <p class="mb-0">No hay movimientos registrados en este turno.</p>
+            </div>
+          }
+        </div>
+
+        <!-- 2 BOTONES DE 48PX EN FILA: OUTLINE + DANGER-OUTLINE -->
+        @if (activeSession()) {
+          <div class="d-flex gap-2 mb-4">
+            <button
+              type="button"
+              class="btn-cuadre-outline btn-48 flex-fill"
+              (click)="openMobileMovementModal('Entrada')"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              <span>Registrar movimiento</span>
+            </button>
+
+            <button
+              type="button"
+              class="btn-cuadre-danger-outline btn-48 flex-fill"
+              (click)="openMobileCloseRegisterModal()"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <span>Cerrar caja</span>
+            </button>
+          </div>
+        }
+
+      </div>
+    }
+
+    <!-- ======================================================== -->
+    <!-- TAB: FIAO (DEUDAS / CUENTAS POR COBRAR)                  -->
+    <!-- ======================================================== -->
+    @if (activeTab() === 'fiao') {
+      <div class="view-content fade-in">
+        <!-- SUBBAR INTERNA CON VOLVER Y TÍTULO -->
+        <div class="cuadre-subbar mb-3">
+          <button type="button" class="btn-subbar-back" (click)="setTab('inicio')" aria-label="Volver al inicio">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m12 19-7-7 7-7"/>
+              <path d="M19 12H5"/>
+            </svg>
+          </button>
+          <h2 class="subbar-title mb-0">Fiao (Deudas)</h2>
+          <button type="button" class="btn-subbar-action" (click)="loadFiaoList()" aria-label="Recargar deudas">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+              <path d="M16 21h5v-5"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- RESUMEN EJECUTIVO DE FIAO / DEUDAS -->
+        <div class="stats-row mb-3">
+          <div class="cuadre-card stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Total en Fiao</span>
+              <div class="cuadre-icon-chip chip-amber chip-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+              </div>
+            </div>
+            <div class="stat-value text-danger" style="color: #b91c1c;">
+              RD$ {{ totalPendingFiaoAmount() | number:'1.2-2' }}
+            </div>
+            <div class="stat-subtext">Saldo por cobrar</div>
+          </div>
+
+          <div class="cuadre-card stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Deudores</span>
+              <div class="cuadre-icon-chip chip-blue chip-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                </svg>
+              </div>
+            </div>
+            <div class="stat-value">
+              {{ totalPendingFiaoCount() }}
+            </div>
+            <div class="stat-subtext">Cuentas pendientes</div>
+          </div>
+        </div>
+
+        <!-- BUSCADOR DE FIAO -->
+        <div class="cuadre-search-box mb-3">
+          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input
+            type="text"
+            class="cuadre-search-input"
+            placeholder="Buscar por cliente o factura..."
+            [(ngModel)]="fiaoSearchTerm"
+          />
+          @if (fiaoSearchTerm()) {
+            <button type="button" class="btn-clear-input" (click)="fiaoSearchTerm.set('')" aria-label="Limpiar búsqueda">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          }
+        </div>
+
+        <!-- LISTA DE CUENTAS POR COBRAR (FIAO) -->
+        <div class="d-flex flex-column gap-2 mb-4">
+          @if (isLoadingFiao()) {
+            <div class="cuadre-card p-4 text-center text-muted">
+              <span class="spinner-border spinner-border-sm me-2"></span>
+              Cargando cuentas por cobrar...
+            </div>
+          } @else {
+            @for (debt of filteredFiaoList(); track debt.id) {
+              <div class="cuadre-card p-3 d-flex flex-column gap-2">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <strong class="d-block text-dark fs-6">{{ debt.customerName || 'Cliente sin nombre' }}</strong>
+                    <small class="text-muted font-monospace">{{ debt.invoiceNumber || ('Fiao #' + debt.id) }} · {{ debt.creationDate | date:'shortDate' }}</small>
+                  </div>
+                  <span class="cuadre-badge" [ngClass]="debt.status === 'Pagado' ? 'badge-ok' : (debt.status === 'Parcial' ? 'badge-warn' : 'badge-bad')">
+                    <span class="badge-dot"></span>
+                    {{ debt.status }}
+                  </span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-baseline py-1 border-top border-bottom">
+                  <div>
+                    <small class="text-muted d-block">Total original: RD$ {{ debt.totalAmount | number:'1.2-2' }}</small>
+                    <small class="text-success">Pagado: RD$ {{ (debt.paidAmount || 0) | number:'1.2-2' }}</small>
+                  </div>
+                  <div class="text-end">
+                    <small class="text-muted d-block">Pendiente</small>
+                    <strong class="fs-5 text-danger font-monospace">RD$ {{ debt.pendingAmount | number:'1.2-2' }}</strong>
+                  </div>
+                </div>
+
+                <div class="d-flex gap-2 pt-1">
+                  @if (debt.customerPhone) {
+                    <button
+                      type="button"
+                      class="btn-cuadre-outline btn-44 flex-fill d-flex align-items-center justify-content-center gap-1.5"
+                      (click)="sendFiaoWhatsAppReminder(debt)"
+                    >
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                      </svg>
+                      WhatsApp
+                    </button>
+                  }
+                  @if ((debt.pendingAmount || 0) > 0) {
+                    <button
+                      type="button"
+                      class="btn-cuadre-blue btn-44 flex-fill d-flex align-items-center justify-content-center gap-1.5"
+                      (click)="openFiaoPayment(debt)"
+                    >
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                      </svg>
+                      Abonar
+                    </button>
+                  }
+                </div>
+              </div>
+            } @empty {
+              <div class="cuadre-card p-4 text-center text-muted">
+                No hay cuentas por cobrar registradas o pendientes.
+              </div>
+            }
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ======================================================== -->
+    <!-- TAB 4: MÁS (OPCIONES ADICIONALES & PERFIL)               -->
+    <!-- ======================================================== -->
+    @if (activeTab() === 'mas') {
+      <div class="view-content fade-in">
+
+        <div class="cuadre-subbar mb-3">
+          <button type="button" class="btn-subbar-back" (click)="setTab('inicio')" aria-label="Volver">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m12 19-7-7 7-7"/>
+              <path d="M19 12H5"/>
+            </svg>
+          </button>
+          <h2 class="subbar-title mb-0">Más opciones</h2>
+          <span style="width: 44px;"></span>
+        </div>
+
+        <!-- EMPRESA RESUMEN -->
+        <div class="cuadre-card p-3 mb-3 d-flex align-items-center gap-3" style="background-color: var(--cuadre-bg-card, #FFFFFF); border: 1px solid var(--cuadre-border-color, #E2E8F0);">
+          @if (companyLogo()) {
+            <img [src]="companyLogo()" alt="Logo Empresa" style="width: 50px; height: 50px; object-fit: contain; border-radius: 10px; border: 1px solid var(--cuadre-border-color, #E2E8F0); padding: 2px; background: #fff;" />
+          } @else {
+            <div class="d-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary fw-bold" style="width: 50px; height: 50px; font-size: 22px;">
+              🏢
+            </div>
+          }
+          <div class="flex-grow-1 overflow-hidden">
+            <h3 class="mb-0 text-dark fw-bold text-truncate" style="font-size: 16px;">{{ tenantName() }}</h3>
+            @if (companyLegalName() !== tenantName()) {
+              <span class="text-muted small d-block text-truncate">{{ companyLegalName() }}</span>
+            }
+            @if (companyRnc()) {
+              <span class="text-primary small font-monospace d-block">RNC: {{ companyRnc() }}</span>
+            }
+            @if (companyPhone()) {
+              <span class="text-muted small d-block">Tel: {{ companyPhone() }}</span>
+            }
+            @if (companyAddress()) {
+              <span class="text-muted small d-block text-truncate">{{ companyAddress() }}</span>
+            }
+          </div>
+        </div>
+
+        <!-- PERFIL RESUMEN -->
+        <div class="cuadre-card user-profile-flat-card mb-3">
+          <div class="avatar-square-blue">
+            {{ (authService.currentUser()?.fullName || userName()).charAt(0).toUpperCase() }}
+          </div>
+          <div class="user-details-col">
+            <h3 class="mb-0">{{ authService.currentUser()?.fullName || userName() }}</h3>
+            <span class="text-muted small font-monospace">Usuario #{{ authService.currentUser()?.id || '6' }}</span>
+            <div class="mt-1">
+              <span class="cuadre-badge badge-info">
+                {{ authService.currentRole() || 'Admin' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- OPCIONES EN CARD PLANA -->
+        <div class="cuadre-card more-options-flat-card mb-3">
+          <div class="more-option-item" (click)="openServiceBilling()">
+            <div class="option-item-left">
+              <div class="cuadre-icon-chip chip-amber chip-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                </svg>
+              </div>
+              <div>
+                <strong class="option-item-title">Facturar servicios</strong>
+                <span class="option-item-sub">Mano de obra y talleres</span>
+              </div>
+            </div>
+            <svg class="option-item-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </div>
+
+          <div class="more-option-item" (click)="openStockEntryModal()">
+            <div class="option-item-left">
+              <div class="cuadre-icon-chip chip-blue chip-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+              </div>
+              <div>
+                <strong class="option-item-title">Recepción de Mercancía</strong>
+                <span class="option-item-sub">Entrada rápida de compras / stock</span>
+              </div>
+            </div>
+            <svg class="option-item-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </div>
+
+          <div class="more-option-item" (click)="pairBluetoothPrinter()">
+            <div class="option-item-left">
+              <div class="cuadre-icon-chip chip-subtle chip-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+              </div>
+              <div>
+                <strong class="option-item-title">Impresora Térmica Bluetooth</strong>
+                <span class="option-item-sub">{{ printerService.printerName() || 'ESC/POS 58mm / 80mm' }} · {{ printerService.isConnected() ? 'Conectada ✅' : 'Vincular' }}</span>
+              </div>
+            </div>
+            <svg class="option-item-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </div>
+
+          <div class="more-option-item" (click)="isClientsModalOpen.set(true)">
+            <div class="option-item-left">
+              <div class="cuadre-icon-chip chip-blue chip-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                </svg>
+              </div>
+              <div>
+                <strong class="option-item-title">Directorio de clientes</strong>
+                <span class="option-item-sub">Ver o seleccionar cliente</span>
+              </div>
+            </div>
+            <svg class="option-item-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </div>
+
+          <div class="more-option-item" (click)="sendDailySummaryToOwnerWhatsApp()">
+            <div class="option-item-left">
+              <div class="cuadre-icon-chip chip-emerald chip-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/>
+                  <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/>
+                </svg>
+              </div>
+              <div>
+                <strong class="option-item-title">Reporte WhatsApp al Dueño</strong>
+                <span class="option-item-sub">Enviar resumen de ventas</span>
+              </div>
+            </div>
+            <svg class="option-item-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </div>
+
+          <div class="more-option-item" (click)="openCloseRegisterModal()">
+            <div class="option-item-left">
+              <div class="cuadre-icon-chip chip-subtle chip-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="20" height="12" x="2" y="6" rx="2"/>
+                  <circle cx="12" cy="12" r="2"/>
+                </svg>
+              </div>
+              <div>
+                <strong class="option-item-title">Arqueo y cierre de caja</strong>
+                <span class="option-item-sub">Conteo de billetes y reporte</span>
+              </div>
+            </div>
+            <svg class="option-item-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </div>
+
+          <div class="more-option-item" (click)="toggleFullscreen()">
+            <div class="option-item-left">
+              <div class="cuadre-icon-chip chip-subtle chip-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+              </div>
+              <div>
+                <strong class="option-item-title">{{ isFullscreen() ? 'Salir de Pantalla Completa' : 'Modo Pantalla Completa' }}</strong>
+                <span class="option-item-sub">{{ isFullscreen() ? 'Restaurar interfaz de pantalla' : 'Ocultar barras del navegador (Modo Kiosco)' }}</span>
+              </div>
+            </div>
+            <span class="cuadre-badge" [ngClass]="isFullscreen() ? 'badge-ok' : 'badge-off'">
+              <span class="badge-dot"></span>
+              {{ isFullscreen() ? 'Activo' : 'Activar' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- BOTÓN LOGOUT -->
+        <button type="button" class="btn-cuadre-danger-outline btn-48 w-100" (click)="logout()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" x2="9" y1="12" y2="12"/>
+            
+          </svg>
+          <span>Cerrar sesión</span>
+        </button>
+
+      </div>
+    }
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- TABBAR INFERIOR (4 ÍTEMS NATIVOS PLANOS)                 -->
+  <!-- ======================================================== -->
+  <nav class="cuadre-tabbar">
+    <button
+      type="button"
+      class="tab-item"
+      [class.active]="activeTab() === 'inicio'"
+      (click)="setTab('inicio')"
+    >
+      <div class="tab-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <span class="tab-text">Inicio</span>
+    </button>
+
+    <button
+      type="button"
+      class="tab-item"
+      [class.active]="activeTab() === 'ventas'"
+      (click)="setTab('ventas')"
+    >
+      <div class="tab-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="8" cy="21" r="1"/>
+          <circle cx="19" cy="21" r="1"/>
+          <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+        </svg>
+      </div>
+      <span class="tab-text">Ventas</span>
+    </button>
+
+    <button
+      type="button"
+      class="tab-item"
+      [class.active]="activeTab() === 'caja'"
+      (click)="setTab('caja')"
+    >
+      <div class="tab-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="12" x="2" y="6" rx="2"/>
+          <circle cx="12" cy="12" r="2"/>
+          <path d="M6 12h.01M18 12h.01"/>
+        </svg>
+      </div>
+      <span class="tab-text">Caja</span>
+    </button>
+
+    <button
+      type="button"
+      class="tab-item"
+      [class.active]="activeTab() === 'fiao'"
+      (click)="setTab('fiao')"
+    >
+      <div class="tab-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" x2="8" y1="13" y2="13"/>
+          <line x1="16" x2="8" y1="17" y2="17"/>
+        </svg>
+      </div>
+      <span class="tab-text">Fiao</span>
+    </button>
+
+    <button
+      type="button"
+      class="tab-item"
+      [class.active]="activeTab() === 'mas'"
+      (click)="setTab('mas')"
+    >
+      <div class="tab-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="1.5"/>
+          <circle cx="19" cy="12" r="1.5"/>
+          <circle cx="5" cy="12" r="1.5"/>
+        </svg>
+      </div>
+      <span class="tab-text">Más</span>
+    </button>
+  </nav>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: APERTURA RÁPIDA DE CAJA (PANTALLA 2)               -->
+  <!-- ======================================================== -->
+  @if (isMobileOpenRegisterModalOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="closeMobileOpenRegisterModal()"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h2 class="sheet-title mb-0">Apertura Rápida de Caja</h2>
+          <span class="sheet-subtitle">Compartida entre PC y móvil</span>
+        </div>
+        <button type="button" class="btn-subbar-action" (click)="closeMobileOpenRegisterModal()" aria-label="Cerrar ventana">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Card de info (fondo #F8FAFC, borde 1px) -->
+      <div class="cierre-resumen-card mb-3">
+        <div class="cierre-resumen-row">
+          <span>Caja asignada:</span>
+          <span class="resumen-val">Caja Principal POS</span>
+        </div>
+        <div class="cierre-resumen-row">
+          <span>Cajero/dueño:</span>
+          <span class="resumen-val text-primary">{{ authService.currentUser()?.fullName || userName() }}</span>
+        </div>
+        <div class="cierre-resumen-row">
+          <span>Dispositivo:</span>
+          <span class="cuadre-badge badge-info">PWA móvil</span>
+        </div>
+      </div>
+
+      <!-- Monto inicial sugerido (chips) -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Monto inicial sugerido (Fondo de caja):</label>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <button type="button" class="cuadre-chip" [class.active]="mobileOpeningAmount() === 0" (click)="setQuickOpeningAmount(0)">RD$ 0</button>
+          <button type="button" class="cuadre-chip" [class.active]="mobileOpeningAmount() === 500" (click)="setQuickOpeningAmount(500)">RD$ 500</button>
+          <button type="button" class="cuadre-chip" [class.active]="mobileOpeningAmount() === 1000" (click)="setQuickOpeningAmount(1000)">RD$ 1,000</button>
+          <button type="button" class="cuadre-chip" [class.active]="mobileOpeningAmount() === 2000" (click)="setQuickOpeningAmount(2000)">RD$ 2,000</button>
+          <button type="button" class="cuadre-chip" [class.active]="mobileOpeningAmount() === 5000" (click)="setQuickOpeningAmount(5000)">RD$ 5,000</button>
+        </div>
+
+        <label class="cuadre-input-label">O introduce el monto exacto:</label>
+        <div class="cuadre-money-input-group mb-2">
+          <div class="money-prefix">RD$</div>
+          <input
+            type="number"
+            class="money-input-field"
+            [(ngModel)]="mobileOpeningAmount"
+            placeholder="0.00"
+            min="0"
+          />
+        </div>
+      </div>
+
+      <!-- Nota de apertura (opcional) -->
+      <div class="mb-4">
+        <label class="cuadre-input-label">Nota de apertura (opcional):</label>
+        <div class="cuadre-money-input-group">
+          <input
+            type="text"
+            class="money-input-field"
+            placeholder="Ej: Turno de la mañana, fondo para cambio"
+            [(ngModel)]="mobileOpeningNotes"
+          />
+        </div>
+      </div>
+
+      <!-- Botón primary navy 52px con icono check -->
+      <button
+        type="button"
+        class="btn-cuadre-primary w-100"
+        [disabled]="isSubmitting()"
+        (click)="confirmMobileOpenRegister()"
+      >
+        @if (isSubmitting()) {
+          <span class="spinner-border spinner-border-sm me-2"></span>
+          <span>Aperturando turno de caja...</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <span>Confirmar apertura de caja</span>
+        }
+      </button>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: MI PEDIDO (CART DRAWER)                           -->
+  <!-- ======================================================== -->
+  @if (isCartDrawerOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="isCartDrawerOpen.set(false)"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+        <div>
+          <h2 class="sheet-title mb-0">Mi Pedido</h2>
+          <span class="sheet-subtitle">{{ totalCartItemsCount() }} artículos seleccionados</span>
+        </div>
+        <div class="d-flex align-items-center gap-1.5">
+          <button
+            type="button"
+            class="btn-cuadre-outline btn-44 px-2.5 d-flex align-items-center gap-1"
+            (click)="holdCurrentMobileSale()"
+            title="Poner venta actual en espera"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+            <span>En espera</span>
+          </button>
+          <button type="button" class="btn-cuadre-danger-outline btn-44 px-2" (click)="clearCart()">
+            Vaciar
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-3" style="max-height: 240px; overflow-y: auto;">
+        @for (item of cart(); track item.product.id; let idx = $index) {
+          <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div class="flex-grow-1 pe-2">
+              <span class="d-block fw-semibold text-dark font-size-sm">{{ item.product.description }}</span>
+              <span class="text-muted small font-monospace">RD$ {{ item.unitPrice | number:'1.2-2' }}</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn-stepper-outline" style="width: 36px; height: 36px;" (click)="updateItemQuantity(idx, -1)">−</button>
+              <span class="stepper-quantity">{{ item.quantity }}</span>
+              <button type="button" class="btn-stepper-blue" style="width: 36px; height: 36px;" (click)="updateItemQuantity(idx, 1)">+</button>
+              <strong class="font-monospace text-dark font-size-sm ms-2" style="min-width: 65px; text-align: right;">
+                RD$ {{ item.total | number:'1.2-2' }}
+              </strong>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Info del Cliente -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Cliente asignado:</label>
+        <div class="cuadre-money-input-group">
+          <input type="text" class="money-input-field" [(ngModel)]="customerName" placeholder="Consumidor Final" />
+          <button type="button" class="btn-subbar-action border-start" (click)="isClientsModalOpen.set(true)" title="Elegir cliente">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Descuentos Rápidos al Pedido -->
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <label class="cuadre-input-label mb-0">Descuento al Pedido:</label>
+          @if (cartDiscountAmount() > 0) {
+            <span class="badge bg-danger-subtle text-danger font-monospace" style="font-size: 11px;">
+              -RD$ {{ cartDiscountAmount() | number:'1.2-2' }}
+            </span>
+          }
+        </div>
+        <div class="d-flex gap-1 flex-wrap">
+          <button
+            type="button"
+            class="speed-discount-chip"
+            [class.active]="cartDiscountType() === 'none'"
+            (click)="setCartDiscount('none', 0)"
+          >
+            0%
+          </button>
+          <button
+            type="button"
+            class="speed-discount-chip"
+            [class.active]="cartDiscountType() === 'percent' && cartDiscountValue() === 5"
+            (click)="setCartDiscount('percent', 5)"
+          >
+            5%
+          </button>
+          <button
+            type="button"
+            class="speed-discount-chip"
+            [class.active]="cartDiscountType() === 'percent' && cartDiscountValue() === 10"
+            (click)="setCartDiscount('percent', 10)"
+          >
+            10%
+          </button>
+          <button
+            type="button"
+            class="speed-discount-chip"
+            [class.active]="cartDiscountType() === 'percent' && cartDiscountValue() === 15"
+            (click)="setCartDiscount('percent', 15)"
+          >
+            15%
+          </button>
+          <button
+            type="button"
+            class="speed-discount-chip"
+            [class.active]="cartDiscountType() === 'round'"
+            (click)="setCartDiscount('round', 0)"
+            title="Redondeo de centavos a favor del cliente"
+          >
+            Redondear
+          </button>
+          <button
+            type="button"
+            class="speed-discount-chip"
+            [class.active]="cartDiscountType() === 'fixed'"
+            (click)="promptFixedDiscount()"
+          >
+            RD$ Fijo
+          </button>
+        </div>
+      </div>
+
+      <!-- Card Cuenta -->
+      <div class="cuadre-card checkout-summary-card mb-3">
+        <div class="checkout-line-item">
+          <span>Subtotal:</span>
+          <span class="font-monospace">RD$ {{ cartSubtotal() | number:'1.2-2' }}</span>
+        </div>
+        <div class="checkout-line-item">
+          <span>ITBIS (18%):</span>
+          <span class="font-monospace">RD$ {{ cartItbis() | number:'1.2-2' }}</span>
+        </div>
+        @if (cartDiscountAmount() > 0) {
+          <div class="checkout-line-item text-danger">
+            <span>Descuento aplicado:</span>
+            <span class="font-monospace">-RD$ {{ cartDiscountAmount() | number:'1.2-2' }}</span>
+          </div>
+        }
+        <div class="checkout-total-line">
+          <span class="total-title">Total a cobrar</span>
+          <span class="total-amount font-monospace">RD$ {{ cartTotal() | number:'1.2-2' }}</span>
+        </div>
+        <span class="itbis-subtext">Incluye ITBIS y comprobante fiscal</span>
+      </div>
+
+      <button
+        type="button"
+        class="btn-cuadre-blue btn-52 w-100"
+        (click)="openCheckout()"
+      >
+        Continuar al Cobro (RD$ {{ cartTotal() | number:'1.2-2' }})
+      </button>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: TOUCH CHECKOUT & COBRO (PANTALLA 5)               -->
+  <!-- ======================================================== -->
+  @if (isPaymentModalOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="isPaymentModalOpen.set(false)"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="sheet-title mb-0">Cobro de Venta</h2>
+        <button type="button" class="btn-subbar-action" (click)="isPaymentModalOpen.set(false)" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- CARD CUENTA CON LÍNEAS -->
+      <div class="cuadre-card checkout-summary-card mb-3">
+        @for (item of cart(); track item.product.id) {
+          <div class="checkout-line-item">
+            <span>{{ item.quantity }} × {{ item.product.description }}</span>
+            <span class="font-monospace">RD$ {{ item.total | number:'1.2-2' }}</span>
+          </div>
+        }
+        <div class="checkout-total-line">
+          <span class="total-title">Total a cobrar</span>
+          <span class="total-amount font-monospace">RD$ {{ cartTotal() | number:'1.2-2' }}</span>
+        </div>
+        <span class="itbis-subtext">Incluye ITBIS</span>
+      </div>
+
+      <!-- ETIQUETA: MÉTODO DE PAGO -->
+      <span class="cuadre-section-label">MÉTODO DE PAGO</span>
+
+      <!-- GRILLA 2X2 DE CHIPS (EFECTIVO, TARJETA, TRANSFERENCIA, CRÉDITO) -->
+      <div class="methods-grid-2x2 mb-3">
+        <button
+          type="button"
+          class="method-chip"
+          [class.active]="selectedMethod() === 'Efectivo'"
+          (click)="selectedMethod.set('Efectivo')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="12" x="2" y="6" rx="2"/>
+            <circle cx="12" cy="12" r="2"/>
+            <path d="M6 12h.01M18 12h.01"/>
+          </svg>
+          <span>Efectivo</span>
+        </button>
+
+        <button
+          type="button"
+          class="method-chip"
+          [class.active]="selectedMethod() === 'Tarjeta'"
+          (click)="selectedMethod.set('Tarjeta')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="14" x="2" y="5" rx="2"/>
+            <line x1="2" x2="22" y1="10" y2="10"/>
+          </svg>
+          <span>Tarjeta</span>
+        </button>
+
+        <button
+          type="button"
+          class="method-chip"
+          [class.active]="selectedMethod() === 'Transferencia'"
+          (click)="selectedMethod.set('Transferencia')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="5" height="5" x="3" y="3" rx="1"/>
+            <rect width="5" height="5" x="16" y="3" rx="1"/>
+            <rect width="5" height="5" x="3" y="16" rx="1"/>
+            <path d="M21 16h-3a2 2 0 0 0-2 2v3"/>
+            <path d="M21 21v.01"/>
+            <path d="M12 7v3a2 2 0 0 1-2 2H7"/>
+          </svg>
+          <span>Transferencia</span>
+        </button>
+
+        <button
+          type="button"
+          class="method-chip"
+          (click)="notificationService.info('Venta a crédito seleccionada')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+            <path d="M6 6h10"/>
+            <path d="M6 10h10"/>
+          </svg>
+          <span>Crédito</span>
+        </button>
+      </div>
+
+      <!-- INPUT: MONTO RECIBIDO CON PREFIJO RD$ -->
+      @if (selectedMethod() === 'Efectivo') {
+        <div class="mb-3">
+          <label class="cuadre-input-label">Billetes Rápidos (Speed Checkout):</label>
+          <div class="speed-bills-grid">
+            <button
+              type="button"
+              class="speed-bill-btn"
+              [class.active]="amountReceived() === 100"
+              (click)="applyCashQuick(100)"
+            >
+              RD$ 100
+            </button>
+            <button
+              type="button"
+              class="speed-bill-btn"
+              [class.active]="amountReceived() === 200"
+              (click)="applyCashQuick(200)"
+            >
+              RD$ 200
+            </button>
+            <button
+              type="button"
+              class="speed-bill-btn"
+              [class.active]="amountReceived() === 500"
+              (click)="applyCashQuick(500)"
+            >
+              RD$ 500
+            </button>
+            <button
+              type="button"
+              class="speed-bill-btn"
+              [class.active]="amountReceived() === 1000"
+              (click)="applyCashQuick(1000)"
+            >
+              RD$ 1,000
+            </button>
+            <button
+              type="button"
+              class="speed-bill-btn"
+              [class.active]="amountReceived() === 2000"
+              (click)="applyCashQuick(2000)"
+            >
+              RD$ 2,000
+            </button>
+            <button
+              type="button"
+              class="speed-bill-btn"
+              [class.active]="amountReceived() === cartTotal()"
+              (click)="applyExactCash()"
+            >
+              Exacto
+            </button>
+          </div>
+
+          <label class="cuadre-input-label">Monto recibido:</label>
+          <div class="cuadre-money-input-group mb-2">
+            <div class="money-prefix">RD$</div>
+            <input
+              type="number"
+              class="money-input-field"
+              [(ngModel)]="amountReceived"
+              placeholder="0.00"
+            />
+          </div>
+        </div>
+
+        <!-- CARD CON DEVUELTA EN VERDE #047857 Y COMPROBANTE FISCAL -->
+        <div class="cuadre-card mb-3" style="background-color: #ECFDF5; border-color: #A7F3D0;">
+          <div class="d-flex justify-content-between align-items-center">
+            <span style="font-size: 13px; font-weight: 600; color: #047857;">Devuelta:</span>
+            <strong class="font-monospace" style="font-size: 20px; color: #047857;">
+              RD$ {{ changeDue() | number:'1.2-2' }}
+            </strong>
+          </div>
+          <hr class="my-1" style="border-color: #A7F3D0;" />
+          <div class="d-flex justify-content-between align-items-center">
+            <span style="font-size: 12px; color: #047857;">Comprobante fiscal (NCF):</span>
+            <span class="cuadre-badge badge-ok">Factura de Consumo</span>
+          </div>
+        </div>
+      }
+
+      <!-- DATOS Y QR BANCARIO PARA PAGO CON TRANSFERENCIA -->
+      @if (selectedMethod() === 'Transferencia') {
+        <div class="bank-transfer-card mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <div class="bank-logo-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="20" height="14" x="2" y="5" rx="2"/>
+                  <line x1="2" x2="22" y1="10" y2="10"/>
+                </svg>
+              </div>
+              <div>
+                <span class="d-block fw-bold text-dark font-size-sm">{{ activeBankAccount().bankName }}</span>
+                <span class="text-muted" style="font-size: 11px;">{{ activeBankAccount().accountType }} • {{ activeBankAccount().currency }}</span>
+              </div>
+            </div>
+            @if (availableBankAccounts().length > 1) {
+              <select
+                class="form-select form-select-sm bank-account-selector"
+                style="width: auto; max-width: 140px; font-size: 12px;"
+                [ngModel]="selectedBankAccountId()"
+                (ngModelChange)="selectedBankAccountId.set($event)"
+              >
+                @for (b of availableBankAccounts(); track b.id) {
+                  <option [value]="b.id">{{ b.bankName }}</option>
+                }
+              </select>
+            }
+          </div>
+
+          <div class="bank-account-box p-2.5 rounded-3 mb-2 d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block" style="font-size: 11px;">Número de Cuenta:</span>
+              <strong class="font-monospace text-primary font-size-md tracking-wide">
+                {{ activeBankAccount().accountNumber }}
+              </strong>
+              <span class="d-block text-muted mt-0.5" style="font-size: 11px;">
+                Titular: <strong>{{ activeBankAccount().holderName }}</strong>
+                @if (activeBankAccount().holderRnc) {
+                  • RNC: {{ activeBankAccount().holderRnc }}
+                }
+              </span>
+            </div>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 px-2.5 py-1.5 rounded-pill"
+              (click)="copyBankAccount()"
+            >
+              @if (isBankCopied()) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>¡Copiado!</span>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                </svg>
+                <span>Copiar</span>
+              }
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-sm btn-light border w-100 d-flex align-items-center justify-content-center gap-1.5 py-2 rounded-2 mb-2"
+            (click)="isBankQrModalOpen.set(!isBankQrModalOpen())"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="5" height="5" x="3" y="3" rx="1"/>
+              <rect width="5" height="5" x="16" y="3" rx="1"/>
+              <rect width="5" height="5" x="3" y="16" rx="1"/>
+              <path d="M21 16h-3a2 2 0 0 0-2 2v3"/>
+              <path d="M21 21v.01"/>
+              <path d="M12 7v3a2 2 0 0 1-2 2H7"/>
+            </svg>
+            <span>{{ isBankQrModalOpen() ? 'Ocultar Código QR' : 'Mostrar Código QR de Pago Bancario' }}</span>
+          </button>
+
+          @if (isBankQrModalOpen()) {
+            <div class="qr-preview-box text-center p-3 mb-2 rounded-3 border bg-white fade-in">
+              <span class="d-block text-muted small mb-1">Muestra este código al cliente para pagar desde su app de banco:</span>
+              <img [src]="bankTransferQrUrl()" alt="QR Transferencia" class="img-fluid rounded border p-1 shadow-sm mx-auto mb-2" style="max-width: 170px;" />
+              <div class="small fw-semibold text-dark">
+                Monto exacto: <span class="text-primary font-monospace">RD$ {{ cartTotal() | number:'1.2-2' }}</span>
+              </div>
+            </div>
+          }
+
+          <div class="transfer-reference-group mt-2">
+            <label class="cuadre-input-label">No. de Confirmación / Referencia (Opcional):</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              placeholder="Ej. REF-9812 o últimos 4 dígitos"
+              [(ngModel)]="transferReferenceNumber"
+            />
+          </div>
+        </div>
+      }
+
+      <!-- WHATSAPP DEL CLIENTE -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">WhatsApp del cliente (opcional para ticket):</label>
+        <div class="cuadre-money-input-group">
+          <input type="tel" class="money-input-field" placeholder="809-555-1234" [(ngModel)]="customerPhone" />
+        </div>
+      </div>
+
+      <!-- BOTÓN AZUL FIJO ABAJO: COBRAR RD$ X (52PX) -->
+      <button
+        type="button"
+        class="btn-cuadre-blue btn-52 w-100"
+        [disabled]="isSubmitting() || (selectedMethod() === 'Efectivo' && amountReceived() > 0 && amountReceived() < cartTotal())"
+        (click)="processMobileSale()"
+      >
+        @if (isSubmitting()) {
+          <span class="spinner-border spinner-border-sm me-2"></span>
+          <span>Procesando cobro...</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <span>Cobrar RD$ {{ cartTotal() | number:'1.2-2' }}</span>
+        }
+      </button>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: VENTA FACTURADA / TICKET DIGITAL                  -->
+  <!-- ======================================================== -->
+  @if (isSuccessModalOpen(); as sale) {
+    <div class="drawer-backdrop fade-in"></div>
+    <div class="bottom-sheet-drawer text-center">
+      <div class="cuadre-icon-chip chip-emerald mx-auto mb-2" style="width: 48px; height: 48px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <h2 class="sheet-title mb-1">¡Venta Facturada!</h2>
+      <p class="sheet-subtitle mb-3">Comprobante de venta generado exitosamente</p>
+
+      @if ((lastSaleSummary()?.change || 0) > 0) {
+        <div class="giant-change-card">
+          <span class="giant-change-label">CAMBIO A ENTREGAR</span>
+          <div class="giant-change-val font-monospace">
+            RD$ {{ (lastSaleSummary()?.change || 0) | number:'1.2-2' }}
+          </div>
+          <span class="giant-change-sub">Entregado de RD$ {{ (lastSaleSummary()?.amountReceived || 0) | number:'1.2-2' }}</span>
+        </div>
+      }
+
+      <div class="cuadre-card text-start mb-3" style="background-color: #F8FAFC;">
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">Folio:</span>
+          <strong class="font-monospace">#{{ lastSaleSummary()?.folio }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">NCF Fiscal:</span>
+          <strong class="text-primary font-monospace">{{ lastSaleSummary()?.ncf }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">Fecha y Hora:</span>
+          <strong class="text-dark font-monospace">{{ lastSaleSummary()?.formattedDate || (lastSaleSummary()?.date | date:'dd/MM/yyyy hh:mm a') }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">Cliente:</span>
+          <span>{{ lastSaleSummary()?.customerName }}</span>
+        </div>
+        <div class="d-flex justify-content-between fw-bold pt-2 border-top">
+          <span>Total Pagado:</span>
+          <span class="text-success font-monospace fs-6">RD$ {{ lastSaleSummary()?.total | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="d-flex flex-column gap-2">
+        <button
+          type="button"
+          class="btn-cuadre-primary btn-52 w-100 d-flex align-items-center justify-content-center gap-2"
+          (click)="printLastSaleTicket()"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          <span>Imprimir Ticket (ESC/POS)</span>
+        </button>
+
+        <!-- TELÉFONO WHATSAPP Y BOTÓN 1-TOQUE -->
+        <div class="cuadre-money-input-group mb-1">
+          <div class="money-prefix" style="font-size: 13px;">📱 +1</div>
+          <input
+            type="tel"
+            class="money-input-field"
+            [(ngModel)]="ticketCustomerPhone"
+            placeholder="{{ lastSaleSummary()?.customerPhone || 'Número WhatsApp (ej: 8095550123)' }}"
+          />
+        </div>
+
+        <button
+          type="button"
+          class="btn-cuadre-primary btn-52 w-100 d-flex align-items-center justify-content-center gap-2 shadow-sm"
+          style="background: #10B981; border: 1px solid #059669; color: white; font-weight: 700;"
+          (click)="sendTicketViaWhatsApp()"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/>
+            <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/>
+          </svg>
+          <span>Enviar Recibo WhatsApp (1 Toque)</span>
+        </button>
+        <button
+          type="button"
+          class="btn-cuadre-outline btn-48 w-100"
+          (click)="isSuccessModalOpen.set(false); setTab('ventas')"
+        >
+          Siguiente Venta
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CART DRAWER DE SERVICIOS                          -->
+  <!-- ======================================================== -->
+  @if (isServiceCartDrawerOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="isServiceCartDrawerOpen.set(false)"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+        <div>
+          <h2 class="sheet-title mb-0">Servicios a Facturar</h2>
+          <span class="sheet-subtitle">{{ totalServiceCartCount() }} servicios seleccionados</span>
+        </div>
+        <button type="button" class="btn-cuadre-outline btn-44 px-2" (click)="clearServiceCart()">
+          Vaciar
+        </button>
+      </div>
+
+      <div class="mb-3" style="max-height: 240px; overflow-y: auto;">
+        @for (item of serviceCart(); track item.serviceId; let idx = $index) {
+          <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div class="flex-grow-1 pe-2">
+              <span class="d-block fw-semibold text-dark font-size-sm">{{ item.serviceName }}</span>
+              <div class="d-flex align-items-center gap-1 mt-1">
+                <span class="text-muted small">Precio: RD$</span>
+                <input
+                  type="number"
+                  class="cuadre-money-input-group px-2 py-1 font-monospace"
+                  style="height: 32px; width: 100px; font-size: 13px;"
+                  [ngModel]="item.unitPrice"
+                  (ngModelChange)="updateServiceCartPrice(idx, $event)"
+                  min="0"
+                  step="50"
+                />
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn-stepper-outline" style="width: 36px; height: 36px;" (click)="updateServiceCartQuantity(idx, -1)">−</button>
+              <span class="stepper-quantity">{{ item.quantity }}</span>
+              <button type="button" class="btn-stepper-blue" style="width: 36px; height: 36px;" (click)="updateServiceCartQuantity(idx, 1)">+</button>
+              <strong class="font-monospace text-dark font-size-sm ms-2" style="min-width: 65px; text-align: right;">
+                RD$ {{ item.total | number:'1.2-2' }}
+              </strong>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Info del Cliente -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Cliente asignado:</label>
+        <div class="cuadre-money-input-group">
+          <input type="text" class="money-input-field" [(ngModel)]="serviceCustomerName" placeholder="Consumidor Final" />
+          <button type="button" class="btn-subbar-action border-start" (click)="isClientsModalOpen.set(true)" title="Elegir cliente">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Notas del servicio -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Observaciones del trabajo:</label>
+        <div class="cuadre-money-input-group">
+          <input type="text" class="money-input-field" placeholder="Mano de obra, taller..." [(ngModel)]="serviceNotes" />
+        </div>
+      </div>
+
+      <!-- Card Cuenta de Servicios -->
+      <div class="cuadre-card checkout-summary-card mb-3">
+        <div class="checkout-line-item">
+          <span>Subtotal:</span>
+          <span class="font-monospace">RD$ {{ serviceCartSubtotal() | number:'1.2-2' }}</span>
+        </div>
+        <div class="checkout-line-item">
+          <span>ITBIS (18%):</span>
+          <span class="font-monospace">RD$ {{ serviceCartItbis() | number:'1.2-2' }}</span>
+        </div>
+        <div class="checkout-total-line">
+          <span class="total-title">Total a facturar</span>
+          <span class="total-amount font-monospace">RD$ {{ serviceCartTotal() | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="btn-cuadre-blue btn-52 w-100"
+        (click)="openServiceCheckout()"
+      >
+        Continuar al Cobro (RD$ {{ serviceCartTotal() | number:'1.2-2' }})
+      </button>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CHECKOUT DE SERVICIOS                             -->
+  <!-- ======================================================== -->
+  @if (isServicePaymentModalOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="isServicePaymentModalOpen.set(false)"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="sheet-title mb-0">Cobrar Servicios</h2>
+        <button type="button" class="btn-subbar-action" (click)="isServicePaymentModalOpen.set(false)" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="cuadre-card checkout-summary-card mb-3">
+        @for (item of serviceCart(); track item.serviceId) {
+          <div class="checkout-line-item">
+            <span>{{ item.quantity }} × {{ item.serviceName }}</span>
+            <span class="font-monospace">RD$ {{ item.total | number:'1.2-2' }}</span>
+          </div>
+        }
+        <div class="checkout-total-line">
+          <span class="total-title">Total a cobrar</span>
+          <span class="total-amount font-monospace">RD$ {{ serviceCartTotal() | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <span class="cuadre-section-label">MÉTODO DE PAGO</span>
+      <div class="methods-grid-2x2 mb-3">
+        <button
+          type="button"
+          class="method-chip"
+          [class.active]="servicePaymentMode() === 'Efectivo'"
+          (click)="servicePaymentMode.set('Efectivo')"
+        >
+          <span>Efectivo</span>
+        </button>
+        <button
+          type="button"
+          class="method-chip"
+          [class.active]="servicePaymentMode() === 'Tarjeta'"
+          (click)="servicePaymentMode.set('Tarjeta')"
+        >
+          <span>Tarjeta</span>
+        </button>
+        <button
+          type="button"
+          class="method-chip"
+          [class.active]="servicePaymentMode() === 'Transferencia'"
+          (click)="servicePaymentMode.set('Transferencia')"
+        >
+          <span>Transferencia</span>
+        </button>
+        <button
+          type="button"
+          class="method-chip"
+          [class.active]="servicePaymentMode() === 'Credito'"
+          (click)="servicePaymentMode.set('Credito')"
+        >
+          <span>Crédito</span>
+        </button>
+      </div>
+
+      @if (servicePaymentMode() === 'Efectivo') {
+        <div class="mb-3">
+          <label class="cuadre-input-label">Monto recibido:</label>
+          <div class="cuadre-money-input-group mb-2">
+            <div class="money-prefix">RD$</div>
+            <input
+              type="number"
+              class="money-input-field"
+              [(ngModel)]="serviceAmountReceived"
+              placeholder="0.00"
+            />
+          </div>
+
+          <div class="cuadre-card mb-3" style="background-color: #ECFDF5; border-color: #A7F3D0;">
+            <div class="d-flex justify-content-between align-items-center">
+              <span style="font-size: 13px; font-weight: 600; color: #047857;">Devuelta:</span>
+              <strong class="font-monospace" style="font-size: 20px; color: #047857;">
+                RD$ {{ serviceChangeDue() | number:'1.2-2' }}
+              </strong>
+            </div>
+          </div>
+        </div>
+      }
+
+      <div class="mb-3">
+        <label class="cuadre-input-label">WhatsApp del cliente:</label>
+        <div class="cuadre-money-input-group">
+          <input type="tel" class="money-input-field" placeholder="809-555-1234" [(ngModel)]="serviceCustomerPhone" />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="btn-cuadre-blue btn-52 w-100"
+        [disabled]="isSubmitting() || (servicePaymentMode() === 'Efectivo' && serviceAmountReceived() > 0 && serviceAmountReceived() < serviceCartTotal())"
+        (click)="processMobileServiceSale()"
+      >
+        @if (isSubmitting()) {
+          <span class="spinner-border spinner-border-sm me-2"></span>
+          <span>Facturando servicio...</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <span>Cobrar RD$ {{ serviceCartTotal() | number:'1.2-2' }}</span>
+        }
+      </button>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: SERVICIO FACTURADO / TICKET                       -->
+  <!-- ======================================================== -->
+  @if (isServiceSuccessModalOpen()) {
+    <div class="drawer-backdrop fade-in"></div>
+    <div class="bottom-sheet-drawer text-center">
+      <div class="cuadre-icon-chip chip-amber mx-auto mb-2" style="width: 48px; height: 48px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <h2 class="sheet-title mb-1">¡Servicio Facturado!</h2>
+      <p class="sheet-subtitle mb-3">Comprobante de servicios generado exitosamente</p>
+
+      <div class="cuadre-card text-start mb-3" style="background-color: #F8FAFC;">
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">Folio:</span>
+          <strong class="font-monospace">#{{ lastServiceSaleSummary()?.folio }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">NCF Fiscal:</span>
+          <strong class="text-primary font-monospace">{{ lastServiceSaleSummary()?.ncf }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">Fecha y Hora:</span>
+          <strong class="text-dark font-monospace">{{ lastServiceSaleSummary()?.formattedDate || (lastServiceSaleSummary()?.date | date:'dd/MM/yyyy hh:mm a') }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">Cliente:</span>
+          <span>{{ lastServiceSaleSummary()?.customerName }}</span>
+        </div>
+        <div class="d-flex justify-content-between fw-bold pt-2 border-top">
+          <span>Total Facturado:</span>
+          <span class="text-success font-monospace fs-6">RD$ {{ lastServiceSaleSummary()?.total | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="d-flex flex-column gap-2">
+        <button
+          type="button"
+          class="btn-cuadre-blue btn-52 w-100"
+          (click)="sendServiceTicketViaWhatsApp()"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/>
+            <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/>
+          </svg>
+          <span>Enviar Ticket por WhatsApp</span>
+        </button>
+        <button
+          type="button"
+          class="btn-cuadre-outline btn-48 w-100"
+          (click)="isServiceSuccessModalOpen.set(false); setSalesCatalogType('services')"
+        >
+          Siguiente Servicio
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: REGISTRAR ENTRADA / RETIRO DE EFECTIVO            -->
+  <!-- ======================================================== -->
+  @if (isMobileMovementModalOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="closeMobileMovementModal()"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h2 class="sheet-title mb-0">
+            {{ mobileMovementType() === 'Entrada' ? 'Entrada de Efectivo' : 'Retiro de Efectivo' }}
+          </h2>
+          <span class="sheet-subtitle">
+            {{ mobileMovementType() === 'Entrada' ? 'Inyectar efectivo a la caja' : 'Retiro por gasto o compra menor' }}
+          </span>
+        </div>
+        <button type="button" class="btn-subbar-action" (click)="closeMobileMovementModal()" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Switch de Tipo con Chips -->
+      <div class="d-flex gap-2 mb-3">
+        <button
+          type="button"
+          class="cuadre-chip flex-fill"
+          [class.active]="mobileMovementType() === 'Entrada'"
+          (click)="mobileMovementType.set('Entrada')"
+        >
+          Entrada (+)
+        </button>
+        <button
+          type="button"
+          class="cuadre-chip flex-fill"
+          [class.active]="mobileMovementType() === 'Retiro'"
+          (click)="mobileMovementType.set('Retiro')"
+        >
+          Retiro (−)
+        </button>
+      </div>
+
+      <!-- Montos rápidos -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Monto rápido:</label>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <button type="button" class="cuadre-chip" (click)="setQuickMovementAmount(100)">RD$ 100</button>
+          <button type="button" class="cuadre-chip" (click)="setQuickMovementAmount(200)">RD$ 200</button>
+          <button type="button" class="cuadre-chip" (click)="setQuickMovementAmount(500)">RD$ 500</button>
+          <button type="button" class="cuadre-chip" (click)="setQuickMovementAmount(1000)">RD$ 1,000</button>
+          <button type="button" class="cuadre-chip" (click)="setQuickMovementAmount(2000)">RD$ 2,000</button>
+        </div>
+
+        <label class="cuadre-input-label">Monto:</label>
+        <div class="cuadre-money-input-group mb-2">
+          <div class="money-prefix">RD$</div>
+          <input
+            type="number"
+            class="money-input-field"
+            [(ngModel)]="mobileMovementAmount"
+            placeholder="0.00"
+            min="1"
+          />
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="cuadre-input-label">Concepto o descripción:</label>
+        <div class="cuadre-money-input-group">
+          <input
+            type="text"
+            class="money-input-field"
+            placeholder="Ej: Pago de delivery, insumos de caja"
+            [(ngModel)]="mobileMovementDescription"
+          />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="w-100"
+        [ngClass]="mobileMovementType() === 'Entrada' ? 'btn-cuadre-blue btn-52' : 'btn-cuadre-danger btn-52'"
+        [disabled]="isSubmitting() || mobileMovementAmount() <= 0"
+        (click)="confirmMobileMovement()"
+      >
+        @if (isSubmitting()) {
+          <span class="spinner-border spinner-border-sm me-2"></span>
+          <span>Registrando movimiento...</span>
+        } @else {
+          <span>Registrar {{ mobileMovementType() }} (RD$ {{ (mobileMovementAmount() || 0) | number:'1.2-2' }})</span>
+        }
+      </button>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CIERRE Y ARQUEO (PANTALLA 7)                      -->
+  <!-- ======================================================== -->
+  @if (isMobileCloseRegisterModalOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="closeMobileCloseRegisterModal()"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h2 class="sheet-title mb-0">Cierre y Arqueo de Caja</h2>
+          <span class="sheet-subtitle">Verificación de efectivo físico y balance final</span>
+        </div>
+        <button type="button" class="btn-subbar-action" (click)="closeMobileCloseRegisterModal()" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- CARD RESUMEN (ESPERADO, VENTAS DEL TURNO, HORA DE APERTURA) -->
+      <div class="cierre-resumen-card mb-3">
+        <div class="cierre-resumen-row">
+          <span>Saldo esperado en sistema:</span>
+          <span class="resumen-val font-monospace fs-6">RD$ {{ mobileExpectedCash() | number:'1.2-2' }}</span>
+        </div>
+        <div class="cierre-resumen-row">
+          <span>Fondo inicial:</span>
+          <span class="resumen-val font-monospace">RD$ {{ (activeSession()?.initialAmount || 0) | number:'1.2-2' }}</span>
+        </div>
+        <div class="cierre-resumen-row">
+          <span>Hora de apertura:</span>
+          <span class="resumen-val">{{ activeSession()?.openedAt ? (activeSession()?.openedAt | date:'shortTime') : 'Hoy' }}</span>
+        </div>
+      </div>
+
+      <!-- INPUT EFECTIVO CONTADO CON PREFIJO RD$ -->
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <label class="cuadre-input-label mb-0">Efectivo físico en gaveta:</label>
+          <button type="button" class="btn-cuadre-outline btn-44 px-3 py-1 d-inline-flex align-items-center" (click)="setExactCashClose()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Cuadre exacto
+          </button>
+        </div>
+
+        <div class="cuadre-money-input-group mb-2">
+          <div class="money-prefix">RD$</div>
+          <input
+            type="number"
+            class="money-input-field"
+            [(ngModel)]="mobileClosingDeclaredCash"
+            placeholder="0.00"
+            min="0"
+          />
+        </div>
+
+        <!-- CARD DE DIFERENCIA (FALTANTE #FEF2F2 / EXACTO #ECFDF5 / SOBRANTE #EFF6FF) -->
+        <div
+          class="cierre-diff-card font-monospace mt-2"
+          [ngClass]="mobileClosingDifference() === 0 ? 'diff-exacto' : (mobileClosingDifference() > 0 ? 'diff-sobrante' : 'diff-faltante')"
+        >
+          <div>
+            <span class="d-block small text-muted">Diferencia de arqueo:</span>
+            <div class="cierre-diff-amount">
+              {{ mobileClosingDifference() < 0 ? '−' : (mobileClosingDifference() > 0 ? '+' : '') }} RD$ {{ Math.abs(mobileClosingDifference()) | number:'1.2-2' }}
+            </div>
+          </div>
+          <div>
+            @if (mobileClosingDifference() === 0) {
+              <span class="cuadre-badge badge-ok">Cuadre Exacto</span>
+            } @else if (mobileClosingDifference() > 0) {
+              <span class="cuadre-badge badge-info">Sobrante</span>
+            } @else {
+              <span class="cuadre-badge badge-bad">Faltante</span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTA DE CIERRE (OBLIGATORIA SI HAY DIFERENCIA) -->
+      <div class="mb-4">
+        <label class="cuadre-input-label">
+          Nota de cierre {{ mobileClosingDifference() !== 0 ? '(Obligatoria por diferencia)' : '(Opcional)' }}:
+        </label>
+        <div class="cuadre-money-input-group">
+          <input
+            type="text"
+            class="money-input-field"
+            placeholder="Ej: Conteo final verificado"
+            [(ngModel)]="mobileClosingNotes"
+          />
+        </div>
+      </div>
+
+      <!-- ALERTA DE VENTAS EN ESPERA PENDIENTES -->
+      @if (draftStorageService.heldCount() > 0) {
+        <div class="alert alert-warning py-2 px-3 small rounded-3 d-flex align-items-center justify-content-between mb-3 shadow-xs">
+          <div>
+            <strong class="d-block text-warning-emphasis">⚠️ Tienes {{ draftStorageService.heldCount() }} venta(s) en espera</strong>
+            <span class="text-muted" style="font-size: 11px;">Debes anularlas para poder cerrar la caja.</span>
+          </div>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-warning text-dark fw-bold"
+            [disabled]="isCancellingPendingSales()"
+            (click)="cancelPendingSalesAndRetryMobileClose()"
+          >
+            @if (isCancellingPendingSales()) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            Anular y Cerrar
+          </button>
+        </div>
+      }
+
+      <!-- ALERTA DE ERROR DE OPERACIONES PENDIENTES / BACKEND -->
+      @if (mobilePendingOperationsError()) {
+        <div class="alert alert-danger py-2 px-3 small rounded-3 mb-3 shadow-xs">
+          <div class="fw-bold mb-1">⚠️ Error al cerrar:</div>
+          <div class="mb-2">{{ mobilePendingOperationsError() }}</div>
+          <button
+            type="button"
+            class="btn btn-sm btn-danger fw-bold w-100"
+            [disabled]="isCancellingPendingSales()"
+            (click)="cancelPendingSalesAndRetryMobileClose()"
+          >
+            @if (isCancellingPendingSales()) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+              <span>Anulando ventas...</span>
+            } @else {
+              <span>Anular ventas en espera y cerrar caja</span>
+            }
+          </button>
+        </div>
+      }
+
+      <!-- BOTÓN DANGER 52PX CONFIRMAR CIERRE + CANCELAR OUTLINE 44PX -->
+      <div class="d-flex flex-column gap-2">
+        <button
+          type="button"
+          class="btn-cuadre-danger btn-52 w-100"
+          [disabled]="isSubmitting() || isCancellingPendingSales() || (mobileClosingDifference() !== 0 && !mobileClosingNotes().trim())"
+          (click)="confirmMobileCloseRegister()"
+        >
+          @if (isSubmitting()) {
+            <span class="spinner-border spinner-border-sm me-2"></span>
+            <span>Cerrando caja...</span>
+          } @else if (isCancellingPendingSales()) {
+            <span class="spinner-border spinner-border-sm me-2"></span>
+            <span>Liberando operaciones...</span>
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <span>Confirmar cierre de caja</span>
+          }
+        </button>
+
+        <button
+          type="button"
+          class="btn-cuadre-outline btn-44 w-100"
+          (click)="closeMobileCloseRegisterModal()"
+        >
+          Cancelar
+        </button>
+
+        <!-- BOTÓN DE FORZAR CIERRE DE EMERGENCIA (ANTI-FRISADO) -->
+        <button
+          type="button"
+          class="btn btn-link text-muted text-decoration-none small py-1 mt-1 text-center"
+          style="font-size: 12px;"
+          (click)="forceCloseRegisterEmergency()"
+        >
+          ⚠️ ¿Caja trabada o sin conexión? Forzar Cierre Local
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CLIENTS QUICK SELECTOR                            -->
+  <!-- ======================================================== -->
+  @if (isClientsModalOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="isClientsModalOpen.set(false)"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="sheet-title mb-0">Directorio de Clientes</h2>
+        <button type="button" class="btn-subbar-action" (click)="isClientsModalOpen.set(false)" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="d-flex flex-column gap-2 mb-3">
+        @for (client of clientsList(); track client.id) {
+          <div
+            class="cuadre-card p-3 cursor-pointer d-flex justify-content-between align-items-center flex-row"
+            [style.border-color]="selectedCustomerId() === client.id ? '#2563EB' : '#E2E8F0'"
+            (click)="selectCustomer(client)"
+          >
+            <div>
+              <strong class="d-block text-dark">{{ client.name }}</strong>
+              <small class="text-muted font-monospace">{{ client.rnc }} · {{ client.type }}</small>
+            </div>
+            <button
+              type="button"
+              class="cuadre-chip"
+              [class.active]="selectedCustomerId() === client.id"
+            >
+              {{ selectedCustomerId() === client.id ? 'Elegido' : 'Elegir' }}
+            </button>
+          </div>
+        }
+      </div>
+
+      <button type="button" class="btn-cuadre-outline btn-44 w-100" (click)="isClientsModalOpen.set(false)">
+        Cerrar
+      </button>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CREACIÓN RÁPIDA DE SERVICIO                       -->
+  <!-- ======================================================== -->
+  @if (isQuickServiceCreateModalOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="closeQuickServiceCreateModal()"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h2 class="sheet-title mb-0">Nuevo Servicio Rápido</h2>
+          <span class="sheet-subtitle">Crea un servicio y agrégalo al pedido de inmediato</span>
+        </div>
+        <button type="button" class="btn-subbar-action" (click)="closeQuickServiceCreateModal()" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mb-3">
+        <label class="cuadre-input-label">Nombre del servicio:</label>
+        <div class="cuadre-money-input-group">
+          <input
+            type="text"
+            class="money-input-field"
+            placeholder="Ej: Cambio de pantalla, Mano de obra, Taller"
+            [(ngModel)]="newServiceName"
+          />
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="cuadre-input-label">Precio / Honorarios (RD$):</label>
+        <div class="cuadre-money-input-group">
+          <div class="money-prefix">RD$</div>
+          <input
+            type="number"
+            class="money-input-field"
+            [(ngModel)]="newServicePrice"
+            placeholder="0.00"
+            min="1"
+          />
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="cuadre-input-label">Categoría o especialidad:</label>
+        <div class="cuadre-money-input-group">
+          <input
+            type="text"
+            class="money-input-field"
+            placeholder="Ej: Taller, Diagnóstico, Mano de Obra"
+            [(ngModel)]="newServiceCategory"
+          />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="btn-cuadre-blue btn-52 w-100"
+        [disabled]="isSubmitting() || !newServiceName().trim() || newServicePrice() <= 0"
+        (click)="confirmQuickServiceCreate()"
+      >
+        @if (isSubmitting()) {
+          <span class="spinner-border spinner-border-sm me-2"></span>
+          <span>Creando servicio...</span>
+        } @else {
+          <span class="d-inline-flex align-items-center justify-content-center">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Guardar y agregar al pedido (RD$ {{ (newServicePrice() || 0) | number:'1.2-2' }})
+          </span>
+        }
+      </button>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CANTIDAD & PESAJE POR UNIDAD DE MEDIDA             -->
+  <!-- ======================================================== -->
+  @if (isMeasurementModalOpen() && selectedProductForMeasurement(); as prod) {
+    <div class="drawer-backdrop fade-in" (click)="closeQuantityModal()"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+          <h2 class="sheet-title mb-0">{{ prod.description }}</h2>
+          <span class="sheet-subtitle">
+            Unidad base: {{ getUnitForProduct(prod)?.name || 'Unidad' }} ({{ getProductUnitSymbol(prod) }}) · Stock: {{ prod.stock || 0 }} {{ getProductUnitSymbol(prod) }}
+          </span>
+        </div>
+        <button type="button" class="btn-subbar-action" (click)="closeQuantityModal()" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Presets de pesaje o unidades -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Cantidades rápidas sugeridas:</label>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          @if (isProductMeasurable(prod)) {
+            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 0.25" (click)="setPresetQuantity(0.25)">0.25 {{ getProductUnitSymbol(prod) }}</button>
+            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 0.5" (click)="setPresetQuantity(0.5)">0.50 {{ getProductUnitSymbol(prod) }} (1/2)</button>
+            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 0.75" (click)="setPresetQuantity(0.75)">0.75 {{ getProductUnitSymbol(prod) }} (3/4)</button>
+            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 1" (click)="setPresetQuantity(1)">1.00 {{ getProductUnitSymbol(prod) }}</button>
+            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 2" (click)="setPresetQuantity(2)">2.00 {{ getProductUnitSymbol(prod) }}</button>
+          } @else {
+            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 1" (click)="setPresetQuantity(1)">1 {{ getProductUnitSymbol(prod) }}</button>
+            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 2" (click)="setPresetQuantity(2)">2 {{ getProductUnitSymbol(prod) }}</button>
+            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 3" (click)="setPresetQuantity(3)">3 {{ getProductUnitSymbol(prod) }}</button>
+            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 5" (click)="setPresetQuantity(5)">5 {{ getProductUnitSymbol(prod) }}</button>
+            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 10" (click)="setPresetQuantity(10)">10 {{ getProductUnitSymbol(prod) }}</button>
+          }
+        </div>
+
+        <label class="cuadre-input-label">O introduce la cantidad exacta:</label>
+        <div class="cuadre-money-input-group mb-2">
+          <input
+            type="number"
+            class="money-input-field"
+            [(ngModel)]="measurementQuantity"
+            [step]="isProductMeasurable(prod) ? '0.01' : '1'"
+            min="0.01"
+            placeholder="0.00"
+          />
+          <div class="money-prefix">{{ getProductUnitSymbol(prod) }}</div>
+        </div>
+      </div>
+
+      <div class="cierre-resumen-card mb-4">
+        <div class="cierre-resumen-row">
+          <span>Precio unitario:</span>
+          <span class="resumen-val font-monospace">RD$ {{ getEffectiveUnitPrice() | number:'1.2-2' }}</span>
+        </div>
+        <div class="cierre-resumen-row pt-2 border-top">
+          <strong class="text-dark">Total estimado:</strong>
+          <strong class="text-success font-monospace fs-5">
+            RD$ {{ (Math.round((measurementQuantity() || 0) * getEffectiveUnitPrice() * (1 + (prod.taxRate ?? 0.18)) * 100) / 100) | number:'1.2-2' }}
+          </strong>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="btn-cuadre-blue btn-52 w-100"
+        [disabled]="(measurementQuantity() || 0) <= 0"
+        (click)="confirmQuantityModal()"
+      >
+        <span>Confirmar cantidad (RD$ {{ (Math.round((measurementQuantity() || 0) * getEffectiveUnitPrice() * (1 + (prod.taxRate ?? 0.18)) * 100) / 100) | number:'1.2-2' }})</span>
+      </button>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- DRAWER OFFCANVAS: MENÚ LATERAL                          -->
+  <!-- ======================================================== -->
+  @if (isSideMenuOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="isSideMenuOpen.set(false)"></div>
+    <div class="bottom-sheet-drawer" style="max-height: 85vh;">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="sheet-title mb-0">Menú CuadreEnv</h2>
+        <button type="button" class="btn-subbar-action" (click)="isSideMenuOpen.set(false)" aria-label="Cerrar menú">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="cuadre-card p-3 mb-3 d-flex align-items-center gap-3" style="background-color: var(--cuadre-bg-subtle, #F8FAFC); border: 1px solid var(--cuadre-border-color, #E2E8F0);">
+        @if (companyLogo()) {
+          <img [src]="companyLogo()" alt="Logo Empresa" style="width: 44px; height: 44px; object-fit: contain; border-radius: 8px; border: 1px solid var(--cuadre-border-color, #E2E8F0); background: #fff; padding: 2px;" />
+        } @else {
+          <div class="d-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary fw-bold" style="width: 44px; height: 44px; font-size: 20px;">
+            🏢
+          </div>
+        }
+        <div class="flex-grow-1 overflow-hidden">
+          <strong class="d-block text-dark text-truncate" style="font-size: 14px;">{{ tenantName() }}</strong>
+          @if (companyRnc()) {
+            <span class="text-primary small font-monospace d-block">RNC: {{ companyRnc() }}</span>
+          }
+          <span class="text-muted small d-block">{{ authService.currentUser()?.fullName || userName() }} · {{ activeSession()?.name || 'Caja Principal' }}</span>
+        </div>
+      </div>
+
+      <div class="d-flex flex-column gap-2 mb-4">
+        <button type="button" class="cuadre-chip w-100 justify-content-start" (click)="setTab('inicio'); isSideMenuOpen.set(false)">
+          Inicio
+        </button>
+        <button type="button" class="cuadre-chip w-100 justify-content-start" (click)="setTab('ventas'); isSideMenuOpen.set(false)">
+          Punto de Venta
+        </button>
+        <button type="button" class="cuadre-chip w-100 justify-content-start" (click)="openServiceBilling(); isSideMenuOpen.set(false)">
+          Facturar Servicios
+        </button>
+        <button type="button" class="cuadre-chip w-100 justify-content-start" (click)="setTab('caja'); isSideMenuOpen.set(false)">
+          Mi Caja & Arqueos
+        </button>
+        <button type="button" class="cuadre-chip w-100 justify-content-start" (click)="setTab('fiao'); isSideMenuOpen.set(false)">
+          Fiao (Deudas)
+        </button>
+        <button type="button" class="cuadre-chip w-100 justify-content-between" (click)="toggleTheme()">
+          <span>Modo Oscuro</span>
+          <span class="cuadre-badge" [ngClass]="isDarkMode() ? 'badge-ok' : 'badge-off'">
+            <span class="badge-dot"></span>
+            {{ isDarkMode() ? 'Activado' : 'Desactivado' }}
+          </span>
+        </button>
+        <button type="button" class="cuadre-chip w-100 justify-content-between" (click)="toggleFullscreen()">
+          <span>Pantalla Completa</span>
+          <span class="cuadre-badge" [ngClass]="isFullscreen() ? 'badge-ok' : 'badge-off'">
+            <span class="badge-dot"></span>
+            {{ isFullscreen() ? 'Activa' : 'Activar' }}
+          </span>
+        </button>
+        <button type="button" class="cuadre-chip w-100 justify-content-start" (click)="setTab('mas'); isSideMenuOpen.set(false)">
+          Más Opciones
+        </button>
+        <button type="button" class="cuadre-chip w-100 justify-content-start text-danger" (click)="logoutMobile(); isSideMenuOpen.set(false)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="me-2 text-danger">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span class="text-danger fw-semibold">Bloquear / Salir de Móvil</span>
+        </button>
+      </div>
+
+      <button type="button" class="btn-cuadre-outline btn-44 w-100" (click)="isSideMenuOpen.set(false)">
+        Cerrar menú
+      </button>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: REGISTRAR ABONO EN FIAO (DEUDAS)                  -->
+  <!-- ======================================================== -->
+  @if (isFiaoPaymentModalOpen() && selectedFiaoForPayment(); as debt) {
+    <div class="drawer-backdrop fade-in" (click)="closeFiaoPaymentModal()"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h2 class="sheet-title mb-0">Abonar a Fiao</h2>
+          <span class="sheet-subtitle">{{ debt.customerName }} · Deuda: RD$ {{ debt.pendingAmount | number:'1.2-2' }}</span>
+        </div>
+        <button type="button" class="btn-subbar-action" (click)="closeFiaoPaymentModal()" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="cierre-resumen-card mb-3">
+        <div class="cierre-resumen-row">
+          <span>Total de la deuda:</span>
+          <span class="resumen-val font-monospace">RD$ {{ debt.totalAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="cierre-resumen-row">
+          <span>Saldo pendiente actual:</span>
+          <strong class="text-danger font-monospace">RD$ {{ debt.pendingAmount | number:'1.2-2' }}</strong>
+        </div>
+      </div>
+
+      <!-- Selección de Método de Pago -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Método de cobro:</label>
+        <div class="d-flex gap-2">
+          <button
+            type="button"
+            class="cuadre-chip flex-fill"
+            [class.active]="fiaoPaymentMethod() === 'Efectivo'"
+            (click)="fiaoPaymentMethod.set('Efectivo')"
+          >
+            Efectivo
+          </button>
+          <button
+            type="button"
+            class="cuadre-chip flex-fill"
+            [class.active]="fiaoPaymentMethod() === 'Transferencia'"
+            (click)="fiaoPaymentMethod.set('Transferencia')"
+          >
+            Transferencia
+          </button>
+          <button
+            type="button"
+            class="cuadre-chip flex-fill"
+            [class.active]="fiaoPaymentMethod() === 'Tarjeta'"
+            (click)="fiaoPaymentMethod.set('Tarjeta')"
+          >
+            Tarjeta
+          </button>
+        </div>
+      </div>
+
+      <!-- Monto a abonar -->
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <label class="cuadre-input-label mb-0">Monto a pagar:</label>
+          <button type="button" class="btn-cuadre-outline btn-44 px-3 py-1" (click)="fiaoPaymentAmount.set(debt.pendingAmount)">
+            Pagar todo
+          </button>
+        </div>
+        <div class="cuadre-money-input-group">
+          <div class="money-prefix">RD$</div>
+          <input
+            type="number"
+            class="money-input-field"
+            [(ngModel)]="fiaoPaymentAmount"
+            [max]="debt.pendingAmount"
+            min="1"
+            placeholder="0.00"
+          />
+        </div>
+      </div>
+
+      <!-- Notas -->
+      <div class="mb-4">
+        <label class="cuadre-input-label">Nota o referencia (opcional):</label>
+        <div class="cuadre-money-input-group">
+          <input
+            type="text"
+            class="money-input-field"
+            placeholder="Ej: Pago parcial, entrega en mano"
+            [(ngModel)]="fiaoPaymentNotes"
+          />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="btn-cuadre-primary btn-52 w-100"
+        [disabled]="isSubmitting() || fiaoPaymentAmount() <= 0"
+        (click)="confirmFiaoPayment()"
+      >
+        @if (isSubmitting()) {
+          <span class="spinner-border spinner-border-sm me-2"></span>
+          <span>Registrando abono...</span>
+        } @else {
+          <span>Confirmar Abono de RD$ {{ (fiaoPaymentAmount() || 0) | number:'1.2-2' }}</span>
+        }
+      </button>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: RECIBO DE ABONO POR WHATSAPP EN 1 TOQUE           -->
+  <!-- ======================================================== -->
+  @if (isFiaoReceiptModalOpen() && lastFiaoReceiptData(); as receipt) {
+    <div class="drawer-backdrop fade-in" (click)="closeFiaoReceiptModal()"></div>
+    <div class="bottom-sheet-drawer text-center">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="cuadre-icon-chip chip-emerald mx-auto mb-2" style="width: 48px; height: 48px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+
+      <h2 class="sheet-title mb-1">¡Abono Registrado!</h2>
+      <p class="sheet-subtitle mb-3">Comprobante formal listo para enviar por WhatsApp</p>
+
+      <div class="cuadre-card text-start mb-3" style="background-color: #F8FAFC;">
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">Cliente:</span>
+          <strong class="text-dark">{{ receipt.customerName }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">Fecha y Hora:</span>
+          <strong class="text-dark font-monospace">{{ receipt.date }}</strong>
+        </div>
+        @if (receipt.ncf) {
+          <div class="d-flex justify-content-between mb-1 small">
+            <span class="text-muted">NCF Fiscal:</span>
+            <strong class="text-primary font-monospace">{{ receipt.ncf }}</strong>
+          </div>
+        }
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">Forma de Pago:</span>
+          <span>{{ receipt.paymentMethod }}</span>
+        </div>
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">Saldo Anterior:</span>
+          <span class="font-monospace text-muted">RD$ {{ receipt.previousBalance | number:'1.2-2' }}</span>
+        </div>
+        <div class="d-flex justify-content-between fw-bold pt-2 border-top">
+          <span class="text-success">Monto Abonado:</span>
+          <span class="text-success font-monospace fs-6">RD$ {{ receipt.amountPaid | number:'1.2-2' }}</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center fw-bold pt-2 border-top mt-1">
+          <span>Saldo Restante:</span>
+          @if (receipt.pendingBalance <= 0) {
+            <span class="cuadre-badge badge-ok">¡Cuenta Saldada!</span>
+          } @else {
+            <span class="text-danger font-monospace fs-6">RD$ {{ receipt.pendingBalance | number:'1.2-2' }}</span>
+          }
+        </div>
+      </div>
+
+      <!-- Teléfono WhatsApp editable si no tenía o si se quiere cambiar -->
+      <div class="mb-3 text-start">
+        <label class="cuadre-input-label mb-1">Enviar al WhatsApp del Cliente:</label>
+        <div class="cuadre-money-input-group">
+          <div class="money-prefix">📱 +1</div>
+          <input
+            type="tel"
+            class="money-input-field"
+            [(ngModel)]="fiaoReceiptCustomerPhone"
+            placeholder="8095551234"
+          />
+        </div>
+      </div>
+
+      <div class="d-flex flex-column gap-2">
+        <button
+          type="button"
+          class="btn-cuadre-success btn-52 w-100 d-flex align-items-center justify-content-center gap-2 shadow-sm"
+          style="background: #10B981; border: 1px solid #059669; color: white; font-weight: 700;"
+          (click)="sendFiaoReceiptViaWhatsApp()"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/>
+            <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/>
+          </svg>
+          <span>Enviar Recibo por WhatsApp (1 Toque)</span>
+        </button>
+
+        <button
+          type="button"
+          class="btn-cuadre-outline btn-48 w-100"
+          (click)="closeFiaoReceiptModal()"
+        >
+          Listo / Cerrar
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: VENTAS EN ESPERA (MOBILE BOTTOM SHEET)            -->
+  <!-- ======================================================== -->
+  @if (isHeldSalesModalOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="closeMobileHeldSalesModal()"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <div class="cuadre-icon-chip chip-blue chip-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+              <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="sheet-title mb-0">Ventas en Espera</h2>
+            <span class="sheet-subtitle">{{ draftStorageService.heldCount() }} venta(s) guardada(s)</span>
+          </div>
+        </div>
+        <button type="button" class="btn-subbar-action" (click)="closeMobileHeldSalesModal()" aria-label="Cerrar ventana">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      @if (cart().length > 0) {
+        <button
+          type="button"
+          class="btn-cuadre-outline btn-44 w-100 mb-3 d-flex align-items-center justify-content-center gap-2"
+          (click)="holdCurrentMobileSale()"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="4" width="4" height="16"></rect>
+            <rect x="14" y="4" width="4" height="16"></rect>
+          </svg>
+          <span>Poner pedido actual en espera ({{ cart().length }} arts.)</span>
+        </button>
+      }
+
+      <div class="mb-3" style="max-height: 320px; overflow-y: auto;">
+        @for (held of draftStorageService.heldSales(); track held.id) {
+          <div class="cuadre-card p-3 mb-2" style="background-color: var(--cuadre-bg-subtle);">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+              <div>
+                <strong class="d-block text-dark font-size-sm">{{ held.label }}</strong>
+                <span class="text-muted small">
+                  {{ held.itemCount }} artículo(s) · {{ held.heldAt | date:'shortTime' }}
+                </span>
+              </div>
+              <strong class="text-primary font-monospace font-size-base">
+                RD$ {{ held.totalAmount | number:'1.2-2' }}
+              </strong>
+            </div>
+
+            <div class="d-flex gap-2 mt-2 pt-2 border-top">
+              <button
+                type="button"
+                class="btn-cuadre-blue btn-40 flex-fill fw-bold"
+                (click)="resumeHeldMobileSale(held)"
+              >
+                Cargar / Recuperar
+              </button>
+              <button
+                type="button"
+                class="btn-cuadre-danger-outline btn-40 px-3"
+                (click)="dismissHeldMobileSale(held.id)"
+                title="Descartar"
+                aria-label="Descartar"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-state-box py-4">
+            <p class="text-muted mb-0">No hay ventas en espera actualmente.</p>
+          </div>
+        }
+      </div>
+
+      <button type="button" class="btn-cuadre-outline btn-48 w-100" (click)="closeMobileHeldSalesModal()">
+        Cerrar
+      </button>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: ESCÁNER DE CÓDIGOS DE BARRA CON CÁMARA (MOBILE)    -->
+  <!-- ======================================================== -->
+  <!-- ======================================================== -->
+  <!-- MODAL: ESCÁNER DE CÓDIGOS DE BARRA EN RÁFAGA (CONTINUO)    -->
+  <!-- ======================================================== -->
+  @if (isCameraScannerOpen()) {
+    <div class="camera-scanner-modal fade-in">
+      <div class="scanner-header">
+        <div class="d-flex align-items-center gap-2">
+          <div class="cuadre-icon-chip chip-emerald chip-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+          </div>
+          <div>
+            <div class="d-flex align-items-center gap-1.5">
+              <strong class="text-white font-size-sm">Escáner en Ráfaga</strong>
+              <span class="badge bg-success text-white font-size-xs px-2 py-0.5 rounded-pill">Continuo</span>
+            </div>
+            <span class="text-white-50" style="font-size: 11px;">
+              {{ cameraBurstScannedCount() }} detectados en esta sesión
+            </span>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          @if (isTorchAvailable()) {
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-light rounded-circle p-2"
+              [class.active]="isTorchOn()"
+              (click)="toggleTorch()"
+              title="Encender Linterna"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6c0 2-2 4-2 7v5a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-5c0-3-2-5-2-7 0-4 3-7 6-7s6 3 6 7z"/>
+                <line x1="12" x2="12" y1="9" y2="13"/>
+              </svg>
+            </button>
+          }
+          <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3" (click)="closeCameraScanner()">
+            Cerrar ✕
+          </button>
+        </div>
+      </div>
+
+      <div class="scanner-viewport-wrap" [class.flash-success]="cameraScanFlash()">
+        <video id="cameraScannerVideo" autoplay playsinline muted></video>
+        <div class="scanner-viewfinder"></div>
+      </div>
+
+      <div class="scanner-footer">
+        @if (cameraLastScannedItem(); as item) {
+          <div class="scanner-last-item-card mb-2.5 p-2 rounded-3 bg-dark border border-success d-flex justify-content-between align-items-center text-start fade-in">
+            <div class="d-flex align-items-center gap-2 text-truncate pe-2">
+              <span class="badge bg-success rounded-circle p-1">✓</span>
+              <div class="text-truncate">
+                <strong class="d-block text-white font-size-sm text-truncate">{{ item.name }}</strong>
+                <span class="text-success font-monospace small">RD$ {{ item.price | number:'1.2-2' }}</span>
+              </div>
+            </div>
+            <span class="badge bg-secondary font-monospace font-size-xs">{{ item.time }}</span>
+          </div>
+        }
+
+        <div class="d-flex gap-2">
+          <button
+            type="button"
+            class="btn btn-success flex-grow-1 d-flex align-items-center justify-content-center gap-2 py-2.5 rounded-3 fw-bold shadow"
+            (click)="finishCameraScanningAndOpenCart()"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="21" r="1"/>
+              <circle cx="19" cy="21" r="1"/>
+              <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+            </svg>
+            <span>Ver Carrito y Cobrar ({{ totalCartItemsCount() }})</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: VENTA LIBRE / MONTO RÁPIDO (SPEED CHECKOUT)       -->
+  <!-- ======================================================== -->
+  @if (isQuickAmountModalOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="isQuickAmountModalOpen.set(false)"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <div class="cuadre-icon-chip chip-amber chip-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+          </div>
+          <div>
+            <h2 class="sheet-title mb-0">Venta Libre / Monto Rápido</h2>
+            <span class="sheet-subtitle">Cobro directo de artículo o servicio no catalogado</span>
+          </div>
+        </div>
+        <button type="button" class="btn-subbar-action" (click)="isQuickAmountModalOpen.set(false)" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Billetes / Montos Sugeridos -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Montos Frecuentes (RD$):</label>
+        <div class="speed-bills-grid mb-2">
+          <button type="button" class="speed-bill-btn" [class.active]="quickAmountValue() === 50" (click)="quickAmountValue.set(50)">RD$ 50</button>
+          <button type="button" class="speed-bill-btn" [class.active]="quickAmountValue() === 100" (click)="quickAmountValue.set(100)">RD$ 100</button>
+          <button type="button" class="speed-bill-btn" [class.active]="quickAmountValue() === 200" (click)="quickAmountValue.set(200)">RD$ 200</button>
+          <button type="button" class="speed-bill-btn" [class.active]="quickAmountValue() === 500" (click)="quickAmountValue.set(500)">RD$ 500</button>
+          <button type="button" class="speed-bill-btn" [class.active]="quickAmountValue() === 1000" (click)="quickAmountValue.set(1000)">RD$ 1,000</button>
+        </div>
+
+        <label class="cuadre-input-label">Monto Exacto (RD$):</label>
+        <div class="cuadre-money-input-group mb-2">
+          <div class="money-prefix">RD$</div>
+          <input type="number" class="money-input-field" [(ngModel)]="quickAmountValue" placeholder="0.00" min="1" />
+        </div>
+      </div>
+
+      <!-- Concepto / Descripción -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Concepto o Descripción:</label>
+        <input type="text" class="money-input-field" [(ngModel)]="quickAmountDescription" placeholder="Ej. Refresco, Recarga, Mano de obra, Varios" />
+      </div>
+
+      <!-- Cantidad y Switch ITBIS 18% -->
+      <div class="row g-2 mb-3">
+        <div class="col-5">
+          <label class="cuadre-input-label">Cantidad:</label>
+          <input type="number" class="money-input-field text-center font-monospace" [(ngModel)]="quickAmountQuantity" min="1" value="1" />
+        </div>
+        <div class="col-7 d-flex align-items-center">
+          <div class="d-flex justify-content-between align-items-center w-100 p-2 rounded-3 border bg-light mt-3">
+            <span class="small fw-semibold text-dark">ITBIS 18%</span>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" [(ngModel)]="quickAmountWithTax" style="cursor: pointer;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="btn-cuadre-blue btn-52 w-100"
+        [disabled]="quickAmountValue() <= 0"
+        (click)="addQuickAmountToCart()"
+      >
+        Agregar al Carrito (RD$ {{ (quickAmountValue() * (quickAmountQuantity() || 1)) | number:'1.2-2' }})
+      </button>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: RECEPCIÓN RÁPIDA DE MERCANCÍA / STOCK EN MÓVIL    -->
+  <!-- ======================================================== -->
+  @if (isStockEntryModalOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="closeStockEntryModal()"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <div class="cuadre-icon-chip chip-blue chip-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+          </div>
+          <div>
+            <h2 class="sheet-title mb-0">Recepción de Mercancía</h2>
+            <span class="sheet-subtitle">Entrada rápida de compras al inventario</span>
+          </div>
+        </div>
+        <button type="button" class="btn-subbar-action" (click)="closeStockEntryModal()" aria-label="Cerrar ventana">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Selección de Producto -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Producto a recibir:</label>
+        <div class="cuadre-money-input-group">
+          <select
+            class="money-input-field text-start"
+            [ngModel]="stockEntryProductId()"
+            (ngModelChange)="onStockEntryProductChange($event)"
+            style="border: none; background: transparent; width: 100%;"
+          >
+            @for (p of products(); track p.id) {
+              <option [value]="p.id">
+                {{ p.description }} (Stock actual: {{ p.stock || 0 }} {{ getProductUnitSymbol(p) }})
+              </option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Cantidad Recibida -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Cantidad recibida:</label>
+        <div class="d-flex align-items-center gap-2">
+          <div class="cuadre-money-input-group flex-grow-1">
+            <input
+              type="number"
+              class="money-input-field"
+              [(ngModel)]="stockEntryQuantity"
+              min="1"
+              step="1"
+              placeholder="1"
+            />
+          </div>
+          <div class="d-flex gap-1">
+            <button type="button" class="cuadre-chip" (click)="stockEntryQuantity.set(stockEntryQuantity() + 5)">+5</button>
+            <button type="button" class="cuadre-chip" (click)="stockEntryQuantity.set(stockEntryQuantity() + 10)">+10</button>
+            <button type="button" class="cuadre-chip" (click)="stockEntryQuantity.set(stockEntryQuantity() + 25)">+25</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Costo Unitario de Compra (RD$) -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Costo unitario de compra (opcional):</label>
+        <div class="cuadre-money-input-group">
+          <div class="money-prefix">RD$</div>
+          <input
+            type="number"
+            class="money-input-field"
+            [(ngModel)]="stockEntryCost"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+          />
+        </div>
+      </div>
+
+      <!-- Notas / Proveedor -->
+      <div class="mb-4">
+        <label class="cuadre-input-label">Nota o Proveedor (opcional):</label>
+        <div class="cuadre-money-input-group">
+          <input
+            type="text"
+            class="money-input-field"
+            [(ngModel)]="stockEntryNotes"
+            placeholder="Ej: Camión proveedor, compra de urgencia"
+          />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="btn-cuadre-primary btn-52 w-100 fw-bold"
+        [disabled]="isSubmittingStockEntry() || !stockEntryProductId() || stockEntryQuantity() <= 0"
+        (click)="confirmStockEntry()"
+      >
+        @if (isSubmittingStockEntry()) {
+          <span class="spinner-border spinner-border-sm me-2"></span>
+          <span>Actualizando inventario...</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>Confirmar Entrada (+{{ stockEntryQuantity() }} uds)</span>
+        }
+      </button>
+    </div>
+  }
+
+  <!-- MODAL: CERRAR CAJA (CLOSE-REGISTER-MODAL EXISTENTE) -->
+  <app-close-register-modal
+    #closeRegisterModal
+    [(visible)]="isCloseModalOpen"
+    [session]="activeSession()"
+    (closed)="onRegisterClosed()"
+  ></app-close-register-modal>
+
+  } <!-- FIN @else isMobileAuthenticated -->
+
+  <!-- ======================================================== -->
+  <!-- MODAL: RECUPERACIÓN DE CONTRASEÑA EN MÓVIL               -->
+  <!-- ======================================================== -->
+  @if (isMobileForgotPasswordModalOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="closeMobileForgotPasswordModal()"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <div class="cuadre-icon-chip chip-blue chip-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold">Recuperar Contraseña</h5>
+            <small class="text-muted">Acceso a tu cuenta de CuadreEnv</small>
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-light rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" (click)="closeMobileForgotPasswordModal()">✕</button>
+      </div>
+
+      @if (mobileForgotSuccess()) {
+        <div class="alert alert-success d-flex align-items-start gap-2 rounded-3 p-3 mb-3">
+          <span class="fs-5 text-success">✓</span>
+          <div>
+            <strong class="d-block mb-1 text-success">¡Solicitud Procesada!</strong>
+            <p class="small mb-0 text-dark">{{ mobileForgotSuccess() }}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn btn-outline-secondary w-100 py-2.5 rounded-3 fw-bold"
+          (click)="closeMobileForgotPasswordModal()"
+        >
+          Volver a Iniciar Sesión
+        </button>
+      } @else {
+        <p class="text-muted small mb-3">
+          Ingresa el correo electrónico registrado en tu cuenta. Te enviaremos las instrucciones para restablecer tu contraseña.
+        </p>
+
+        @if (mobileForgotError()) {
+          <div class="alert alert-danger py-2 px-3 small rounded-3 mb-3">
+            {{ mobileForgotError() }}
+          </div>
+        }
+
+        <div class="mb-3">
+          <label class="cuadre-input-label mb-1" for="forgotEmailInput">Correo Electrónico:</label>
+          <div class="cuadre-money-input-group">
+            <input
+              id="forgotEmailInput"
+              type="email"
+              class="money-input-field text-start"
+              style="padding-left: 14px;"
+              placeholder="tu-correo@empresa.com"
+              [ngModel]="mobileForgotEmail()"
+              (ngModelChange)="mobileForgotEmail.set($event)"
+              autocomplete="email"
+            />
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button
+            type="button"
+            class="btn btn-light flex-grow-1 py-2.5 rounded-3 fw-semibold text-secondary"
+            (click)="closeMobileForgotPasswordModal()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-cuadre-primary flex-grow-1 py-2.5 rounded-3 fw-bold"
+            [disabled]="isMobileForgotSubmitting() || !mobileForgotEmail()"
+            (click)="submitMobileForgotPassword()"
+          >
+            @if (isMobileForgotSubmitting()) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+              <span>Enviando...</span>
+            } @else {
+              <span>Enviar Enlace</span>
+            }
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- MODAL DE DETALLE DE PRODUCTO CON FOTO Y CÓDIGO DE BARRA LITERAL (MÓVIL) -->
+  @if (selectedProductForPhotoModal(); as prodPhoto) {
+    <div class="custom-modal-backdrop" (click)="closeProductPhotoPreviewModal()">
+      <div class="custom-modal-content" style="max-width: 92vw; margin: auto;" (click)="$event.stopPropagation()">
+        <div class="custom-modal-header d-flex justify-content-between align-items-center p-3" style="background: #1e293b; color: white;">
+          <h6 class="mb-0 fw-bold">📷 Detalle Visual del Producto</h6>
+          <button type="button" class="btn-close btn-close-white" (click)="closeProductPhotoPreviewModal()"></button>
+        </div>
+        <div class="custom-modal-body p-3 text-center">
+          @if (prodPhoto.imageUrl || prodPhoto.photoUrl) {
+            <div class="mb-2 p-2 bg-white rounded border d-flex justify-content-center">
+              <img [src]="prodPhoto.imageUrl || prodPhoto.photoUrl" [alt]="prodPhoto.description" style="max-width: 100%; max-height: 180px; object-fit: contain; border-radius: 4px;" />
+            </div>
+          }
+          <h6 class="fw-bold mb-1">{{ prodPhoto.description }}</h6>
+          <div class="small text-muted mb-2 font-monospace">Ref: {{ prodPhoto.barcode || prodPhoto.reference || ('PROD-' + prodPhoto.id) }}</div>
+
+          <div class="p-2 mb-2 bg-white border rounded d-flex flex-column align-items-center">
+            <span class="small fw-bold text-uppercase text-muted mb-1" style="font-size: 11px;">Código de Barras Oficial</span>
+            <div class="p-2 bg-light rounded border border-dashed mb-1 w-100 d-flex justify-content-center overflow-hidden">
+              <div [innerHTML]="getBarcodeSvgForProduct(prodPhoto.barcode || prodPhoto.reference || ('PROD-' + prodPhoto.id))"></div>
+            </div>
+            <div class="font-monospace fw-bold text-dark" style="letter-spacing: 0.15em; font-size: 12px;">
+              {{ prodPhoto.barcode || prodPhoto.reference || ('PROD-' + prodPhoto.id) }}
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between small p-2 bg-light rounded border">
+            <span>Precio: <strong class="text-primary font-monospace">RD$ {{ (prodPhoto.price || prodPhoto.cost || 100) | number:'1.2-2' }}</strong></span>
+            <span>Stock: <strong class="text-dark font-monospace">{{ prodPhoto.stock || 0 }} {{ getProductUnitSymbol(prodPhoto) }}</strong></span>
+          </div>
+        </div>
+        <div class="p-2 border-top">
+          <button type="button" class="btn btn-secondary w-100 btn-sm" (click)="closeProductPhotoPreviewModal()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- PWA CONTROL BAR -->
+  <app-pwa-control-bar></app-pwa-control-bar>
+
+</div>

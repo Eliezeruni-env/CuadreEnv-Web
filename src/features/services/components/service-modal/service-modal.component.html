@@ -1,0 +1,196 @@
+@if (visible) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <!-- Header -->
+        <div class="modal-header bg-primary text-white py-3 px-4 d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <div class="p-2 bg-white bg-opacity-20 rounded-3 text-white">
+              <svg cIcon name="cilBriefcase" style="width: 20px; height: 20px;"></svg>
+            </div>
+            <div>
+              <h5 class="modal-title fw-bold mb-0 text-white">
+                {{ isEditMode ? 'Editar Servicio' : 'Nuevo Servicio Profesional' }}
+              </h5>
+              <small class="text-white-50">Configura tarifa, costos y detalles del servicio</small>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            aria-label="Cerrar"
+            (click)="close()"
+            [disabled]="isLoading()"
+          ></button>
+        </div>
+
+        <!-- Body -->
+        <div class="modal-body p-4 bg-light">
+          <form [formGroup]="form" (ngSubmit)="onSubmit()">
+            <!-- General Info Card -->
+            <div class="card border-0 shadow-sm rounded-3 mb-3 p-3 bg-white">
+              <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                <span class="badge bg-primary-subtle text-primary rounded-pill">1</span>
+                Identificación del Servicio
+              </h6>
+
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Código de Servicio *</label>
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light font-monospace fw-bold text-primary">#</span>
+                    <input
+                      type="text"
+                      class="form-control font-monospace fw-bold"
+                      formControlName="code"
+                      placeholder="SERV-1001"
+                      [class.is-invalid]="form.get('code')?.invalid && form.get('code')?.touched"
+                    />
+                  </div>
+                  @if (form.get('code')?.invalid && form.get('code')?.touched) {
+                    <div class="text-danger small mt-1">El código es obligatorio.</div>
+                  }
+                </div>
+
+                <div class="col-md-8">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Nombre del Servicio *</label>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    formControlName="name"
+                    placeholder="Ej. Mantenimiento Preventivo de Servidores / Instalación"
+                    [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched"
+                  />
+                  @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                    <div class="text-danger small mt-1">El nombre del servicio es obligatorio.</div>
+                  }
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Categoría</label>
+                  <select class="form-select form-select-sm" formControlName="categoryId">
+                    <option [ngValue]="null">-- Sin Categoría Específica --</option>
+                    @for (cat of categories(); track cat.id) {
+                      <option [ngValue]="cat.id">{{ cat.name || cat.description }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Duración Estimada</label>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    formControlName="estimatedDuration"
+                    placeholder="Ej. 1 hora, 2 días, Bajo cotización"
+                  />
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Descripción / Alcance del Servicio</label>
+                  <textarea
+                    class="form-control form-control-sm"
+                    rows="2"
+                    formControlName="description"
+                    placeholder="Detalles sobre entregables, qué incluye la mano de obra, garantías, etc."
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pricing & Taxes Card -->
+            <div class="card border-0 shadow-sm rounded-3 mb-3 p-3 bg-white">
+              <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                <span class="badge bg-success-subtle text-success rounded-pill">2</span>
+                Tarifa, Costos e Impuestos
+              </h6>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Precio de Venta / Honorarios (RD$) *</label>
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light text-muted">RD$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      class="form-control font-monospace text-end fw-bold"
+                      formControlName="price"
+                      placeholder="0.00"
+                      [class.is-invalid]="form.get('price')?.invalid && form.get('price')?.touched"
+                    />
+                  </div>
+                  @if (form.get('price')?.invalid && form.get('price')?.touched) {
+                    <div class="text-danger small mt-1">El precio de venta debe ser mayor a RD$ 0.00.</div>
+                  }
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Costo Base Estimado (RD$)</label>
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light text-muted">RD$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      class="form-control font-monospace text-end"
+                      formControlName="cost"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <small class="text-muted" style="font-size: 0.72rem;">Costo de insumos o mano de obra técnica directa</small>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Impuesto ITBIS</label>
+                  <select class="form-select form-select-sm" formControlName="taxRate">
+                    <option [value]="0.18">ITBIS Estándar (18%)</option>
+                    <option [value]="0">Exento de Impuestos (0%)</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6 d-flex align-items-center pt-3">
+                  <div class="form-check form-switch">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      role="switch"
+                      id="isActiveSwitch"
+                      formControlName="isActive"
+                    />
+                    <label class="form-check-label fw-semibold text-dark small" for="isActiveSwitch">
+                      Servicio Activo para Facturación
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="d-flex justify-content-end gap-2 pt-2">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary px-3"
+                (click)="close()"
+                [disabled]="isLoading()"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                class="btn btn-sm btn-primary px-4 fw-semibold d-flex align-items-center gap-2"
+                [disabled]="isLoading()"
+              >
+                @if (isLoading()) {
+                  <c-spinner size="sm"></c-spinner>
+                  <span>Guardando...</span>
+                } @else {
+                  <svg cIcon name="cilCheck" style="width: 16px; height: 16px;"></svg>
+                  <span>{{ isEditMode ? 'Guardar Cambios' : 'Registrar Servicio' }}</span>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+}

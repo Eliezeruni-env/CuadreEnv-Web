@@ -1,0 +1,31 @@
+.generic-table-wrapper {
+  border-radius: 0.75rem;
+  background: var(--cui-card-bg, #ffffff);
+
+  .custom-generic-table {
+    thead th {
+      border-bottom: 1px solid var(--cui-border-color, #e2e8f0);
+      background-color: var(--cui-tertiary-bg, #f8fafc);
+      font-size: 0.82rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease-in-out;
+      &:hover {
+        background-color: rgba(99, 102, 241, 0.03);
+      }
+    }
+
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--cui-border-color, #f1f5f9);
+      vertical-align: middle;
+    }
+  }
+
+  .empty-state-box {
+    color: var(--cui-secondary-color, #64748b);
+  }
+}

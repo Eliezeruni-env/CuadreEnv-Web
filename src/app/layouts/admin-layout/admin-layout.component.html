@@ -1,0 +1,62 @@
+<!-- ERP Admin Sidebar -->
+<c-sidebar #sidebar1="cSidebar" class="d-print-none sidebar sidebar-fixed border-end" colorScheme="dark" id="sidebar1" visible>
+  <c-sidebar-header class="border-bottom d-flex align-items-center justify-content-center">
+    <c-sidebar-brand [routerLink]="['/dashboard']" class="d-flex align-items-center justify-content-center py-2 text-decoration-none">
+      <img src="assets/brand/cuadreEnv-logo-white.png" alt="CuadreEnv NERP" class="sidebar-brand-full" style="height: 44px; width: auto; max-width: 185px; object-fit: contain;" />
+      <img src="assets/brand/cuadreEnv-signet-white.png" alt="CuadreEnv" class="sidebar-brand-narrow" style="height: 38px; width: auto; object-fit: contain;" />
+    </c-sidebar-brand>
+  </c-sidebar-header>
+
+  <ng-scrollbar pointerEventsMethod="scrollbar" visibility="hover">
+    <c-sidebar-nav [navItems]="navItems()" dropdownMode="close" compact />
+  </ng-scrollbar>
+
+  @if (!sidebar1.narrow) {
+    <c-sidebar-footer cSidebarToggle="sidebar1" class="border-top d-none d-lg-flex" toggle="unfoldable" style="cursor: pointer;">
+      <button cSidebarToggler aria-label="Toggle sidebar fold"></button>
+    </c-sidebar-footer>
+  }
+</c-sidebar>
+
+<!-- ERP Admin Main Shell -->
+<div class="wrapper d-flex flex-column min-vh-100">
+  <app-default-header
+    [cShadowOnScroll]="'sm'"
+    class="mb-3 d-print-none header header-sticky p-0 shadow-sm"
+    position="sticky"
+    sidebarId="sidebar1"
+  />
+
+  <div class="body flex-grow-1">
+    <c-container breakpoint="lg" class="h-auto px-3 px-md-4">
+      <!-- Breadcrumb Component -->
+      <app-breadcrumb></app-breadcrumb>
+
+      <!-- Router Outlet for Child Features -->
+      <router-outlet></router-outlet>
+    </c-container>
+  </div>
+
+  <app-default-footer />
+</div>
+
+<!-- Global Confirmation Dialog Modal -->
+<app-confirm-dialog />
+
+<!-- Global Notifications Toaster -->
+<c-toaster class="p-3" position="fixed" placement="top-end" style="z-index: 1080;">
+  @for (toast of notificationService.toasts(); track toast.id) {
+    <c-toast [fade]="true" [visible]="toast.visible" [color]="toast.color" class="border-0 shadow-lg mb-2">
+      <c-toast-header [closeButton]="false" class="d-flex align-items-center justify-content-between text-white border-0 bg-transparent opacity-95">
+        <div class="d-flex align-items-center text-truncate pe-2">
+          <svg cIcon [name]="toast.color === 'danger' ? 'cilWarning' : (toast.color === 'success' ? 'cilCheckCircle' : 'cilBell')" class="me-2 text-white flex-shrink-0" style="width: 16px; height: 16px;"></svg>
+          <strong class="me-auto text-white text-truncate">{{ toast.title }}</strong>
+        </div>
+        <button type="button" class="btn-close btn-close-white ms-2 flex-shrink-0" (click)="notificationService.remove(toast.id)" aria-label="Close"></button>
+      </c-toast-header>
+      <c-toast-body class="text-white opacity-95 py-2">
+        <div class="toast-body-text mb-1">{{ toast.message }}</div>
+      </c-toast-body>
+    </c-toast>
+  }
+</c-toaster>

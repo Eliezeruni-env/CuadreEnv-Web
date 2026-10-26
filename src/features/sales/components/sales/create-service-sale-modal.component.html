@@ -1,0 +1,231 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="close()">
+    <div class="custom-modal-content modal-lg service-sale-modal" (click)="$event.stopPropagation()">
+      <!-- Header -->
+      <div class="custom-modal-header d-flex justify-content-between align-items-center p-3 border-bottom bg-info-subtle">
+        <div class="d-flex align-items-center gap-2">
+          <div class="p-2 bg-info text-white rounded-3 shadow-sm">
+            <svg cIcon name="cilWrench" style="width: 20px; height: 20px;"></svg>
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold text-dark">Venta de Servicios & Mano de Obra</h5>
+            <small class="text-secondary">Factura servicios profesionales, reparaciones o mano de obra sin control de stock físico</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="close()" aria-label="Close"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="custom-modal-body p-3 p-md-4 overflow-auto" style="max-height: calc(85vh - 120px);">
+        <!-- Step 1: Customer & Payment Terms -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold text-secondary mb-1">Cliente *</label>
+            <select class="form-select" [value]="selectedCustomerId ?? ''" (change)="onCustomerChange($event)">
+              <option value="">Consumidor Final (General)</option>
+              @for (c of customers(); track c.id) {
+                <option [value]="c.id">{{ c.name }} {{ c.identification ? '(' + c.identification + ')' : '' }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold text-secondary mb-1">Modalidad de Cobro *</label>
+            <div class="btn-group w-100" role="group">
+              <button
+                type="button"
+                class="btn"
+                [class.btn-success]="paymentMode === 'CASH'"
+                [class.btn-outline-secondary]="paymentMode !== 'CASH'"
+                (click)="setPaymentMode('CASH')"
+              >
+                Contado (Caja)
+              </button>
+              <button
+                type="button"
+                class="btn"
+                [class.btn-primary]="paymentMode === 'CREDIT'"
+                [class.btn-outline-secondary]="paymentMode !== 'CREDIT'"
+                (click)="setPaymentMode('CREDIT')"
+              >
+                A Crédito
+              </button>
+            </div>
+          </div>
+        </div>
+
+        @if (paymentMode === 'CREDIT') {
+          <div class="alert alert-primary p-3 mb-4 d-flex align-items-center justify-content-between">
+            <div>
+              <span class="fw-semibold d-block">Venta a Crédito:</span>
+              <small class="text-secondary">Se generará una cuenta por cobrar en el módulo de Cobros.</small>
+            </div>
+            <div style="max-width: 180px;">
+              <label class="small text-secondary fw-semibold">Fecha límite de pago</label>
+              <input type="date" class="form-control form-control-sm" [(ngModel)]="dueDate" />
+            </div>
+          </div>
+        }
+
+        <!-- Step 2: Add Services from Catalog -->
+        <div class="card border mb-4">
+          <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-dark">Servicios a Facturar</span>
+            <a
+              routerLink="/services"
+              (click)="close()"
+              class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+              title="Ir al Catálogo de Servicios"
+            >
+              <svg cIcon name="cilBriefcase" style="width: 14px; height: 14px;"></svg>
+              <span>Ir a Catálogo de Servicios</span>
+            </a>
+          </div>
+
+          <div class="p-3">
+            <!-- Select from existing services -->
+            <div class="row g-2 align-items-end mb-3">
+              <div class="col-md-8">
+                <label class="form-label small fw-semibold text-secondary mb-1">Seleccionar Servicio Existente</label>
+                <select class="form-select form-select-sm" [(ngModel)]="selectedServiceId">
+                  <option [ngValue]="null" disabled>Seleccione un servicio del catálogo...</option>
+                  @for (s of servicesList(); track s.id) {
+                    <option [ngValue]="s.id">
+                      {{ s.code }} — {{ s.description }} (RD$ {{ s.price | number:'1.2-2' }})
+                    </option>
+                  }
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small fw-semibold text-secondary mb-1">Cantidad / Horas</label>
+                <input
+                  type="number"
+                  min="1"
+                  class="form-control form-control-sm text-center font-monospace"
+                  [(ngModel)]="serviceQuantity"
+                />
+              </div>
+              <div class="col-md-2">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-success w-100 fw-semibold"
+                  [disabled]="!selectedServiceId || serviceQuantity <= 0"
+                  (click)="addSelectedService()"
+                >
+                  + Agregar
+                </button>
+              </div>
+            </div>
+
+            <!-- Services Cart Table -->
+            @if (cart.length === 0) {
+              <div class="text-center py-4 text-secondary">
+                <svg cIcon name="cilBriefcase" style="width: 32px; height: 32px;" class="mb-2 opacity-50"></svg>
+                <p class="mb-0 small">No has agregado ningún servicio a la orden.</p>
+              </div>
+            } @else {
+              <div class="table-responsive border rounded">
+                <table class="table table-hover align-middle mb-0 small">
+                  <thead class="table-light">
+                    <tr>
+                      <th class="ps-3">Código</th>
+                      <th>Servicio / Mano de Obra</th>
+                      <th class="text-center" style="width: 100px;">Cant / Horas</th>
+                      <th class="text-end" style="width: 130px;">Precio Unit.</th>
+                      <th class="text-end" style="width: 130px;">Subtotal</th>
+                      <th class="text-center" style="width: 60px;"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of cart; track item.serviceId; let idx = $index) {
+                      <tr>
+                        <td class="ps-3">
+                          <span class="badge bg-primary-subtle text-primary font-monospace">{{ item.serviceCode }}</span>
+                        </td>
+                        <td class="fw-semibold text-dark">{{ item.serviceName }}</td>
+                        <td class="text-center font-monospace">{{ item.quantity }}</td>
+                        <td class="text-end font-monospace">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
+                        <td class="text-end font-monospace fw-bold text-dark">
+                          RD$ {{ (item.quantity * item.unitPrice) | number:'1.2-2' }}
+                        </td>
+                        <td class="text-center">
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline-danger p-0 px-2"
+                            (click)="removeCartItem(idx)"
+                          >
+                            &times;
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Step 3: Observations & ITBIS -->
+        <div class="row g-3">
+          <div class="col-md-7">
+            <label class="form-label small fw-semibold text-secondary mb-1">
+              Detalles del Servicio / Garantía / Técnico Responsable
+            </label>
+            <textarea
+              class="form-control"
+              rows="3"
+              [(ngModel)]="serviceNotes"
+              placeholder="Ej: Mantenimiento realizado por Técnico Carlos. Incluye 30 días de garantía..."
+            ></textarea>
+          </div>
+
+          <div class="col-md-5">
+            <div class="card border p-3 bg-light">
+              <div class="d-flex justify-content-between small mb-2">
+                <span class="text-secondary">Subtotal Servicios:</span>
+                <span class="fw-bold font-monospace">RD$ {{ subtotal | number:'1.2-2' }}</span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center small mb-2">
+                <div class="form-check mb-0">
+                  <input
+                    type="checkbox"
+                    class="form-check-input"
+                    id="applyItbisCheck"
+                    [(ngModel)]="applyItbis"
+                  />
+                  <label class="form-check-label text-secondary small" for="applyItbisCheck">
+                    Aplicar ITBIS (18%)
+                  </label>
+                </div>
+                <span class="font-monospace">RD$ {{ itbisAmount | number:'1.2-2' }}</span>
+              </div>
+              <div class="d-flex justify-content-between pt-2 border-top fs-5 fw-bold text-dark">
+                <span>Total a Cobrar:</span>
+                <span class="text-primary font-monospace">RD$ {{ totalAmount | number:'1.2-2' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="custom-modal-footer d-flex justify-content-between p-3 border-top bg-light">
+        <button type="button" class="btn btn-light border px-3" (click)="close()">Cancelar</button>
+        <button
+          type="button"
+          class="btn btn-primary px-4 fw-bold shadow-sm"
+          [disabled]="cart.length === 0 || isSubmitting"
+          (click)="processServiceSale()"
+        >
+          @if (isSubmitting) {
+            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            Procesando Venta...
+          } @else {
+            {{ paymentMode === 'CASH' ? 'Cobrar Venta de Servicio' : 'Generar Cuenta por Cobrar' }} (RD$ {{ totalAmount | number:'1.2-2' }})
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

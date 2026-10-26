@@ -1,0 +1,334 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="close()">
+    <div class="custom-modal-content employee-modal-dialog" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="modal-header d-flex justify-content-between align-items-center py-2.5 px-3 border-bottom bg-white">
+        <div class="d-flex align-items-center gap-2">
+          <div class="badge-icon bg-primary-subtle text-primary p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <div>
+            <h5 class="fw-bold text-dark mb-0 fs-6">
+              {{ editingUserId() ? 'Editar Colaborador' : 'Registrar Nuevo Empleado' }}
+            </h5>
+            <small class="text-secondary" style="font-size: 0.76rem;">
+              {{ editingUserId() ? 'Actualizar información del colaborador' : 'Crear cuenta de acceso para un colaborador de tu empresa' }}
+            </small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="close()" aria-label="Cerrar"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="modal-body p-3">
+          <!-- Indicador Claro de Empresa / Tenant Activo -->
+          <div class="alert alert-primary-subtle border border-primary-subtle py-2 px-3 small d-flex align-items-center gap-2 rounded-3 mb-3 text-primary-emphasis">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 text-primary">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
+            <div>
+              <span class="fw-bold">Empresa activa:</span> {{ activeCompanyName() }}
+              <div class="text-secondary" style="font-size: 0.72rem;">El colaborador pertenecerá y tendrá acceso exclusivamente a esta empresa.</div>
+            </div>
+          </div>
+
+          <div class="row g-2">
+            <!-- Nombres & Apellidos -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold text-secondary small mb-0.5">
+                Nombre <span class="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                formControlName="firstName"
+                placeholder="ej. Juan"
+                [class.is-invalid]="form.get('firstName')?.invalid && form.get('firstName')?.touched"
+              />
+              @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
+                <small class="text-danger d-block" style="font-size: 0.7rem;">El nombre es obligatorio.</small>
+              }
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold text-secondary small mb-0.5">
+                Apellido <span class="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                formControlName="lastName"
+                placeholder="ej. Pérez"
+                [class.is-invalid]="form.get('lastName')?.invalid && form.get('lastName')?.touched"
+              />
+              @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
+                <small class="text-danger d-block" style="font-size: 0.7rem;">El apellido es obligatorio.</small>
+              }
+            </div>
+
+            <!-- Cédula & Teléfono -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold text-secondary small mb-0.5">
+                Número de Cédula <span class="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                class="form-control form-control-sm font-monospace"
+                formControlName="identification"
+                appCedulaMask
+                placeholder="000-0000000-0"
+                [class.is-invalid]="form.get('identification')?.invalid && form.get('identification')?.touched"
+              />
+              @if (form.get('identification')?.invalid && form.get('identification')?.touched) {
+                <small class="text-danger d-block" style="font-size: 0.7rem;">La cédula es requerida (11 dígitos).</small>
+              }
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold text-secondary small mb-0.5">
+                Número de Teléfono <span class="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                class="form-control form-control-sm font-monospace"
+                formControlName="phoneNumber"
+                appPhoneMask
+                placeholder="(809) 000-0000"
+                [class.is-invalid]="form.get('phoneNumber')?.invalid && form.get('phoneNumber')?.touched"
+              />
+              @if (form.get('phoneNumber')?.invalid && form.get('phoneNumber')?.touched) {
+                <small class="text-danger d-block" style="font-size: 0.7rem;">El teléfono es requerido (10 dígitos).</small>
+              }
+            </div>
+
+            <!-- Roles en la Empresa (Selector Múltiple de Roles de la Empresa) -->
+            <div class="col-12">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label fw-semibold text-secondary small mb-0">
+                  Roles de Acceso en la Empresa <span class="text-danger">*</span>
+                </label>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill" style="font-size: 0.68rem;">
+                  {{ selectedRoles().length }} {{ selectedRoles().length === 1 ? 'rol asignado' : 'roles asignados' }}
+                </span>
+              </div>
+              <div class="p-2.5 border rounded-3 bg-light bg-opacity-50 d-flex flex-wrap gap-2 align-items-center">
+                @for (role of companyRoles(); track role.id) {
+                  <button
+                    type="button"
+                    class="btn btn-sm py-1.5 px-3 rounded-pill d-flex align-items-center gap-1.5 transition-all fw-medium"
+                    [ngClass]="isRoleSelected(role.name) ? 'btn-primary text-white shadow-xs' : 'btn-light bg-white text-dark border border-secondary-subtle'"
+                    (click)="toggleRole(role.name)"
+                  >
+                    @if (isRoleSelected(role.name)) {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-white">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    } @else {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                    }
+                    <span style="font-size: 0.78rem;">{{ role.name }}</span>
+                  </button>
+                }
+              </div>
+              <small class="text-secondary d-block mt-1" style="font-size: 0.7rem;">
+                Puedes asignar múltiples roles al colaborador (ej. Cajero y Vendedor). Los permisos se acumularán automáticamente.
+              </small>
+            </div>
+
+            <div class="col-12">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label fw-semibold text-secondary small mb-0">
+                  Módulos permitidos
+                </label>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill" style="font-size: 0.68rem;">
+                  {{ selectedModules().length }} {{ selectedModules().length === 1 ? 'módulo asignado' : 'módulos asignados' }}
+                </span>
+              </div>
+              <div class="p-2 border rounded-3 bg-light bg-opacity-50 row g-2">
+                @for (module of availableModules; track module.code) {
+                  <div class="col-md-6">
+                    <label class="d-flex align-items-start gap-2 p-2 border rounded-3 bg-white h-100">
+                      <input
+                        type="checkbox"
+                        class="form-check-input mt-1"
+                        [checked]="isModuleSelected(module.code)"
+                        (change)="toggleModule(module.code)"
+                      />
+                      <span>
+                        <span class="d-block fw-semibold small">{{ module.label }}</span>
+                        <span class="d-block text-secondary" style="font-size: 0.7rem;">{{ module.description }}</span>
+                      </span>
+                    </label>
+                  </div>
+                }
+              </div>
+              <small class="text-secondary d-block mt-1" style="font-size: 0.7rem;">
+                El rol no amplía el acceso a módulos. Si no seleccionas módulos, el usuario no podrá abrir módulos de la aplicación.
+              </small>
+            </div>
+
+            <!-- Control Antidescuadre de Stock: Vías de Entrada de Mercancía -->
+            <div class="col-12">
+              <div class="p-3 border rounded-3 bg-white shadow-xs" style="border-left: 4px solid #4f46e5 !important;">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span class="fs-6">🛡️</span>
+                  <div>
+                    <h6 class="fw-bold mb-0 text-dark small">Control Antidescuadre de Stock: Vías de Entrada de Mercancía</h6>
+                    <span class="text-secondary" style="font-size: 0.72rem;">
+                      Control granular para evitar duplicidad y descuadres físicos en almacén
+                    </span>
+                  </div>
+                </div>
+
+                <div class="row g-2 mt-1">
+                  <!-- purchases-receipts Switch -->
+                  <div class="col-md-6">
+                    <div class="form-check form-switch p-2 ps-5 border rounded-2 bg-light-subtle h-100">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        role="switch"
+                        id="switchPurReceipts"
+                        [checked]="isModuleSelected('purchases-receipts')"
+                        (change)="toggleModule('purchases-receipts')"
+                      />
+                      <label class="form-check-label d-block" for="switchPurReceipts">
+                        <strong class="d-block small text-dark">Recepciones de Orden de Compra</strong>
+                        <span class="text-secondary d-block" style="font-size: 0.69rem; line-height: 1.3;">
+                          Permite recibir pedidos físicos vinculados a Órdenes de Compra formales a proveedores (<code>purchases-receipts</code>).
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- inventory-entries Switch -->
+                  <div class="col-md-6">
+                    <div class="form-check form-switch p-2 ps-5 border rounded-2 bg-light-subtle h-100">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        role="switch"
+                        id="switchInvEntries"
+                        [checked]="isModuleSelected('inventory-entries')"
+                        (change)="toggleModule('inventory-entries')"
+                      />
+                      <label class="form-check-label d-block" for="switchInvEntries">
+                        <strong class="d-block small text-dark">Entradas Manuales de Almacén</strong>
+                        <span class="text-secondary d-block" style="font-size: 0.69rem; line-height: 1.3;">
+                          Permite registrar entradas directas de stock sin requerir orden de compra (<code>inventory-entries</code>).
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contacto de Emergencia -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold text-secondary small mb-0.5">
+                Contacto de Emergencia <span class="text-muted fw-normal">(Opcional)</span>
+              </label>
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                formControlName="emergencyContact"
+                placeholder="ej. Familiar - (809) 555-1234"
+              />
+            </div>
+
+            <!-- Adjuntos Opcionales: CV y Cédula Escaneada -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold text-secondary small mb-0.5">
+                CV / Currículum <span class="text-muted fw-normal">(Opcional)</span>
+              </label>
+              <input
+                type="file"
+                class="form-control form-control-sm"
+                accept=".pdf,.doc,.docx,image/*"
+                (change)="onCvSelected($event)"
+              />
+              @if (cvFileName()) {
+                <small class="text-success d-block" style="font-size: 0.7rem;">✓ Archivo: {{ cvFileName() }}</small>
+              }
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold text-secondary small mb-0.5">
+                Copia de Cédula <span class="text-muted fw-normal">(Opcional)</span>
+              </label>
+              <input
+                type="file"
+                class="form-control form-control-sm"
+                accept=".pdf,.doc,.docx,image/*"
+                (change)="onIdDocSelected($event)"
+              />
+              @if (idDocFileName()) {
+                <small class="text-success d-block" style="font-size: 0.7rem;">✓ Archivo: {{ idDocFileName() }}</small>
+              }
+            </div>
+
+            <!-- Credenciales de Inicio de Sesión -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold text-secondary small mb-0.5">
+                Correo Electrónico (Login) <span class="text-danger">*</span>
+              </label>
+              <input
+                type="email"
+                class="form-control form-control-sm"
+                formControlName="email"
+                placeholder="empleado@empresa.com"
+                [class.is-invalid]="form.get('email')?.invalid && form.get('email')?.touched"
+              />
+              @if (form.get('email')?.invalid && form.get('email')?.touched) {
+                <small class="text-danger d-block" style="font-size: 0.7rem;">Ingrese un correo electrónico válido.</small>
+              }
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold text-secondary small mb-0.5">
+                {{ editingUserId() ? 'Nueva Contraseña (Opcional)' : 'Contraseña Temporal' }} 
+                @if (!editingUserId()) {
+                  <span class="text-danger">*</span>
+                }
+              </label>
+              <input
+                type="password"
+                class="form-control form-control-sm font-monospace"
+                formControlName="password"
+                placeholder="Mínimo 6 caracteres"
+                [class.is-invalid]="form.get('password')?.invalid && form.get('password')?.touched"
+              />
+              @if (form.get('password')?.invalid && form.get('password')?.touched) {
+                <small class="text-danger d-block" style="font-size: 0.7rem;">Mínimo 6 caracteres.</small>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer py-2 px-3 border-top bg-light d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary px-3" (click)="close()" [disabled]="isLoading()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-sm btn-cuadre-primary fw-bold px-4" [disabled]="isLoading() || (form.invalid && form.touched)">
+            @if (isLoading()) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+              <span>Guardando...</span>
+            } @else {
+              <span>{{ editingUserId() ? 'Guardar Cambios' : '+ Guardar Empleado' }}</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

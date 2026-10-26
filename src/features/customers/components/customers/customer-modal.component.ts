@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CustomerService } from '../../services/customer.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
+import { applyFieldErrorsToForm } from '../../../cuadreEnv/utils/api-error-mapper';
 import type { CustomerDto } from '../../../cuadreEnv/types/api';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import {
@@ -27,56 +28,7 @@ import {
     ColComponent,
     SpinnerComponent
   ],
-  template: `
-    @if (visible) {
-      <div class="custom-modal-backdrop" (click)="close()">
-        <div class="custom-modal-content" (click)="$event.stopPropagation()">
-          <div class="custom-modal-header">
-            <h5 class="fw-bold">{{ isEditMode ? translationService.t('customers.modal.editTitle') : translationService.t('customers.modal.createTitle') }}</h5>
-            <button type="button" class="btn-close" (click)="close()" aria-label="Close"></button>
-          </div>
-          <div class="custom-modal-body">
-            <form cForm [formGroup]="customerForm">
-              <div class="mb-3">
-                <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('customers.modal.nameLabel') }} *</label>
-                <input formControlName="name" cFormControl [placeholder]="translationService.t('customers.modal.nameLabel')" />
-                @if (customerForm.get('name')?.touched && customerForm.get('name')?.invalid) {
-                  <div class="text-danger small mt-1">{{ translationService.t('common.error') }}</div>
-                }
-              </div>
-
-              <div class="mb-3">
-                <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('customers.modal.idLabel') }}</label>
-                <input formControlName="identification" cFormControl [placeholder]="translationService.t('customers.modal.idLabel')" />
-              </div>
-
-              <c-row>
-                <c-col md="6" class="mb-3">
-                  <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('customers.modal.emailLabel') }}</label>
-                  <input formControlName="email" cFormControl [placeholder]="translationService.t('customers.modal.emailLabel')" />
-                </c-col>
-                <c-col md="6" class="mb-3">
-                  <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('customers.modal.phoneLabel') }}</label>
-                  <input formControlName="phone" cFormControl [placeholder]="translationService.t('customers.modal.phoneLabel')" />
-                </c-col>
-              </c-row>
-            </form>
-          </div>
-          <div class="custom-modal-footer">
-            <button cButton color="light" class="border" (click)="close()">{{ translationService.t('customers.modal.cancelBtn') }}</button>
-            <button cButton color="primary" [disabled]="isLoading() || customerForm.invalid" (click)="saveCustomer()">
-              @if (isLoading()) {
-                <c-spinner size="sm" class="me-2"></c-spinner>
-                {{ translationService.t('common.loading') }}
-              } @else {
-                {{ translationService.t('customers.modal.saveBtn') }}
-              }
-            </button>
-          </div>
-        </div>
-      </div>
-    }
-  `
+  templateUrl: './customer-modal.component.html',
 })
 export class CustomerModalComponent {
   readonly translationService = inject(TranslationService);
@@ -100,7 +52,8 @@ export class CustomerModalComponent {
       name: ['', [Validators.required, Validators.maxLength(150)]],
       email: ['', [Validators.email]],
       phone: [''],
-      identification: ['']
+      identification: [''],
+      active: [true]
     });
   }
 
@@ -111,7 +64,8 @@ export class CustomerModalComponent {
       name: '',
       email: '',
       phone: '',
-      identification: ''
+      identification: '',
+      active: true
     });
     this.visible = true;
     this.visibleChange.emit(true);
@@ -124,7 +78,8 @@ export class CustomerModalComponent {
       name: customer.name || '',
       email: customer.email || '',
       phone: customer.phone || '',
-      identification: customer.identification || ''
+      identification: customer.identification || '',
+      active: customer.active !== false
     });
     this.visible = true;
     this.visibleChange.emit(true);
@@ -143,21 +98,24 @@ export class CustomerModalComponent {
 
     this.isLoading.set(true);
     const formVal = this.customerForm.value;
-    const payload: CustomerDto = { ...formVal, active: true };
+    const payload: CustomerDto = { ...formVal };
 
     try {
       if (this.isEditMode) {
         payload.id = this.selectedCustomerId!;
         await this.customerService.updateCustomer(payload);
-        this.notificationService.success('Customer profile updated successfully!');
+        this.notificationService.success('Perfil de cliente actualizado exitosamente.');
       } else {
         await this.customerService.createCustomer(payload);
-        this.notificationService.success('Customer registered successfully!');
+        this.notificationService.success('Cliente registrado exitosamente.');
       }
       this.saved.emit();
       this.close();
     } catch (e: any) {
-      this.notificationService.error(e?.response?.data?.message || e?.message || 'Error saving customer.');
+      const mapped = this.notificationService.showApiError(e);
+      if (mapped.fieldErrors) {
+        applyFieldErrorsToForm(this.customerForm, mapped.fieldErrors);
+      }
     } finally {
       this.isLoading.set(false);
     }

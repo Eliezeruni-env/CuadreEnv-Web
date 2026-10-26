@@ -1,0 +1,24 @@
+.receipt-container {
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .receipt-container,
+  .receipt-container * {
+    visibility: visible;
+  }
+  .receipt-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    max-width: 80mm;
+    padding: 2mm;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}

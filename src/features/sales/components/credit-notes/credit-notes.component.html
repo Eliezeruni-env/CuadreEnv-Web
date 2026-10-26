@@ -1,0 +1,365 @@
+<div class="container-fluid py-3 list-credit-notes-container">
+  <!-- Top Bar -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
+    <div>
+      <h4 class="fw-bold mb-0 text-dark">Notas de Crédito y Devoluciones</h4>
+      <small class="text-secondary">Gestión de devoluciones vinculadas a facturas, reingreso a almacén y control fiscal NCF (B04)</small>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadCreditNotes()">
+        Recargar
+      </button>
+      <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openCreateModal()">
+        <span>+ Nueva Nota de Crédito</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Summary Cards -->
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <div class="card border-0 rounded-4 p-3 bg-white shadow-sm h-100">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-secondary small fw-semibold">Total Notas Emitidas</div>
+            <h4 class="fw-bold text-dark mb-0 font-monospace">{{ creditNotes().length }}</h4>
+          </div>
+          <div class="p-3 bg-primary-subtle text-primary rounded-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card border-0 rounded-4 p-3 bg-white shadow-sm h-100">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-secondary small fw-semibold">Total Reembolsado</div>
+            <h4 class="fw-bold text-danger mb-0 font-monospace">
+              RD$ {{ totalRefundedAmount() | number:'1.2-2' }}
+            </h4>
+          </div>
+          <div class="p-3 bg-danger-subtle text-danger rounded-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card border-0 rounded-4 p-3 bg-white shadow-sm h-100">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-secondary small fw-semibold">Control de Anulación</div>
+            <h5 class="fw-bold text-success mb-0">Notas de Crédito</h5>
+          </div>
+          <div class="p-3 bg-success-subtle text-success rounded-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Toolbar Card -->
+  <div class="card filter-toolbar-card p-3 mb-3">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-6">
+        <div class="input-group">
+          <span class="input-group-text bg-transparent border-end-0 text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input
+            type="text"
+            class="form-control border-start-0"
+            placeholder="Buscar por NCF, factura, cliente..."
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearchChange()"
+          />
+        </div>
+      </div>
+      <div class="col-md-6 text-end">
+        <span class="text-secondary small">
+          Total de registros encontrados: <strong class="text-dark">{{ filteredCreditNotes().length }}</strong>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Master-Detail Table Card -->
+  <div class="card shadow-sm border-0 mb-3 billing-table-card rounded-4 overflow-hidden">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 master-detail-table">
+          <thead class="table-light text-secondary text-uppercase font-size-xs">
+            <tr>
+              <th style="width: 44px;" class="ps-3 text-center"></th>
+              <th>No. / NCF</th>
+              <th>Factura Origen</th>
+              <th>Cliente</th>
+              <th>Fecha</th>
+              <th>Método Reembolso</th>
+              <th class="text-end">Subtotal</th>
+              <th class="text-end">ITBIS</th>
+              <th class="text-end">Total Reembolso</th>
+              <th class="text-center pe-3" style="width: 100px;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (isLoading()) {
+              <tr>
+                <td colspan="10" class="text-center py-5">
+                  <c-spinner color="primary" size="sm"></c-spinner>
+                  <span class="ms-2 text-secondary small">Cargando notas de crédito...</span>
+                </td>
+              </tr>
+            } @else if (filteredCreditNotes().length === 0) {
+              <tr>
+                <td colspan="10" class="text-center py-5 text-secondary">
+                  <p class="mb-0">No se encontraron notas de crédito registradas.</p>
+                </td>
+              </tr>
+            } @else {
+              @for (note of pagedCreditNotes(); track note.id) {
+                <!-- Master Row -->
+                <tr [class.table-active]="isNoteExpanded(note.id)" class="master-row">
+                  <td class="ps-3 text-center">
+                    <button
+                      class="expand-btn"
+                      [class.expanded]="isNoteExpanded(note.id)"
+                      type="button"
+                      (click)="toggleDetail(note)"
+                      [title]="isNoteExpanded(note.id) ? 'Colapsar detalle' : 'Expandir artículos devueltos'"
+                    >
+                      {{ isNoteExpanded(note.id) ? '−' : '+' }}
+                    </button>
+                  </td>
+                  <td>
+                    <div class="fw-bold text-dark font-monospace">{{ note.creditNoteNumber || ('NC-' + note.id) }}</div>
+                    <span class="badge ncf-brand-badge font-monospace font-size-xs border">
+                      NCF: {{ note.ncf }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="fw-bold font-monospace text-secondary">{{ note.billingNumber }}</span>
+                    @if (note.originalNcf) {
+                      <div class="text-muted font-monospace font-size-xs">Original: {{ note.originalNcf }}</div>
+                    }
+                  </td>
+                  <td>
+                    <div class="fw-semibold text-dark">{{ note.customerName || 'Consumidor final' }}</div>
+                  </td>
+                  <td class="text-muted small">
+                    {{ note.creationDate | date:'dd/MM/yyyy HH:mm' }}
+                  </td>
+                  <td>
+                    @if (note.refundMethod === 'CASH') {
+                      <span class="badge status-badge-warning">Efectivo</span>
+                    } @else if (note.refundMethod === 'CREDIT') {
+                      <span class="badge status-badge-subtle-primary">Crédito a Favor</span>
+                    } @else {
+                      <span class="badge status-badge-neutral">Ajuste Contable</span>
+                    }
+                  </td>
+                  <td class="text-end font-monospace">RD$ {{ note.amountSubTotal | number:'1.2-2' }}</td>
+                  <td class="text-end font-monospace text-secondary">RD$ {{ note.amountItbis | number:'1.2-2' }}</td>
+                  <td class="text-end font-monospace fw-bold text-danger">
+                    RD$ {{ note.amountTotal | number:'1.2-2' }}
+                  </td>
+                  <td class="text-center pe-3">
+                    <div class="action-btn-group justify-content-center">
+                      <button
+                        type="button"
+                        class="btn-action-icon btn-action-print"
+                        (click)="viewNoteDetail(note)"
+                        title="Imprimir / Ver Comprobante"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                          <rect x="6" y="14" width="12" height="8"></rect>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Detail Row Expandible (Subtabla de Artículos Devueltos) -->
+                @if (isNoteExpanded(note.id)) {
+                  <tr class="detail-row">
+                    <td colspan="10">
+                      <div class="card border border-secondary-subtle shadow-xs rounded-3 overflow-hidden">
+                        <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                          <span class="fw-bold small text-secondary text-uppercase d-flex align-items-center gap-2">
+                            Detalle de Artículos Reintegrados / Afectados ({{ (note.creditNoteDetails || []).length }} ítems)
+                          </span>
+                          <div class="small font-monospace">
+                            <span class="text-muted me-3">Subtotal: <strong>RD$ {{ note.amountSubTotal | number:'1.2-2' }}</strong></span>
+                            <span class="text-muted me-3">ITBIS: <strong>RD$ {{ note.amountItbis | number:'1.2-2' }}</strong></span>
+                            <span class="text-danger fw-bold">Total Reembolso: RD$ {{ note.amountTotal | number:'1.2-2' }}</span>
+                          </div>
+                        </div>
+                        <div class="card-body p-0">
+                          <table class="table table-sm table-bordered mb-0 align-middle">
+                            <thead class="table-light text-muted font-size-xs">
+                              <tr>
+                                <th class="ps-3">Código</th>
+                                <th>Descripción del Producto</th>
+                                <th class="text-center">Cant. Devuelta</th>
+                                <th class="text-end">Precio Unit.</th>
+                                <th class="text-end">Subtotal</th>
+                                <th class="text-end">ITBIS</th>
+                                <th class="text-end pe-3">Total Reembolso</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (item of (note.creditNoteDetails || []); track $index) {
+                                <tr>
+                                  <td class="ps-3 font-monospace small text-secondary">{{ item.barCode || 'PROD-' + item.productId }}</td>
+                                  <td class="fw-semibold text-dark">{{ item.productName }}</td>
+                                  <td class="text-center font-monospace fw-bold text-danger">-{{ item.quantity }}</td>
+                                  <td class="text-end font-monospace">RD$ {{ item.price | number:'1.2-2' }}</td>
+                                  <td class="text-end font-monospace">RD$ {{ (item.subTotal || (item.quantity * item.price)) | number:'1.2-2' }}</td>
+                                  <td class="text-end font-monospace">RD$ {{ (item.itbisAmount || 0) | number:'1.2-2' }}</td>
+                                  <td class="text-end pe-3 font-monospace fw-bold text-danger">RD$ {{ (item.totalAmount || (item.subTotal + (item.itbisAmount || 0))) | number:'1.2-2' }}</td>
+                                </tr>
+                              }
+                              @if (!note.creditNoteDetails || note.creditNoteDetails.length === 0) {
+                                <tr>
+                                  <td colspan="7" class="text-center py-3 text-muted small">
+                                    Devolución total por valor de factura (sin desglose granular de ítems).
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginador Moderno -->
+      <kt-paginator
+        [currentPage]="currentPage()"
+        [totalItems]="filteredCreditNotes().length"
+        [pageSize]="pageSize()"
+        (pageChange)="onPageChange($event)"
+      ></kt-paginator>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Stepper Form for Creating Credit Note -->
+<app-credit-note-form
+  #creditNoteFormModal
+  [(visible)]="isCreateModalOpen"
+  (creditNoteCreated)="onCreditNoteCreated($event)"
+></app-credit-note-form>
+
+<!-- Modal for Viewing & Printing Credit Note Receipt -->
+@if (selectedCreditNote) {
+  <div class="custom-modal-backdrop" (click)="selectedCreditNote = null">
+    <div class="custom-modal-content invoice-print-container" (click)="$event.stopPropagation()">
+      <div class="d-flex justify-content-between align-items-center p-3 border-bottom bg-white">
+        <h5 class="fw-bold mb-0 text-dark">Comprobante Fiscal - Nota de Crédito</h5>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-light border btn-sm fw-semibold" (click)="printCreditNote()">
+            <svg cIcon name="cilPrint" style="width: 14px; height: 14px;" class="me-1"></svg>
+            Imprimir
+          </button>
+          <button type="button" class="btn-close" (click)="selectedCreditNote = null"></button>
+        </div>
+      </div>
+
+      <div id="creditNotePrintArea" class="p-4 bg-white">
+        <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+          <div>
+            <h5 class="fw-bold mb-0 text-dark">CuadreEnv, SRL</h5>
+            <div class="small text-secondary">RNC: 1-31-234567-8 · Santo Domingo, Rep. Dom.</div>
+            <div class="small text-secondary">Tel: (809) 123-4567</div>
+          </div>
+          <div class="text-end">
+            <h6 class="fw-bold text-danger mb-0">NOTA DE CRÉDITO</h6>
+            <div class="fw-bold font-monospace text-dark">{{ selectedCreditNote.creditNoteNumber }}</div>
+            <div class="badge ncf-brand-badge font-monospace mt-1">NCF: {{ selectedCreditNote.ncf }}</div>
+          </div>
+        </div>
+
+        <div class="row g-2 small mb-3 border-bottom pb-3 text-secondary">
+          <div class="col-6">
+            <div><b class="text-dark">Cliente:</b> {{ selectedCreditNote.customerName }}</div>
+            <div><b class="text-dark">Factura Afectada:</b> {{ selectedCreditNote.billingNumber }}</div>
+          </div>
+          <div class="col-6 text-end">
+            <div><b class="text-dark">Fecha:</b> {{ selectedCreditNote.creationDate | date:'dd/MM/yyyy hh:mm a' }}</div>
+            <div><b class="text-dark">Tipo:</b> {{ selectedCreditNote.creditNoteType === 1 ? 'Devolución Total' : 'Devolución Parcial' }}</div>
+          </div>
+        </div>
+
+        <table class="table table-sm small mb-3">
+          <thead class="table-light">
+            <tr>
+              <th>Producto</th>
+              <th class="text-center">Cant.</th>
+              <th class="text-end">Precio</th>
+              <th class="text-end">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (it of selectedCreditNote.creditNoteDetails; track it.productId) {
+              <tr>
+                <td>{{ it.productName }}</td>
+                <td class="text-center font-monospace">{{ it.quantity }}</td>
+                <td class="text-end font-monospace">RD$ {{ it.price | number:'1.2-2' }}</td>
+                <td class="text-end font-monospace fw-bold">RD$ {{ it.subTotal | number:'1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <div class="d-flex justify-content-end">
+          <div style="width: 250px;">
+            <div class="d-flex justify-content-between small mb-1">
+              <span>Subtotal:</span>
+              <span class="font-monospace">RD$ {{ selectedCreditNote.amountSubTotal | number:'1.2-2' }}</span>
+            </div>
+            <div class="d-flex justify-content-between small mb-1">
+              <span>ITBIS (18%):</span>
+              <span class="font-monospace">RD$ {{ selectedCreditNote.amountItbis | number:'1.2-2' }}</span>
+            </div>
+            <div class="d-flex justify-content-between border-top pt-1 fw-bold fs-6 text-danger">
+              <span>Total Reembolso:</span>
+              <span class="font-monospace">RD$ {{ selectedCreditNote.amountTotal | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center small text-secondary border-top mt-4 pt-2">
+          Este comprobante fiscal modifica los valores de la factura original y restituye las existencias en inventario.
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -14,7 +14,7 @@ import {
 @Component({
   selector: 'app-page500',
   templateUrl: './page500.component.html',
-  imports: [ContainerComponent, RowComponent, ColComponent, InputGroupComponent, InputGroupTextDirective, IconDirective, FormControlDirective, ButtonDirective]
+  imports: [ContainerComponent, RowComponent, ColComponent]
 })
 export class Page500Component {
   readonly translationService = inject(TranslationService);

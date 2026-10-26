@@ -1,0 +1,29 @@
+.modal-backdrop {
+  z-index: 1050;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  z-index: 1055;
+}
+
+.dropzone {
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+  }
+}
+
+.ring-select {
+  outline: 2px solid #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.transition-all {
+  transition: all 0.2s ease-in-out;
+}

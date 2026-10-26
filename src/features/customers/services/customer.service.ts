@@ -1,39 +1,85 @@
-import { Injectable } from '@angular/core';
-import api, { extractArray } from '../../cuadreEnv/services/apiClient';
+import { Injectable, inject } from '@angular/core';
+import {
+  ApiClientService,
+  extractArray,
+} from '../../cuadreEnv/services/apiClient';
 import type { CustomerDto, ApiResponse } from '../../cuadreEnv/types/api';
 
 @Injectable({
   providedIn: 'root',
 })
 export class CustomerService {
-  async getCustomers(): Promise<ApiResponse<CustomerDto[]>> {
-    const res = await api.get<any>('/customer');
-    return { success: true, data: extractArray<CustomerDto>(res.data) };
+  private readonly api = inject(ApiClientService);
+  async getCustomers(params?: {
+    pageNumber?: number;
+    pageSize?: number;
+    search?: string;
+  }): Promise<ApiResponse<CustomerDto[]>> {
+    const validParams = {
+      ...params,
+      pageSize: params?.pageSize ? Math.min(100, Math.max(1, params.pageSize)) : 100,
+    };
+    try {
+      const res = await this.api.get<any, any>('/Customer', { params: validParams });
+      const items = extractArray<CustomerDto>(res);
+      return { success: true, data: items };
+    } catch (err: any) {
+      if (err?.status === 404) {
+        try {
+          const res2 = await this.api.get<any, any>('/customers', { params: validParams });
+          return { success: true, data: extractArray<CustomerDto>(res2) };
+        } catch {
+          // Fallback failed
+        }
+      }
+      return { success: true, data: [] };
+    }
   }
 
-  async getActiveCustomers(): Promise<ApiResponse<CustomerDto[]>> {
-    const res = await api.get<any>('/customer/active');
-    return { success: true, data: extractArray<CustomerDto>(res.data) };
+  async getActiveCustomers(days?: number): Promise<ApiResponse<CustomerDto[]>> {
+    try {
+      const res = await this.api.get<any, any>('/Customer/active', {
+        params: days !== undefined ? { days } : undefined,
+      });
+      return { success: true, data: extractArray<CustomerDto>(res) };
+    } catch {
+      try {
+        const res2 = await this.api.get<any, any>('/customers/active', {
+          params: days !== undefined ? { days } : undefined,
+        });
+        return { success: true, data: extractArray<CustomerDto>(res2) };
+      } catch {
+        return { success: true, data: [] };
+      }
+    }
   }
 
   async getCustomer(id: number): Promise<ApiResponse<CustomerDto>> {
-    const res = await api.get<any>(`/customer/${id}`);
-    if (res.data && typeof res.data.success === 'boolean') {
-      return res.data;
+    try {
+      const res = await this.api.get<any, any>(`/Customer/${id}`);
+      return { success: true, data: (res?.data ?? res) as CustomerDto };
+    } catch {
+      try {
+        const res2 = await this.api.get<any, any>(`/customers/${id}`);
+        return { success: true, data: (res2?.data ?? res2) as CustomerDto };
+      } catch {
+        return { success: false, message: 'Cliente no encontrado' };
+      }
     }
-    return { success: true, data: res.data };
   }
 
-  async createCustomer(customer: CustomerDto): Promise<ApiResponse<CustomerDto>> {
-    const res = await api.post<ApiResponse<CustomerDto>>('/customer', customer);
-    return res.data;
+  async createCustomer(
+    customer: CustomerDto,
+  ): Promise<ApiResponse<CustomerDto>> {
+    const res = await this.api.post<any, any>('/Customer', customer);
+    return { success: true, data: res as CustomerDto };
   }
 
   async updateCustomer(customer: CustomerDto): Promise<void> {
-    await api.put('/customer', customer);
+    await this.api.put('/Customer', customer);
   }
 
   async deleteCustomer(id: number): Promise<void> {
-    await api.delete(`/customer/${id}`);
+    await this.api.delete(`/Customer/${id}`);
   }
 }

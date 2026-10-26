@@ -1,0 +1,78 @@
+@if (totalItems > 0) {
+  <div class="custom-modern-pagination d-flex align-items-center justify-content-between flex-wrap gap-3 py-3 px-3">
+    <!-- Meta Info -->
+    <div class="pagination-meta d-flex align-items-center flex-wrap gap-2">
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1.5 rounded-pill font-monospace fw-semibold">
+        Página {{ currentPage }} de {{ totalPages }}
+      </span>
+      <span class="text-secondary small">
+        Mostrando <strong>{{ startItemIndex }} - {{ endItemIndex }}</strong> de <strong>{{ totalItems }}</strong> {{ label }}
+      </span>
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="pagination-actions d-flex align-items-center flex-wrap gap-2">
+      <!-- Jump to Page (Ir a) -->
+      @if (totalPages > 1) {
+        <div class="jump-to-box d-flex align-items-center gap-1 text-secondary small bg-light px-2 py-1 rounded-3 border">
+          <span>Ir a:</span>
+          <input
+            type="number"
+            class="form-control form-control-sm text-center font-monospace fw-bold jump-input"
+            [value]="currentPage"
+            (change)="onPageInput($event)"
+            min="1"
+            [max]="totalPages"
+          />
+        </div>
+      }
+
+      <!-- Page Buttons -->
+      <div class="btn-group pagination-btn-group shadow-xs rounded-3 overflow-hidden border">
+        <!-- Previous Button -->
+        <button
+          type="button"
+          class="btn btn-sm btn-light pagination-nav-btn"
+          [disabled]="currentPage <= 1"
+          (click)="onPageChange(currentPage - 1)"
+          title="Página anterior"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          <span class="d-none d-sm-inline ms-1">Anterior</span>
+        </button>
+
+        <!-- Dynamic Numeric Pages -->
+        @for (p of pages; track $index) {
+          @if (p === -1) {
+            <span class="btn btn-sm btn-light disabled text-muted px-2 border-start-0 border-end-0">...</span>
+          } @else {
+            <button
+              type="button"
+              class="btn btn-sm page-num-btn"
+              [ngClass]="p === currentPage ? 'btn-primary active-page-btn' : 'btn-light'"
+              (click)="onPageChange(p)"
+            >
+              {{ p }}
+            </button>
+          }
+        }
+
+        <!-- Next Button -->
+        <button
+          type="button"
+          class="btn btn-sm btn-light pagination-nav-btn"
+          [disabled]="currentPage >= totalPages"
+          (click)="onPageChange(currentPage + 1)"
+          title="Página siguiente"
+        >
+          <span class="d-none d-sm-inline me-1">Siguiente</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+}

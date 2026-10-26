@@ -1,89 +1,179 @@
-<c-container breakpoint="lg" class="py-4">
+<div class="container-fluid py-3 list-purchases-container">
   <!-- Alerts -->
   @if (errorMessage()) {
-  <c-alert color="danger" dismissible class="mb-4">
-    {{ errorMessage() }}
-  </c-alert>
+    <c-alert color="danger" dismissible class="mb-3">
+      {{ errorMessage() }}
+    </c-alert>
   }
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <!-- Top Bar -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
     <div>
-      <h2 class="fw-bold text-dark mb-1">{{ translationService.t('purchases.title') }}</h2>
-      <p class="text-body-secondary mb-0">{{ translationService.t('purchases.subtitle') }}</p>
+      <h4 class="fw-bold mb-0 text-dark">{{ translationService.t('purchases.title') }}</h4>
+      <small class="text-secondary">{{ translationService.t('purchases.subtitle') }}</small>
     </div>
-    @if (authService.hasRole(['Admin'])) {
-    <button cButton color="primary" class="d-flex align-items-center py-2 px-3 shadow-sm border-0"
-      (click)="openCreateModal()">
-      <svg cIcon name="cilPlus" class="me-2"></svg>
-      {{ translationService.t('purchases.new') }}
-    </button>
-    }
+
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadData()">
+        Recargar
+      </button>
+      @if (authService.hasRole(['Admin'])) {
+        <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openCreateModal()">
+          <span>+ {{ translationService.t('purchases.new') }}</span>
+        </button>
+      }
+    </div>
   </div>
 
-  <app-filter-panel [title]="translationService.t('purchases.filterTitle')" [config]="filterConfig" [values]="filters()"
-    (filtersChange)="onFiltersChange($event)"></app-filter-panel>
+  <!-- Filter Panel -->
+  <app-filter-panel
+    [title]="translationService.t('purchases.filterTitle')"
+    [config]="filterConfig()"
+    [values]="filters()"
+    (filtersChange)="onFiltersChange($event)"
+  ></app-filter-panel>
 
-  <c-card class="shadow-sm border-0 mb-4">
-    <c-card-body class="p-0">
+  <!-- Master-Detail Table Card -->
+  <div class="card shadow-sm border-0 mb-3 billing-table-card rounded-4 overflow-hidden">
+    <div class="card-body p-0">
       @if (isLoading() && purchases().length === 0) {
-      <div class="py-5 text-center">
-        <c-spinner color="primary" class="mb-3"></c-spinner>
-        <p class="text-body-secondary mb-0">{{ translationService.t('common.loading') }}</p>
-      </div>
+        <div class="py-5 text-center text-muted">
+          <c-spinner color="primary" class="mb-2"></c-spinner>
+          <p class="small mb-0">{{ translationService.t('common.loading') }}</p>
+        </div>
       } @else if (purchases().length === 0) {
-      <!-- Empty State -->
-      <div class="py-5 text-center px-4">
-        <svg cIcon name="cilTruck" size="xl" class="text-body-secondary mb-3" style="width: 48px; height: 48px;"></svg>
-        <h4 class="fw-bold text-dark">{{ translationService.t('purchases.emptyTitle') }}</h4>
-        <p class="text-body-secondary mt-1 max-width-320 mx-auto">{{ translationService.t('purchases.emptyBody') }}</p>
-        <button cButton color="primary" class="mt-3 px-4" (click)="openCreateModal()">
-          {{ translationService.t('purchases.first') }}
-        </button>
-      </div>
+        <div class="py-5 text-center px-4">
+          <h5 class="fw-bold text-dark">{{ translationService.t('purchases.emptyTitle') }}</h5>
+          <p class="text-secondary small max-width-320 mx-auto">{{ translationService.t('purchases.emptyBody') }}</p>
+          <button class="btn btn-cuadre-primary mt-2 px-4" (click)="openCreateModal()">
+            {{ translationService.t('purchases.first') }}
+          </button>
+        </div>
       } @else {
-      <app-table [columns]="[
-          { field: 'id', label: translationService.t('purchases.table.purchaseId') },
-          { field: 'date', label: translationService.t('purchases.table.date') },
-          { field: 'supplier', label: translationService.t('purchases.table.supplier') },
-          { field: 'total', label: translationService.t('purchases.table.total') },
-          { field: 'actions', label: translationService.t('common.actions') }
-        ]" [rows]="getFilteredPurchases()" [loading]="isLoading()"
-        [emptyMessage]="translationService.t('purchases.emptyBody')" [rowTemplate]="purchaseRowTpl">
-      </app-table>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 master-detail-table">
+            <thead class="table-light text-secondary text-uppercase font-size-xs">
+              <tr>
+                <th style="width: 44px;" class="ps-3 text-center"></th>
+                <th>{{ translationService.t('purchases.table.purchaseId') }}</th>
+                <th>{{ translationService.t('purchases.table.date') }}</th>
+                <th>{{ translationService.t('purchases.table.supplier') }}</th>
+                <th class="text-end">{{ translationService.t('purchases.table.total') }}</th>
+                <th class="text-center pe-3" style="width: 100px;">{{ translationService.t('common.actions') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of pagedPurchases(); track p.id) {
+                <!-- Master Row -->
+                <tr [class.table-active]="isPurchaseExpanded(p.id)" class="master-row">
+                  <td class="ps-3 text-center">
+                    <button
+                      class="expand-btn"
+                      [class.expanded]="isPurchaseExpanded(p.id)"
+                      type="button"
+                      (click)="toggleDetail(p)"
+                      [title]="isPurchaseExpanded(p.id) ? 'Colapsar detalle' : 'Expandir productos de compra'"
+                    >
+                      {{ isPurchaseExpanded(p.id) ? '−' : '+' }}
+                    </button>
+                  </td>
+                  <td>
+                    <span class="fw-bold text-dark font-monospace">#{{ p.id }}</span>
+                  </td>
+                  <td class="text-muted small">
+                    {{ p.creationDate | date:'dd/MM/yyyy HH:mm' }}
+                  </td>
+                  <td>
+                    <div class="fw-semibold text-dark">{{ getSupplierName(p) }}</div>
+                  </td>
+                  <td class="text-end font-monospace fw-bold text-dark">
+                    RD$ {{ getPurchaseTotal(p) | number:'1.2-2' }}
+                  </td>
+                  <td class="text-center pe-3">
+                    <div class="action-btn-group justify-content-center gap-1">
+                      <button
+                        type="button"
+                        class="btn-action-icon btn-action-view"
+                        (click)="viewPurchaseDetail(p)"
+                        title="Ver Detalle de Compra"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      </button>
+                      @if (canManualReceive()) {
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-success py-0 px-2 fw-semibold"
+                          style="font-size: 0.72rem; height: 26px;"
+                          (click)="receivePurchase(p)"
+                          title="Recepcionar Mercancía en Almacén"
+                        >
+                          📥 Recibir
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
 
-      <ng-template #purchaseRowTpl let-p>
-        <tr>
-          <td class="ps-4 font-monospace small">#{{ p.id }}</td>
-          <td>{{ p.creationDate | date:'short' }}</td>
-          <td>{{ p.supplierId ? 'Supplier #' + p.supplierId : 'Unknown Supplier' }}</td>
-          <td class="text-end fw-bold text-dark">\${{ p.total | number:'1.2-2' }}</td>
-          <td class="text-center pe-4 action-cell">
-            <div class="desktop-actions">
-              <button cButton color="light" size="sm" class="border" (click)="viewPurchaseDetail(p)">
-                <svg cIcon name="cilZoom" size="sm"></svg>
-              </button>
-            </div>
+                <!-- Detail Row Expandible (Subtabla de Artículos Comprados) -->
+                @if (isPurchaseExpanded(p.id)) {
+                  <tr class="detail-row">
+                    <td colspan="6">
+                      <div class="card border border-secondary-subtle shadow-xs rounded-3 overflow-hidden">
+                        <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                          <span class="fw-bold small text-secondary text-uppercase d-flex align-items-center gap-2">
+                            Detalle de Artículos Comprados ({{ getPurchaseItems(p).length }} ítems)
+                          </span>
+                          <div class="small font-monospace">
+                            <span class="text-primary fw-bold">Total Compra: RD$ {{ getPurchaseTotal(p) | number:'1.2-2' }}</span>
+                          </div>
+                        </div>
+                        <div class="card-body p-0">
+                          <table class="table table-sm table-bordered mb-0 align-middle">
+                            <thead class="table-light text-muted font-size-xs">
+                              <tr>
+                                <th class="ps-3">Código</th>
+                                <th>Descripción del Artículo</th>
+                                <th class="text-center">Cant. Comprada</th>
+                                <th class="text-end">Costo Unit.</th>
+                                <th class="text-end pe-3">Total Costo</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (item of getPurchaseItems(p); track $index) {
+                                <tr>
+                                  <td class="ps-3 font-monospace small text-secondary">{{ item.productCode }}</td>
+                                  <td class="fw-semibold text-dark">{{ item.productName }}</td>
+                                  <td class="text-center font-monospace fw-bold text-dark">{{ item.quantity }}</td>
+                                  <td class="text-end font-monospace">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
+                                  <td class="text-end pe-3 font-monospace fw-bold text-primary">RD$ {{ item.total | number:'1.2-2' }}</td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
 
-            <details class="mobile-actions">
-              <summary class="btn btn-light btn-sm">⋯</summary>
-              <div class="mobile-actions-menu">
-                <button cButton color="light" size="sm" class="border w-100" (click)="viewPurchaseDetail(p)">
-                  <svg cIcon name="cilZoom" size="sm"></svg> View
-                </button>
-              </div>
-            </details>
-          </td>
-        </tr>
-      </ng-template>
+        <!-- Paginador Moderno -->
+        <kt-paginator
+          [currentPage]="currentPage()"
+          [totalItems]="filteredPurchasesCount()"
+          [pageSize]="pageSize"
+          (pageChange)="onPageChange($event)"
+        ></kt-paginator>
       }
-    </c-card-body>
-  </c-card>
-
-  @if (!isLoading() && getFilteredPurchasesCount() > 0) {
-  <app-list-pagination [currentPage]="currentPage()" [totalItems]="getFilteredPurchasesCount()" [pageSize]="pageSize"
-    [label]="'compras'" (pageChange)="onPageChange($event)"></app-list-pagination>
-  }
-</c-container>
+    </div>
+  </div>
+</div>
 
 <!-- Decoupled Purchase Modal component -->
 <app-purchase-modal #purchaseModal [(visible)]="isModalOpen" (saved)="loadData()">

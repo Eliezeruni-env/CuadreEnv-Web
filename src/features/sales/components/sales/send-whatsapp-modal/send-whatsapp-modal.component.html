@@ -1,0 +1,96 @@
+@if (visible) {
+  <div class="custom-modal-backdrop" (click)="close()">
+    <div class="custom-modal-dialog" (click)="$event.stopPropagation()" style="max-width: 520px;">
+      <!-- Header -->
+      <div class="p-3.5 px-4 border-bottom d-flex align-items-center justify-content-between bg-light rounded-top">
+        <div class="d-flex align-items-center gap-2.5">
+          <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(34, 197, 94, 0.15); color: #16a34a;">
+            <svg cIcon name="cilPhone" style="width: 18px; height: 18px;"></svg>
+          </div>
+          <div>
+            <h6 class="fw-bold text-dark mb-0">Enviar Comprobante por WhatsApp</h6>
+            <small class="text-secondary">Envío desde el número del usuario hacia el cliente</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="close()" aria-label="Cerrar"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="p-4">
+        <!-- Destinatario (Cliente) -->
+        <div class="mb-3.5">
+          <label class="form-label fw-bold text-dark small mb-1.5 d-flex align-items-center gap-1.5">
+            <span>Para: Número del Cliente (WhatsApp)</span>
+            <span class="text-danger">*</span>
+          </label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0 text-muted">
+              <svg cIcon name="cilPhone" style="width: 16px; height: 16px;"></svg>
+            </span>
+            <input
+              type="tel"
+              class="form-control border-start-0 font-monospace fw-semibold"
+              [(ngModel)]="destinationPhone"
+              (ngModelChange)="updatePreview()"
+              placeholder="Ej: 809-555-1234 o (829) 123-4567"
+              autofocus
+            />
+          </div>
+          <small class="text-muted font-size-xs mt-1 d-block">
+            Ingresa el número al que se enviará la factura o comprobante.
+          </small>
+        </div>
+
+        <!-- Remitente (Usuario del Sistema) -->
+        <div class="mb-3.5">
+          <label class="form-label fw-bold text-dark small mb-1.5 d-flex align-items-center justify-content-between">
+            <span>De: Tu número de WhatsApp (Usuario Emisor)</span>
+            <span class="badge bg-secondary-subtle text-secondary font-monospace" style="font-size: 0.65rem;">Emisor</span>
+          </label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0 text-muted">
+              <svg cIcon name="cilUser" style="width: 16px; height: 16px;"></svg>
+            </span>
+            <input
+              type="tel"
+              class="form-control border-start-0 font-monospace"
+              [(ngModel)]="senderPhone"
+              (ngModelChange)="onSenderPhoneChange($event)"
+              placeholder="Ej: 809-555-0144"
+            />
+          </div>
+          <small class="text-muted font-size-xs mt-1 d-block">
+            El cliente identificará que el documento proviene de este número.
+          </small>
+        </div>
+
+        <!-- Vista previa del mensaje -->
+        <div class="mb-2">
+          <label class="form-label text-secondary small fw-semibold mb-1 d-flex align-items-center justify-content-between">
+            <span>Vista previa del mensaje:</span>
+            <span class="badge bg-light text-dark border font-size-xs">Formato WhatsApp</span>
+          </label>
+          <div class="p-3 bg-light rounded-3 border font-monospace text-secondary" style="font-size: 0.75rem; max-height: 140px; overflow-y: auto; white-space: pre-wrap; line-height: 1.45;">
+            {{ messagePreview() }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="p-3 px-4 border-top bg-light d-flex align-items-center justify-content-between rounded-bottom">
+        <button type="button" class="btn btn-outline-secondary px-3.5 py-2 fw-semibold small" (click)="close()">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-success text-white px-4 py-2 fw-bold small d-flex align-items-center gap-2 shadow-sm"
+          (click)="send()"
+          [disabled]="!destinationPhone.trim()"
+        >
+          <svg cIcon name="cilPhone" style="width: 16px; height: 16px;"></svg>
+          <span>Abrir y Enviar por WhatsApp</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}

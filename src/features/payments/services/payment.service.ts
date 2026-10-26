@@ -1,34 +1,38 @@
-import { Injectable } from '@angular/core';
-import api, { extractArray } from '../../cuadreEnv/services/apiClient';
+import { Injectable, inject } from '@angular/core';
+import {
+  ApiClientService,
+  extractArray,
+} from '../../cuadreEnv/services/apiClient';
 import type { PaymentDto, ApiResponse } from '../../cuadreEnv/types/api';
 
 @Injectable({
   providedIn: 'root',
 })
 export class PaymentService {
-  async getPayments(): Promise<ApiResponse<PaymentDto[]>> {
-    const res = await api.get<any>('/payment');
-    return { success: true, data: extractArray<PaymentDto>(res.data) };
+  private readonly api = inject(ApiClientService);
+  async getPayments(params?: {
+    pageNumber?: number;
+    pageSize?: number;
+  }): Promise<ApiResponse<PaymentDto[]>> {
+    const res = await this.api.get<any, any>('/Payment', { params });
+    return { success: true, data: extractArray<PaymentDto>(res) };
   }
 
   async getPayment(id: number): Promise<ApiResponse<PaymentDto>> {
-    const res = await api.get<any>(`/payment/${id}`);
-    if (res.data && typeof res.data.success === 'boolean') {
-      return res.data;
-    }
-    return { success: true, data: res.data };
+    const res = await this.api.get<any, any>(`/Payment/${id}`);
+    return { success: true, data: res as PaymentDto };
   }
 
   async createPayment(payment: PaymentDto): Promise<ApiResponse<PaymentDto>> {
-    const res = await api.post<ApiResponse<PaymentDto>>('/payment', payment);
-    return res.data;
+    const res = await this.api.post<any, any>('/Payment', payment);
+    return { success: true, data: res as PaymentDto };
   }
 
   async updatePayment(payment: PaymentDto): Promise<void> {
-    await api.put('/payment', payment);
+    await this.api.put('/Payment', payment);
   }
 
   async deletePayment(id: number): Promise<void> {
-    await api.delete(`/payment/${id}`);
+    await this.api.delete(`/Payment/${id}`);
   }
 }

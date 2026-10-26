@@ -1,0 +1,42 @@
+.custom-confirm-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.custom-confirm-dialog {
+  max-width: 420px;
+  width: 100%;
+  border-radius: 1rem;
+}
+
+.confirm-icon-box {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.icon-danger {
+    background-color: #fee2e2;
+    color: #ef4444;
+  }
+  &.icon-warning {
+    background-color: #fef3c7;
+    color: #f59e0b;
+  }
+  &.icon-info {
+    background-color: #e0e7ff;
+    color: #6366f1;
+  }
+}

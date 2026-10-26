@@ -1,32 +1,112 @@
 <!DOCTYPE html>
 <!--
-* CuadreEnv - Angular 21.2 Free Admin Template
-* @version v5.6.24
-* @link https://cuadreenv.com/
-* Copyright (c) 2017-2026 creativeLabs Łukasz Holeczek
-* License: MIT
+* CuadreEnv - SaaS Punto de Venta & Facturación DGII
+* Copyright (c) 2026 CuadreEnv Soluciones
 -->
-<html lang="en">
+<html lang="es">
 
 <head>
   <meta charset="utf-8">
   <base href="/">
-  <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport" />
-  <meta content="CuadreEnv" name="description" />
-  <meta content="Łukasz Holeczek" name="author" />
-  <meta content="CuadreEnv,Bootstrap,Admin,Template,Angular,Dashboard,Typescript" name="keyword" />
-  <link href="assets/brand/cuadreEnv-logo.png" rel="icon" type="image/png">
-  <title>CuadreEnv</title>
+  <!-- Viewport táctil nativo sin zoom accidental para experiencia PWA App -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta content="CuadreEnv POS, Arqueo Ciego y Facturación Fiscal DGII" name="description" />
+  <meta content="CuadreEnv" name="author" />
+
+  <!-- PWA & Mobile Meta Tags (Android & iOS Standalone) -->
+  <link rel="manifest" id="pwa-manifest-link" href="assets/manifest.webmanifest" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="background-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="CuadreEnv" />
+
+  <!-- Favicons and Apple Touch Icons (iOS 192/180/32/16) -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="assets/brand/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/brand/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="assets/brand/android-chrome-192x192.png" />
+  <link rel="shortcut icon" href="favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>CuadreEnv - POS & Control de Efectivo</title>
 </head>
 
 <body>
-  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <noscript>Se requiere habilitar JavaScript para usar CuadreEnv POS.</noscript>
   <app-root>
-    <div class="fade show" style="text-align: center; padding-top: calc(100vh / 2); height: 100vh">
+    <!-- Cargador para Vista Web / Desktop -->
+    <div id="web-loader" class="fade show" style="text-align: center; padding-top: calc(100vh / 2); height: 100vh">
       <i class="spinner-grow spinner-grow-sm"></i>
       <span class="m-1">Loading...</span>
     </div>
+    <!-- Cargador para Vista Móvil / POS -->
+    <div id="mobile-loader" class="fade show" style="display: none; text-align: center; padding-top: calc(100vh / 2); height: 100vh; background-color: #0f172a; color: #ffffff;">
+      <i class="spinner-grow spinner-grow-sm text-danger"></i>
+      <span class="m-1 fw-bold">Iniciando CuadreEnv POS...</span>
+    </div>
+    <script>
+      (function() {
+        var isMobile = (window.innerWidth <= 768) ||
+          /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent.toLowerCase()) ||
+          window.location.href.indexOf('mobile') !== -1 ||
+          window.matchMedia('(display-mode: standalone)').matches ||
+          navigator.standalone === true;
+
+        if (isMobile) {
+          var web = document.getElementById('web-loader');
+          var mob = document.getElementById('mobile-loader');
+          if (web) web.style.display = 'none';
+          if (mob) mob.style.display = 'block';
+        }
+      })();
+    </script>
   </app-root>
+
+  <script>
+    // PWA Service Worker & Install Prompt Listener
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        const tryRegister = (url, options) => navigator.serviceWorker.register(url, options);
+
+        tryRegister('/sw.js', { scope: '/' })
+          .catch(() => tryRegister('sw.js', { scope: '/' }))
+          .catch(() => tryRegister('assets/sw.js'))
+          .then((reg) => {
+            if (!reg) return;
+            if (reg.waiting) {
+              window.dispatchEvent(new CustomEvent('cuadreenv:pwa-update-ready', { detail: reg }));
+            }
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    window.dispatchEvent(new CustomEvent('cuadreenv:pwa-update-ready', { detail: reg }));
+                  }
+                });
+              }
+            });
+          }).catch(err => console.warn('[PWA] SW registration skipped:', err));
+      });
+    }
+
+    // Capturar evento antes de instalar (A2HS) para botón personalizado
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.__pwaInstallPrompt = e;
+      window.dispatchEvent(new CustomEvent('cuadreenv:pwa-installable'));
+    });
+
+    window.addEventListener('appinstalled', () => {
+      window.__pwaInstallPrompt = null;
+      window.dispatchEvent(new CustomEvent('cuadreenv:pwa-installed'));
+    });
+  </script>
 </body>
 
 </html>

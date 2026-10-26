@@ -1,0 +1,52 @@
+@if (confirmDialogService.state$ | async; as state) {
+  @if (state.isOpen) {
+    <div class="custom-confirm-backdrop">
+      <div class="custom-confirm-dialog card border-0 shadow-lg" role="dialog" aria-modal="true">
+        <div class="card-body p-4 text-center">
+          <div class="confirm-icon-box mx-auto mb-3" [ngClass]="'icon-' + (state.options?.type || 'danger')">
+            @if (state.options?.type === 'warning') {
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            } @else if (state.options?.type === 'info') {
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+            }
+          </div>
+
+          <h5 class="fw-bold text-dark mb-2">{{ state.options?.title }}</h5>
+          <p class="text-secondary small mb-4">{{ state.options?.message }}</p>
+
+          <div class="d-flex justify-content-center gap-2">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary px-3"
+              (click)="confirmDialogService.handleAction(false)"
+            >
+              {{ state.options?.cancelText || 'Cancelar' }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm px-4"
+              [ngClass]="state.options?.type === 'warning' ? 'btn-warning' : (state.options?.type === 'info' ? 'btn-primary' : 'btn-danger')"
+              (click)="confirmDialogService.handleAction(true)"
+            >
+              {{ state.options?.confirmText || 'Confirmar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+}

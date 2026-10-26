@@ -1,0 +1,309 @@
+<div class="container-fluid py-3">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+      <h3 class="fw-bold text-dark mb-1">Control de Stock y Existencias</h3>
+      <p class="text-secondary small mb-0">Monitoreo de inventario en tiempo real por almacén con semáforos de nivel</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-light border d-flex align-items-center gap-1.5" (click)="loadData()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Summary Cards -->
+  <!-- KPI Summary Cards (Corporate CuadreEnv Theme) -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card border rounded-4 p-3 bg-white shadow-sm h-100 stock-kpi-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-secondary small fw-bold text-uppercase tracking-wider">Unidades Totales</div>
+            <h3 class="fw-bold text-dark mb-0 font-monospace">{{ totalUnits() }} <span class="fs-6 text-muted fw-normal">uds</span></h3>
+          </div>
+          <div class="stock-kpi-icon bg-light text-dark">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card border rounded-4 p-3 bg-white shadow-sm h-100 stock-kpi-card border-valuation">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-secondary small fw-bold text-uppercase tracking-wider">Valorización de Stock</div>
+            <h3 class="fw-bold text-dark mb-0 font-monospace">RD$ {{ totalValuation() | number:'1.2-2' }}</h3>
+          </div>
+          <div class="stock-kpi-icon bg-success-subtle text-success">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card border rounded-4 p-3 bg-white shadow-sm h-100 stock-kpi-card border-critical" [class.has-critical]="criticalCount() > 0">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-danger small fw-bold text-uppercase tracking-wider">Agotados / Críticos</div>
+            <h3 class="fw-bold text-danger mb-0 font-monospace">{{ criticalCount() }} <span class="fs-6 text-danger fw-normal">ítems</span></h3>
+          </div>
+          <div class="stock-kpi-icon bg-danger-subtle text-danger">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card border rounded-4 p-3 bg-white shadow-sm h-100 stock-kpi-card border-warning">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-warning-emphasis small fw-bold text-uppercase tracking-wider">Bajo Stock Mínimo</div>
+            <h3 class="fw-bold text-warning-emphasis mb-0 font-monospace">{{ lowCount() }} <span class="fs-6 text-muted fw-normal">ítems</span></h3>
+          </div>
+          <div class="stock-kpi-icon bg-warning-subtle text-warning-emphasis">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+              <polyline points="17 18 23 18 23 12"></polyline>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Table Card -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+    <!-- Modern Filters Toolbar with Interactive Chip Filters (Opción C) -->
+    <div class="p-3 border-bottom bg-white d-flex flex-column gap-3">
+      <!-- Top Row: Warehouse Selector & Search -->
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <!-- Warehouse Selector Pill -->
+        <div class="d-flex align-items-center gap-2">
+          <label class="form-label small fw-bold text-secondary mb-0 d-flex align-items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>Almacén:</span>
+          </label>
+          <select
+            class="form-select form-select-sm warehouse-chip-select"
+            [(ngModel)]="selectedWarehouseId"
+            (ngModelChange)="onFilterChange()"
+          >
+            <option value="">Todos los Almacenes</option>
+            @for (w of warehouses(); track w.id) {
+              <option [ngValue]="w.id">{{ w.name }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Quick Search with Icon -->
+        <div class="input-group input-group-sm search-input-group" style="width: 320px;">
+          <span class="input-group-text bg-light border-end-0 text-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input
+            type="text"
+            class="form-control form-control-sm border-start-0"
+            placeholder="Buscar producto, código, almacén..."
+            [(ngModel)]="searchTerm"
+            (input)="onFilterChange()"
+          />
+          @if (searchTerm) {
+            <button
+              class="btn btn-outline-secondary border-start-0 text-muted"
+              type="button"
+              (click)="searchTerm = ''; onFilterChange()"
+            >
+              ✕
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Bottom Row: State Filter Chips (Píldoras Interactivas) -->
+      <div class="d-flex align-items-center gap-1.5 flex-wrap stock-chip-toolbar">
+        <span class="small fw-bold text-secondary font-size-xs text-uppercase me-1">Estado de Stock:</span>
+
+        <button
+          type="button"
+          class="stock-chip-btn touch-btn"
+          [class.active]="statusFilter === 'ALL'"
+          (click)="setStatusFilter('ALL')"
+        >
+          <span>Todos</span>
+          <span class="chip-count">{{ allCount() }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="stock-chip-btn chip-critical touch-btn"
+          [class.active]="statusFilter === 'CRITICAL'"
+          (click)="setStatusFilter('CRITICAL')"
+        >
+          <span class="chip-dot dot-critical"></span>
+          <span>Agotados</span>
+          <span class="chip-count">{{ criticalCount() }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="stock-chip-btn chip-low touch-btn"
+          [class.active]="statusFilter === 'LOW'"
+          (click)="setStatusFilter('LOW')"
+        >
+          <span class="chip-dot dot-low"></span>
+          <span>Bajo Mínimo</span>
+          <span class="chip-count">{{ lowCount() }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="stock-chip-btn chip-normal touch-btn"
+          [class.active]="statusFilter === 'NORMAL'"
+          (click)="setStatusFilter('NORMAL')"
+        >
+          <span class="chip-dot dot-normal"></span>
+          <span>Normal</span>
+          <span class="chip-count">{{ normalCount() }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="stock-chip-btn chip-overstock touch-btn"
+          [class.active]="statusFilter === 'OVERSTOCK'"
+          (click)="setStatusFilter('OVERSTOCK')"
+        >
+          <span class="chip-dot dot-overstock"></span>
+          <span>Sobre-stock</span>
+          <span class="chip-count">{{ overstockCount() }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Table with Interactive Rows (Opción C) -->
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small stock-modern-table">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Producto</th>
+            <th>Código</th>
+            <th>Almacén</th>
+            <th class="text-center" style="width: 200px;">Nivel de Existencia</th>
+            <th class="text-center">Mín / Máx</th>
+            <th class="text-end">Costo Ref.</th>
+            <th class="text-end">Valor Total</th>
+            <th class="text-center pe-4" style="width: 170px;">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading()) {
+            <tr>
+              <td colspan="8" class="text-center py-5 text-secondary">
+                <span class="spinner-border spinner-border-sm me-2"></span>
+                Cargando existencias...
+              </td>
+            </tr>
+          } @else if (filteredStock().length === 0) {
+            <tr>
+              <td colspan="8" class="text-center py-5 text-secondary">
+                <div class="py-4">
+                  <div class="mb-3 d-inline-flex p-3 bg-light rounded-circle text-muted">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                  </div>
+                  <h6 class="fw-bold text-dark">No se encontraron registros de stock</h6>
+                  <p class="text-muted small mb-0">Prueba cambiando los filtros de almacén o el chip de estado.</p>
+                </div>
+              </td>
+            </tr>
+          } @else {
+            @for (s of pagedStock(); track s.id) {
+              @let status = stockService.getStockStatus(s.quantity, s.minimumQuantity || 5, s.maximumQuantity || 100);
+              @let pct = getStockPercentage(s);
+              <tr class="stock-interactive-row" [ngClass]="'row-' + status.type.toLowerCase()">
+                <td class="ps-4">
+                  <div class="fw-bold text-dark stock-product-title">{{ s.productName }}</div>
+                  @if (s.barcode) {
+                    <div class="font-monospace text-muted font-size-xs d-md-none">Ref: {{ s.barcode }}</div>
+                  }
+                </td>
+                <td class="font-monospace text-secondary">{{ s.barcode || '-' }}</td>
+                <td>
+                  <span class="badge bg-light text-dark border font-monospace px-2 py-1 d-inline-flex align-items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    </svg>
+                    <span>{{ s.warehouseName }}</span>
+                  </span>
+                </td>
+                <td class="text-center">
+                  <!-- Visual Existence & Micro Gauge Progress Bar -->
+                  <div class="d-flex flex-column align-items-center">
+                    <div class="font-monospace fw-bold fs-6" [style.color]="status.color">
+                      {{ s.quantity }} <span class="small fw-normal text-muted">uds</span>
+                    </div>
+                    <div class="stock-progress-track mt-1 w-100" style="max-width: 140px;">
+                      <div
+                        class="stock-progress-fill"
+                        [ngClass]="'fill-' + status.type.toLowerCase()"
+                        [style.width.%]="pct"
+                        [title]="pct + '% respecto al máximo configurado'"
+                      ></div>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center font-monospace text-secondary" style="font-size: 0.78rem;">
+                  <span title="Stock Mínimo">{{ s.minimumQuantity || 5 }}</span>
+                  <span class="text-muted mx-1">/</span>
+                  <span title="Stock Máximo">{{ s.maximumQuantity || 100 }}</span>
+                </td>
+                <td class="text-end font-monospace">RD$ {{ (s.cost || s.price || 0) | number:'1.2-2' }}</td>
+                <td class="text-end font-monospace fw-bold text-dark">
+                  RD$ {{ (s.quantity * (s.cost || s.price || 0)) | number:'1.2-2' }}
+                </td>
+                <td class="text-center pe-4">
+                  <!-- Modern Status Badge with Glowing Pulse Dot -->
+                  <div class="stock-status-pill" [ngClass]="'pill-' + status.type.toLowerCase()">
+                    <span class="status-dot-pulse"></span>
+                    <span class="status-pill-label">{{ status.label }}</span>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-list-pagination
+      [currentPage]="currentPage()"
+      [pageSize]="pageSize()"
+      [totalItems]="filteredStock().length"
+      label="registros de stock"
+      (pageChange)="onPageChange($event)"
+    ></app-list-pagination>
+  </div>
+</div>

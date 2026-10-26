@@ -1,0 +1,31 @@
+<div class="card border-0 shadow-sm rounded-3 p-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold text-dark mb-0">Tickets en Espera</h4>
+    <a [routerLink]="['/pos']" class="btn btn-outline-secondary btn-sm">Volver a Venta</a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th># Ticket</th>
+          <th>Hora</th>
+          <th>Artículos</th>
+          <th>Total</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge bg-secondary font-monospace">#TK-001</span></td>
+          <td>10:45 AM</td>
+          <td>3 artículos</td>
+          <td class="fw-bold text-primary font-monospace">RD$ 850.00</td>
+          <td>
+            <a [routerLink]="['/pos']" class="btn btn-sm btn-primary">Recuperar</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

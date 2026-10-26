@@ -36,10 +36,10 @@
             </div>
             } @else {
             <app-table [columns]="[
-                { field: 'id', label: 'Warehouse ID' },
-                { field: 'name', label: 'Name' },
-                { field: 'status', label: 'Status' }
-              ]" [rows]="warehouses()" [loading]="false" [emptyMessage]="'No Warehouses Found'"
+                { field: 'id', label: 'ID Almacén' },
+                { field: 'name', label: 'Nombre' },
+                { field: 'status', label: 'Estado', align: 'end' }
+              ]" [rows]="warehouses()" [loading]="false" [emptyMessage]="'No se encontraron almacenes'"
               [rowTemplate]="warehouseRowTpl">
             </app-table>
 
@@ -101,22 +101,22 @@
     @if (activeTab() === 'operations') {
     <c-row>
       <!-- Inbound Stock -->
-      <c-col md="4" class="mb-4">
+      <c-col [md]="warehouses().length > 1 ? 4 : 6" class="mb-4">
         <c-card class="shadow-sm border-0 h-100">
           <c-card-body class="p-4">
             <div class="d-flex align-items-center mb-3">
               <div class="p-2 rounded bg-success-subtle text-success me-3">
                 <svg cIcon name="cilArrowThickFromBottom" style="width: 20px; height: 20px;"></svg>
               </div>
-              <h5 class="fw-bold text-dark mb-0">Inbound Stock</h5>
+              <h5 class="fw-bold text-dark mb-0">Entrada de Inventario</h5>
             </div>
-            <p class="text-body-secondary small mb-3">Add incoming inventory quantity to a specific warehouse.</p>
+            <p class="text-body-secondary small mb-3">Aumenta las existencias de un producto en un almacén específico.</p>
             <form cForm [formGroup]="inboundForm" (ngSubmit)="onInboundSubmit()">
               <!-- Product -->
               <div class="mb-3">
-                <label cLabel class="small fw-semibold text-secondary mb-1">Product *</label>
+                <label cLabel class="small fw-semibold text-secondary mb-1">Producto *</label>
                 <select cSelect formControlName="productId">
-                  <option value="" disabled selected>Select product...</option>
+                  <option value="" disabled selected>Seleccionar producto...</option>
                   @for (p of products(); track p.id) {
                   <option [value]="p.id">{{ p.description }}</option>
                   }
@@ -124,25 +124,71 @@
               </div>
               <!-- Warehouse -->
               <div class="mb-3">
-                <label cLabel class="small fw-semibold text-secondary mb-1">Destination Warehouse *</label>
+                <label cLabel class="small fw-semibold text-secondary mb-1">Almacén Destino *</label>
                 <select cSelect formControlName="warehouseId">
-                  <option value="" disabled selected>Select warehouse...</option>
+                  <option value="" disabled selected>Seleccionar almacén...</option>
                   @for (w of warehouses(); track w.id) {
                   <option [value]="w.id">{{ w.name }}</option>
                   }
                 </select>
               </div>
-              <!-- Quantity -->
-              <div class="mb-3">
-                <label cLabel class="small fw-semibold text-secondary mb-1">Quantity *</label>
-                <input type="number" formControlName="quantity" cFormControl />
-                @if (inboundForm.get('quantity')?.touched && inboundForm.get('quantity')?.invalid) {
-                <div class="text-danger small mt-1">Quantity must be 1 or greater.</div>
+
+              <!-- Packaging Selector if product has bulk packaging -->
+              @if (getSelectedInboundProduct(); as selProd) {
+                @if (getProductPackaging(selProd); as pkg) {
+                  @if (pkg.hasPackaging) {
+                    <div class="p-3 mb-3 bg-light rounded-3 border">
+                      <label class="small fw-semibold text-dark mb-2 d-block">Presentación de Entrada:</label>
+                      <div class="btn-group w-100 mb-2">
+                        <button
+                          type="button"
+                          class="btn btn-sm"
+                          [ngClass]="inboundForm.get('inboundMode')?.value === 'package' ? 'btn-primary text-white fw-bold' : 'btn-outline-secondary'"
+                          (click)="inboundForm.patchValue({ inboundMode: 'package' })"
+                        >
+                          📦 Por {{ pkg.packageUnitName || 'Empaque' }} ({{ pkg.packageUnitsCount }} {{ getProductUnitSymbol(selProd) }})
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm"
+                          [ngClass]="inboundForm.get('inboundMode')?.value === 'units' ? 'btn-primary text-white fw-bold' : 'btn-outline-secondary'"
+                          (click)="inboundForm.patchValue({ inboundMode: 'units' })"
+                        >
+                          ⚖️ Por {{ getProductUnitSymbol(selProd) }} (Directo)
+                        </button>
+                      </div>
+
+                      @if (inboundForm.get('inboundMode')?.value === 'package') {
+                        <div class="mb-2">
+                          <label class="small fw-semibold text-secondary mb-1">
+                            Cantidad de {{ pkg.packageUnitName || 'Empaques / Sacos' }}:
+                          </label>
+                          <input type="number" min="1" formControlName="packageQuantity" class="form-control" />
+                        </div>
+                        <div class="small text-primary fw-bold font-monospace bg-white p-2 rounded border">
+                          ✨ Acreditará al almacén: {{ getInboundCalculatedUnits() }} {{ getProductUnitSymbol(selProd) }} ({{ inboundForm.get('packageQuantity')?.value || 1 }} {{ pkg.packageUnitName || 'Saco(s)' }} × {{ pkg.packageUnitsCount }} {{ getProductUnitSymbol(selProd) }})
+                        </div>
+                      }
+                    </div>
+                  }
                 }
-              </div>
-              <button cButton color="success" class="w-100 py-2 text-white" type="submit"
+              }
+
+              <!-- Quantity in Base Units -->
+              @if (inboundForm.get('inboundMode')?.value !== 'package') {
+                <div class="mb-3">
+                  <label cLabel class="small fw-semibold text-secondary mb-1">
+                    Cantidad (en {{ getSelectedInboundProduct() ? getProductUnitSymbol(getSelectedInboundProduct()!) : 'unidades base' }}) *
+                  </label>
+                  <input type="number" step="any" min="0.01" formControlName="quantity" cFormControl />
+                  @if (inboundForm.get('quantity')?.touched && inboundForm.get('quantity')?.invalid) {
+                  <div class="text-danger small mt-1">La cantidad debe ser mayor a 0.</div>
+                  }
+                </div>
+              }
+              <button cButton color="success" class="w-100 py-2 text-white fw-bold" type="submit"
                 [disabled]="isLoading() || inboundForm.invalid">
-                Register Inbound
+                Registrar Entrada ({{ getInboundCalculatedUnits() }} {{ getSelectedInboundProduct() ? getProductUnitSymbol(getSelectedInboundProduct()!) : 'unidades' }})
               </button>
             </form>
           </c-card-body>
@@ -150,23 +196,22 @@
       </c-col>
 
       <!-- Outbound Stock -->
-      <c-col md="4" class="mb-4">
+      <c-col [md]="warehouses().length > 1 ? 4 : 6" class="mb-4">
         <c-card class="shadow-sm border-0 h-100">
           <c-card-body class="p-4">
             <div class="d-flex align-items-center mb-3">
               <div class="p-2 rounded bg-danger-subtle text-danger me-3">
                 <svg cIcon name="cilArrowThickToBottom" style="width: 20px; height: 20px;"></svg>
               </div>
-              <h5 class="fw-bold text-dark mb-0">Outbound Stock</h5>
+              <h5 class="fw-bold text-dark mb-0">Salida de Inventario</h5>
             </div>
-            <p class="text-body-secondary small mb-3">Deduct stock quantity from a warehouse for sales or adjustments.
-            </p>
+            <p class="text-body-secondary small mb-3">Deduce existencias de un almacén por ventas, mermas o ajustes.</p>
             <form cForm [formGroup]="outboundForm" (ngSubmit)="onOutboundSubmit()">
               <!-- Product -->
               <div class="mb-3">
-                <label cLabel class="small fw-semibold text-secondary mb-1">Product *</label>
+                <label cLabel class="small fw-semibold text-secondary mb-1">Producto *</label>
                 <select cSelect formControlName="productId">
-                  <option value="" disabled selected>Select product...</option>
+                  <option value="" disabled selected>Seleccionar producto...</option>
                   @for (p of products(); track p.id) {
                   <option [value]="p.id">{{ p.description }}</option>
                   }
@@ -174,9 +219,9 @@
               </div>
               <!-- Warehouse -->
               <div class="mb-3">
-                <label cLabel class="small fw-semibold text-secondary mb-1">Source Warehouse *</label>
+                <label cLabel class="small fw-semibold text-secondary mb-1">Almacén Origen *</label>
                 <select cSelect formControlName="warehouseId">
-                  <option value="" disabled selected>Select warehouse...</option>
+                  <option value="" disabled selected>Seleccionar almacén...</option>
                   @for (w of warehouses(); track w.id) {
                   <option [value]="w.id">{{ w.name }}</option>
                   }
@@ -184,22 +229,23 @@
               </div>
               <!-- Quantity -->
               <div class="mb-3">
-                <label cLabel class="small fw-semibold text-secondary mb-1">Quantity *</label>
-                <input type="number" formControlName="quantity" cFormControl />
+                <label cLabel class="small fw-semibold text-secondary mb-1">Cantidad *</label>
+                <input type="number" min="1" formControlName="quantity" cFormControl />
                 @if (outboundForm.get('quantity')?.touched && outboundForm.get('quantity')?.invalid) {
-                <div class="text-danger small mt-1">Quantity must be 1 or greater.</div>
+                <div class="text-danger small mt-1">La cantidad debe ser 1 o mayor.</div>
                 }
               </div>
               <button cButton color="danger" class="w-100 py-2" type="submit"
                 [disabled]="isLoading() || outboundForm.invalid">
-                Register Outbound
+                Registrar Salida
               </button>
             </form>
           </c-card-body>
         </c-card>
       </c-col>
 
-      <!-- Stock Transfer -->
+      <!-- Stock Transfer (Only shown when there are 2 or more warehouses) -->
+      @if (warehouses().length > 1) {
       <c-col md="4" class="mb-4">
         <c-card class="shadow-sm border-0 h-100">
           <c-card-body class="p-4">
@@ -207,15 +253,15 @@
               <div class="p-2 rounded bg-primary-subtle text-primary me-3">
                 <svg cIcon name="cilSwapHorizontal" style="width: 20px; height: 20px;"></svg>
               </div>
-              <h5 class="fw-bold text-dark mb-0">Internal Transfer</h5>
+              <h5 class="fw-bold text-dark mb-0">Transferencia Interna</h5>
             </div>
-            <p class="text-body-secondary small mb-3">Move stock quantities safely between different warehouses.</p>
+            <p class="text-body-secondary small mb-3">Transfiere existencias de forma segura entre distintos almacenes.</p>
             <form cForm [formGroup]="transferForm" (ngSubmit)="onTransferSubmit()">
               <!-- Product -->
               <div class="mb-3">
-                <label cLabel class="small fw-semibold text-secondary mb-1">Product *</label>
+                <label cLabel class="small fw-semibold text-secondary mb-1">Producto *</label>
                 <select cSelect formControlName="productId">
-                  <option value="" disabled selected>Select product...</option>
+                  <option value="" disabled selected>Seleccionar producto...</option>
                   @for (p of products(); track p.id) {
                   <option [value]="p.id">{{ p.description }}</option>
                   }
@@ -224,9 +270,9 @@
               <c-row>
                 <!-- From WH -->
                 <c-col md="6" class="mb-3">
-                  <label cLabel class="small fw-semibold text-secondary mb-1">From *</label>
+                  <label cLabel class="small fw-semibold text-secondary mb-1">Origen *</label>
                   <select cSelect formControlName="fromWarehouseId">
-                    <option value="" disabled selected>From...</option>
+                    <option value="" disabled selected>Desde...</option>
                     @for (w of warehouses(); track w.id) {
                     <option [value]="w.id">{{ w.name }}</option>
                     }
@@ -234,9 +280,9 @@
                 </c-col>
                 <!-- To WH -->
                 <c-col md="6" class="mb-3">
-                  <label cLabel class="small fw-semibold text-secondary mb-1">To *</label>
+                  <label cLabel class="small fw-semibold text-secondary mb-1">Destino *</label>
                   <select cSelect formControlName="toWarehouseId">
-                    <option value="" disabled selected>To...</option>
+                    <option value="" disabled selected>Hacia...</option>
                     @for (w of warehouses(); track w.id) {
                     <option [value]="w.id">{{ w.name }}</option>
                     }
@@ -245,58 +291,132 @@
               </c-row>
               <!-- Quantity -->
               <div class="mb-3">
-                <label cLabel class="small fw-semibold text-secondary mb-1">Quantity *</label>
-                <input type="number" formControlName="quantity" cFormControl />
+                <label cLabel class="small fw-semibold text-secondary mb-1">Cantidad *</label>
+                <input type="number" min="1" formControlName="quantity" cFormControl />
                 @if (transferForm.get('quantity')?.touched && transferForm.get('quantity')?.invalid) {
-                <div class="text-danger small mt-1">Quantity must be 1 or greater.</div>
+                <div class="text-danger small mt-1">La cantidad debe ser 1 o mayor.</div>
                 }
                 @if (transferForm.errors?.['sameWarehouse']) {
-                <div class="text-danger small mt-1">Source and destination warehouses must be different.</div>
+                <div class="text-danger small mt-1">El almacén origen y destino deben ser diferentes.</div>
                 }
               </div>
               <button cButton color="primary" class="w-100 py-2" type="submit"
                 [disabled]="isLoading() || transferForm.invalid">
-                Execute Transfer
+                Ejecutar Transferencia
               </button>
             </form>
           </c-card-body>
         </c-card>
       </c-col>
+      }
     </c-row>
     }
 
     <!-- 3. Movements Tab -->
     @if (activeTab() === 'movements') {
     <c-card class="shadow-sm border-0 mb-4">
+      <c-card-body class="p-4 border-bottom bg-light-subtle">
+        <!-- Filters Toolbar -->
+        <div class="row g-3 align-items-center">
+          <div class="col-md-4">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-white"><svg cIcon name="cilMagnifyingGlass" size="sm"></svg></span>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Buscar por producto, #ID..."
+                [value]="movementSearchFilter()"
+                (input)="movementSearchFilter.set($any($event.target).value)"
+              />
+            </div>
+          </div>
+          <div class="col-md-4">
+            <select
+              class="form-select form-select-sm"
+              [value]="movementTypeFilter()"
+              (change)="movementTypeFilter.set($any($event.target).value)"
+            >
+              <option value="">Todos los tipos de movimiento</option>
+              <option value="inbound">Entradas (Inbound)</option>
+              <option value="outbound">Salidas (Outbound)</option>
+              <option value="transfer">Transferencias (Transfer)</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <select
+              class="form-select form-select-sm"
+              [value]="movementWarehouseFilter()"
+              (change)="movementWarehouseFilter.set($any($event.target).value)"
+            >
+              <option value="">Todos los almacenes</option>
+              @for (w of warehouses(); track w.id) {
+                <option [value]="w.id">{{ w.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      </c-card-body>
+
       <c-card-body class="p-0">
-        @if (movements().length === 0) {
+        @if (filteredMovements().length === 0) {
         <div class="py-5 text-center px-4">
           <svg cIcon name="cilList" size="xl" class="text-body-secondary mb-3" style="width: 48px; height: 48px;"></svg>
-          <h4 class="fw-bold text-dark">No Movements Logged</h4>
-          <p class="text-body-secondary mt-1">Inventory transactions logs will be displayed here.</p>
+          <h4 class="fw-bold text-dark">No se encontraron movimientos</h4>
+          <p class="text-body-secondary mt-1">
+            @if (movementTypeFilter() || movementWarehouseFilter() || movementSearchFilter()) {
+              No hay transacciones que coincidan con los filtros aplicados.
+            } @else {
+              El historial de transacciones de inventario aparecerá aquí.
+            }
+          </p>
         </div>
         } @else {
         <div class="table-responsive">
           <app-table
-            [columns]="[{ field: 'id', label: 'Transaction ID' }, { field: 'product', label: 'Product' }, { field: 'fromWarehouse', label: 'From Warehouse' }, { field: 'toWarehouse', label: 'To Warehouse' }, { field: 'quantity', label: 'Quantity' }, { field: 'type', label: 'Type' }]"
-            [rows]="movements()" [rowTemplate]="movementRowTpl"></app-table>
+            [columns]="[
+              { field: 'id', label: 'ID Transacción' },
+              { field: 'product', label: 'Producto' },
+              { field: 'fromWarehouse', label: 'Origen (Almacén)' },
+              { field: 'toWarehouse', label: 'Destino (Almacén)' },
+              { field: 'quantity', label: 'Cantidad', align: 'end' },
+              { field: 'type', label: 'Tipo', align: 'center' }
+            ]"
+            [rows]="pagedMovements()" [rowTemplate]="movementRowTpl"></app-table>
 
           <ng-template #movementRowTpl let-m>
             <tr>
               <td class="ps-4 font-monospace small">#{{ m.id }}</td>
               <td class="fw-semibold text-dark">{{ getProductName(m.productId) }}</td>
-              <td>{{ getWarehouseName(m.fromWarehouseId) }}</td>
-              <td>{{ getWarehouseName(m.toWarehouseId) }}</td>
-              <td class="text-end fw-bold text-dark">{{ m.quantity }} units</td>
-              <td class="text-center pe-4">
-                <span [ngClass]="{
-                        'badge bg-success-subtle text-success border border-success': m.type === 'Inbound',
-                        'badge bg-danger-subtle text-danger border border-danger': m.type === 'Outbound',
-                        'badge bg-primary-subtle text-primary border border-primary': m.type === 'Transfer'
-                      }">{{ m.type }}</span>
+              <td>
+                @if (m.fromWarehouseId) {
+                  <span class="badge bg-light text-dark border">{{ getWarehouseName(m.fromWarehouseId) }}</span>
+                } @else {
+                  <span class="text-muted">-</span>
+                }
+              </td>
+              <td>
+                @if (m.toWarehouseId) {
+                  <span class="badge bg-light text-dark border">{{ getWarehouseName(m.toWarehouseId) }}</span>
+                } @else {
+                  <span class="text-muted">-</span>
+                }
+              </td>
+              <td class="text-end fw-bold text-dark pe-4">{{ m.quantity }} unidades</td>
+              <td class="text-center">
+                <span [class]="formatMovementType(m.type).badgeClass">
+                  {{ formatMovementType(m.type).label }}
+                </span>
               </td>
             </tr>
           </ng-template>
+
+          <app-list-pagination
+            [currentPage]="movementsPage()"
+            [totalItems]="filteredMovementsTotal()"
+            [pageSize]="movementsPageSize"
+            [label]="'movimientos'"
+            (pageChange)="onMovementsPageChange($event)">
+          </app-list-pagination>
         </div>
         }
       </c-card-body>
@@ -311,27 +431,45 @@
         <div class="py-5 text-center px-4 text-success">
           <svg cIcon name="cilCheckCircle" size="xl" class="mb-3 animate-bounce"
             style="width: 48px; height: 48px;"></svg>
-          <h4 class="fw-bold">All Stock Levels Healthy</h4>
-          <p class="text-body-secondary mt-1">There are no products currently falling below their minimum quantity
-            limits.</p>
+          <h4 class="fw-bold">Todos los niveles de stock son saludables</h4>
+          <p class="text-body-secondary mt-1">No hay productos que se encuentren por debajo de su límite de cantidad mínimo en este momento.</p>
         </div>
         } @else {
         <div class="table-responsive">
           <app-table
-            [columns]="[{ field: 'description', label: 'Product Name' }, { field: 'barcode', label: 'Barcode' }, { field: 'minimumQuantity', label: 'Min Limit' }, { field: 'stock', label: 'Current Stock' }, { field: 'alert', label: 'Alert Level' }]"
-            [rows]="lowStockItems()" [rowTemplate]="lowStockRowTpl"></app-table>
+            [columns]="[
+              { field: 'description', label: 'Nombre del Producto' },
+              { field: 'barcode', label: 'Código de Barras' },
+              { field: 'minimumQuantity', label: 'Límite Mínimo', align: 'end' },
+              { field: 'stock', label: 'Stock Actual', align: 'end' },
+              { field: 'alert', label: 'Nivel de Alerta', align: 'center' }
+            ]"
+            [rows]="paginatedLowStockItems" [rowTemplate]="lowStockRowTpl"></app-table>
 
           <ng-template #lowStockRowTpl let-p>
             <tr>
               <td class="ps-4 fw-semibold text-dark">{{ p.description }}</td>
               <td><span class="badge bg-light text-secondary border font-monospace">{{ p.barcode || '-' }}</span></td>
               <td class="text-end text-secondary fw-semibold">{{ p.minimumQuantity }}</td>
-              <td class="text-end text-danger fw-bold">{{ p.stock }} units</td>
-              <td class="text-center pe-4">
-                <span class="badge bg-danger text-white">REORDER INCOMING</span>
+              <td class="text-end text-danger fw-bold">
+                {{ p.stock }} {{ getProductUnitSymbol(p) }}
+                @if (getEquivalenceText(p); as eqText) {
+                  <div class="small text-muted font-monospace fw-normal">{{ eqText }}</div>
+                }
+              </td>
+              <td class="text-center">
+                <span class="badge bg-danger text-white">REORDENAR / COMPRA</span>
               </td>
             </tr>
           </ng-template>
+
+          <app-list-pagination
+            [currentPage]="lowStockPage()"
+            [totalItems]="lowStockTotal()"
+            [pageSize]="lowStockPageSize"
+            [label]="'alertas'"
+            (pageChange)="onLowStockPageChange($event)">
+          </app-list-pagination>
         </div>
         }
       </c-card-body>

@@ -1,0 +1,409 @@
+<c-container fluid class="px-4 py-4 receivables-page-container">
+  <!-- Page Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="fw-bold tracking-tight text-body mb-1">Ventas por Cobrar</h2>
+      <p class="text-secondary mb-0 small">
+        Gestiona y da seguimiento a las ventas pendientes de pago de tus clientes.
+      </p>
+    </div>
+    <div>
+      <button
+        cButton
+        class="btn-primary-custom d-flex align-items-center gap-2 px-3 py-2 shadow-sm"
+        (click)="openCreateModal()"
+      >
+        <span class="fs-5 lh-1 fw-bold">+</span>
+        <span>Nueva Venta por Cobrar</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs (Pendientes vs Saldadas por completo) -->
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <button
+      type="button"
+      class="btn px-3 py-2 fw-semibold rounded-pill d-flex align-items-center gap-2"
+      [ngClass]="selectedTab() === 'pending' ? 'btn-primary shadow-sm text-white' : 'btn-light border text-secondary'"
+      (click)="setTab('pending')"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      <span>Pendientes de Cobro</span>
+      <span class="badge" [ngClass]="selectedTab() === 'pending' ? 'bg-white text-primary' : 'bg-secondary-subtle text-secondary'">
+        {{ pendingCount() }}
+      </span>
+    </button>
+
+    <button
+      type="button"
+      class="btn px-3 py-2 fw-semibold rounded-pill d-flex align-items-center gap-2"
+      [ngClass]="selectedTab() === 'paid' ? 'btn-success shadow-sm text-white' : 'btn-light border text-secondary'"
+      (click)="setTab('paid')"
+    >
+      <span>✓ Saldadas por Completo</span>
+      <span class="badge" [ngClass]="selectedTab() === 'paid' ? 'bg-white text-success' : 'bg-success-subtle text-success'">
+        {{ paidCount() }}
+      </span>
+    </button>
+  </div>
+
+  <!-- Search & Toolbar Row -->
+  <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 filter-toolbar-card">
+    <div class="row g-3 align-items-center">
+      <!-- Search Input -->
+      <div class="col-lg-6 col-md-5">
+        <div class="search-input-wrapper">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="search-icon"
+          >
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            class="form-control search-input"
+            placeholder="Buscar cliente o factura..."
+            [value]="searchQuery()"
+            (input)="onSearchChange($event)"
+          />
+        </div>
+      </div>
+
+      <!-- Filter Dropdown Button -->
+      <div class="col-lg-3 col-md-3 col-6">
+        <div class="dropdown-filter-wrapper">
+          <div class="input-group">
+            <span class="input-group-text bg-transparent border-end-0 text-muted">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+              </svg>
+            </span>
+            <select
+              class="form-select border-start-0 filter-select"
+              [value]="selectedStatus()"
+              (change)="onStatusChange($event)"
+            >
+              <option value="">Filtrar: Todos</option>
+              <option value="Pendiente">Filtrar: Pendiente</option>
+              <option value="Parcial">Filtrar: Parcial</option>
+              <option value="Pagado">Filtrar: Pagado</option>
+              <option value="Vencido">Filtrar: Vencido</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sort Dropdown -->
+      <div class="col-lg-3 col-md-4 col-6">
+        <div class="input-group">
+          <span class="input-group-text bg-transparent border-end-0 text-muted">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="21" y1="10" x2="3" y2="10"></line>
+              <line x1="21" y1="6" x2="3" y2="6"></line>
+              <line x1="21" y1="14" x2="3" y2="14"></line>
+              <line x1="21" y1="18" x2="3" y2="18"></line>
+            </svg>
+          </span>
+          <select
+            class="form-select border-start-0 filter-select"
+            [value]="selectedSort()"
+            (change)="onSortChange($event)"
+          >
+            <option value="newest">Ordenar por: Más reciente</option>
+            <option value="oldest">Ordenar por: Más antiguo</option>
+            <option value="amount-desc">Ordenar por: Mayor monto</option>
+            <option value="amount-asc">Ordenar por: Menor monto</option>
+            <option value="name-asc">Ordenar por: Cliente (A-Z)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="d-flex justify-content-center align-items-center py-5">
+      <c-spinner color="primary"></c-spinner>
+      <span class="ms-3 text-secondary">Cargando ventas por cobrar...</span>
+    </div>
+  }
+
+  <!-- Cards Grid -->
+  @if (!isLoading()) {
+    <div class="row g-4 mb-4">
+      @for (item of pagedReceivables(); track item.id) {
+        <div class="col-lg-4 col-md-6 col-12">
+          <div class="card receivable-card h-100 border-0 shadow-sm rounded-4" [class.border-success-subtle]="item.pendingAmount <= 0">
+            <!-- Card Body -->
+            <div class="card-body p-4">
+              <!-- Top Row: Avatar, Name, Invoice & Status -->
+              <div class="d-flex align-items-start justify-content-between mb-4">
+                <div class="d-flex align-items-center gap-3">
+                  <!-- Pastel Avatar Circle -->
+                  <div
+                    class="receivable-avatar flex-shrink-0"
+                    [style.background-color]="item.avatarColor || '#ede9fe'"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="avatar-icon"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                  </div>
+                  <!-- Client Info -->
+                  <div>
+                    <h5 class="fw-bold text-body mb-0 client-title text-truncate">
+                      {{ item.customerName }}
+                    </h5>
+                    <span class="text-muted small invoice-code">{{ item.invoiceNumber }}</span>
+                  </div>
+                </div>
+
+                <!-- Status Badge & Semáforo de Crédito ("El Fiado Organizado") -->
+                <div class="d-flex flex-column align-items-end gap-1">
+                  @if (item.pendingAmount <= 0 || item.status === 'Pagado') {
+                    <div class="status-pill status-paid">
+                      <span class="status-dot"></span>
+                      <span>Saldada por completo</span>
+                    </div>
+                  } @else {
+                    @let sem = getCreditTrafficLight(item);
+                    <div
+                      class="status-pill"
+                      [ngClass]="{
+                        'status-pending': sem.color === 'green',
+                        'status-partial': sem.color === 'yellow',
+                        'status-overdue': sem.color === 'red'
+                      }"
+                    >
+                      <span class="status-dot"></span>
+                      <span>{{ sem.label }}</span>
+                    </div>
+                    @if (sem.isBlocked) {
+                      <span class="badge bg-danger text-white font-monospace" style="font-size: 0.65rem;">
+                        🚫 VENTAS BLOQUEADAS
+                      </span>
+                    }
+                  }
+                </div>
+              </div>
+
+              <!-- Middle Section: Monto a deber -->
+              <div class="amount-section my-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="amount-label text-muted">
+                    {{ item.pendingAmount <= 0 ? 'Estado de Balance' : 'Monto a deber' }}
+                  </span>
+                  @if (item.dueDate) {
+                    <span class="small font-monospace text-secondary" style="font-size: 0.72rem;">
+                      Vence: {{ item.dueDate | date:'mediumDate' }}
+                    </span>
+                  }
+                </div>
+                @if (item.pendingAmount <= 0) {
+                  <div class="amount-value text-success fw-bold fs-5">
+                    ✓ Totalmente Saldado (RD$ {{ item.totalAmount | number:'1.2-2' }})
+                  </div>
+                  <div class="progress mt-2" style="height: 6px;">
+                    <div class="progress-bar bg-success" style="width: 100%;"></div>
+                  </div>
+                } @else {
+                  <div class="amount-value text-body fw-bold">
+                    RD$ {{ item.pendingAmount | number: '1.2-2' }}
+                  </div>
+                  <div class="progress mt-2" style="height: 6px;">
+                    <div
+                      class="progress-bar bg-primary"
+                      [style.width.%]="(item.paidAmount / (item.totalAmount || 1)) * 100"
+                    ></div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Card Footer: Actions Row & WhatsApp Reminder -->
+            <div class="card-footer bg-transparent border-top p-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <!-- View Detail Action -->
+              <button
+                type="button"
+                class="btn-card-action action-view d-flex align-items-center gap-1"
+                (click)="openDetailModal(item)"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span>Ver detalle</span>
+              </button>
+
+              <div class="d-flex align-items-center gap-2">
+                <!-- WhatsApp Reminder Button ("Fiado Organizado") -->
+                @if (item.pendingAmount > 0 && item.status !== 'Pagado') {
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-success text-white d-flex align-items-center gap-1 shadow-xs fw-semibold px-2 py-1"
+                    (click)="sendWhatsAppReminder(item); $event.stopPropagation()"
+                    title="Enviar recordatorio amistoso de cobro por WhatsApp"
+                  >
+                    <svg cIcon name="cilPhone" size="sm" class="me-1"></svg>
+                    <span>Cobro WhatsApp</span>
+                  </button>
+                }
+
+                @if (item.pendingAmount <= 0 || item.status === 'Pagado') {
+                  <!-- Reabrir Action (for settled accounts) -->
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-warning d-flex align-items-center gap-1 fw-semibold"
+                    (click)="reopenReceivable(item)"
+                    title="Reactivar cuenta en caso de error contable"
+                  >
+                    <span>Reabrir</span>
+                  </button>
+                }
+
+                <!-- Delete Action -->
+                <button
+                  type="button"
+                  class="btn-card-action action-delete d-flex align-items-center p-1"
+                  (click)="deleteReceivable(item)"
+                  title="Eliminar"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Empty State -->
+      @if (filteredReceivables().length === 0) {
+        <div class="col-12">
+          <div class="card border-0 shadow-sm rounded-4 text-center p-5">
+            <div class="empty-icon-box mx-auto mb-3">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="text-muted"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <h5 class="fw-bold text-body mb-1">No se encontraron ventas por cobrar</h5>
+            <p class="text-secondary small mb-3">
+              No hay registros que coincidan con los filtros o la búsqueda seleccionada.
+            </p>
+            <div>
+              <button
+                cButton
+                class="btn-primary-custom px-4"
+                (click)="openCreateModal()"
+              >
+                Crear Primera Venta por Cobrar
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Pagination -->
+    @if (filteredReceivables().length > pageSize) {
+      <app-list-pagination
+        [currentPage]="currentPage()"
+        [pageSize]="pageSize"
+        [totalItems]="filteredReceivables().length"
+        (pageChange)="onPageChange($event)"
+      />
+    }
+  }
+
+  <!-- Modals -->
+  <app-create-receivable-modal
+    #createModal
+    [(visible)]="isCreateModalOpen"
+    (saved)="loadReceivables()"
+  />
+
+  <app-receivable-detail-modal
+    #detailModal
+    [(visible)]="isDetailModalOpen"
+    [receivable]="selectedReceivable"
+    (updated)="loadReceivables()"
+  />
+</c-container>

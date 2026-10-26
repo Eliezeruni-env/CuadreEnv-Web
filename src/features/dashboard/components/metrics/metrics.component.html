@@ -1,0 +1,596 @@
+<div class="py-2 metrics-dashboard">
+  @if (!isAuthorized()) {
+    <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white my-5">
+      <div class="mb-3 text-warning">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <h4 class="fw-bold text-dark mb-2">Acceso Exclusivo a Métricas</h4>
+      <p class="text-secondary max-w-md mx-auto mb-4">
+        Este módulo de cálculo y analítica financiera está reservado para Administradores y Auditores de la empresa.
+      </p>
+      <div>
+        <a routerLink="/dashboard" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold">
+          Volver al Dashboard
+        </a>
+      </div>
+    </div>
+  } @else {
+    <!-- Header Navigation & Context -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="kpi-icon-box bg-primary text-white rounded-3 d-flex align-items-center justify-content-center shadow-2xs" style="width: 48px; height: 48px;">
+            <svg cIcon name="cilChartPie" style="width: 24px; height: 24px;"></svg>
+          </div>
+          <div>
+            <div class="text-secondary small fw-bold tracking-wide text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+              Inteligencia de Negocio & Estrategia
+            </div>
+            <h4 class="fw-bold text-dark mb-1">Métricas Globales y Rentabilidad</h4>
+            <p class="text-secondary mb-0 small">
+              Análisis ejecutivo de facturación, márgenes comerciales, rotación de productos, flujo de caja y eficiencia operativa.
+            </p>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <a routerLink="/dashboard" class="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 rounded-3 shadow-2xs fw-semibold small text-decoration-none">
+            <svg cIcon name="cilArrowLeft" style="width: 14px; height: 14px;"></svg>
+            <span>Volver a Operaciones</span>
+          </a>
+          <button type="button" class="btn btn-white border d-flex align-items-center justify-content-center p-2 rounded-3 shadow-sm text-primary hover-bg-light" title="Recalcular métricas" (click)="loadMetricsData()">
+            <svg cIcon name="cilReload" style="width: 16px; height: 16px;"></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 1: 4 Key Strategic KPIs (Revenue, Net Profit Margin, Ticket, DGII ITBIS) -->
+    <div class="row g-3 mb-4">
+      
+      <!-- KPI 1: Ventas Consolidadas -->
+      <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 rounded-4 pt-3 px-3 bg-white shadow-sm h-100 kpi-card overflow-hidden">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <div class="kpi-icon-box text-primary">
+                <svg cIcon name="cilCart" style="width: 16px; height: 16px;"></svg>
+              </div>
+              <span class="text-secondary fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Ventas del Período</span>
+            </div>
+            <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">
+              {{ selectedPeriod() }}
+            </span>
+          </div>
+
+          <h3 class="fw-bold text-dark mb-1 font-monospace" style="font-size: 1.35rem;">RD$ {{ totalRevenue() | number:'1.2-2' }}</h3>
+          <p class="text-muted mb-3" style="font-size: 0.72rem;">{{ totalSalesCount() }} facturas procesadas</p>
+
+          <div class="sparkline-container mt-auto">
+            <svg viewBox="0 0 100 20" class="sparkline-svg" preserveAspectRatio="none">
+              <path d="M 0,10 C 20,5 35,15 55,8 C 75,2 88,10 100,6" fill="none" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI 2: Margen de Ganancia Neto Real -->
+      <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 rounded-4 pt-3 px-3 bg-white shadow-sm h-100 kpi-card overflow-hidden">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <div class="kpi-icon-box text-success">
+                <svg cIcon name="cilDollar" style="width: 16px; height: 16px;"></svg>
+              </div>
+              <span class="text-secondary fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Margen Neto Estimado</span>
+            </div>
+            <span class="badge bg-success-subtle text-success rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">
+              {{ netMarginPercent() }}% Rentabilidad
+            </span>
+          </div>
+
+          <h3 class="fw-bold text-success mb-1 font-monospace" style="font-size: 1.35rem;">RD$ {{ netMarginAmount() | number:'1.2-2' }}</h3>
+          <p class="text-muted mb-3" style="font-size: 0.72rem;">Beneficio bruto tras costo de mercancía</p>
+
+          <div class="sparkline-container mt-auto">
+            <svg viewBox="0 0 100 20" class="sparkline-svg" preserveAspectRatio="none">
+              <path d="M 0,12 C 25,6 45,14 65,5 C 80,10 92,4 100,6" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linecap="round"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI 3: Ticket Promedio -->
+      <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 rounded-4 pt-3 px-3 bg-white shadow-sm h-100 kpi-card overflow-hidden">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <div class="kpi-icon-box text-info">
+                <svg cIcon name="cilTags" style="width: 16px; height: 16px;"></svg>
+              </div>
+              <span class="text-secondary fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Ticket Promedio</span>
+            </div>
+            <span class="badge bg-info-subtle text-info rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">
+              Histórico
+            </span>
+          </div>
+
+          <h3 class="fw-bold text-dark mb-1 font-monospace" style="font-size: 1.35rem;">RD$ {{ averageTicket() | number:'1.2-2' }}</h3>
+          <p class="text-muted mb-3" style="font-size: 0.72rem;">Promedio de consumo por cliente</p>
+
+          <div class="sparkline-container mt-auto">
+            <svg viewBox="0 0 100 20" class="sparkline-svg" preserveAspectRatio="none">
+              <path d="M 0,8 C 18,12 38,5 60,11 C 80,6 90,10 100,4" fill="none" stroke="#06b6d4" stroke-width="1.5" stroke-linecap="round"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI 4: Operaciones Concretadas (Volumen Comercial) -->
+      <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 rounded-4 pt-3 px-3 bg-white shadow-sm h-100 kpi-card overflow-hidden">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <div class="kpi-icon-box text-info">
+                <svg cIcon name="cilCheckCircle" style="width: 16px; height: 16px;"></svg>
+              </div>
+              <span class="text-secondary fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Transacciones Totales</span>
+            </div>
+            <span class="badge bg-info-subtle text-info rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">
+              {{ dailyAvgTransactions() }} / día
+            </span>
+          </div>
+
+          <h3 class="fw-bold text-dark mb-1 font-monospace" style="font-size: 1.35rem;">{{ totalSalesCount() | number:'1.0-0' }} tickets</h3>
+          <p class="text-muted mb-3" style="font-size: 0.72rem;">Ventas completadas en el período</p>
+
+          <div class="sparkline-container mt-auto">
+            <svg viewBox="0 0 100 20" class="sparkline-svg" preserveAspectRatio="none">
+              <path d="M 0,14 C 20,8 40,16 62,6 C 80,12 90,5 100,7" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 2: Evolución de Ventas (Filtros 7D, 30D, 90D, 1A) & Métodos de Pago -->
+    <div class="row g-4 mb-4">
+      <!-- Left: Evolución de Ventas (Line Chart) -->
+      <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4 overflow-hidden d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <svg cIcon name="cilChartLine" class="text-primary" style="width: 18px; height: 18px;"></svg>
+                <h6 class="fw-bold text-dark mb-0">Evolución y Tendencia de Facturación</h6>
+              </div>
+              <small class="text-secondary" style="font-size: 0.75rem;">Curva de ventas del período seleccionado</small>
+            </div>
+
+            <!-- Time Period Filters (7D, 30D, 90D, 1A) -->
+            <div class="btn-group btn-group-sm period-pills bg-light rounded-pill p-1" role="group">
+              <button
+                type="button"
+                class="btn rounded-pill border-0"
+                [class.btn-primary]="selectedPeriod() === '7D'"
+                [class.btn-light]="selectedPeriod() !== '7D'"
+                [class.text-secondary]="selectedPeriod() !== '7D'"
+                (click)="setPeriod('7D')"
+              >
+                7 Días
+              </button>
+              <button
+                type="button"
+                class="btn rounded-pill border-0"
+                [class.btn-primary]="selectedPeriod() === '30D'"
+                [class.btn-light]="selectedPeriod() !== '30D'"
+                [class.text-secondary]="selectedPeriod() !== '30D'"
+                (click)="setPeriod('30D')"
+              >
+                30 Días
+              </button>
+              <button
+                type="button"
+                class="btn rounded-pill border-0"
+                [class.btn-primary]="selectedPeriod() === '90D'"
+                [class.btn-light]="selectedPeriod() !== '90D'"
+                [class.text-secondary]="selectedPeriod() !== '90D'"
+                (click)="setPeriod('90D')"
+              >
+                90 Días
+              </button>
+              <button
+                type="button"
+                class="btn rounded-pill border-0"
+                [class.btn-primary]="selectedPeriod() === '1A'"
+                [class.btn-light]="selectedPeriod() !== '1A'"
+                [class.text-secondary]="selectedPeriod() !== '1A'"
+                (click)="setPeriod('1A')"
+              >
+                1 Año
+              </button>
+            </div>
+          </div>
+
+          <div class="chart-container-box flex-grow-1" style="min-height: 260px; height: 280px;">
+            @if (isLoading()) {
+              <div class="h-100 d-flex align-items-center justify-content-center">
+                <c-spinner color="primary"></c-spinner>
+              </div>
+            } @else {
+              <c-chart type="line" [data]="chartSalesOverTime" [options]="salesChartOptions" class="w-100 h-100 d-block"></c-chart>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Métodos de Pago (Donut Chart) -->
+      <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4">
+          <div class="mb-4">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <svg cIcon name="cilCreditCard" class="text-success" style="width: 18px; height: 18px;"></svg>
+              <h6 class="fw-bold text-dark mb-0">Distribución de Métodos de Pago</h6>
+            </div>
+            <small class="text-secondary" style="font-size: 0.75rem;">Efectivo vs Tarjeta vs Bancario vs Crédito</small>
+          </div>
+
+          <div class="d-flex flex-column align-items-center justify-content-center h-100 gap-4 pb-4">
+            <!-- Donut Container -->
+            <div class="donut-chart-box">
+              @if (isLoading()) {
+                <div class="h-100 d-flex align-items-center justify-content-center">
+                  <c-spinner color="info" size="sm"></c-spinner>
+                </div>
+              } @else {
+                <c-chart type="doughnut" [data]="chartPaymentMethods" [options]="donutChartOptions"></c-chart>
+                <div class="donut-center-label">
+                  <strong class="font-monospace text-dark d-block" style="font-size: 0.85rem;">
+                    RD$ {{ totalRevenue() >= 1000 ? (totalRevenue() / 1000 | number:'1.0-0') + 'k' : totalRevenue() }}
+                  </strong>
+                  <small class="text-muted d-block" style="font-size: 0.65rem;">Cobrado</small>
+                </div>
+              }
+            </div>
+
+            <!-- Legend List -->
+            <div class="w-100 px-2 mt-2">
+              <div class="d-flex flex-column gap-2.5">
+                <!-- Efectivo -->
+                <div class="d-flex justify-content-between align-items-center small">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="legend-dot" style="background-color: #10b981;"></span>
+                    <span class="text-secondary" style="font-size: 0.8rem;">Efectivo</span>
+                  </div>
+                  <div>
+                    <span class="font-monospace text-muted me-2" style="font-size: 0.75rem;">RD$ {{ paymentBreakdown().cashAmount | number:'1.0-0' }}</span>
+                    <strong class="font-monospace text-dark" style="font-size: 0.8rem;">{{ paymentBreakdown().cashPct }}%</strong>
+                  </div>
+                </div>
+
+                <!-- Tarjeta -->
+                <div class="d-flex justify-content-between align-items-center small">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="legend-dot" style="background-color: #3b82f6;"></span>
+                    <span class="text-secondary" style="font-size: 0.8rem;">Tarjeta</span>
+                  </div>
+                  <div>
+                    <span class="font-monospace text-muted me-2" style="font-size: 0.75rem;">RD$ {{ paymentBreakdown().cardAmount | number:'1.0-0' }}</span>
+                    <strong class="font-monospace text-dark" style="font-size: 0.8rem;">{{ paymentBreakdown().cardPct }}%</strong>
+                  </div>
+                </div>
+
+                <!-- Transferencia -->
+                <div class="d-flex justify-content-between align-items-center small">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="legend-dot" style="background-color: #8b5cf6;"></span>
+                    <span class="text-secondary" style="font-size: 0.8rem;">Transferencia</span>
+                  </div>
+                  <div>
+                    <span class="font-monospace text-muted me-2" style="font-size: 0.75rem;">RD$ {{ paymentBreakdown().transferAmount | number:'1.0-0' }}</span>
+                    <strong class="font-monospace text-dark" style="font-size: 0.8rem;">{{ paymentBreakdown().transferPct }}%</strong>
+                  </div>
+                </div>
+
+                <!-- Crédito -->
+                <div class="d-flex justify-content-between align-items-center small">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="legend-dot" style="background-color: #f59e0b;"></span>
+                    <span class="text-secondary" style="font-size: 0.8rem;">Crédito</span>
+                  </div>
+                  <div>
+                    <span class="font-monospace text-muted me-2" style="font-size: 0.75rem;">RD$ {{ paymentBreakdown().creditAmount | number:'1.0-0' }}</span>
+                    <strong class="font-monospace text-dark" style="font-size: 0.8rem;">{{ paymentBreakdown().creditPct }}%</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 3: Flujo de Caja, Pareto de Productos & Salud de Cartera -->
+    <div class="row g-4">
+      
+      <!-- Col 1: Flujo de Efectivo en Caja (Bar Chart) -->
+      <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4 row-3-card overflow-hidden">
+          <div class="mb-4">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <svg cIcon name="cilMoney" class="text-success" style="width: 18px; height: 18px;"></svg>
+              <h6 class="fw-bold text-dark mb-0">Flujo de Efectivo en Caja</h6>
+            </div>
+            <small class="text-secondary" style="font-size: 0.75rem;">Entradas vs salidas operativas en gavetas</small>
+          </div>
+
+          <div class="chart-container-box mt-auto" style="min-height: 230px; height: 240px;">
+            @if (isLoading()) {
+              <div class="h-100 d-flex align-items-center justify-content-center">
+                <c-spinner color="success"></c-spinner>
+              </div>
+            } @else {
+              <c-chart type="bar" [data]="chartCashFlow" [options]="cashFlowOptions" class="w-100 h-100 d-block"></c-chart>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 2: Pareto (80/20) Top Productos por Facturación & Unidades -->
+      <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4 row-3-card overflow-hidden">
+          <div class="mb-4">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <svg cIcon name="cilStorage" class="text-primary" style="width: 18px; height: 18px;"></svg>
+              <h6 class="fw-bold text-dark mb-0">Top 5 Productos (Pareto 80/20)</h6>
+            </div>
+            <small class="text-secondary" style="font-size: 0.75rem;">Mayor volumen de facturación y unidades</small>
+          </div>
+
+          <div class="d-flex flex-column gap-3 my-auto">
+            @for (p of topProducts(); track p.name) {
+              <div class="product-rank-item bg-transparent p-0">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                  <div class="d-flex align-items-center gap-2 text-truncate" style="width: 45%;">
+                    <div class="bg-light rounded text-center d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                      <span style="font-size: 0.85rem;">{{ p.icon }}</span>
+                    </div>
+                    <span class="fw-semibold text-dark text-truncate" style="font-size: 0.8rem;">
+                      {{ p.name }}
+                    </span>
+                  </div>
+                  
+                  <div class="flex-grow-1 mx-3" style="padding-top: 2px;">
+                    <div class="progress rounded-pill" style="height: 6px; background-color: #f1f5f9;">
+                      <div
+                        class="progress-bar bg-primary rounded-pill"
+                        role="progressbar"
+                        [style.width.%]="p.percentage || (p.units > 0 ? 100 : 0)"
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div class="text-end" style="width: 100px;">
+                    <span class="font-monospace text-dark fw-bold d-block" style="font-size: 0.78rem;">RD$ {{ p.revenue | number:'1.0-0' }}</span>
+                    <small class="text-muted font-monospace" style="font-size: 0.68rem;">{{ p.units }} unds.</small>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 3: Salud de Cartera & Resumen Empresarial -->
+      <div class="col-lg-3">
+        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4 row-3-card overflow-hidden">
+          <div class="mb-4">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <svg cIcon name="cilAlignLeft" class="text-primary" style="width: 18px; height: 18px;"></svg>
+              <h6 class="fw-bold text-dark mb-0">Salud de Cartera y Clientes</h6>
+            </div>
+            <small class="text-secondary" style="font-size: 0.75rem;">Riesgo crediticio y actividad comercial</small>
+          </div>
+
+          <div class="d-flex flex-column gap-3 my-auto">
+            <!-- Row 1: Facturación Total -->
+            <div class="d-flex align-items-center border-bottom pb-3">
+              <div class="bg-light rounded text-secondary d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                <svg cIcon name="cilCart" style="width: 18px; height: 18px;"></svg>
+              </div>
+              <div class="flex-grow-1">
+                <div class="text-secondary text-uppercase fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px;">Venta Período</div>
+                <strong class="font-monospace text-dark" style="font-size: 0.85rem;">RD$ {{ totalRevenue() | number:'1.2-2' }}</strong>
+              </div>
+            </div>
+
+            <!-- Row 2: Cartera Vencida (CxC) -->
+            <div class="d-flex align-items-center border-bottom pb-3">
+              <div class="bg-danger-subtle rounded text-danger d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                <svg cIcon name="cilWarning" style="width: 18px; height: 18px;"></svg>
+              </div>
+              <div class="flex-grow-1">
+                <div class="text-secondary text-uppercase fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px;">Cartera Vencida</div>
+                <strong class="font-monospace text-danger" style="font-size: 0.85rem;">RD$ {{ overdueDebtAmount() | number:'1.2-2' }}</strong>
+              </div>
+              @if (overdueDebtCount() > 0) {
+                <span class="badge bg-danger text-white rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">{{ overdueDebtCount() }} fact.</span>
+              } @else {
+                <span class="badge bg-success-subtle text-success rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">Al día</span>
+              }
+            </div>
+
+            <!-- Row 3: Clientes Registrados -->
+            <div class="d-flex align-items-center border-bottom pb-3">
+              <div class="bg-light rounded text-secondary d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                <svg cIcon name="cilUser" style="width: 18px; height: 18px;"></svg>
+              </div>
+              <div class="flex-grow-1">
+                <div class="text-secondary text-uppercase fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px;">Cartera de Clientes</div>
+                <strong class="font-monospace text-dark" style="font-size: 0.85rem;">{{ totalCustomersCount() }} registrados</strong>
+              </div>
+            </div>
+
+            <!-- Row 4: Total Unidades Vendidas -->
+            <div class="d-flex align-items-center">
+              <div class="bg-light rounded text-secondary d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                <svg cIcon name="cilLayers" style="width: 18px; height: 18px;"></svg>
+              </div>
+              <div class="flex-grow-1">
+                <div class="text-secondary text-uppercase fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px;">Unidades Despachadas</div>
+                <strong class="font-monospace text-dark" style="font-size: 0.85rem;">{{ totalUnitsSold() }} unidades</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 4: Executive Business KPI Performance Table (Matriz Estratégica de Rendimiento) -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white mt-4 p-4 overflow-hidden">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3 pb-3 border-bottom">
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <svg cIcon name="cilDescription" class="text-primary" style="width: 18px; height: 18px;"></svg>
+            <h6 class="fw-bold text-dark mb-0">Matriz Estratégica de Rendimiento & Indicadores (KPIs)</h6>
+          </div>
+          <small class="text-secondary" style="font-size: 0.75rem;">
+            Desglose analítico de rentabilidad, volumen comercial, liquidez en gaveta y rotación
+          </small>
+        </div>
+
+        <!-- Filter pills by category -->
+        <div class="d-flex align-items-center gap-1 flex-wrap">
+          <button
+            type="button"
+            class="btn btn-sm rounded-pill border-0 px-3 py-1"
+            [class.btn-dark]="selectedTableCategory() === 'ALL'"
+            [class.btn-light]="selectedTableCategory() !== 'ALL'"
+            [class.text-secondary]="selectedTableCategory() !== 'ALL'"
+            style="font-size: 0.75rem; font-weight: 600;"
+            (click)="setTableCategory('ALL')"
+          >
+            Todos ({{ kpiTableRows().length }})
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm rounded-pill border-0 px-3 py-1"
+            [class.btn-dark]="selectedTableCategory() === 'Ventas & Ritmo Comercial'"
+            [class.btn-light]="selectedTableCategory() !== 'Ventas & Ritmo Comercial'"
+            [class.text-secondary]="selectedTableCategory() !== 'Ventas & Ritmo Comercial'"
+            style="font-size: 0.75rem; font-weight: 600;"
+            (click)="setTableCategory('Ventas & Ritmo Comercial')"
+          >
+            Ventas
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm rounded-pill border-0 px-3 py-1"
+            [class.btn-dark]="selectedTableCategory() === 'Rentabilidad & Márgenes'"
+            [class.btn-light]="selectedTableCategory() !== 'Rentabilidad & Márgenes'"
+            [class.text-secondary]="selectedTableCategory() !== 'Rentabilidad & Márgenes'"
+            style="font-size: 0.75rem; font-weight: 600;"
+            (click)="setTableCategory('Rentabilidad & Márgenes')"
+          >
+            Rentabilidad
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm rounded-pill border-0 px-3 py-1"
+            [class.btn-dark]="selectedTableCategory() === 'Inventario & Rotación'"
+            [class.btn-light]="selectedTableCategory() !== 'Inventario & Rotación'"
+            [class.text-secondary]="selectedTableCategory() !== 'Inventario & Rotación'"
+            style="font-size: 0.75rem; font-weight: 600;"
+            (click)="setTableCategory('Inventario & Rotación')"
+          >
+            Inventario
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm rounded-pill border-0 px-3 py-1"
+            [class.btn-dark]="selectedTableCategory() === 'Caja & Tesorería'"
+            [class.btn-light]="selectedTableCategory() !== 'Caja & Tesorería'"
+            [class.text-secondary]="selectedTableCategory() !== 'Caja & Tesorería'"
+            style="font-size: 0.75rem; font-weight: 600;"
+            (click)="setTableCategory('Caja & Tesorería')"
+          >
+            Caja & Tesorería
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm rounded-pill border-0 px-3 py-1"
+            [class.btn-dark]="selectedTableCategory() === 'Crédito & Cartera'"
+            [class.btn-light]="selectedTableCategory() !== 'Crédito & Cartera'"
+            [class.text-secondary]="selectedTableCategory() !== 'Crédito & Cartera'"
+            style="font-size: 0.75rem; font-weight: 600;"
+            (click)="setTableCategory('Crédito & Cartera')"
+          >
+            Cartera
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Table -->
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th style="width: 250px;">Indicador Clave (KPI)</th>
+              <th style="width: 170px;">Categoría</th>
+              <th style="width: 180px;" class="text-end">Valor del Período</th>
+              <th>Fórmula / Criterio de Medición</th>
+              <th style="width: 120px;" class="text-center">Estado</th>
+              <th>Impacto Operativo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of filteredKpiTableRows(); track row.code) {
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-light text-dark font-monospace border" style="font-size: 0.65rem;">
+                      {{ row.code }}
+                    </span>
+                    <strong class="text-dark" style="font-size: 0.83rem;">{{ row.name }}</strong>
+                  </div>
+                </td>
+                <td>
+                  <span class="text-secondary small">{{ row.category }}</span>
+                </td>
+                <td class="text-end font-monospace">
+                  <strong class="text-dark" style="font-size: 0.88rem;">{{ row.value }}</strong>
+                </td>
+                <td>
+                  <small class="text-muted font-monospace" style="font-size: 0.75rem;">{{ row.formula }}</small>
+                </td>
+                <td class="text-center">
+                  <span [class]="row.statusClass + ' rounded-pill px-2 py-0.5'" style="font-size: 0.68rem; font-weight: 600;">
+                    {{ row.statusLabel }}
+                  </span>
+                </td>
+                <td>
+                  <span class="text-secondary small" style="font-size: 0.78rem;">{{ row.impact }}</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table Footer Summary Bar -->
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-3 mt-3 border-top bg-light-subtle rounded-3 px-3 py-2">
+        <div class="d-flex align-items-center gap-2 small text-secondary">
+          <svg cIcon name="cilInfo" class="text-primary" style="width: 16px; height: 16px;"></svg>
+          <span>Todos los indicadores se actualizan en tiempo real al seleccionar los filtros de período (7D, 30D, 90D, 1A).</span>
+        </div>
+        <div class="small font-monospace text-muted">
+          Mostrando {{ filteredKpiTableRows().length }} de {{ kpiTableRows().length }} métricas
+        </div>
+      </div>
+    </div>
+  }
+</div>
