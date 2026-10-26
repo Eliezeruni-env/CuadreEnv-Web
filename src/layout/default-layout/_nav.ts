@@ -76,7 +76,7 @@ export const navItems: ModuleNavItem[] = [
   {
     name: 'Notas de Crédito',
     url: '/credit-notes',
-    moduleCode: 'billing',
+    moduleCode: 'credit-notes',
     iconComponent: { name: 'cil-description' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
@@ -112,7 +112,7 @@ export const navItems: ModuleNavItem[] = [
   {
     name: 'Catálogo de Productos',
     url: '/products',
-    moduleCode: 'inventory-stock',
+    moduleCode: 'products',
     iconComponent: { name: 'cil-layers' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },

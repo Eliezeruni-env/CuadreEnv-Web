@@ -18,6 +18,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import {
   ReceivableService,
   type ReceivableDto,
+  type ReceivableItemDto,
   type PaymentRecordDto,
   type PaymentVoucherAttachment,
 } from '../../services/receivable.service';
@@ -463,6 +464,34 @@ export class ReceivableDetailModalComponent {
 
     this.visible = true;
     this.visibleChange.emit(true);
+
+    // Si los artículos no están cargados, consultar la venta original /Sale/{id}
+    if ((!item.items || item.items.length === 0) && item.id) {
+      this.saleService.getSale(item.id).then((res) => {
+        if (res.success && res.data) {
+          const rawItems = (res.data as any).details || (res.data as any).items || (res.data as any).saleDetails || [];
+          if (rawItems && rawItems.length > 0) {
+            const mappedItems: ReceivableItemDto[] = rawItems.map((it: any) => ({
+              productId: it.productId ?? it.id ?? 0,
+              productName: it.productName ?? it.name ?? it.description ?? 'Artículo',
+              quantity: Number(it.quantity ?? 1),
+              unitPrice: Number(it.unitPrice ?? it.price ?? 0),
+              subtotal: Number(it.subtotal ?? (Number(it.quantity ?? 1) * Number(it.unitPrice ?? it.price ?? 0))),
+              barCode: it.barCode ?? it.barcode ?? '',
+            }));
+
+            if (this.receivable && this.receivable.id === item.id) {
+              this.receivable = {
+                ...this.receivable,
+                items: mappedItems,
+              };
+            }
+          }
+        }
+      }).catch(() => {
+        // Fallback local silencioso si la API no responde
+      });
+    }
   }
 
   close() {

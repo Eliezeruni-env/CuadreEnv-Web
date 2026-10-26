@@ -9,16 +9,11 @@ export class ModuleAccessService {
   public userRoleSignal = signal<string | null>(null);
 
   /**
-   * Solo es acceso global total si tiene comodín '*' o 'all' Y su rol es superadmin.
+   * Solo es acceso global total si tiene comodín '*' o 'all'.
    */
   public hasAllModulesSignal = computed(() => {
-    const role = (this.userRoleSignal() || this.getStoredRole() || '').toLowerCase();
     const mods = this.allowedModulesSignal();
-    const hasWildcard = mods.includes('*') || mods.includes('all');
-    if (hasWildcard && (role === 'superadmin' || !role)) {
-      return true;
-    }
-    return false;
+    return mods.includes('*') || mods.includes('all');
   });
 
   /**
@@ -29,12 +24,14 @@ export class ModuleAccessService {
     'sales': ['sales', 'ventas', 'quick-sale', 'pos', 'mobile-pos', 'mobilepos'],
     'sales.corporate': ['sales.corporate', 'sales-corporate', 'corporate'],
     'sales.distribution': ['sales.distribution', 'sales-distribution', 'distribution'],
-    'products.detail_sales': ['products.detail_sales', 'products-detail-sales', 'detail-sales', 'detail_sales'],
+    'products.detail_sales': ['products.detail_sales', 'products-detail-sales', 'detail-sales', 'detail_sales', 'ventasfraccionadas', 'menudeo'],
     'cash-register': ['cash-register', 'cashregister', 'caja'],
     'billing': ['billing', 'facturacion'],
     'credit-notes': ['credit-notes', 'creditnotes', 'notas-de-credito'],
     'receivables': ['receivables', 'cobros'],
     'customers': ['customers', 'clientes'],
+    'products': ['products', 'productos', 'catalogo'],
+    'products-settings': ['products-settings', 'categories', 'category', 'configuracion-productos'],
     'inventory-stock': ['inventory-stock', 'stock'],
     'inventory-entries': ['inventory-entries', 'entries'],
     'purchases': ['purchases', 'compras'],
@@ -58,7 +55,6 @@ export class ModuleAccessService {
     'purchases-suppliers': ['purchases-suppliers', 'suppliers', 'proveedores'],
     'payments': ['payments', 'pagos'],
     'services': ['services', 'servicios'],
-    'products': ['products', 'productos', 'catalogo'],
     'admin-roles-matrix': ['admin-roles-matrix', 'admin-roles', 'roles'],
     'admin-approvals': ['admin-approvals', 'aprobaciones']
   };
@@ -197,6 +193,36 @@ export class ModuleAccessService {
     return '';
   }
 
+  public getStoredIsSuperUser(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+      const rawUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+      if (rawUser) {
+        const parsed = JSON.parse(rawUser);
+        if (parsed?.isSuperUser === true || parsed?.isSuperUser === 1 || String(parsed?.isSuperUser).toLowerCase() === 'true') {
+          return true;
+        }
+      }
+      const token =
+        localStorage.getItem('accessToken') ||
+        sessionStorage.getItem('accessToken') ||
+        localStorage.getItem('auth_token');
+      if (token && token.includes('.')) {
+        const parts = token.split('.');
+        if (parts.length >= 2) {
+          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+          if (payload?.isSuperUser === true || payload?.isSuperUser === 1 || String(payload?.isSuperUser).toLowerCase() === 'true' || payload?.IsSuperUser === true || payload?.IsSuperUser === 1) {
+            return true;
+          }
+        }
+      }
+    } catch {
+      // Ignore
+    }
+    return false;
+  }
+
+
   /**
    * Método principal de verificación estricta de módulos.
    * Sin bypass por rol Admin: respeta taxativamente allowed_modules.
@@ -220,20 +246,11 @@ export class ModuleAccessService {
       return currentModules.length > 0;
     }
 
-    const currentRole = this.userRoleSignal();
-    const role = (currentRole !== null ? currentRole : this.getStoredRole() || '').toLowerCase();
-    const isSuperAdmin = role === 'superadmin';
-
-    // 2. El comodín '*' o 'all' SOLO otorga acceso global si role === 'superadmin'.
-    // Para roles Admin, CompanyAdmin, Supervisor, Cajero o cualquier otro, debe verificarse la presencia explícita.
+    // 2. Si tiene comodín '*' o 'all', otorga acceso completo a todos los módulos.
+    // Solo si NO tiene una lista explícita de módulos (o contiene wildcard), un superadmin/superuser tiene bypass total.
     const hasWildcard = currentModules.includes('*') || currentModules.includes('all');
     if (hasWildcard) {
-      if (isSuperAdmin) {
-        return true;
-      }
-      if (currentRole === null && !this.getStoredRole()) {
-        return true;
-      }
+      return true;
     }
 
     // 3. Coincidencia directa exacta

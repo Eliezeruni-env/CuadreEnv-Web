@@ -83,7 +83,7 @@ export class DefaultLayoutComponent {
 
     const translated = this.translationService.getTranslatedNavItems(staticNavItems) as ModuleNavItem[];
     
-    // Filtrar recursivamente usando moduleAccess.hasModule(item.moduleCode)
+    // Filtrar taxativamente respetando los módulos asignados desde el USM
     const filterItem = (item: ModuleNavItem): ModuleNavItem | null => {
       if (item.title) return item;
 

@@ -771,6 +771,24 @@ export class AuthService {
       perfil: 'profile',
       company: 'company',
       empresa: 'company',
+
+      // Venta fraccionada / menudeo y submódulos de ventas y productos
+      productsdetailsales: 'products.detail_sales',
+      productsdetailsale: 'products.detail_sales',
+      detailsales: 'products.detail_sales',
+      detailsale: 'products.detail_sales',
+      ventasfraccionadas: 'products.detail_sales',
+      ventafraccionada: 'products.detail_sales',
+      menudeo: 'products.detail_sales',
+      fraccionada: 'products.detail_sales',
+      salescorporate: 'sales.corporate',
+      corporate: 'sales.corporate',
+      ventascorporativas: 'sales.corporate',
+      salesdistribution: 'sales.distribution',
+      distribution: 'sales.distribution',
+      rutasdedistribucion: 'sales.distribution',
+      productssettings: 'products-settings',
+      configuracionproductos: 'products-settings',
     };
     return aliases[compact] ?? compact;
   }
@@ -816,6 +834,10 @@ export class AuthService {
           'mobile-pos',
           'sales.corporate',
           'sales.distribution',
+          'products.detail_sales',
+          'products',
+          'products-settings',
+          'credit-notes',
         ].includes(normTarget)
       ) {
         return true;
@@ -841,7 +863,13 @@ export class AuthService {
     }
 
     if (licensedNorm.includes('products')) {
-      if (['products', 'products.detail_sales'].includes(normTarget)) {
+      if (
+        [
+          'products',
+          'products-settings',
+          'products.detail_sales',
+        ].includes(normTarget)
+      ) {
         return true;
       }
     }
@@ -851,6 +879,15 @@ export class AuthService {
 
   hasModule(moduleCode: string): boolean {
     if (!moduleCode?.trim()) return false;
+
+    // Si tiene comodín explícito '*', o es superusuario de plataforma sin lista restrictiva
+    const assigned = this.allowedModules();
+    const hasWildcard = assigned.includes('*') || assigned.includes('all');
+    if (!hasWildcard && assigned.length > 0) {
+      // Si el usuario tiene una lista taxativa de módulos asignados desde el USM, se respeta estrictamente
+      return this.moduleAccessService.hasModuleAccess(moduleCode);
+    }
+
     if (this.isSuperUser() || this.isPlatformSuperUser()) return true;
 
     const licensed = this.licensedModules();
@@ -861,14 +898,14 @@ export class AuthService {
       if (!this.isModuleLicensed(moduleCode, licensed)) {
         return false;
       }
-    } else if (licensed === null && this.allowedModules().includes('*')) {
+    } else if (licensed === null && hasWildcard) {
       // Si las licencias de la empresa aún no han cargado y el usuario tiene comodín '*',
       // no abrir acceso general hasta confirmar contra /auth/me/modules
       return false;
     }
 
     // 2. Si el usuario tiene asignado '*', tiene acceso a los módulos licenciados por la empresa
-    if (this.allowedModules().includes('*')) {
+    if (hasWildcard) {
       return true;
     }
 
@@ -967,13 +1004,18 @@ export class AuthService {
             .filter(Boolean),
         ),
       ];
-      const licensedModules = [
+      let licensedModules = [
         ...new Set(
           this.parseStringList(rawLicensedModules)
             .map((m) => m.trim().toLowerCase())
             .filter(Boolean),
         ),
       ];
+
+      // Si la API no especificó licencias para la empresa o vino vacío, no bloquear las asignaciones del usuario
+      if (licensedModules.length === 0) {
+        licensedModules = ['*'];
+      }
 
       this.allowedModules.set(assignedModules);
       this.licensedModules.set(licensedModules);

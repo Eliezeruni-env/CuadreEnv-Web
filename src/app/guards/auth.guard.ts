@@ -90,10 +90,10 @@ export function moduleGuard(moduleCodeOrRoute: any, state?: any): any {
         authService?.currentRole()?.toLowerCase() === 'superadmin';
       const hasAccess =
         (isSuperAdmin && authService?.hasAllModules()) ||
-        moduleService.hasModuleAccess(moduleCode);
+        (moduleService.hasModuleAccess ? moduleService.hasModuleAccess(moduleCode) : moduleService.hasModule(moduleCode));
       if (hasAccess) return true;
 
-      router.navigate(['/dashboard'], { queryParams: { error: 'no-access', module: moduleCode } });
+      router.navigate(['/403'], { queryParams: { error: 'no-access', module: moduleCode } });
       return false;
     };
   }
@@ -109,10 +109,10 @@ export function moduleGuard(moduleCodeOrRoute: any, state?: any): any {
     authService?.currentRole()?.toLowerCase() === 'superadmin';
   const hasAccess =
     (isSuperAdmin && authService?.hasAllModules()) ||
-    moduleService.hasModuleAccess(targetModule);
+    (moduleService.hasModuleAccess ? moduleService.hasModuleAccess(targetModule) : moduleService.hasModule(targetModule));
   if (hasAccess) return true;
 
-  router.navigate(['/dashboard'], { queryParams: { error: 'no-access', module: targetModule } });
+  router.navigate(['/403'], { queryParams: { error: 'no-access', module: targetModule } });
   return false;
 }
 
@@ -130,7 +130,7 @@ export const moduleChildAccessGuard: CanActivateChildFn = (route, state) => {
     (authService?.hasModuleAccess(targetModule) ?? moduleService.hasModule(targetModule));
   if (hasAccess) return true;
 
-  router.navigate(['/dashboard'], { queryParams: { error: 'no-access', module: targetModule } });
+  router.navigate(['/403'], { queryParams: { error: 'no-access', module: targetModule } });
   return false;
 };
 
