@@ -558,12 +558,13 @@ export class AuthService {
 
     this.userPermissions.set(parsedPermissions);
     this.allowedModules.set(literalModules);
-    this.currentUser.set({
+    const currentUserObj = {
       email,
       id,
       fullName,
       allowedModules: literalModules,
-    });
+    };
+    this.currentUser.set(currentUserObj);
     const isImpersonated = Boolean(
       decoded.isImpersonated || (rawTokensResponse as any)?.['isImpersonated'],
     );
@@ -574,6 +575,10 @@ export class AuthService {
     this.isAuthenticated.set(true);
 
     if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('currentUser', JSON.stringify(currentUserObj));
+        localStorage.setItem('currentUser', JSON.stringify(currentUserObj));
+      } catch {}
       if (window.sessionStorage) {
         sessionStorage.setItem(
           'allowedModules',

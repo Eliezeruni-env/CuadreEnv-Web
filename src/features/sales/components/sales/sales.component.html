@@ -94,14 +94,17 @@
                     </td>
                     <td>
                       <div class="d-flex align-items-center gap-1.5 flex-wrap">
-                        <span class="fw-bold text-dark font-monospace">
+                        <span class="badge bg-light text-dark border font-monospace px-2 py-1 rounded-2 shadow-2xs" style="letter-spacing: 0.5px;">
                           #{{ sale.id }}
                         </span>
                         @if (isServicioSale(sale)) {
-                          <span class="badge border rounded-pill px-2 py-0.5 font-size-xs fw-bold shadow-xs"
-                                style="background-color: #f3e8ff; color: #7e22ce; border-color: #d8b4fe;"
+                          <span class="badge border rounded-pill px-2 py-0.5 font-size-xs fw-semibold d-inline-flex align-items-center gap-1"
+                                style="background-color: #f5f3ff; color: #6d28d9; border-color: #ddd6fe;"
                                 title="Venta de Servicio">
-                            🛠️ Servicio
+                            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                            </svg>
+                            <span>Servicio</span>
                           </span>
                         }
                       </div>
@@ -115,26 +118,50 @@
                     </td>
                     <td class="text-center">
                       @if (isServicioSale(sale)) {
-                        <span class="badge border px-2.5 py-1 rounded-pill fw-semibold shadow-xs"
-                              style="background-color: #ede9fe; color: #6b21a8; border-color: #c4b5fd;"
+                        <span class="badge border px-2.5 py-1 rounded-pill fw-semibold shadow-2xs d-inline-flex align-items-center gap-1.5"
+                              style="background-color: #f5f3ff; color: #6d28d9; border-color: #ddd6fe;"
                               title="Factura de Servicios / Mano de Obra">
-                          🛠️ Venta de Servicio {{ sale.cashRegisterId ? '(Caja #' + sale.cashRegisterId + ')' : '' }}
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                          </svg>
+                          <span>Taller / Servicios {{ sale.cashRegisterId ? '(Caja #' + sale.cashRegisterId + ')' : '' }}</span>
                         </span>
                       } @else if (sale.originChannel === 'POS_PRESENCIAL' || (!sale.originChannel && sale.cashRegisterId)) {
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill" title="Venta Presencial en Mostrador">
-                          🏪 POS {{ sale.cashRegisterId ? '(Caja #' + sale.cashRegisterId + ')' : '' }}
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold d-inline-flex align-items-center gap-1.5" title="Venta Presencial en Mostrador">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                          </svg>
+                          <span>POS {{ sale.cashRegisterId ? '(Caja #' + sale.cashRegisterId + ')' : '' }}</span>
                         </span>
                       } @else if (sale.originChannel === 'CREDITO') {
-                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 rounded-pill" title="Venta a Crédito">
-                          📋 Crédito
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1 rounded-pill fw-semibold d-inline-flex align-items-center gap-1.5" title="Venta a Crédito">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                            <line x1="1" y1="10" x2="23" y2="10"></line>
+                          </svg>
+                          <span>Crédito</span>
                         </span>
                       } @else if (sale.originChannel === 'ONLINE') {
-                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill" title="Tienda Online">
-                          🌐 Online
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill fw-semibold d-inline-flex align-items-center gap-1.5" title="Tienda Online">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                          </svg>
+                          <span>En Línea</span>
                         </span>
                       } @else {
-                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 rounded-pill" title="Venta Administrativa">
-                          🏢 Admin
+                        <span class="badge bg-secondary-subtle text-secondary border px-2.5 py-1 rounded-pill fw-semibold d-inline-flex align-items-center gap-1.5" title="Venta Administrativa / Facturación Directa">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                          </svg>
+                          <span>Facturación Directa</span>
                         </span>
                       }
                     </td>

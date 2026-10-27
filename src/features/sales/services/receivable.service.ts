@@ -248,10 +248,23 @@ export class ReceivableService {
           const colorIdx = s.id % AVATAR_COLORS.length;
 
           if (existing) {
+            // Si la cuenta ya fue saldada localmente, preservar su estado de liquidación
+            const isSettled = existing.status === 'Pagado' || existing.pendingAmount <= 0;
             existing.paidAmount = Math.max(existing.paidAmount || 0, s.paidAmount || 0);
-            existing.pendingAmount = Math.max(0, (s.total || existing.totalAmount) - existing.paidAmount);
-            existing.status = existing.pendingAmount === 0 ? 'Pagado' : existing.paidAmount > 0 ? 'Parcial' : 'Pendiente';
-          } else if (pending > 0) {
+            if (isSettled) {
+              existing.pendingAmount = 0;
+              existing.status = 'Pagado';
+              if (!existing.settledDate) {
+                existing.settledDate = new Date().toISOString();
+              }
+            } else {
+              existing.pendingAmount = Math.max(0, (s.total || existing.totalAmount) - existing.paidAmount);
+              existing.status = existing.pendingAmount === 0 ? 'Pagado' : existing.paidAmount > 0 ? 'Parcial' : 'Pendiente';
+              if (existing.status === 'Pagado' && !existing.settledDate) {
+                existing.settledDate = new Date().toISOString();
+              }
+            }
+          } else if (s.originChannel === 'CREDITO' || s.paymentMethod?.toLowerCase().includes('crédito') || pending > 0 || (s.paidAmount > 0 && s.paidAmount < s.total)) {
             stored.unshift({
               id: s.id,
               invoiceNumber: `INV-${String(s.id).padStart(6, '0')}`,
@@ -263,9 +276,10 @@ export class ReceivableService {
               totalAmount: s.total,
               paidAmount: s.paidAmount || 0,
               pendingAmount: pending,
-              status: s.paidAmount > 0 ? 'Parcial' : 'Pendiente',
+              status: pending === 0 ? 'Pagado' : s.paidAmount > 0 ? 'Parcial' : 'Pendiente',
               creationDate: s.creationDate || new Date().toISOString(),
               dueDate: s.dueDate,
+              settledDate: pending === 0 ? new Date().toISOString() : undefined,
               avatarColor: AVATAR_COLORS[colorIdx].bg,
               payments: s.paidAmount > 0 ? [
                 {

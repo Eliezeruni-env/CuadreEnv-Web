@@ -921,20 +921,67 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     }
   }
 
+  // =========================================================================
+  // LOGOUT CONFIRMATION MODAL & PENDING CHANGES AUDIT
+  // =========================================================================
+  isLogoutConfirmModalOpen = signal<boolean>(false);
+
+  readonly hasPendingChangesOnLogout = computed(() => {
+    const hasCart = this.cart().length > 0;
+    const hasServiceCart = this.serviceCart().length > 0;
+    const hasHeld = (this.draftStorageService.heldSales() || []).length > 0;
+    const hasOpenCash = this.activeSessions().some((s) => s.isOpen);
+    return hasCart || hasServiceCart || hasHeld || hasOpenCash;
+  });
+
+  readonly pendingChangesReasons = computed(() => {
+    const reasons: string[] = [];
+    const cartCount = this.totalCartItemsCount();
+    if (cartCount > 0) {
+      reasons.push(`${cartCount} artículo(s) sin facturar en el carrito de ventas`);
+    }
+    const serviceCount = this.totalServiceCartCount();
+    if (serviceCount > 0) {
+      reasons.push(`${serviceCount} servicio(s) sin facturar en el carrito`);
+    }
+    const heldCount = (this.draftStorageService.heldSales() || []).length;
+    if (heldCount > 0) {
+      reasons.push(`${heldCount} venta(s) guardadas en espera (Held Sales)`);
+    }
+    const openCash = this.activeSessions().find((s) => s.isOpen);
+    if (openCash) {
+      reasons.push(`El turno de caja registradora #${openCash.id} continúa abierto sin cuadre`);
+    }
+    return reasons;
+  });
+
+  requestLogout(): void {
+    triggerHaptic(20);
+    this.isLogoutConfirmModalOpen.set(true);
+  }
+
+  cancelLogout(): void {
+    this.isLogoutConfirmModalOpen.set(false);
+  }
+
+  async confirmLogout(): Promise<void> {
+    this.isLogoutConfirmModalOpen.set(false);
+    await this.logout();
+  }
+
   logoutMobile(): void {
+    this.requestLogout();
+  }
+
+  async logout(): Promise<void> {
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('cuadre_mobile_session_active');
     }
     this.isMobileAuthenticated.set(false);
     this.mobileLoginPassword = '';
-    this.authService.logout();
-    this.notificationService.info('Terminal móvil bloqueada / sesión cerrada.');
-  }
-
-  async logout(): Promise<void> {
-    this.logoutMobile();
     await this.authService.logout();
-    this.router.navigate(['/login']);
+    this.notificationService.info('Terminal móvil bloqueada / sesión cerrada.');
+    await this.router.navigate(['/login']);
   }
 
   async loadExecutiveData(): Promise<void> {

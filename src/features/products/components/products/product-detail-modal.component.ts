@@ -72,10 +72,29 @@ export class ProductDetailModalComponent {
     return { cost, price, profit, marginPct };
   });
 
+  // Identificador de servicio / mano de obra
+  readonly isService = computed<boolean>(() => {
+    const p = this.currentProduct() as any;
+    if (!p) return false;
+    if (p.isService === true || p.type === 'service' || p.type === 'Servicio') return true;
+    if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
+    if (p.invoiceWithoutStock === true) return true;
+    const code = String(p.barcode || p.reference || '').toUpperCase().trim();
+    if (code.startsWith('SERV-') || code.startsWith('SERV')) return true;
+    const typeName = String(p.productTypeName || p.productType?.name || '').toLowerCase();
+    if (typeName.includes('serv')) return true;
+    const catName = String(p.categoryName || p.category?.name || '').toLowerCase();
+    if (catName.includes('serv')) return true;
+    return false;
+  });
+
   // Estado del stock
   readonly stockHealth = computed(() => {
     const p = this.currentProduct();
     if (!p) return { status: 'none', label: 'Desconocido', colorClass: 'badge-secondary' };
+    if (this.isService()) {
+      return { status: 'service', label: '🛠️ Servicio Intangible (Sin Stock)', colorClass: 'badge-primary' };
+    }
     const stock = Number(p.stock) || 0;
     const min = Number(p.minimumQuantity) || 0;
     if (stock <= 0) {

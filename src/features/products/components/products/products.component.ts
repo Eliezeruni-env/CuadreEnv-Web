@@ -72,10 +72,10 @@ export class ProductsComponent implements OnInit {
 
   lowStockCount = computed(
     () =>
-      this.products().filter((p) => this.getStockState(p) !== 'healthy').length,
+      this.products().filter((p) => !this.isServiceItem(p) && this.getStockState(p) !== 'healthy').length,
   );
   totalInventoryValue = computed(() =>
-    this.products().reduce((sum, p) => sum + (p.cost || 0) * (p.stock || 0), 0),
+    this.products().reduce((sum, p) => this.isServiceItem(p) ? sum : sum + (p.cost || 0) * (p.stock || 0), 0),
   );
 
   // Pagination & Stale Request Tracking
@@ -312,7 +312,22 @@ export class ProductsComponent implements OnInit {
     this.loadProducts();
   }
 
-  getStockState(product: ProductDto): 'healthy' | 'low' | 'critical' {
+  public isServiceItem(p: any): boolean {
+    if (!p) return false;
+    if (p.isService === true || p.type === 'service' || p.type === 'Servicio') return true;
+    if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
+    if (p.invoiceWithoutStock === true) return true;
+    const code = String(p.barcode || p.reference || '').toUpperCase().trim();
+    if (code.startsWith('SERV-') || code.startsWith('SERV')) return true;
+    const typeName = String(p.productTypeName || p.productType?.name || '').toLowerCase();
+    if (typeName.includes('serv')) return true;
+    const catName = String(p.categoryName || p.category?.name || '').toLowerCase();
+    if (catName.includes('serv')) return true;
+    return false;
+  }
+
+  getStockState(product: ProductDto): 'healthy' | 'low' | 'critical' | 'service' {
+    if (this.isServiceItem(product)) return 'service';
     const stock = product.stock || 0;
     const minimum = product.minimumQuantity || 0;
     if (stock <= 0) return 'critical';

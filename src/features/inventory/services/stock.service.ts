@@ -37,12 +37,26 @@ export class StockService {
     const current = this.getLocalStock();
     if (current.length > 0) return;
 
-    // Build initial stock matrix from warehouses and products
+    // Build initial stock matrix from warehouses and physical products only (services have NO stock)
     const whRes = await this.warehouseService.getWarehouses();
     const prodRes = await this.productService.getPagedProducts(1, 100);
 
     const warehouses = whRes?.data || [];
-    const products = prodRes?.data?.items || [];
+    const allProducts = prodRes?.data?.items || [];
+    const products = allProducts.filter((p: any) => {
+      const isService =
+        p.isService === true ||
+        p.type === 'service' ||
+        p.type === 'Servicio' ||
+        p.productTypeId === 2 ||
+        p.ProductTypeId === 2 ||
+        p.invoiceWithoutStock === true ||
+        String(p.barcode || p.reference || '').toUpperCase().startsWith('SERV') ||
+        String(p.productTypeName || p.productType?.name || '').toLowerCase().includes('serv') ||
+        String(p.categoryName || p.category?.name || '').toLowerCase().includes('serv');
+      return !isService;
+    });
+
     if (warehouses.length === 0 || products.length === 0) {
       return;
     }

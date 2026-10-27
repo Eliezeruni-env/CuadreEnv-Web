@@ -168,39 +168,48 @@
                 </span>
               </div>
 
-              <div class="row g-2 mb-3">
-                <div class="col-4">
-                  <div class="p-2 bg-light rounded-3 text-center border">
-                    <span class="text-secondary small d-block">Existencia Actual</span>
-                    <strong class="font-monospace fs-5 text-dark">{{ currentProduct()?.stock }} uds</strong>
+              @if (isService()) {
+                <div class="p-3 rounded-3 bg-light border text-center">
+                  <div class="text-primary fw-bold mb-1">🛠️ Mano de Obra / Servicio Intangible</div>
+                  <p class="text-secondary small mb-0">
+                    Este ítem corresponde a una prestación de trabajo manual o servicio profesional. No ocupa espacio en almacén ni requiere control de existencias físicas.
+                  </p>
+                </div>
+              } @else {
+                <div class="row g-2 mb-3">
+                  <div class="col-4">
+                    <div class="p-2 bg-light rounded-3 text-center border">
+                      <span class="text-secondary small d-block">Existencia Actual</span>
+                      <strong class="font-monospace fs-5 text-dark">{{ currentProduct()?.stock }} uds</strong>
+                    </div>
+                  </div>
+                  <div class="col-4">
+                    <div class="p-2 bg-light rounded-3 text-center border">
+                      <span class="text-secondary small d-block">Stock Mínimo</span>
+                      <strong class="font-monospace fs-5 text-warning-emphasis">{{ currentProduct()?.minimumQuantity || 0 }} uds</strong>
+                    </div>
+                  </div>
+                  <div class="col-4">
+                    <div class="p-2 bg-light rounded-3 text-center border">
+                      <span class="text-secondary small d-block">Stock Máximo</span>
+                      <strong class="font-monospace fs-5 text-secondary">{{ currentProduct()?.maximumQuantity || 'Sin límite' }}</strong>
+                    </div>
                   </div>
                 </div>
-                <div class="col-4">
-                  <div class="p-2 bg-light rounded-3 text-center border">
-                    <span class="text-secondary small d-block">Stock Mínimo</span>
-                    <strong class="font-monospace fs-5 text-warning-emphasis">{{ currentProduct()?.minimumQuantity || 0 }} uds</strong>
-                  </div>
-                </div>
-                <div class="col-4">
-                  <div class="p-2 bg-light rounded-3 text-center border">
-                    <span class="text-secondary small d-block">Stock Máximo</span>
-                    <strong class="font-monospace fs-5 text-secondary">{{ currentProduct()?.maximumQuantity || 'Sin límite' }}</strong>
-                  </div>
-                </div>
-              </div>
 
-              <div class="p-2.5 rounded-3 bg-light border small text-secondary">
-                <div class="row g-1">
-                  <div class="col-sm-6">
-                    <strong>Facturar sin stock:</strong>
-                    {{ currentProduct()?.invoiceWithoutStock ? 'Permitido' : 'Bloqueado (Control Estricto)' }}
-                  </div>
-                  <div class="col-sm-6">
-                    <strong>Vencimiento:</strong>
-                    {{ currentProduct()?.expirationDate ? (currentProduct()?.expirationDate | date:'dd/MM/yyyy') : 'No aplica' }}
+                <div class="p-2.5 rounded-3 bg-light border small text-secondary">
+                  <div class="row g-1">
+                    <div class="col-sm-6">
+                      <strong>Facturar sin stock:</strong>
+                      {{ currentProduct()?.invoiceWithoutStock ? 'Permitido' : 'Bloqueado (Control Estricto)' }}
+                    </div>
+                    <div class="col-sm-6">
+                      <strong>Vencimiento:</strong>
+                      {{ currentProduct()?.expirationDate ? (currentProduct()?.expirationDate | date:'dd/MM/yyyy') : 'No aplica' }}
+                    </div>
                   </div>
                 </div>
-              </div>
+              }
             </div>
 
             <!-- Descripción detallada / Notas -->
