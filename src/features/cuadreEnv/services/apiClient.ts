@@ -537,9 +537,15 @@ export class ApiClientService {
         dispatchTelemetry(method, url, statusCode, mapped, error);
       }
 
-      // Display server outage notification only on user actions (mutations), never on background GET data fetching
+      // Display server outage notification only on user actions (mutations), never on background GET data fetching or silenced requests
+      const isSilencedReq = Boolean(
+        options.headers?.['X-Silent-Error'] ||
+        options.headers?.['x-silent-error'] ||
+        options.headers?.['X-Silent-500'] ||
+        options.headers?.['x-silent-500']
+      );
       const isMutation = method !== 'GET';
-      if (isMutation && (statusCode === 0 || statusCode >= 500 || mapped.errorCode === 'SERVER_OUTAGE')) {
+      if (!isSilencedReq && isMutation && (statusCode === 0 || statusCode >= 500 || mapped.errorCode === 'SERVER_OUTAGE')) {
         this.notificationService?.show(
           mapped.title,
           mapped.message,

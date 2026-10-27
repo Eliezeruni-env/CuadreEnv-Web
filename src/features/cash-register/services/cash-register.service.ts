@@ -240,8 +240,11 @@ export class CashRegisterService {
       // ignore
     }
 
-    // Backend confirmó que no hay caja abierta:
-    // Si la caja está cerrada en el backend, no mostrarla como abierta en el frontend
+    // Si hay una sesión activa guardada localmente y no ha sido cerrada explícitamente:
+    if (stored && stored.isOpen && !closedIds.includes(stored.id)) {
+      return { success: true, data: stored };
+    }
+
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
       window.localStorage.removeItem('cuadreenv_active_cash_register_session');
@@ -325,19 +328,23 @@ export class CashRegisterService {
       }
 
       try {
-        const res = await this.api.post<any, any>('/CashRegister/open', {
-          name: regName,
-          balance: initialAmt,
-          openingAmount: initialAmt,
-          initialAmount: initialAmt,
-          cashierId: resolvedUserId,
-          openedByUserId: resolvedUserId,
-          cashierUserId: resolvedUserId,
-          isOpen: true,
-          status: 'OPEN',
-          notes: params.notes || '',
-          ...(activeCompanyId > 0 ? { companyId: activeCompanyId } : {}),
-        });
+        const res = await this.api.post<any, any>(
+          '/CashRegister/open',
+          {
+            name: regName,
+            balance: initialAmt,
+            openingAmount: initialAmt,
+            initialAmount: initialAmt,
+            cashierId: resolvedUserId,
+            openedByUserId: resolvedUserId,
+            cashierUserId: resolvedUserId,
+            isOpen: true,
+            status: 'OPEN',
+            notes: params.notes || '',
+            ...(activeCompanyId > 0 ? { companyId: activeCompanyId } : {}),
+          },
+          { headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' } }
+        );
         backendId = res?.id || res?.data?.id || 1;
       } catch (secondErr: any) {
         const secErrMsg = String(secondErr?.message || secondErr?.error || secondErr?.response?.data?.message || secondErr || '');

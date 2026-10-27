@@ -89,6 +89,16 @@ function handleGlobalHttpError(
   const isLoginRequest = lowerUrl.includes('/auth/login');
   const isRefreshRequest = lowerUrl.includes('/auth/refresh');
 
+  const isSilenced =
+    req.headers.has('x-silent-error') ||
+    req.headers.has('X-Silent-Error') ||
+    req.headers.has('x-silent-500') ||
+    req.headers.has('X-Silent-500');
+
+  if (isSilenced) {
+    return;
+  }
+
   // 1. Manejo Status 0: Falla de conexión con la API o error de CORS/red
   if (status === 0) {
     if (isRefreshRequest) return;
