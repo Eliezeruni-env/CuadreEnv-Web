@@ -1,4 +1,4 @@
-import { Injectable, inject, Optional, Inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { ApiClientService, extractArray, getCompanyId } from '../../cuadreEnv/services/apiClient';
 import {
   CashRegisterDto,
@@ -93,8 +93,8 @@ export class CashRegisterService {
   private realtimeAlertService?: RealtimeAlertService;
 
   constructor(
-    @Optional() @Inject(ApiClientService) api?: ApiClientService,
-    @Optional() @Inject(RealtimeAlertService) realtimeAlertService?: RealtimeAlertService
+    api?: ApiClientService,
+    realtimeAlertService?: RealtimeAlertService
   ) {
     if (api) {
       this.api = api;
