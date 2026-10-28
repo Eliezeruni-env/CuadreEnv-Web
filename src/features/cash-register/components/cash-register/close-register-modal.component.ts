@@ -92,6 +92,7 @@ export class CloseRegisterModalComponent {
   pendingHeldCount = signal<number>(0);
   pendingOfflineCount = signal<number>(0);
   openCashOperationsError = signal<string | null>(null);
+  serverCloseError = signal<string | null>(null);
   isCancellingPendingSales = signal<boolean>(false);
   readonly hasPendingOperations = computed(
     () => this.pendingHeldCount() > 0 || this.pendingOfflineCount() > 0,
@@ -210,6 +211,7 @@ export class CloseRegisterModalComponent {
     this.countedAmount.set(0);
     this.confirmZeroCashCount.set(false);
     this.openCashOperationsError.set(null);
+    this.serverCloseError.set(null);
     this.isCancellingPendingSales.set(false);
 
     // Sugerir como fondo retenido el saldo inicial original
@@ -239,8 +241,8 @@ export class CloseRegisterModalComponent {
       const phone =
         companySettings.ticketWhatsapp?.trim() ||
         companySettings.phone?.trim() ||
-        (this.authService.activeCompany() as any)?.phone?.trim() ||
-        (this.authService.currentUser() as any)?.phoneNumber?.trim() ||
+        (typeof this.authService.activeCompany === 'function' ? (this.authService.activeCompany() as any)?.phone?.trim() : '') ||
+        (typeof this.authService.currentUser === 'function' ? (this.authService.currentUser() as any)?.phoneNumber?.trim() : '') ||
         '';
       if (phone) {
         this.ownerPhone.set(phone);
@@ -421,6 +423,7 @@ export class CloseRegisterModalComponent {
     this.showSupervisorPinAuth.set(false);
 
     this.isLoading.set(true);
+    this.serverCloseError.set(null);
 
     try {
       const denomPayload = this.hasDenominationCounts()
@@ -454,6 +457,7 @@ export class CloseRegisterModalComponent {
 
       if (res.success) {
         this.openCashOperationsError.set(null);
+        this.serverCloseError.set(null);
         this.notificationService.success(
           'Arqueo registrado y turno finalizado exitosamente.',
         );
@@ -489,9 +493,9 @@ export class CloseRegisterModalComponent {
           this.openCashOperationsError.set(userMsg);
           this.notificationService.warning(userMsg);
         } else {
-          this.notificationService.error(
-            res.message || 'Error al procesar el cierre de caja.',
-          );
+          const errMsg = res.message || 'Error al procesar el cierre de caja.';
+          this.serverCloseError.set(errMsg);
+          this.notificationService.error(errMsg);
         }
       }
     } catch (e: any) {
@@ -508,6 +512,8 @@ export class CloseRegisterModalComponent {
         this.openCashOperationsError.set(userMsg);
         this.notificationService.warning(userMsg);
       } else {
+        const errMsg = rawMsg || e?.mappedError?.message || e?.message || 'Error al procesar el cierre de caja.';
+        this.serverCloseError.set(errMsg);
         this.notificationService.showApiError(e);
       }
     } finally {
@@ -616,6 +622,7 @@ ${audit.notes ? `\n📝 *Observaciones / Justificación:* "${audit.notes}"\n` : 
     this.cashRegisterService.forceCloseSessionLocal(regId);
     this.draftStorageService.clearAll();
     this.openCashOperationsError.set(null);
+    this.serverCloseError.set(null);
     this.notificationService.success('Cierre de emergencia completado localmente.');
     this.close();
     this.closed.emit();

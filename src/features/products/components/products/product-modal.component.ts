@@ -116,6 +116,11 @@ export class ProductModalComponent {
     try {
       const typesRes = await this.productTypeService.getProductTypes();
       typeItems = Array.isArray(typesRes?.data) ? typesRes.data : [];
+      // Filtrar tipo Servicio: los servicios tienen su propio módulo y catálogo
+      typeItems = typeItems.filter((t: any) => {
+        const name = (t.name || t.description || '').toLowerCase();
+        return t.id !== 2 && !name.includes('serv');
+      });
       this.productTypes.set(typeItems);
     } catch {
       this.productTypes.set([]);

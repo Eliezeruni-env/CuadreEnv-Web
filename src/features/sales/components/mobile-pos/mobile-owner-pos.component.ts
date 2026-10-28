@@ -789,15 +789,41 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     return item ? item.quantity : 0;
   }
 
+  private syncInterval: any = null;
+  private onWindowFocusHandler = () => {
+    if (this.authService.isAuthenticated()) {
+      void this.loadExecutiveData();
+    }
+  };
+  private onVisibilityChangeHandler = () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible' && this.authService.isAuthenticated()) {
+      void this.loadExecutiveData();
+    }
+  };
+  private onCashRegisterChangedHandler = () => {
+    if (this.authService.isAuthenticated()) {
+      void this.loadExecutiveData();
+    }
+  };
+
   ngOnInit(): void {
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => this.isOnline.set(true));
       window.addEventListener('offline', () => this.isOnline.set(false));
+      window.addEventListener('focus', this.onWindowFocusHandler);
+      window.addEventListener('cuadre_cash_register_changed', this.onCashRegisterChangedHandler);
+      // Sincronización continua de caja y sesión entre PC y móvil cada 15s
+      this.syncInterval = setInterval(() => {
+        if (this.authService.isAuthenticated()) {
+          void this.loadExecutiveData();
+        }
+      }, 15000);
     }
     if (typeof document !== 'undefined') {
       document.addEventListener('fullscreenchange', () => {
         this.isFullscreen.set(!!document.fullscreenElement);
       });
+      document.addEventListener('visibilitychange', this.onVisibilityChangeHandler);
     }
     // Cargar siempre datos de configuración de empresa de la sesión
     this.companyService.getCompanySettings().catch(() => {});
@@ -812,6 +838,17 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.closeCameraScanner();
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = null;
+    }
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('focus', this.onWindowFocusHandler);
+      window.removeEventListener('cuadre_cash_register_changed', this.onCashRegisterChangedHandler);
+    }
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.onVisibilityChangeHandler);
+    }
   }
 
   async initMobileData(): Promise<void> {

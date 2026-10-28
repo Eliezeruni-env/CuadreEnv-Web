@@ -123,6 +123,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   liveEventsCount = signal<number>(0);
   private liveBroadcastChannel: BroadcastChannel | null = null;
   private saleCompletedListener?: (e: any) => void;
+  private cashRegisterChangedListener?: () => void;
   private pollTimer?: any;
 
   ngOnInit(): void {
@@ -166,12 +167,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
       }
     };
     window.addEventListener('cuadre:sale-completed', this.saleCompletedListener);
+
+    // 3. Sincronización inmediata al cambiar estado de caja en PC o Móvil
+    this.cashRegisterChangedListener = () => {
+      void this.loadDashboardData();
+    };
+    window.addEventListener('cuadre_cash_register_changed', this.cashRegisterChangedListener);
   }
 
   private teardownLiveActivityFeed(): void {
     if (typeof window !== 'undefined') {
       if (this.saleCompletedListener) {
         window.removeEventListener('cuadre:sale-completed', this.saleCompletedListener);
+      }
+      if (this.cashRegisterChangedListener) {
+        window.removeEventListener('cuadre_cash_register_changed', this.cashRegisterChangedListener);
       }
       if (this.liveBroadcastChannel) {
         this.liveBroadcastChannel.close();

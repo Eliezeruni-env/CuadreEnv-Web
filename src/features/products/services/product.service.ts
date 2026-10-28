@@ -9,6 +9,7 @@ export interface ProductFilters {
   description?: string;
   minCost?: number;
   maxCost?: number;
+  excludeServices?: boolean;
 }
 
 export interface PagedProductsResponse extends PagedResult<ProductDto> {
@@ -25,7 +26,21 @@ export class ProductService {
   private readonly baseUrl =
     (environment.apiUrl || 'http://localhost:8080').replace(/\/v1\/?$/, '').replace(/\/$/, '') + '/v1';
   private readonly PHOTO_STORAGE_KEY = 'cuadreenv_product_photos_v1';
-  private readonly METRICS_STORAGE_KEY = 'cuadreenv_product_cost_metrics_v1';
+  private readonly METRICS_STORAGE_KEY = 'cuadreEnv_product_cost_metrics_v1';
+
+  isServiceItem(p: any): boolean {
+    if (!p) return false;
+    if (p.isService === true || p.type === 'service' || p.type === 'Servicio') return true;
+    if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
+    if (p.invoiceWithoutStock === true) return true;
+    const ref = String(p.barcode || p.reference || '').toUpperCase().trim();
+    if (ref.startsWith('SERV-') || ref.startsWith('SERV')) return true;
+    const typeName = String(p.productTypeName || p.productType?.name || '').toLowerCase();
+    if (typeName.includes('serv')) return true;
+    const catName = String(p.categoryName || p.category?.name || '').toLowerCase();
+    if (catName.includes('serv')) return true;
+    return false;
+  }
 
   getProductPhoto(idOrBarcode: number | string): string | null {
     if (typeof window === 'undefined') return null;
@@ -172,6 +187,15 @@ export class ProductService {
           });
         }
 
+        // Excluir servicios si se solicita (para catálogos que son estrictamente de productos tangibles)
+        if (filters?.excludeServices) {
+          const beforeCount = items.length;
+          items = items.filter((p: any) => !this.isServiceItem(p));
+          if (items.length < beforeCount) {
+            total = items.length;
+          }
+        }
+
         // Enriquecer productos con fotos y atributos guardados
         items = items.map((p) => {
           const photo = p.imageUrl || (p.id ? this.getProductPhoto(p.id) : null) || (p.barcode ? this.getProductPhoto(p.barcode) : null);
@@ -210,6 +234,7 @@ export class ProductService {
     description?: string,
     minCost?: number,
     maxCost?: number,
+    excludeServices = false,
   ): Promise<ApiResponse<PagedProductsResponse>> {
     const validSize = Math.min(100, Math.max(1, pageSize || 10));
     const activeCompanyId = Number(getCompanyId()) || 0;
@@ -219,6 +244,7 @@ export class ProductService {
           description,
           minCost,
           maxCost,
+          excludeServices,
         })
       );
     } catch {
@@ -241,6 +267,9 @@ export class ProductService {
             const pCid = p.companyId ?? p.CompanyId;
             return pCid == null || Number(pCid) === 0 || Number(pCid) === activeCompanyId;
           });
+        }
+        if (excludeServices) {
+          rawList = rawList.filter((p) => !this.isServiceItem(p));
         }
         return {
           success: true,

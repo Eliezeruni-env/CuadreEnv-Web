@@ -174,6 +174,9 @@ export class ProductsComponent implements OnInit {
         validPage,
         validSize,
         search || undefined,
+        undefined,
+        undefined,
+        true, // Excluir servicios: pertenecen al catálogo de servicios
       );
 
       // Cancelar o ignorar respuestas antiguas al escribir filtros rápidamente
@@ -182,7 +185,8 @@ export class ProductsComponent implements OnInit {
       }
 
       if (res.success && res.data) {
-        let items = res.data.items || [];
+        // Garantizar que ningún servicio contamine el catálogo de productos
+        let items = (res.data.items || []).filter((p) => !this.isServiceItem(p));
 
         // Filtros adicionales por stock y estado
         const stockObj = activeFilters['stock'] as
@@ -230,12 +234,12 @@ export class ProductsComponent implements OnInit {
         }
 
         this.products.set(items);
-        this.totalItems.set(
+        const resolvedTotal =
           items.length < (res.data.items || []).length
             ? items.length
-            : (res.data.totalItemCount ?? res.data.total ?? items.length),
-        );
-        this.pageCount.set(res.data.pageCount || 1);
+            : (res.data.totalItemCount ?? res.data.total ?? items.length);
+        this.totalItems.set(resolvedTotal);
+        this.pageCount.set(Math.max(1, Math.ceil(resolvedTotal / validSize)));
         this.checkExpiringProducts();
       } else {
         // No tratar un listado vacío como error
@@ -404,6 +408,11 @@ export class ProductsComponent implements OnInit {
     ).trim();
 
     return this.products().filter((product) => {
+      // Excluir servicios: pertenecen al catálogo de servicios
+      if (this.isServiceItem(product)) {
+        return false;
+      }
+
       const matchesSearch =
         !search ||
         [
