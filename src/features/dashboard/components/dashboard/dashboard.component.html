@@ -393,6 +393,74 @@
             </a>
           }
         </div>
+
+        <!-- Estado de Turno / Caja del Día (Opción A: Balance y Operación de Caja Activa) -->
+        <div *hasModule="'CashRegister'" class="card border-0 rounded-4 p-4 alarm-panel-card bg-white">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="rounded-circle p-1.5 bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                <svg cIcon name="cilCalculator" style="width: 16px; height: 16px;"></svg>
+              </div>
+              <h6 class="fw-bold text-dark mb-0">Estado de Turno / Caja</h6>
+            </div>
+            @if (activeCashSession()?.isOpen || activeCashRegistersCount() > 0) {
+              <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1.5" style="font-size: 0.72rem; font-weight: 600;">
+                <span class="pulse-dot"></span> Caja Abierta
+              </span>
+            } @else {
+              <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+                Sin Turno Activo
+              </span>
+            }
+          </div>
+
+          @if (activeCashSession(); as session) {
+            <div class="p-3 rounded-3 mb-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-secondary small">Caja Registradora</span>
+                <span class="fw-bold text-dark small font-monospace">{{ session.name || 'Caja Principal' }}</span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-secondary small">Cajero Responsable</span>
+                <span class="fw-semibold text-dark small">{{ session.cashierName || 'Usuario Actual' }}</span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-secondary small">Fondo de Apertura</span>
+                <span class="text-muted small font-monospace">RD$ {{ session.initialAmount | number:'1.2-2' }}</span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                <span class="fw-semibold text-dark small">Efectivo en Gaveta</span>
+                <span class="fw-bold text-success font-monospace" style="font-size: 0.95rem;">
+                  RD$ {{ activeCashEstimatedCash() | number:'1.2-2' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <a routerLink="/cash-register" class="btn btn-outline-primary w-50 rounded-3 py-2 fw-semibold small text-decoration-none shadow-2xs">
+                Arqueo / Turno
+              </a>
+              <a routerLink="/pos" class="btn btn-primary w-50 rounded-3 py-2 fw-semibold small text-white text-decoration-none shadow-sm">
+                Cobrar POS →
+              </a>
+            </div>
+          } @else {
+            <div class="text-center py-3">
+              <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 44px; height: 44px; background: #f1f5f9; color: #64748b;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                  <line x1="6" y1="12" x2="10" y2="12"></line>
+                  <line x1="8" y1="10" x2="8" y2="14"></line>
+                  <line x1="15" y1="13" x2="18" y2="13"></line>
+                </svg>
+              </div>
+              <p class="text-muted small mb-3">No hay un turno de caja aperturado actualmente en esta estación.</p>
+              <a routerLink="/cash-register" class="btn btn-primary w-100 rounded-3 py-2 fw-semibold small text-white text-decoration-none shadow-sm">
+                + Abrir Turno de Caja
+              </a>
+            </div>
+          }
+        </div>
       </div>
 
       <!-- Right Column: Live Activity Feed (Ventas de Hoy vs Movimientos de Almacén) -->

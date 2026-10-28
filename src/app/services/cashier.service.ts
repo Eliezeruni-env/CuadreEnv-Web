@@ -139,10 +139,23 @@ export class CashierService {
       .pipe(
         map((res) => res?.data || res),
         catchError(() => {
+          if (typeof sessionId === 'number' && sessionId > 10000000000) {
+            return of({
+              sessionId,
+              openingAmount: 0,
+              totalCashSales: 0,
+              totalCardSales: 0,
+              totalTransferSales: 0,
+              totalChequeSales: 0,
+              totalEntries: 0,
+              totalWithdrawals: 0,
+            });
+          }
           // Calculate summary directly from DB CashMovements
           return this.http
             .get<any>(
               `${this.baseUrl}/CashMovement?cashRegisterId=${sessionId}`,
+              { headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' } }
             )
             .pipe(
               map((res) => {

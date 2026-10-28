@@ -108,8 +108,8 @@ export class SalesComponent implements OnInit {
       options: [
         { label: 'Todos los canales', value: '' },
         { label: 'Ventas en Caja (POS)', value: 'caja' },
-        { label: 'Ventas Directas', value: 'direct' },
-        { label: '🛠️ Ventas de Servicios', value: 'servicio' },
+        { label: 'Facturación Directa', value: 'direct' },
+        { label: 'Taller / Servicios', value: 'servicio' },
       ],
     },
     {

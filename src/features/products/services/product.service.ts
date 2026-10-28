@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, firstValueFrom, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import type { ProductDto, ApiResponse, PagedResult } from '../../cuadreEnv/types/api';
-import { getCompanyId } from '../../cuadreEnv/services/apiClient';
+import { ApiClientService, getCompanyId } from '../../cuadreEnv/services/apiClient';
 
 export interface ProductFilters {
   description?: string;
@@ -21,6 +21,7 @@ export interface PagedProductsResponse extends PagedResult<ProductDto> {
 })
 export class ProductService {
   private readonly http = inject(HttpClient);
+  private readonly api = inject(ApiClientService);
   private readonly baseUrl =
     (environment.apiUrl || 'http://localhost:8080').replace(/\/v1\/?$/, '').replace(/\/$/, '') + '/v1';
   private readonly PHOTO_STORAGE_KEY = 'cuadreenv_product_photos_v1';
@@ -367,33 +368,97 @@ export class ProductService {
   }
 
   /**
-   * Crear nuevo producto:
-   * POST /v1/product
+   * Limpia y normaliza el payload del producto para cumplir con el esquema estricto del backend ASP.NET Core:
+   * Evita enviar claves con valor undefined, strings vacíos para fechas, o claves de metadatos locales (imageUrl, hasPackaging).
    */
-  async createProduct(product: ProductDto): Promise<ApiResponse<ProductDto>> {
-    const url = `${this.baseUrl}/product`;
+  private sanitizeProductPayload(product: ProductDto): any {
     const activeCompanyId = Number(getCompanyId()) || 0;
     const resolvedCompanyId = activeCompanyId > 0 ? activeCompanyId : (product.companyId && product.companyId > 0 ? product.companyId : 0);
-    const payload = {
-      ...product,
-      ...(resolvedCompanyId > 0 ? { companyId: resolvedCompanyId } : {}),
+
+    const cost = Number(product.cost) || 0;
+    const price = Number(product.price) || (cost > 0 ? Math.round(cost * 1.35 * 100) / 100 : 0);
+
+    const clean: Record<string, any> = {
+      description: String(product.description || '').trim(),
+      cost: cost,
+      price: price,
+      stock: Number(product.stock) || 0,
+      productTypeId: Number(product.productTypeId) || 1,
+      categoryId: Number(product.categoryId) || 1,
+      unitOfMeasurementId: Number(product.unitOfMeasurementId) || 1,
+      minimumQuantity: Number(product.minimumQuantity) || 0,
+      maximumQuantity: Number(product.maximumQuantity) || 0,
+      invoiceWithoutStock: Boolean(product.invoiceWithoutStock),
+      allowFractional: Boolean(product.allowFractional),
+      isOrganic: Boolean(product.isOrganic),
     };
-    return firstValueFrom(this.http.post<ApiResponse<ProductDto>>(url, payload));
+
+    if (product.id != null && Number(product.id) > 0) {
+      clean['id'] = Number(product.id);
+    }
+    if (resolvedCompanyId > 0) {
+      clean['companyId'] = resolvedCompanyId;
+    }
+    if (product.barcode && String(product.barcode).trim()) {
+      clean['barcode'] = String(product.barcode).trim();
+    }
+    if (product.reference && String(product.reference).trim()) {
+      clean['reference'] = String(product.reference).trim();
+    }
+    if (product.shortDescription && String(product.shortDescription).trim()) {
+      clean['shortDescription'] = String(product.shortDescription).trim();
+    }
+    if (product.expirationDate && String(product.expirationDate).trim()) {
+      clean['expirationDate'] = String(product.expirationDate).trim();
+    }
+
+    return clean;
+  }
+
+  /**
+   * Crear nuevo producto:
+   * POST /v1/product con fallback a /v1/Product
+   */
+  async createProduct(product: ProductDto): Promise<ApiResponse<ProductDto>> {
+    const payload = this.sanitizeProductPayload(product);
+    try {
+      const url = `${this.baseUrl}/product`;
+      return await firstValueFrom(this.http.post<ApiResponse<ProductDto>>(url, payload));
+    } catch (err: any) {
+      // Fallback a PascalCase si el router del backend es sensible a mayúsculas
+      if (err?.status === 404 || err?.status === 400) {
+        try {
+          const url2 = `${this.baseUrl}/Product`;
+          return await firstValueFrom(this.http.post<ApiResponse<ProductDto>>(url2, payload));
+        } catch {
+          // Relanzar el error original con los datos de validación
+          throw err;
+        }
+      }
+      throw err;
+    }
   }
 
   /**
    * Actualizar producto existente:
-   * PUT /v1/product
+   * PUT /v1/product con fallback a /v1/Product
    */
   async updateProduct(product: ProductDto): Promise<ApiResponse<any>> {
-    const url = `${this.baseUrl}/product`;
-    const activeCompanyId = Number(getCompanyId()) || 0;
-    const resolvedCompanyId = activeCompanyId > 0 ? activeCompanyId : (product.companyId && product.companyId > 0 ? product.companyId : 0);
-    const payload = {
-      ...product,
-      ...(resolvedCompanyId > 0 ? { companyId: resolvedCompanyId } : {}),
-    };
-    return firstValueFrom(this.http.put<ApiResponse<any>>(url, payload));
+    const payload = this.sanitizeProductPayload(product);
+    try {
+      const url = `${this.baseUrl}/product`;
+      return await firstValueFrom(this.http.put<ApiResponse<any>>(url, payload));
+    } catch (err: any) {
+      if (err?.status === 404 || err?.status === 400) {
+        try {
+          const url2 = `${this.baseUrl}/Product`;
+          return await firstValueFrom(this.http.put<ApiResponse<any>>(url2, payload));
+        } catch {
+          throw err;
+        }
+      }
+      throw err;
+    }
   }
 
   /**

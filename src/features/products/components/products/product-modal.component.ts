@@ -347,6 +347,10 @@ export class ProductModalComponent {
       }
     }
 
+    const defaultTypeId = this.productTypes().length > 0 ? Number(this.productTypes()[0].id) : 1;
+    const defaultCatId = this.categories().length > 0 ? Number(this.categories()[0].id) : 1;
+    const defaultUnitId = this.units().length > 0 ? Number(this.units()[0].id) : 1;
+
     const payload: ProductDto = {
       description: name,
       cost: Number(formVal.cost) || 0,
@@ -360,10 +364,10 @@ export class ProductModalComponent {
       shortDescription: String(formVal.shortDescription || '').trim(),
       minimumQuantity: Number(formVal.minimumQuantity) || 0,
       maximumQuantity: Number(formVal.maximumQuantity) || 0,
-      unitOfMeasurementId: Number(formVal.unitOfMeasurementId) || 1,
-      productTypeId: formVal.productTypeId ? Number(formVal.productTypeId) : undefined,
-      categoryId: formVal.categoryId ? Number(formVal.categoryId) : undefined,
-      expirationDate: formVal.expirationDate || null,
+      unitOfMeasurementId: formVal.unitOfMeasurementId ? Number(formVal.unitOfMeasurementId) : defaultUnitId,
+      productTypeId: formVal.productTypeId ? Number(formVal.productTypeId) : defaultTypeId,
+      categoryId: formVal.categoryId ? Number(formVal.categoryId) : defaultCatId,
+      expirationDate: formVal.expirationDate ? String(formVal.expirationDate).trim() : null,
       isOrganic: Boolean(formVal.isOrganic),
     };
 

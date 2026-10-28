@@ -93,6 +93,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Cash Register Status
   activeCashRegistersCount = signal<number>(0);
   activeCashEstimatedCash = signal<number>(0);
+  activeCashSession = signal<any | null>(null);
 
   // Critical Alarms (Actionable)
   lowStockCount = signal<number>(0);
@@ -398,13 +399,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
           }
           if (activeSessionRes?.success && activeSessionRes.data) {
             const s = activeSessionRes.data;
+            this.activeCashSession.set(s);
             this.activeCashEstimatedCash.set(s.currentBalance ?? (s.initialAmount + s.totalIn - s.totalOut));
           } else {
+            this.activeCashSession.set(null);
             this.activeCashEstimatedCash.set(0);
           }
         } catch {
           this.activeCashRegistersCount.set(0);
           this.activeCashEstimatedCash.set(0);
+          this.activeCashSession.set(null);
         }
       }
 

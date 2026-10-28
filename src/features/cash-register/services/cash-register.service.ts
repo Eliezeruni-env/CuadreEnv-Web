@@ -721,10 +721,22 @@ export class CashRegisterService {
     }
 
     try {
-      const res = await this.api.get<any, any>('/CashMovement', {
-        params: { cashRegisterId: session.id },
-      });
-      const list = extractArray<any>(res);
+      // Si la sesión fue abierta con un ID generado localmente (timestamp > 10,000,000,000) o no es una clave foránea en backend,
+      // evitamos pasar cashRegisterId inválido al backend remoto para evitar errores 400 (Bad Request).
+      const isLocalTimestampId = typeof session.id === 'number' && session.id > 10000000000;
+      let list: any[] = [];
+
+      if (!isLocalTimestampId) {
+        try {
+          const res = await this.api.get<any, any>('/CashMovement', {
+            params: { cashRegisterId: session.id },
+            headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' },
+          });
+          list = extractArray<any>(res);
+        } catch {
+          list = [];
+        }
+      }
 
       let runningBalance = session.initialAmount;
       const items: CashRegisterMovementItem[] = [];
@@ -818,14 +830,24 @@ export class CashRegisterService {
     }
 
     const typeEnum = item.type === 'Entrada' ? 1 : 2;
-    const res = await this.api.post<any, any>('/CashMovement', {
-      cashRegisterId: session.id,
-      cashSessionId: session.id,
-      amount: amt,
-      type: typeEnum,
-      reason: item.description || item.category,
-      description: `${item.category}: ${item.description}`,
-    });
+    let res: any = null;
+    const isLocalTimestampId = typeof session.id === 'number' && session.id > 10000000000;
+    try {
+      res = await this.api.post<any, any>(
+        '/CashMovement',
+        {
+          cashRegisterId: isLocalTimestampId ? 1 : session.id,
+          cashSessionId: isLocalTimestampId ? 1 : session.id,
+          amount: amt,
+          type: typeEnum,
+          reason: item.description || item.category,
+          description: `${item.category}: ${item.description}`,
+        },
+        { headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' } }
+      );
+    } catch (postErr) {
+      console.warn('[Caja] No se pudo persistir movimiento en backend remoto, operando localmente:', postErr);
+    }
 
     // Auditoría de Seguridad en Tiempo Real (SignalR / BroadcastHub)
     if (item.type === 'Salida' && amt >= 5000) {
@@ -1088,13 +1110,17 @@ export class CashRegisterService {
   async getSessionDetail(sessionId: number, basicSession?: CashRegisterSessionDto): Promise<any> {
     // 1. Fetch movements for this register
     let movements: any[] = [];
-    try {
-      const movRes = await this.api.get<any, any>('/CashMovement', {
-        params: { cashRegisterId: sessionId },
-      });
-      movements = extractArray<any>(movRes);
-    } catch (e) {
-      console.warn('Error fetching movements for session:', e);
+    const isLocalTimestampId = typeof sessionId === 'number' && sessionId > 10000000000;
+    if (!isLocalTimestampId) {
+      try {
+        const movRes = await this.api.get<any, any>('/CashMovement', {
+          params: { cashRegisterId: sessionId },
+          headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' },
+        });
+        movements = extractArray<any>(movRes);
+      } catch (e) {
+        console.warn('Error fetching movements for session:', e);
+      }
     }
 
     // 2. Fetch sales for this register

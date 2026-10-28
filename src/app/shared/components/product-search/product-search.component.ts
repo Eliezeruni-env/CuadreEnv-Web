@@ -74,13 +74,19 @@ export class ProductSearchComponent implements OnInit, OnChanges {
       const res = await this.productService.getPagedProducts(1, 100);
       if (res?.success && res.data?.items) {
         this.allProducts = (res.data.items as any[])
-          .filter(
-            (p: any) =>
-              p.productTypeId !== 2 &&
-              !p.isService &&
-              p.productType?.name !== 'Servicio' &&
-              p.productType?.description !== 'Servicio'
-          )
+          .filter((p: any) => {
+            if (!p) return false;
+            if (p.isService === true || p.type === 'service' || p.type === 'Servicio') return false;
+            if (p.productTypeId === 2 || p.ProductTypeId === 2) return false;
+            if (p.invoiceWithoutStock === true) return false;
+            const code = String(p.barcode || p.reference || '').toUpperCase().trim();
+            if (code.startsWith('SERV-') || code.startsWith('SERV')) return false;
+            const typeName = String(p.productTypeName || p.productType?.name || '').toLowerCase();
+            if (typeName.includes('serv')) return false;
+            const catName = String(p.categoryName || p.category?.name || '').toLowerCase();
+            if (catName.includes('serv')) return false;
+            return true;
+          })
           .map((p: any) => ({
             id: p.id || 0,
             description: p.description || '',

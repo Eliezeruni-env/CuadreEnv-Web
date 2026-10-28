@@ -126,20 +126,12 @@ export class WarehouseService {
         return { success: true, data: combined };
       }
 
-      // Si el servidor devolvió lista vacía, usar almacenes locales
-      let local = this.enforceSingleMainWarehouse(this.getLocalWarehouses());
-      if (local.length === 0) {
-        local = [this.createDefaultMainWarehouse()];
-        this.saveLocalWarehouses(local);
-      }
+      // Si el servidor devolvió lista vacía, usar almacenes locales sin autogenerar por defecto
+      const local = this.enforceSingleMainWarehouse(this.getLocalWarehouses());
       return { success: true, data: local };
     } catch {
       // Si la API falla por MODULE_NOT_LICENSED, restricciones de plan o modo offline:
-      let local = this.enforceSingleMainWarehouse(this.getLocalWarehouses());
-      if (local.length === 0) {
-        local = [this.createDefaultMainWarehouse()];
-        this.saveLocalWarehouses(local);
-      }
+      const local = this.enforceSingleMainWarehouse(this.getLocalWarehouses());
       return { success: true, data: local, message: 'Almacenes cargados correctamente.' };
     }
   }
