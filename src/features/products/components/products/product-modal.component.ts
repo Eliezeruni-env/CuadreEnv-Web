@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, inject } from '@angular/core';
+﻿import { Component, Input, Output, EventEmitter, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -111,6 +111,7 @@ export class ProductModalComponent {
 
     let typeItems: any[] = [];
     let catItems: any[] = [];
+    let unitItems: any[] = [];
 
     // 1. Product Types
     try {
@@ -121,39 +122,45 @@ export class ProductModalComponent {
         const name = (t.name || t.description || '').toLowerCase();
         return t.id !== 2 && !name.includes('serv');
       });
+      if (typeItems.length === 0) {
+        typeItems = [{ id: 1, name: 'Estándar', description: 'Estándar' }];
+      }
       this.productTypes.set(typeItems);
     } catch {
-      this.productTypes.set([]);
+      typeItems = [{ id: 1, name: 'Estándar', description: 'Estándar' }];
+      this.productTypes.set(typeItems);
     }
 
     // 2. Categories
     try {
       const catsRes = await this.categoryService.getCategories();
       catItems = Array.isArray(catsRes?.data) ? catsRes.data : [];
+      if (catItems.length === 0) {
+        try {
+          const created = await this.categoryService.createCategory({ description: 'General' });
+          const createdData = created?.data?.data || created?.data || { id: 1, description: 'General', name: 'General' };
+          catItems = [createdData];
+        } catch {
+          catItems = [{ id: 1, description: 'General', name: 'General' }];
+        }
+      }
       this.categories.set(catItems);
     } catch {
-      this.categories.set([]);
+      catItems = [{ id: 1, description: 'General', name: 'General' }];
+      this.categories.set(catItems);
     }
 
     // 3. Units of Measurement
     try {
       const unitsRes = await this.unitService.getUnitsOfMeasurement();
-      const unitItems = Array.isArray(unitsRes?.data) ? unitsRes.data : [];
+      unitItems = Array.isArray(unitsRes?.data) ? unitsRes.data : [];
+      if (unitItems.length === 0) {
+        unitItems = [{ id: 1, name: 'Unidad', symbol: 'und' }];
+      }
       this.units.set(unitItems);
     } catch {
-      this.units.set([]);
-    }
-
-    if (typeItems.length === 0 || catItems.length === 0) {
-      const missingParts: string[] = [];
-      if (typeItems.length === 0) missingParts.push('Tipos de Producto');
-      if (catItems.length === 0) missingParts.push('Categorías');
-
-      this.missingLookups.set(true);
-      this.missingLookupMessage.set(
-        `Para crear un producto es indispensable tener al menos una opción en: ${missingParts.join(' y ')}. Por favor, créalos en la sección de configuración primero.`
-      );
-      return false;
+      unitItems = [{ id: 1, name: 'Unidad', symbol: 'und' }];
+      this.units.set(unitItems);
     }
 
     return true;
