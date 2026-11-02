@@ -68,31 +68,44 @@
   </app-root>
 
   <script>
-    // PWA Service Worker & Install Prompt Listener
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        const tryRegister = (url, options) => navigator.serviceWorker.register(url, options);
+    // PWA Service Worker: Activo SOLO en producción para no romper Vite / Angular Dev Server en localhost
+    const isLocalhostDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-        tryRegister('/sw.js', { scope: '/' })
-          .catch(() => tryRegister('sw.js', { scope: '/' }))
-          .catch(() => tryRegister('assets/sw.js'))
-          .then((reg) => {
-            if (!reg) return;
-            if (reg.waiting) {
-              window.dispatchEvent(new CustomEvent('cuadreenv:pwa-update-ready', { detail: reg }));
-            }
-            reg.addEventListener('updatefound', () => {
-              const newWorker = reg.installing;
-              if (newWorker) {
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    window.dispatchEvent(new CustomEvent('cuadreenv:pwa-update-ready', { detail: reg }));
-                  }
-                });
+    if ('serviceWorker' in navigator) {
+      if (isLocalhostDev) {
+        // En desarrollo local, desregistrar cualquier Service Worker previo para permitir HMR limpio de Vite
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const reg of registrations) {
+            reg.unregister();
+            console.log('[Dev] Service Worker desregistrado para permitir Vite HMR en local.');
+          }
+        });
+      } else {
+        // En producción / staging, registrar el Service Worker normalmente
+        window.addEventListener('load', () => {
+          const tryRegister = (url, options) => navigator.serviceWorker.register(url, options);
+
+          tryRegister('/sw.js', { scope: '/' })
+            .catch(() => tryRegister('sw.js', { scope: '/' }))
+            .catch(() => tryRegister('assets/sw.js'))
+            .then((reg) => {
+              if (!reg) return;
+              if (reg.waiting) {
+                window.dispatchEvent(new CustomEvent('cuadreenv:pwa-update-ready', { detail: reg }));
               }
-            });
-          }).catch(err => console.warn('[PWA] SW registration skipped:', err));
-      });
+              reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      window.dispatchEvent(new CustomEvent('cuadreenv:pwa-update-ready', { detail: reg }));
+                    }
+                  });
+                }
+              });
+            }).catch(err => console.warn('[PWA] SW registration skipped:', err));
+        });
+      }
     }
 
     // Capturar evento antes de instalar (A2HS) para botón personalizado
