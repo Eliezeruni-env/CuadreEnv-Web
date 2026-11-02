@@ -103,31 +103,44 @@ export class PurchaseService {
   async createPurchase(
     purchase: PurchaseDto,
   ): Promise<ApiResponse<PurchaseDto>> {
-    let created: any = null;
     try {
-      const res = await this.api.post<any, any>('/Purchase', purchase);
-      created = res?.data ?? res;
-    } catch {
-      // offline fallback
+      const payload = {
+        ...purchase,
+        companyId: (purchase as any).companyId || 1,
+        details: (purchase.details || []).map((d: any) => ({
+          ...d,
+          cost: d.cost ?? d.costPrice ?? 0,
+          costPrice: d.costPrice ?? d.cost ?? 0,
+        })),
+      };
+      const res = await this.api.post<any, any>('/Purchase', payload);
+      const created = res?.data ?? res;
+      const assignedId = created?.id || purchase.id || Date.now();
+      const fullPurchase: PurchaseDto = {
+        ...purchase,
+        id: assignedId,
+        creationDate: created?.creationDate || new Date().toISOString(),
+        details: (purchase.details || []).map((d: any) => ({
+          ...d,
+          cost: d.cost ?? d.costPrice ?? 0,
+          costPrice: d.costPrice ?? d.cost ?? 0,
+        })),
+      };
+
+      // Save locally
+      const current = this.getLocalPurchases();
+      current.unshift(fullPurchase);
+      this.saveLocalPurchases(current);
+
+      // Sync to purchase orders so it immediately appears in goods receipt (Recepciones)
+      this.syncToPurchaseOrders(fullPurchase);
+
+      return { success: true, data: fullPurchase, message: 'Compra registrada exitosamente.' };
+    } catch (err: any) {
+      console.error('[PurchaseService] Error al crear compra en backend:', err);
+      const errMsg = err?.mappedError?.message || err?.message || 'Error del servidor al registrar la compra.';
+      return { success: false, message: errMsg };
     }
-
-    const assignedId = created?.id || Date.now();
-    const fullPurchase: PurchaseDto = {
-      ...purchase,
-      id: assignedId,
-      creationDate: created?.creationDate || new Date().toISOString(),
-      details: purchase.details || [],
-    };
-
-    // Save locally
-    const current = this.getLocalPurchases();
-    current.unshift(fullPurchase);
-    this.saveLocalPurchases(current);
-
-    // Sync to purchase orders so it immediately appears in goods receipt (Recepciones)
-    this.syncToPurchaseOrders(fullPurchase);
-
-    return { success: true, data: fullPurchase, message: 'Compra registrada exitosamente.' };
   }
 
   async updatePurchase(purchase: PurchaseDto): Promise<void> {

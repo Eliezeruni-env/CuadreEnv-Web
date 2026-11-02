@@ -172,17 +172,10 @@ export class WarehouseTransferService {
           toWarehouseId: destinationId,
           quantity: item.quantity,
         });
-      } catch {
-        try {
-          await this.api.post<any, any>('/Warehouse/stock/transfer', {
-            productId: item.productId,
-            fromWarehouseId: originId,
-            toWarehouseId: destinationId,
-            quantity: item.quantity,
-          });
-        } catch {
-          // offline fallback
-        }
+      } catch (err: any) {
+        console.error('[WarehouseTransfer] Error al persistir en backend:', err);
+        const errMsg = err?.mappedError?.message || err?.message || 'Error al guardar la transferencia en el servidor.';
+        return { success: false, message: errMsg };
       }
     }
 

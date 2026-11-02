@@ -141,16 +141,10 @@ export class WarehouseEntryService {
           warehouseId: entry.warehouseId || 1,
           quantity: item.quantity,
         });
-      } catch {
-        try {
-          await this.api.post<any, any>('/Warehouse/stock/add', {
-            productId: item.productId,
-            warehouseId: entry.warehouseId || 1,
-            quantity: item.quantity,
-          });
-        } catch {
-          // offline fallback
-        }
+      } catch (err: any) {
+        console.error('[WarehouseEntry] Error al persistir en backend:', err);
+        const errMsg = err?.mappedError?.message || err?.message || 'Error al guardar la entrada en el servidor.';
+        return { success: false, message: errMsg };
       }
     }
 
