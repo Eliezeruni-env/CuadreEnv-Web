@@ -359,6 +359,12 @@ export class ProductModalComponent {
       }
     }
 
+    if (!formVal.categoryId || !formVal.unitOfMeasurementId) {
+      this.notificationService.warning('Debe seleccionar una Categoría y una Unidad de Medida válidas antes de guardar.');
+      this.isLoading.set(false);
+      return;
+    }
+
     const defaultTypeId = this.productTypes().length > 0 ? Number(this.productTypes()[0].id) : 1;
     const defaultCatId = this.categories().length > 0 ? Number(this.categories()[0].id) : 1;
     const defaultUnitId = this.units().length > 0 ? Number(this.units()[0].id) : 1;

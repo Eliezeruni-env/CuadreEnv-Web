@@ -867,7 +867,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     // F2: Buscar producto / Focus en lector de código de barras
-    if (event.key === 'F2') {
+    if (event.key === 'F2' || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k')) {
       event.preventDefault();
       this.focusCatalogSearch();
       return;
@@ -921,7 +921,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     // F4 / F12: Cobrar / Siguiente paso / Nueva venta
-    if (event.key === 'F4' || event.key === 'F12') {
+    if (event.key === 'F4' || event.key === 'F12' || (event.key === ' ' && !isTextInput)) {
       event.preventDefault();
       if (this.checkoutStep() === 3) {
         this.startNewSale();
@@ -958,11 +958,65 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       return;
     }
 
-    // F9: Abrir ventas en espera
+        // F9: Facturar en Efectivo Exacto en 1 segundo
     if (event.key === 'F9') {
+      event.preventDefault();
+      if (this.checkoutStep() === 3) {
+        this.startNewSale();
+        return;
+      }
+      if (this.cartItems().length > 0) {
+        this.selectedMethod.set('Efectivo');
+        this.amountReceived.set(this.total());
+        void this.processQuickSale();
+      } else {
+        this.notificationService.warning(
+          'Agrega productos al carrito antes de facturar en efectivo exacto (F9).',
+        );
+      }
+      return;
+    }
+
+    // F10: Abrir ventas en espera
+    if (event.key === 'F10') {
       event.preventDefault();
       this.openHeldSalesModal();
       return;
+    }
+
+    // Escape: Cerrar modales o limpiar carrito / cancelar venta
+    if (event.key === 'Escape') {
+      if (this.isCalculatorOpen()) {
+        event.preventDefault();
+        this.isCalculatorOpen.set(false);
+        return;
+      }
+      if (this.isShortcutsModalOpen()) {
+        event.preventDefault();
+        this.isShortcutsModalOpen.set(false);
+        return;
+      }
+      if (this.isHeldSalesModalOpen()) {
+        event.preventDefault();
+        this.isHeldSalesModalOpen.set(false);
+        return;
+      }
+      if (this.isCameraScannerOpen()) {
+        event.preventDefault();
+        this.closeCameraScanner();
+        return;
+      }
+      if (this.checkoutStep() === 2) {
+        event.preventDefault();
+        this.checkoutStep.set(1);
+        return;
+      }
+      if (this.cartItems().length > 0) {
+        event.preventDefault();
+        this.resetForm();
+        this.notificationService.info('Venta actual cancelada / carrito limpiado (Esc).');
+        return;
+      }
     }
 
     // Enter: Confirmar cobro en efectivo exacto o nueva venta

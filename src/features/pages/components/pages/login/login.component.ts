@@ -37,16 +37,25 @@ function getStableDeviceId(): string {
 export class LoginComponent implements OnInit {
   ngOnInit(): void {
     if (typeof window !== 'undefined') {
-      const isPwa =
+      const isStandalonePwa =
         window.matchMedia('(display-mode: standalone)').matches ||
         (navigator as any).standalone === true ||
         window.location.search.includes('source=pwa') ||
         window.location.search.includes('pwa=true');
-      const isMobile =
+
+      if (isStandalonePwa) {
+        try {
+          localStorage.setItem('cuadre_is_pwa_detected', 'true');
+        } catch {}
+      }
+
+      const rememberedPwa = localStorage.getItem('cuadre_is_pwa_detected') === 'true';
+      const isMobileDevice =
         window.innerWidth <= 768 ||
         /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent.toLowerCase());
+
       const forceDesktop = this.route.snapshot.queryParamMap.get('view') === 'desktop';
-      if ((isPwa || isMobile) && !forceDesktop) {
+      if ((isStandalonePwa || rememberedPwa || isMobileDevice) && !forceDesktop) {
         this.router.navigate(['/mobile']);
       }
     }

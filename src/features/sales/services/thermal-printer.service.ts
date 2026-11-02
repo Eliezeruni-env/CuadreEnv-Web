@@ -41,11 +41,52 @@ export interface TicketData {
 })
 export class ThermalPrinterService {
   isConnected = signal<boolean>(false);
+  isUsbConnected = signal<boolean>(false);
   printerName = signal<string | null>(localStorage.getItem('cuadre_bt_printer_name') || null);
   isPrinting = signal<boolean>(false);
 
   private bluetoothDevice: any = null;
   private characteristic: any = null;
+  private serialPort: any = null;
+  private serialWriter: any = null;
+
+  /**
+   * Conectar impresora térmica USB directa vía Web Serial API (Chrome/Edge en PC)
+   */
+  async connectUsb(): Promise<boolean> {
+    if (typeof navigator === 'undefined' || !(navigator as any).serial) {
+      throw new Error('Web Serial no está soportado en este navegador. Usa Google Chrome o Microsoft Edge en tu PC.');
+    }
+
+    try {
+      const port = await (navigator as any).serial.requestPort();
+      await port.open({ baudRate: 9600 });
+      this.serialPort = port;
+      this.serialWriter = port.writable.getWriter();
+      this.isUsbConnected.set(true);
+      return true;
+    } catch (err: any) {
+      console.warn('[ThermalPrinter] Web Serial connection failed:', err);
+      this.isUsbConnected.set(false);
+      throw err;
+    }
+  }
+
+  async disconnectUsb(): Promise<void> {
+    try {
+      if (this.serialWriter) {
+        this.serialWriter.releaseLock();
+        this.serialWriter = null;
+      }
+      if (this.serialPort) {
+        await this.serialPort.close();
+        this.serialPort = null;
+      }
+      this.isUsbConnected.set(false);
+    } catch (e) {
+      console.warn('[ThermalPrinter] Error disconnecting USB:', e);
+    }
+  }
 
   /**
    * Emparejar con impresora Bluetooth (ESC/POS 58mm/80mm)
@@ -189,6 +230,25 @@ export class ThermalPrinterService {
   async printTicket(data: TicketData, paperSize: '58mm' | '80mm' = '58mm'): Promise<boolean> {
     const width = paperSize === '80mm' ? 42 : 32;
     const rawText = this.generatePlainTextTicket(data, width);
+
+    // 0. Intentar impresión directa USB Serial si está conectado
+    if (this.serialWriter) {
+      try {
+        this.isPrinting.set(true);
+        const encoder = new TextEncoder();
+        const escInit = new Uint8Array([0x1B, 0x40]); // ESC @ (Reset)
+        const cutPaper = new Uint8Array([0x1D, 0x56, 0x41, 0x10]); // Cut paper
+        await this.serialWriter.write(escInit);
+        const bytes = encoder.encode(rawText);
+        await this.serialWriter.write(bytes);
+        await this.serialWriter.write(cutPaper);
+        this.isPrinting.set(false);
+        return true;
+      } catch (e) {
+        console.warn('[ThermalPrinter] USB Serial print error, falling back:', e);
+        this.isPrinting.set(false);
+      }
+    }
 
     // 1. Intentar impresión Bluetooth directa si está conectado
     if (this.characteristic) {
