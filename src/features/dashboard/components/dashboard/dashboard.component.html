@@ -301,10 +301,10 @@
     <div class="row g-4">
       
       <!-- Left Column: Critical Alarms (Stock Agotado & CxC Vencidas) -->
-      <div class="col-lg-4 col-xl-4">
+      <div class="col-lg-4 col-xl-4 d-flex flex-column gap-4">
         
         <!-- Stock Crítico Panel -->
-        <div *hasModule="'Inventory'" class="card border-0 rounded-4 p-4 mb-4 alarm-panel-card bg-white">
+        <div *hasModule="'Inventory'" class="card border-0 rounded-4 p-4 alarm-panel-card bg-white">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div class="d-flex align-items-center gap-2">
               <div class="rounded-circle p-1.5 bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
@@ -415,7 +415,7 @@
           </div>
 
           @if (activeCashSession(); as session) {
-            <div class="p-3 rounded-3 mb-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+            <div class="p-3.5 rounded-3 mb-3.5" style="background: #f8fafc; border: 1px solid #e2e8f0;">
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="text-secondary small">Caja Registradora</span>
                 <span class="fw-bold text-dark small font-monospace">{{ session.name || 'Caja Principal' }}</span>
