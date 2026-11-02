@@ -2276,53 +2276,93 @@
 <!-- ========================================================================= -->
 @if (isBarcodeSheetModalOpen()) {
   <div class="pos-modal-backdrop" (click)="isBarcodeSheetModalOpen.set(false)">
-    <div class="pos-modal-card" style="max-width: 600px;" (click)="$event.stopPropagation()">
-      <div class="pos-modal-header">
-        <div class="d-flex align-items-center gap-2">
-          <div class="modal-icon-badge success-subtle">📊</div>
+    <div class="pos-modal-card" style="max-width: 620px; width: 95vw; border-radius: 16px;" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="pos-modal-header px-4 py-3 border-bottom d-flex align-items-center justify-content-between" style="background-color: #f8fafc;">
+        <div class="d-flex align-items-center gap-2.5">
+          <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background-color: #eff6ff; color: #2563eb; border: 1px solid #dbeafe;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 5v14"></path>
+              <path d="M8 5v14"></path>
+              <path d="M12 5v14"></path>
+              <path d="M17 5v14"></path>
+              <path d="M21 5v14"></path>
+            </svg>
+          </div>
           <div>
-            <h3 class="pos-modal-title mb-0">Planilla de Códigos de Barra para Imprimir</h3>
-            <span class="pos-modal-subtitle">Descarga o imprime etiquetas autoadhesivas listas para tus productos</span>
+            <h3 class="pos-modal-title mb-0" style="font-size: 16px; font-weight: 700; color: #0f172a;">Planilla de Códigos de Barra</h3>
+            <span class="pos-modal-subtitle" style="font-size: 12px; color: #64748b;">Genera e imprime etiquetas autoadhesivas listas para tus productos</span>
           </div>
         </div>
         <button type="button" class="btn-pos-close" (click)="isBarcodeSheetModalOpen.set(false)" aria-label="Cerrar modal">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
         </button>
       </div>
 
-      <div class="pos-modal-body">
+      <!-- Modal Body -->
+      <div class="pos-modal-body p-4">
         <div class="row g-3">
           <div class="col-md-6">
-            <label class="form-label fw-semibold" for="barcodeFormatSelect">Formato de Salida</label>
+            <label class="form-label small fw-semibold text-secondary mb-1.5 d-flex align-items-center gap-1.5" for="barcodeFormatSelect">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="9" y1="21" x2="9" y2="9"></line>
+              </svg>
+              <span>Formato de Salida</span>
+            </label>
             <select
               id="barcodeFormatSelect"
-              class="form-select"
+              class="form-select fw-medium"
+              style="height: 42px; border-radius: 8px; border-color: #cbd5e1; font-size: 13.5px;"
               [ngModel]="barcodeSheetFormat()"
               (ngModelChange)="barcodeSheetFormat.set($event)"
             >
-              <option value="grid">📄 Planilla A4 / Carta (Stickers Adhesivos)</option>
-              <option value="roll">📜 Rollo Continuo Térmico (58mm / 80mm)</option>
+              <option value="grid">Planilla Carta / A4 (Stickers)</option>
+              <option value="roll">Rollo Térmico Continuo (58 / 80mm)</option>
             </select>
           </div>
+
           <div class="col-md-6">
-            <label class="form-label fw-semibold" for="barcodeFilterSelect">Productos a Incluir</label>
+            <label class="form-label small fw-semibold text-secondary mb-1.5 d-flex align-items-center gap-1.5" for="barcodeFilterSelect">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+              <span>Productos a Incluir</span>
+            </label>
             <select
               id="barcodeFilterSelect"
-              class="form-select"
+              class="form-select fw-medium"
+              style="height: 42px; border-radius: 8px; border-color: #cbd5e1; font-size: 13.5px;"
               [ngModel]="barcodeFilterType()"
               (ngModelChange)="barcodeFilterType.set($event)"
             >
               <option value="all">Todos los productos ({{ products().length }})</option>
-                            <option value="with-barcode">Solo productos con código asignado</option>
+              <option value="with-barcode">Solo productos con código asignado</option>
             </select>
           </div>
+
           <div class="col-12">
-            <div class="p-3 rounded border bg-light">
+            <div class="p-3.5 rounded-3 border" style="background-color: #f8fafc; border-color: #e2e8f0 !important;">
               <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="fw-semibold text-dark">Resumen de Generación:</span>
-                <span class="badge bg-primary fs-6">{{ getBarcodeItemsToExport().length }} etiquetas</span>
+                <div class="d-flex align-items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <span class="fw-bold text-dark small">Resumen de Generación</span>
+                </div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill font-monospace px-2.5 py-1" style="font-size: 12px; font-weight: 700;">
+                  {{ getBarcodeItemsToExport().length }} etiquetas
+                </span>
               </div>
-              <p class="small text-muted mb-0">
+              <p class="small text-secondary mb-0" style="font-size: 12.5px; line-height: 1.55;">
                 Cada etiqueta incluye código de barras en vector SVG de alta resolución, descripción del producto y precio en RD$. Los productos sin código previo recibirán automáticamente un código EAN-13 estándar dominicano.
               </p>
             </div>
@@ -2330,16 +2370,42 @@
         </div>
       </div>
 
-      <div class="pos-modal-footer">
-        <button type="button" class="btn btn-outline-secondary" (click)="isBarcodeSheetModalOpen.set(false)">
+      <!-- Modal Footer -->
+      <div class="pos-modal-footer px-4 py-3 border-top d-flex align-items-center justify-content-between bg-white">
+        <button
+          type="button"
+          class="btn btn-light border fw-semibold px-3.5"
+          style="height: 42px; font-size: 13.5px; border-radius: 8px; color: #475569;"
+          (click)="isBarcodeSheetModalOpen.set(false)"
+        >
           Cerrar
         </button>
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-outline-primary" (click)="printBarcodeSheet()">
-            🖨️ Vista Previa & Imprimir
+        <div class="d-flex align-items-center gap-2">
+          <button
+            type="button"
+            class="btn btn-outline-primary fw-semibold d-inline-flex align-items-center gap-2 px-3.5"
+            style="height: 42px; font-size: 13.5px; border-radius: 8px; border-width: 1.5px;"
+            (click)="printBarcodeSheet()"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            <span>Vista Previa & Imprimir</span>
           </button>
-          <button type="button" class="btn btn-primary fw-semibold" (click)="downloadBarcodeSheetHtml()">
-            ⬇️ Descargar Archivo para Imprenta
+          <button
+            type="button"
+            class="btn fw-semibold text-white d-inline-flex align-items-center gap-2 px-3.5 shadow-sm"
+            style="height: 42px; font-size: 13.5px; border-radius: 8px; background-color: #0f172a; border-color: #0f172a;"
+            (click)="downloadBarcodeSheetHtml()"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Descargar para Imprenta</span>
           </button>
         </div>
       </div>
