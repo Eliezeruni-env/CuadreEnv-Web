@@ -3702,55 +3702,61 @@
   <!-- ======================================================== -->
   @if (isLogoutConfirmModalOpen()) {
     <div class="custom-modal-backdrop fade-in" (click)="cancelLogout()">
-      <div class="custom-modal-content rounded-4 overflow-hidden shadow-lg" style="max-width: 90vw; width: 380px; margin: auto;" (click)="$event.stopPropagation()">
+      <div class="custom-modal-content rounded-4 overflow-hidden shadow-lg" style="max-width: 90vw; width: 390px; margin: auto;" (click)="$event.stopPropagation()">
         <!-- Header -->
-        <div class="p-3.5 d-flex align-items-center justify-content-between border-bottom" [ngStyle]="{'background': hasPendingChangesOnLogout() ? '#fff1f2' : '#f8fafc'}">
+        <div class="px-4 py-3.5 d-flex align-items-center justify-content-between border-bottom" [ngStyle]="{'background': hasPendingChangesOnLogout() ? '#fff1f2' : '#f8fafc'}">
           <div class="d-flex align-items-center gap-2.5">
-            <div class="rounded-circle d-flex align-items-center justify-content-center p-2" [ngClass]="hasPendingChangesOnLogout() ? 'bg-danger text-white' : 'bg-warning-subtle text-warning-emphasis'" style="width: 36px; height: 36px;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <div class="rounded-circle d-flex align-items-center justify-content-center p-2 flex-shrink-0" [ngClass]="hasPendingChangesOnLogout() ? 'bg-danger text-white' : 'bg-warning-subtle text-warning-emphasis'" style="width: 38px; height: 38px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                 <line x1="12" y1="9" x2="12" y2="13"/>
                 <line x1="12" y1="17" x2="12.01" y2="17"/>
               </svg>
             </div>
             <div>
-              <h6 class="mb-0 fw-bold" [ngClass]="hasPendingChangesOnLogout() ? 'text-danger' : 'text-dark'">
+              <h6 class="mb-0 fw-bold" style="font-size: 0.95rem;" [ngClass]="hasPendingChangesOnLogout() ? 'text-danger' : 'text-dark'">
                 {{ hasPendingChangesOnLogout() ? '¿Cerrar con cambios pendientes?' : '¿Cerrar sesión en terminal?' }}
               </h6>
-              <small class="text-secondary" style="font-size: 0.75rem;">Terminal POS Móvil</small>
+              <span class="text-secondary small" style="font-size: 0.75rem;">Terminal POS Móvil</span>
             </div>
           </div>
           <button type="button" class="btn-close" (click)="cancelLogout()" aria-label="Cerrar modal"></button>
         </div>
 
         <!-- Body -->
-        <div class="p-3.5">
+        <div class="px-4 py-3.5">
           @if (hasPendingChangesOnLogout()) {
-            <div class="p-3 rounded-3 mb-3 border border-danger-subtle" style="background-color: #fff5f5;">
+            <div class="p-3 rounded-3 mb-3 border border-danger-subtle" style="background-color: #fef2f2;">
               <div class="d-flex align-items-center gap-1.5 fw-bold text-danger small mb-1.5">
-                <span>⚠️ Hay operaciones activas sin completar:</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span>Operaciones activas sin completar:</span>
               </div>
-              <ul class="mb-0 ps-3 small text-danger-emphasis" style="font-size: 0.8rem; line-height: 1.45;">
+              <ul class="mb-0 ps-3 small text-dark" style="font-size: 0.85rem; line-height: 1.5;">
                 @for (reason of pendingChangesReasons(); track reason) {
-                  <li class="mb-1"><strong>{{ reason }}</strong></li>
+                  <li class="mb-1 fw-semibold text-danger-emphasis">{{ reason }}</li>
                 }
               </ul>
             </div>
-            <p class="small text-muted mb-0" style="font-size: 0.82rem;">
-              Si cierras la sesión ahora, el carrito actual o las ventas en espera no confirmadas podrían no conservarse. ¿Deseas salir de todos modos?
+            <p class="mb-0 fw-normal" style="font-size: 0.875rem; color: #334155; line-height: 1.55;">
+              Si cierras la sesión ahora, el carrito actual o las ventas en espera no confirmadas podrían no conservarse. <strong>¿Deseas salir de todos modos?</strong>
             </p>
           } @else {
-            <p class="small text-secondary mb-0" style="font-size: 0.85rem;">
+            <p class="mb-0 fw-normal" style="font-size: 0.875rem; color: #334155; line-height: 1.55;">
               ¿Estás seguro de que deseas salir del Punto de Venta Móvil? Tu terminal se bloqueará y se requerirán tus credenciales para volver a ingresar.
             </p>
           }
         </div>
 
         <!-- Footer Actions -->
-        <div class="p-3 border-top bg-light d-flex flex-column gap-2">
+        <div class="p-3.5 border-top bg-light d-flex flex-column gap-2.5">
           <button
             type="button"
-            class="btn btn-danger btn-48 w-100 fw-bold d-flex align-items-center justify-content-center gap-2 rounded-3 shadow-sm"
+            class="btn w-100 fw-bold d-flex align-items-center justify-content-center gap-2 rounded-3 text-white shadow-sm"
+            style="background-color: #dc2626; border: 1px solid #b91c1c; height: 46px; font-size: 0.9rem;"
             (click)="confirmLogout()"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -3762,7 +3768,8 @@
           </button>
           <button
             type="button"
-            class="btn btn-outline-secondary btn-44 w-100 fw-semibold rounded-3"
+            class="btn w-100 fw-bold rounded-3"
+            style="background-color: #ffffff; border: 1.5px solid #cbd5e1; color: #1e293b; height: 44px; font-size: 0.9rem;"
             (click)="cancelLogout()"
           >
             Continuar trabajando
