@@ -932,19 +932,19 @@
                 <div style="display: flex; gap: 8px;">
                   <div style="flex: 1;">
                     <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">Tipo Tarjeta</label>
-                    <select class="pos-category-select" style="width: 100%; height: 40px;" [ngModel]="cardType()" (ngModelChange)="cardType.set($event)">
+                    <select class="pos-select-control" [ngModel]="cardType()" (ngModelChange)="cardType.set($event)">
                       <option value="DEBIT">Tarjeta Débito</option>
                       <option value="CREDIT">Tarjeta Crédito</option>
                     </select>
                   </div>
                   <div style="flex: 1;">
                     <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">Últimos 4 Dígitos</label>
-                    <input type="text" maxlength="4" placeholder="Ej. 4281" style="height: 40px; border: 1px solid var(--cuadre-border-input); border-radius: 10px; padding: 0 10px; width: 100%; box-sizing: border-box; font-variant-numeric: tabular-nums; text-align: center;" [(ngModel)]="cardLastFour" />
+                    <input type="text" maxlength="4" placeholder="Ej. 4281" class="pos-form-control" style="font-variant-numeric: tabular-nums; text-align: center;" [(ngModel)]="cardLastFour" />
                   </div>
                 </div>
                 <div>
                   <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">No. Autorización / Voucher</label>
-                  <input type="text" placeholder="Ej. 091823" style="height: 40px; border: 1px solid var(--cuadre-border-input); border-radius: 10px; padding: 0 10px; width: 100%; box-sizing: border-box;" [(ngModel)]="cardAuthVoucher" />
+                  <input type="text" placeholder="Ej. 091823" class="pos-form-control" [(ngModel)]="cardAuthVoucher" />
                 </div>
               </div>
             }
@@ -1205,7 +1205,7 @@
 
               <div>
                 <label style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">Seleccionar Cliente</label>
-                <select class="pos-category-select" style="width: 100%; height: 40px; margin-bottom: 8px;" [(ngModel)]="selectedCustomerId">
+                <select class="pos-select-control" style="margin-bottom: 8px;" [(ngModel)]="selectedCustomerId">
                   <option [ngValue]="null">Consumidor final</option>
                   @for (c of customers(); track c.id) {
                     <option [ngValue]="c.id">

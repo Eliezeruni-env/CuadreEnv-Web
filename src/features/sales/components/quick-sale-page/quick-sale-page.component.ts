@@ -2193,7 +2193,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     const available = this.getProductAvailableStock(product.id!);
-    if (available <= 0) {
+    if (available <= 0 && !product.invoiceWithoutStock) {
       const whName =
         this.warehouses().find((w) => w.id === this.selectedWarehouseId())
           ?.name || 'este almacén';
@@ -2779,8 +2779,10 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     if (event.key === 'Enter') {
       event.preventDefault();
       event.stopPropagation();
-      const rawTerm = (this.catalogSearchTerm() || '').trim();
+      const inputEl = event.target as HTMLInputElement;
+      const rawTerm = (inputEl?.value || this.catalogSearchTerm() || '').trim();
       if (!rawTerm) return;
+      if (inputEl) inputEl.value = '';
       this.catalogSearchTerm.set('');
       void this.handleScannedBarcode(rawTerm, false);
     }
