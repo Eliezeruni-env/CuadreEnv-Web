@@ -1906,3 +1906,101 @@
 
 
 
+
+/* ==========================================================================
+   Global Stepper Button Styles (Used in Product Catalog & Cart Modal)
+   ========================================================================== */
+.btn-stepper-outline {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px !important;
+  border: 1px solid var(--cuadre-border-input, #CBD5E1) !important;
+  background-color: #F8FAFC !important;
+  color: var(--cuadre-text-body, #1E293B) !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  transition: all 0.15s ease !important;
+  outline: none !important;
+
+  &:hover {
+    background-color: #E2E8F0 !important;
+    border-color: #94A3B8 !important;
+  }
+
+  &:active {
+    background-color: #CBD5E1 !important;
+    transform: scale(0.92) !important;
+  }
+
+  &:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+  }
+}
+
+.btn-stepper-blue {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px !important;
+  border: none !important;
+  background-color: var(--cuadre-color-primary, #2563EB) !important;
+  color: #FFFFFF !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25) !important;
+  transition: all 0.15s ease !important;
+  outline: none !important;
+
+  &:hover {
+    background-color: var(--cuadre-color-primary-hover, #1D4ED8) !important;
+  }
+
+  &:active {
+    transform: scale(0.92) !important;
+  }
+
+  &:disabled {
+    background-color: #F1F5F9 !important;
+    color: #94A3B8 !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+  }
+}
+
+.stepper-quantity {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: var(--cuadre-text-main, #0F172A) !important;
+  min-width: 26px !important;
+  text-align: center !important;
+  user-select: none !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+[data-coreui-theme='dark'] {
+  .btn-stepper-outline {
+    background-color: #1E293B !important;
+    border-color: #475569 !important;
+    color: #F8FAFC !important;
+
+    &:hover {
+      background-color: #334155 !important;
+    }
+  }
+
+  .stepper-quantity {
+    color: #F8FAFC !important;
+  }
+}
