@@ -169,43 +169,71 @@
               </div>
             </div>
 
-            <!-- 6. Opciones Avanzadas (Colapsable / Acordeón) -->
-            <details class="border rounded-3 p-3 bg-light-subtle mb-3">
-              <summary class="fw-bold text-dark cursor-pointer user-select-none d-flex align-items-center justify-content-between">
-                <span>⚙️ Opciones Adicionales (Foto, Stock Mínimo, Granel, Empaque)</span>
-                <span class="small text-muted fw-normal">Opcional ▾</span>
-              </summary>
-              <div class="pt-3 border-top mt-2">
-                <!-- Foto del Producto -->
-                <div class="p-3 mb-3 bg-white rounded-3 border">
-                  <label class="small fw-bold text-secondary mb-2 d-flex align-items-center gap-1.5">
+            <!-- 6. Opciones Avanzadas (Colapsable / Acordeón Moderno) -->
+            <details class="prod-accordion mb-3">
+              <summary class="prod-accordion-header">
+                <div class="d-flex align-items-center gap-2.5">
+                  <div class="prod-accordion-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                      <circle cx="12" cy="13" r="4"></circle>
+                      <line x1="4" y1="21" x2="4" y2="14"></line>
+                      <line x1="4" y1="10" x2="4" y2="3"></line>
+                      <line x1="12" y1="21" x2="12" y2="12"></line>
+                      <line x1="12" y1="8" x2="12" y2="3"></line>
+                      <line x1="20" y1="21" x2="20" y2="16"></line>
+                      <line x1="20" y1="12" x2="20" y2="3"></line>
+                      <line x1="1" y1="14" x2="7" y2="14"></line>
+                      <line x1="9" y1="8" x2="15" y2="8"></line>
+                      <line x1="17" y1="16" x2="23" y2="16"></line>
                     </svg>
-                    <span>Foto del Producto</span>
-                  </label>
-                  <div class="d-flex align-items-center gap-3 flex-wrap">
+                  </div>
+                  <div>
+                    <div class="prod-accordion-title">Opciones Adicionales</div>
+                    <div class="prod-accordion-subtitle">Foto, alertas de stock, venta a granel y empaques</div>
+                  </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="prod-accordion-badge">Opcional</span>
+                  <svg class="prod-accordion-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+              </summary>
+
+              <div class="prod-accordion-body">
+                <!-- Foto del Producto -->
+                <div class="prod-subcard mb-3">
+                  <div class="prod-subcard-header mb-2.5">
+                    <div class="d-flex align-items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                      </svg>
+                      <span class="fw-semibold text-dark small">Foto del Producto</span>
+                    </div>
+                  </div>
+
+                  <div class="d-flex align-items-center gap-3">
                     @if (productForm.get('imageUrl')?.value) {
-                      <div class="position-relative" style="width: 70px; height: 70px;">
+                      <div class="prod-photo-preview position-relative">
                         <img
                           [src]="productForm.get('imageUrl')?.value"
                           alt="Vista previa"
-                          class="rounded-3 border shadow-xs"
-                          style="width: 70px; height: 70px; object-fit: cover;"
                         />
                         <button
                           type="button"
-                          class="btn btn-sm btn-danger position-absolute top-0 end-0 translate-middle rounded-circle p-0 d-flex align-items-center justify-content-center"
-                          style="width: 20px; height: 20px;"
+                          class="prod-photo-delete-btn"
                           (click)="removePhoto()"
                           title="Eliminar foto"
                         >
-                          ✕
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
                         </button>
                       </div>
                     }
-                    <div>
+
+                    <div class="flex-grow-1">
                       <input
                         type="file"
                         accept="image/*"
@@ -213,86 +241,135 @@
                         class="d-none"
                         (change)="onPhotoSelected($event)"
                       />
-                      <label for="productPhotoInput" class="btn btn-sm btn-outline-primary fw-semibold cursor-pointer mb-0">
-                        📷 {{ productForm.get('imageUrl')?.value ? 'Cambiar Foto' : 'Subir Foto' }}
+                      <label for="productPhotoInput" class="btn btn-sm btn-outline-primary fw-semibold cursor-pointer d-inline-flex align-items-center gap-1.5 mb-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                          <polyline points="17 8 12 3 7 8"></polyline>
+                          <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span>{{ productForm.get('imageUrl')?.value ? 'Cambiar Imagen' : 'Subir Imagen' }}</span>
                       </label>
-                      <div class="text-muted small mt-1" style="font-size: 11px;">
-                        Formatos JPG, PNG o WebP (Máx 5MB).
+                      <div class="text-muted small" style="font-size: 11.5px;">
+                        Formatos JPG, PNG o WebP (Máximo 5MB).
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <!-- Stock Mínimo y Fecha de Vencimiento -->
-                <c-row>
-                  <c-col md="6" class="mb-3">
-                    <label class="small fw-semibold text-secondary mb-1">{{ translationService.t('products.modal.minStockLabel') }}</label>
+                <c-row class="g-2.5 mb-3">
+                  <c-col md="6">
+                    <label class="small fw-semibold text-secondary mb-1 d-flex align-items-center gap-1.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                      <span>{{ translationService.t('products.modal.minStockLabel') }}</span>
+                    </label>
                     <input formControlName="minimumQuantity" type="number" cFormControl placeholder="Alerta si queda menos de..." />
                   </c-col>
-                  <c-col md="6" class="mb-3">
-                    <label class="small fw-semibold text-secondary mb-1">Fecha de Vencimiento (opcional)</label>
+
+                  <c-col md="6">
+                    <label class="small fw-semibold text-secondary mb-1 d-flex align-items-center gap-1.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                      <span>Fecha de Vencimiento</span>
+                    </label>
                     <input formControlName="expirationDate" type="date" cFormControl />
                   </c-col>
                 </c-row>
 
-                <!-- Permitir facturar sin existencia -->
-                <div class="form-check mb-3">
-                  <input class="form-check-input" type="checkbox" id="invoiceWithoutStock" formControlName="invoiceWithoutStock">
-                  <label class="form-check-label small fw-semibold text-secondary" for="invoiceWithoutStock">
-                    Permitir facturar sin existencia (Stock)
-                  </label>
+                <!-- Permitir facturar sin existencia (Stock) -->
+                <div class="prod-toggle-row mb-3">
+                  <div class="form-check form-switch m-0 d-flex align-items-center gap-2.5">
+                    <input class="form-check-input cursor-pointer fs-5 m-0" type="checkbox" id="invoiceWithoutStock" formControlName="invoiceWithoutStock">
+                    <label class="form-check-label cursor-pointer user-select-none" for="invoiceWithoutStock">
+                      <span class="fw-semibold text-dark small d-block">Permitir facturar sin existencia</span>
+                      <span class="text-muted small" style="font-size: 11.5px;">Permite vender en caja aunque el inventario esté en cero o negativo.</span>
+                    </label>
+                  </div>
                 </div>
 
                 <!-- Venta al Detalle / Fraccionada (Granel) -->
-                <div class="form-check p-3 mb-3 bg-white rounded-3 border ms-0">
-                  <input class="form-check-input ms-0 me-2" type="checkbox" id="allowFractionalCheck" formControlName="allowFractional">
-                  <label class="form-check-label small fw-bold text-dark cursor-pointer" for="allowFractionalCheck">
-                    ⚖️ Permitir Venta al Detalle Fraccionada (Por Pesos RD$ o por Libras / Fracción)
-                  </label>
-                  <div class="text-secondary small mt-1 ms-4" style="font-size: 11px;">
-                    Permite vender cualquier porción en caja registradora (ej. RD$ 15 de azúcar o 0.5 lb de queso).
+                <div class="prod-subcard mb-3" [class.prod-subcard-active]="productForm.get('allowFractional')?.value">
+                  <div class="d-flex align-items-start justify-content-between gap-3">
+                    <div class="d-flex align-items-start gap-2.5">
+                      <div class="prod-feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="12" y1="3" x2="12" y2="21"></line>
+                          <path d="M4 7l8-4 8 4"></path>
+                          <path d="M6 18H2v-4l4-2 4 2v4H6z"></path>
+                          <path d="M22 18h-4v-4l4-2 4 2v4h-4z"></path>
+                        </svg>
+                      </div>
+                      <div>
+                        <label class="fw-bold text-dark small mb-0.5 cursor-pointer d-block" for="allowFractionalCheck">
+                          Venta al Detalle Fraccionada (Granel / Por Pesos RD$)
+                        </label>
+                        <div class="text-muted small" style="font-size: 11.5px;">
+                          Permite vender cualquier fracción o monto libre en el punto de venta (ej. RD$ 25 de azúcar o 0.5 lb de queso).
+                        </div>
+                      </div>
+                    </div>
+                    <div class="form-check form-switch fs-5 m-0 flex-shrink-0">
+                      <input class="form-check-input cursor-pointer" type="checkbox" id="allowFractionalCheck" formControlName="allowFractional">
+                    </div>
                   </div>
                 </div>
 
                 <!-- Empaque Mayor / Saco / Caja -->
-                <div class="card border border-primary-subtle bg-white rounded-3 p-3 mb-2">
-                  <div class="d-flex align-items-center justify-content-between mb-2">
-                    <div>
-                      <div class="fw-bold text-dark d-flex align-items-center gap-2">
-                        <span>Empaque Mayor / Saco / Caja</span>
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">Conversión</span>
+                <div class="prod-subcard mb-1" [class.prod-subcard-active]="productForm.get('hasPackaging')?.value">
+                  <div class="d-flex align-items-start justify-content-between gap-3">
+                    <div class="d-flex align-items-start gap-2.5">
+                      <div class="prod-feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                        </svg>
                       </div>
-                      <div class="text-muted small" style="font-size: 12px;">
-                        Permite vender por caja/saco y descontar unidades automáticamente de inventario.
+                      <div>
+                        <div class="d-flex align-items-center gap-2 mb-0.5">
+                          <span class="fw-bold text-dark small">Empaque Mayor (Saco / Caja / Bulto)</span>
+                          <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-medium" style="font-size: 10px;">Conversión</span>
+                        </div>
+                        <div class="text-muted small" style="font-size: 11.5px;">
+                          Permite vender empaques completos al por mayor y descontar las unidades equivalentes del stock.
+                        </div>
                       </div>
                     </div>
-                    <div class="form-check form-switch fs-5 m-0">
-                      <input class="form-check-input" type="checkbox" id="hasPackagingSwitch" formControlName="hasPackaging">
+                    <div class="form-check form-switch fs-5 m-0 flex-shrink-0">
+                      <input class="form-check-input cursor-pointer" type="checkbox" id="hasPackagingSwitch" formControlName="hasPackaging">
                     </div>
                   </div>
 
                   @if (productForm.get('hasPackaging')?.value) {
-                    <div class="border-top pt-3 mt-2">
-                      <c-row>
-                        <c-col md="4" class="mb-3">
+                    <div class="prod-packaging-fields pt-3 mt-3 border-top">
+                      <c-row class="g-2.5">
+                        <c-col md="4">
                           <label class="small fw-semibold text-secondary mb-1">Nombre del Empaque *</label>
-                          <input formControlName="packageUnitName" cFormControl placeholder="ej: Saco, Caja, Fardo" />
+                          <input formControlName="packageUnitName" cFormControl placeholder="ej: Saco, Caja, Bulto" />
                         </c-col>
 
-                        <c-col md="4" class="mb-3">
+                        <c-col md="4">
                           <label class="small fw-semibold text-secondary mb-1">
-                            Contenido por Empaque (en {{ getSelectedUnitSymbol() }}) *
+                            Contenido (en {{ getSelectedUnitSymbol() }}) *
                           </label>
                           <input formControlName="packageUnitsCount" type="number" step="any" cFormControl placeholder="ej: 100" />
-                          <div class="form-text small">
+                          <div class="text-muted small mt-1" style="font-size: 11px;">
                             1 {{ productForm.get('packageUnitName')?.value || 'Empaque' }} = {{ productForm.get('packageUnitsCount')?.value || 1 }} {{ getSelectedUnitSymbol() }}
                           </div>
                         </c-col>
 
-                        <c-col md="4" class="mb-3">
+                        <c-col md="4">
                           <label class="small fw-semibold text-secondary mb-1">Precio por Empaque Completo</label>
                           <div class="input-group">
-                            <span class="input-group-text">RD$</span>
+                            <span class="input-group-text bg-light text-muted small">RD$</span>
                             <input formControlName="packagePrice" type="number" step="any" cFormControl placeholder="0.00" />
                           </div>
                         </c-col>
