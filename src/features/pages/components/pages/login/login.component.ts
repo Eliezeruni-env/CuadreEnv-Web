@@ -1,4 +1,4 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -34,7 +34,23 @@ function getStableDeviceId(): string {
     RouterLink,
   ],
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
+  ngOnInit(): void {
+    if (typeof window !== 'undefined') {
+      const isPwa =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (navigator as any).standalone === true ||
+        window.location.search.includes('source=pwa') ||
+        window.location.search.includes('pwa=true');
+      const isMobile =
+        window.innerWidth <= 768 ||
+        /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent.toLowerCase());
+      const forceDesktop = this.route.snapshot.queryParamMap.get('view') === 'desktop';
+      if ((isPwa || isMobile) && !forceDesktop) {
+        this.router.navigate(['/mobile']);
+      }
+    }
+  }
   readonly translationService = inject(TranslationService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);

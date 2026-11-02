@@ -10,6 +10,21 @@ export const authGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
 
   const redirectLogin = () => {
+    const isPwaOrMobile =
+      typeof window !== 'undefined' &&
+      (window.matchMedia('(display-mode: standalone)').matches ||
+        (navigator as any).standalone === true ||
+        window.location.search.includes('source=pwa') ||
+        window.location.search.includes('pwa=true') ||
+        window.innerWidth <= 768 ||
+        /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent.toLowerCase()) ||
+        sessionStorage.getItem('cuadre_mobile_session_active') === 'true');
+
+    if (isPwaOrMobile) {
+      router.navigate(['/mobile']);
+      return false;
+    }
+
     const returnUrl = state?.url && !state.url.includes('/login') ? state.url : '/dashboard';
     router.navigate(['/login'], { queryParams: { returnUrl } });
     return false;

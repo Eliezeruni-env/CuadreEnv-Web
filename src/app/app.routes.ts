@@ -17,7 +17,9 @@ export const rootRedirectGuard: CanActivateFn = () => {
         navigator.userAgent.toLowerCase(),
       ) ||
       window.matchMedia('(display-mode: standalone)').matches ||
-      (navigator as any).standalone === true);
+      (navigator as any).standalone === true ||
+      window.location.search.includes('source=pwa') ||
+      window.location.search.includes('pwa=true'));
 
   if (isMobile) {
     router.navigate(['/mobile']);
