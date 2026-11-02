@@ -10,6 +10,7 @@ export interface ProductFilters {
   minCost?: number;
   maxCost?: number;
   excludeServices?: boolean;
+  categoryId?: number;
 }
 
 export interface PagedProductsResponse extends PagedResult<ProductDto> {
@@ -137,6 +138,9 @@ export class ProductService {
     if (filters?.maxCost !== undefined && filters?.maxCost !== null) {
       params = params.set('maxCost', filters.maxCost.toString());
     }
+    if (filters?.categoryId !== undefined && filters?.categoryId !== null && Number(filters.categoryId) > 0) {
+      params = params.set('categoryId', filters.categoryId.toString());
+    }
 
     const url = `${this.baseUrl}/product/paged`;
 
@@ -235,6 +239,7 @@ export class ProductService {
     minCost?: number,
     maxCost?: number,
     excludeServices = false,
+    categoryId?: number,
   ): Promise<ApiResponse<PagedProductsResponse>> {
     const validSize = Math.min(100, Math.max(1, pageSize || 10));
     const activeCompanyId = Number(getCompanyId()) || 0;
@@ -245,6 +250,7 @@ export class ProductService {
           minCost,
           maxCost,
           excludeServices,
+          categoryId,
         })
       );
     } catch {

@@ -212,7 +212,7 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   // 6. Generador de Planilla de Códigos de Barra
   isBarcodeSheetModalOpen = signal<boolean>(false);
   barcodeSheetFormat = signal<'grid' | 'roll'>('grid');
-  barcodeFilterType = signal<'all' | 'with-barcode' | 'favorites'>('all');
+  barcodeFilterType = signal<'all' | 'with-barcode'>('all');
 
   // Warehouse isolation
   warehouses = signal<Warehouse[]>([]);
@@ -518,7 +518,6 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
   categories = signal<{ id: number | null; label: string }[]>([
     { id: null, label: 'Todos' },
-    { id: -1, label: '⭐ Favoritos' },
   ]);
 
   // Session info & Cash Register Guard
@@ -715,39 +714,30 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       }
 
       if (cat !== null) {
-        if (cat === -1) {
-          const favIds = new Set(this.favoriteProducts().map((f) => f.id));
-          if (!favIds.has(p.id)) {
-            return false;
-          }
-        } else {
-          const prodCatId =
-            p.categoryId ??
-            (p as any).category?.id ??
-            (p as any).productCategoryId;
-          const prodTypeId = p.productTypeId;
-          const catNum = Number(cat);
-          const selectedCatObj = this.categories().find((c) => c.id === cat);
-          const selectedLabel = (selectedCatObj?.label || '')
-            .toLowerCase()
-            .trim();
-          const prodCatName = (
-            p.categoryName ||
-            (p as any).category?.description ||
-            (p as any).category?.name ||
-            ''
-          )
-            .toLowerCase()
-            .trim();
+        const prodCatId =
+          p.categoryId ??
+          (p as any).category?.id ??
+          (p as any).productCategoryId;
+        const catNum = Number(cat);
+        const selectedCatObj = this.categories().find((c) => c.id === cat);
+        const selectedLabel = (selectedCatObj?.label || '')
+          .toLowerCase()
+          .trim();
+        const prodCatName = (
+          p.categoryName ||
+          (p as any).category?.description ||
+          (p as any).category?.name ||
+          ''
+        )
+          .toLowerCase()
+          .trim();
 
-          const matchesCat =
-            (prodCatId != null && Number(prodCatId) === catNum) ||
-            (prodTypeId != null && Number(prodTypeId) === catNum) ||
-            (selectedLabel !== '' && prodCatName === selectedLabel);
+        const matchesCat =
+          (prodCatId != null && Number(prodCatId) === catNum) ||
+          (selectedLabel !== '' && (prodCatName === selectedLabel || prodCatName.includes(selectedLabel) || selectedLabel.includes(prodCatName)));
 
-          if (!matchesCat) {
-            return false;
-          }
+        if (!matchesCat) {
+          return false;
         }
       }
       if (term) {
@@ -1507,10 +1497,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   getBarcodeItemsToExport(): BarcodePrintItem[] {
     const filter = this.barcodeFilterType();
     let prods = this.products().filter((p) => !this.isServiceItem(p));
-    if (filter === 'favorites') {
-      const favIds = new Set(this.favoriteProducts().map((f) => f.id));
-      prods = prods.filter((p) => favIds.has(p.id));
-    } else if (filter === 'with-barcode') {
+    if (filter === 'with-barcode') {
       prods = prods.filter((p) => Boolean(p.barcode || p.reference));
     }
 
@@ -1684,8 +1671,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         const catId =
           p.categoryId ??
           p.category?.id ??
-          p.productCategoryId ??
-          p.productTypeId;
+          p.productCategoryId;
         const catName =
           p.categoryName ?? p.category?.description ?? p.category?.name;
         if (catName && catName.toLowerCase().includes('serv')) return;
@@ -1700,7 +1686,6 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       const dynamicCats = Array.from(catMap.values());
       this.categories.set([
         { id: null, label: 'Todos' },
-        { id: -1, label: '⭐ Favoritos' },
         ...dynamicCats,
       ]);
 
@@ -1810,13 +1795,28 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
   }
 
-  setCategory(catId: number | null) {
-    if (this.selectedCategory() === catId) {
-      this.selectedCategory.set(null);
-    } else {
-      this.selectedCategory.set(catId);
-    }
+  async setCategory(catId: number | null) {
+    this.selectedCategory.set(catId);
     this.catalogPage.set(1);
+    if (catId != null && catId > 0) {
+      await this.fetchProductsForCategory(catId);
+    }
+  }
+
+  private async fetchProductsForCategory(catId: number) {
+    try {
+      const res = await this.productService.getPagedProducts(1, 100, undefined, undefined, undefined, false, catId);
+      const items = res?.data?.items || (Array.isArray(res?.data) ? res.data : []);
+      if (items.length > 0) {
+        const current = [...this.products()];
+        const map = new Map<number, ProductDto>();
+        current.forEach((p) => { if (p.id) map.set(p.id, p); });
+        items.forEach((p: any) => { if (p.id) map.set(p.id, p); });
+        this.products.set(Array.from(map.values()));
+      }
+    } catch (e) {
+      console.warn('Could not fetch products for category:', e);
+    }
   }
 
   prevCatalogPage() {

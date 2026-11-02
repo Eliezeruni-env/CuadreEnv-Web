@@ -433,31 +433,7 @@
             </div>
           </div>
 
-          <!-- ⭐ FILA DE FAVORITOS / PRODUCTOS ESTRELLA (1 TOQUE) -->
-          @if (favoriteProducts().length > 0) {
-            <div class="pos-favorites-bar">
-              <div class="pos-favorites-header">
-                <span class="pos-favorites-badge">
-                  <span>Favoritos / Más Vendidos (1 Toque)</span>
-                </span>
-                <span class="pos-favorites-hint">Toca para agregar directo al carrito</span>
-              </div>
-              <div class="pos-favorites-pills-row">
-                @for (fav of favoriteProducts(); track fav.id) {
-                  <button
-                    type="button"
-                    class="fav-pill-btn"
-                    (click)="addProductToCart(fav)"
-                    [title]="'Agregar ' + fav.description + ' - RD$ ' + ((fav.cost || 100) | number:'1.2-2')"
-                  >
-                    <span class="fav-pill-star">⭐</span>
-                    <span class="fav-pill-name">{{ fav.description }}</span>
-                    <span class="fav-pill-price">RD$ {{ (fav.cost || 100) | number:'1.0-0' }}</span>
-                  </button>
-                }
-              </div>
-            </div>
-          }
+          
 
           <div class="catalog-grid">
             @if (isLoadingProducts()) {
@@ -470,18 +446,7 @@
                 <div class="product-flat-card" (click)="addProductToCart(prod)">
                   <div class="product-card-top">
                     <div class="product-card-top-left">
-                      <button
-                        type="button"
-                        class="btn-pos-star"
-                        [class.active]="isFavoriteProduct(prod.id!)"
-                        (click)="$event.stopPropagation(); toggleFavoriteProduct(prod.id!, $event)"
-                        [title]="isFavoriteProduct(prod.id!) ? 'Quitar de Favoritos Estrella' : 'Fijar en Favoritos / Estrella'"
-                        aria-label="Favorito"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" [attr.fill]="isFavoriteProduct(prod.id!) ? '#f59e0b' : 'none'" [attr.stroke]="isFavoriteProduct(prod.id!) ? '#d97706' : '#94a3b8'" stroke-width="2">
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                        </svg>
-                      </button>
+                      
                       <span class="product-sku-tag" [title]="prod.barcode || prod.reference || 'SKU-' + prod.id">
                         {{ prod.barcode || prod.reference || 'SKU-' + prod.id }}
                       </span>
@@ -2348,8 +2313,7 @@
               (ngModelChange)="barcodeFilterType.set($event)"
             >
               <option value="all">Todos los productos ({{ products().length }})</option>
-              <option value="favorites">Solo Favoritos Estrella ({{ favoriteProducts().length }})</option>
-              <option value="with-barcode">Solo productos con código asignado</option>
+                            <option value="with-barcode">Solo productos con código asignado</option>
             </select>
           </div>
           <div class="col-12">
