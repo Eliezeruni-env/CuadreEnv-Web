@@ -6,6 +6,7 @@ import {
   inject,
   signal,
   computed,
+  effect,
   ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -806,6 +807,44 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     }
   };
 
+  constructor() {
+    effect(() => {
+      const items = this.cart();
+      if (items.length > 0) {
+        this.syncActiveDraft();
+      } else {
+        this.draftStorageService.clearActiveDraft();
+      }
+    });
+  }
+
+  private syncActiveDraft(): void {
+    const items = this.cart();
+    if (items.length === 0) {
+      this.draftStorageService.clearActiveDraft();
+      return;
+    }
+    const draftItems: PosDraftItem[] = items.map((i) => ({
+      productId: Number(i.product.id || 0),
+      productCode: String(i.product.barcode || (i.product as any).code || i.product.reference || ''),
+      productName: i.product.description || (i.product as any).name || 'Producto',
+      unitPrice: i.unitPrice,
+      quantity: i.quantity,
+      total: i.total,
+    }));
+    const custName = this.customerName() || 'Consumidor Final';
+    this.draftStorageService.saveActiveDraft({
+      customerId: this.selectedCustomerId(),
+      customerName: custName,
+      items: draftItems,
+      discountType: 'fixed',
+      discountValue: 0,
+      selectedMethod: this.selectedMethod(),
+      amountReceived: 0,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   ngOnInit(): void {
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => this.isOnline.set(true));
@@ -862,6 +901,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     this.loadCatalog();
     this.loadServicesCatalog();
     this.loadFiaoList();
+    this.restoreActiveDraftIfAny();
   }
 
   async loginMobile(): Promise<void> {
@@ -1833,7 +1873,40 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     }
   }
 
+  private restoreActiveDraftIfAny(): void {
+    if (this.cart().length > 0) return;
+    const draft = this.draftStorageService.getActiveDraft();
+    if (!draft || !draft.items || draft.items.length === 0) return;
+    const restoredCart: MobileCartItem[] = draft.items.map((it) => {
+      const matchingProd = this.products().find((p) => Number(p.id) === it.productId);
+      const prod: ProductDto = matchingProd || ({
+        id: it.productId,
+        description: it.productName,
+        price: it.unitPrice,
+        barcode: it.productCode,
+        reference: it.productCode,
+        taxRate: 0.18,
+        stock: 999,
+      } as any);
+      const subtotal = Math.round(it.quantity * it.unitPrice * 100) / 100;
+      const itbis = Math.round(subtotal * (prod.taxRate ?? 0.18) * 100) / 100;
+      const total = Math.round((subtotal + itbis) * 100) / 100;
+      return {
+        product: prod,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+        subtotal,
+        itbis,
+        total,
+        unitSymbol: 'und',
+        allowsDecimals: false,
+      };
+    });
+    this.cart.set(restoredCart);
+  }
+
   clearCart(): void {
+    this.draftStorageService.clearActiveDraft();
     this.cart.set([]);
     this.cartDiscountType.set('none');
     this.cartDiscountValue.set(0);

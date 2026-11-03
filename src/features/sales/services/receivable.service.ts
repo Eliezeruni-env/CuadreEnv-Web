@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { ApiClientService, extractArray } from '../../cuadreEnv/services/apiClient';
+import { ApiClientService, extractArray, getCompanyId } from '../../cuadreEnv/services/apiClient';
 import { CustomerService } from '../../customers/services/customer.service';
 import { CashRegisterService } from '../../cash-register/services/cash-register.service';
 import { WarehouseOutletService } from '../../inventory/services/warehouse-outlet.service';
@@ -155,7 +155,10 @@ export class ReceivableService {
     }
   }
 
-  private readonly storageKey = 'cuadre_receivables_store_v1';
+  private get storageKey(): string {
+    const compId = typeof window !== 'undefined' ? (getCompanyId() || 'default') : 'default';
+    return `cuadre_receivables_store_v1_${compId}`;
+  }
 
   private inMemoryCache: ReceivableDto[] | null = null;
 

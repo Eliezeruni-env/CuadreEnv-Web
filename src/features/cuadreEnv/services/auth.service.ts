@@ -1337,27 +1337,9 @@ export class AuthService {
         }
       }
 
-      const activeSessionRaw =
-        localStorage.getItem('app_active_cash_register_session') ||
-        localStorage.getItem('cuadreenv_active_cash_register_session') ||
-        localStorage.getItem('cuadre_active_cash_register_session');
-      if (activeSessionRaw) {
-        try {
-          const sess = JSON.parse(activeSessionRaw);
-          if (sess?.id) {
-            void this.api
-              .post(`/CashRegister/${sess.id}/close`, {
-                actualAmount: sess.currentBalance ?? sess.initialAmount ?? 0,
-                breakdownJson: null,
-                notes: 'Cierre automático por fin de sesión',
-              })
-              .catch(() => {});
-          }
-        } catch {}
-        localStorage.removeItem('app_active_cash_register_session');
-        localStorage.removeItem('cuadreenv_active_cash_register_session');
-        localStorage.removeItem('cuadre_active_cash_register_session');
-      }
+      // No cerramos la caja registradora en la base de datos durante el logout.
+      // La sesión de caja debe permanecer activa para la empresa y cajero
+      // tanto si reingresa desde PC como si continúa desde la versión Móvil / PWA.
     }
     void clientLogout(this.api);
     this.clearSession();

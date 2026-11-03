@@ -1,11 +1,15 @@
 import { Injectable, inject } from '@angular/core';
-import { ApiClientService, extractArray } from '../../cuadreEnv/services/apiClient';
+import { ApiClientService, extractArray, getCompanyId } from '../../cuadreEnv/services/apiClient';
 import { CashRegisterService } from '../../cash-register/services/cash-register.service';
 import { ProductService } from '../../products/services/product.service';
 import type { ApiResponse } from '../../cuadreEnv/types/api';
 import type { Billing, HeaderDto, ProductDetails, TotalModels } from '../../../app/models/billing';
 
-const BILLING_STORAGE_KEY = 'cuadreenv_billing_invoices_db';
+const BILLING_STORAGE_KEY_BASE = 'cuadreenv_billing_invoices_db';
+function getBillingStorageKey(): string {
+  const compId = getCompanyId() || 'default';
+  return `${BILLING_STORAGE_KEY_BASE}_${compId}`;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -17,7 +21,7 @@ export class BillingService {
 
   private getLocalBillings(): Billing[] {
     try {
-      const raw = localStorage.getItem(BILLING_STORAGE_KEY);
+      const raw = localStorage.getItem(getBillingStorageKey());
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
@@ -26,7 +30,7 @@ export class BillingService {
 
   private saveLocalBillings(list: Billing[]): void {
     try {
-      localStorage.setItem(BILLING_STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(getBillingStorageKey(), JSON.stringify(list));
     } catch (e) {
       console.error('Error saving local billings:', e);
     }

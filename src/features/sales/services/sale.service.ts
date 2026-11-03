@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import {
   ApiClientService,
   extractArray,
+  getCompanyId,
 } from '../../cuadreEnv/services/apiClient';
 import type {
   SaleRequestDto,
@@ -10,7 +11,11 @@ import type {
   SendInvoiceEmailRequest,
 } from '../../cuadreEnv/types/api';
 
-const SALES_STORAGE_KEY = 'cuadreenv_local_sales_cache';
+const SALES_STORAGE_KEY_BASE = 'cuadreenv_local_sales_cache';
+function getSalesStorageKey(): string {
+  const compId = getCompanyId() || 'default';
+  return `${SALES_STORAGE_KEY_BASE}_${compId}`;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -24,7 +29,7 @@ export class SaleService {
 
   getLocalSales(): SaleResponseDto[] {
     try {
-      const raw = localStorage.getItem(SALES_STORAGE_KEY);
+      const raw = localStorage.getItem(getSalesStorageKey());
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
@@ -40,7 +45,7 @@ export class SaleService {
       } else {
         list.unshift(sale);
       }
-      localStorage.setItem(SALES_STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(getSalesStorageKey(), JSON.stringify(list));
     } catch (e) {
       console.error('Error saving local sale cache:', e);
     }
@@ -253,7 +258,7 @@ export class SaleService {
       // local cache
     }
     const list = this.getLocalSales().filter((s) => s.id !== id);
-    localStorage.setItem(SALES_STORAGE_KEY, JSON.stringify(list));
+    localStorage.setItem(getSalesStorageKey(), JSON.stringify(list));
   }
 
   async addPayment(
@@ -272,7 +277,7 @@ export class SaleService {
       if (target) {
         target.isCancelled = true;
         (target as any).cancellationReason = reason;
-        localStorage.setItem(SALES_STORAGE_KEY, JSON.stringify(list));
+        localStorage.setItem(getSalesStorageKey(), JSON.stringify(list));
       }
     } catch {
       // ignore

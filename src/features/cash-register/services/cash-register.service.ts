@@ -52,10 +52,21 @@ export interface CashRegisterMovementItem {
 const ACTIVE_SESSION_STORAGE_KEY = 'app_active_cash_register_session';
 const CLOSED_REGISTERS_STORAGE_KEY = 'cuadreenv_closed_cash_registers';
 
+function getActiveSessionKey(): string {
+  const compId = getCompanyId() || 'default';
+  return `app_active_cash_register_session_${compId}`;
+}
+
+function getClosedRegistersKey(): string {
+  const compId = getCompanyId() || 'default';
+  return `cuadreenv_closed_cash_registers_${compId}`;
+}
+
 function getClosedRegisterIds(): number[] {
   if (typeof window === 'undefined' || !window.localStorage) return [];
   try {
-    const raw = window.localStorage.getItem(CLOSED_REGISTERS_STORAGE_KEY);
+    const key = getClosedRegistersKey();
+    const raw = window.localStorage.getItem(key) || window.localStorage.getItem(CLOSED_REGISTERS_STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -68,6 +79,7 @@ function markRegisterAsClosed(id: number) {
     const closed = getClosedRegisterIds();
     if (!closed.includes(id)) {
       closed.push(id);
+      window.localStorage.setItem(getClosedRegistersKey(), JSON.stringify(closed));
       window.localStorage.setItem(CLOSED_REGISTERS_STORAGE_KEY, JSON.stringify(closed));
     }
   } catch {
@@ -79,6 +91,7 @@ function unmarkRegisterAsClosed(id: number) {
   if (typeof window === 'undefined' || !window.localStorage) return;
   try {
     const closed = getClosedRegisterIds().filter((cId) => cId !== id);
+    window.localStorage.setItem(getClosedRegistersKey(), JSON.stringify(closed));
     window.localStorage.setItem(CLOSED_REGISTERS_STORAGE_KEY, JSON.stringify(closed));
   } catch {
     // ignore
@@ -121,7 +134,9 @@ export class CashRegisterService {
   private getStoredSession(): CashRegisterSessionDto | null {
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
+        const tenantKey = getActiveSessionKey();
         const raw =
+          window.localStorage.getItem(tenantKey) ||
           window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY) ||
           window.localStorage.getItem('cuadreenv_active_cash_register_session') ||
           window.localStorage.getItem('cuadre_active_cash_register_session');
@@ -131,6 +146,28 @@ export class CashRegisterService {
       }
     }
     return null;
+  }
+
+  private storeSessionLocally(session: CashRegisterSessionDto): void {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const tenantKey = getActiveSessionKey();
+        window.localStorage.setItem(tenantKey, JSON.stringify(session));
+        window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(session));
+      } catch {}
+    }
+  }
+
+  private removeStoredSessionLocally(): void {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const tenantKey = getActiveSessionKey();
+        window.localStorage.removeItem(tenantKey);
+        this.removeStoredSessionLocally();
+        window.localStorage.removeItem('cuadreenv_active_cash_register_session');
+        window.localStorage.removeItem('cuadre_active_cash_register_session');
+      } catch {}
+    }
   }
 
   // Active Session & Lifecycle directly against DB
@@ -187,7 +224,7 @@ export class CashRegisterService {
         };
 
         if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(session));
+          this.storeSessionLocally(session);
         }
 
         return { success: true, data: session };
@@ -262,18 +299,14 @@ export class CashRegisterService {
         };
 
         if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(session));
+          this.storeSessionLocally(session);
         }
 
         return { success: true, data: session };
       } else {
         // La consulta al servidor fue exitosa y no hay cajas abiertas en base de datos.
         // La base de datos es la fuente de verdad (ej. si fue cerrada desde otro dispositivo/móvil/PC)
-        if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
-          window.localStorage.removeItem('cuadreenv_active_cash_register_session');
-          window.localStorage.removeItem('cuadre_active_cash_register_session');
-        }
+        this.removeStoredSessionLocally();
         return { success: true, data: null };
       }
     } catch {
@@ -285,11 +318,7 @@ export class CashRegisterService {
       return { success: true, data: stored };
     }
 
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
-      window.localStorage.removeItem('cuadreenv_active_cash_register_session');
-      window.localStorage.removeItem('cuadre_active_cash_register_session');
-    }
+    this.removeStoredSessionLocally();
     return { success: true, data: null };
   }
 
@@ -373,7 +402,7 @@ export class CashRegisterService {
           status: 'OPEN',
         };
         if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(recoveredSession));
+          this.storeSessionLocally(recoveredSession);
           window.dispatchEvent(new CustomEvent('cuadre_cash_register_changed', { detail: { action: 'OPEN', id: 1 } }));
         }
         return { success: true, data: recoveredSession };
@@ -435,7 +464,7 @@ export class CashRegisterService {
     };
 
     if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(session));
+      this.storeSessionLocally(session);
       window.dispatchEvent(new CustomEvent('cuadre_cash_register_changed', { detail: { action: 'OPEN', id: backendId } }));
     }
 
@@ -461,7 +490,7 @@ export class CashRegisterService {
     };
 
     if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+      this.storeSessionLocally(updatedSession);
     }
 
     logger.info(`Caja "${session.name}" pausada. Motivo: ${reason}`, 'Caja Registradora', { notes });
@@ -485,7 +514,7 @@ export class CashRegisterService {
     };
 
     if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+      this.storeSessionLocally(updatedSession);
     }
 
     logger.info(`Caja "${session.name}" reanudada tras pausa.`, 'Caja Registradora');
@@ -766,7 +795,7 @@ export class CashRegisterService {
       markRegisterAsClosed(session.id);
     }
     if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+      this.removeStoredSessionLocally();
       window.localStorage.removeItem('cuadreenv_active_cash_register_session');
       window.localStorage.removeItem('cuadre_active_cash_register_session');
 
@@ -821,7 +850,7 @@ export class CashRegisterService {
     const id = registerId || 1;
     markRegisterAsClosed(id);
     if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+      this.removeStoredSessionLocally();
       window.localStorage.removeItem('cuadreenv_active_cash_register_session');
       window.localStorage.removeItem('cuadre_active_cash_register_session');
       window.dispatchEvent(new CustomEvent('cuadre_cash_register_changed', { detail: { action: 'CLOSE', id } }));
@@ -1151,12 +1180,12 @@ export class CashRegisterService {
         saleData.paymentMethod.toUpperCase() === 'EFECTIVO' ||
         saleData.paymentMethod.toUpperCase() === 'CASH'
       ) {
-        const storedSess = localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY);
+        const storedSess = this.getStoredSession() ? JSON.stringify(this.getStoredSession()) : null;
         if (storedSess) {
           const sessObj = JSON.parse(storedSess);
           sessObj.currentBalance = (sessObj.currentBalance || sessObj.initialAmount || 0) + saleData.total;
           sessObj.totalIn = (sessObj.totalIn || 0) + saleData.total;
-          localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(sessObj));
+          this.storeSessionLocally(sessObj);
         }
       }
     } catch (_) {}

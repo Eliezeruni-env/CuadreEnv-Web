@@ -2,11 +2,20 @@ import { Injectable, inject } from '@angular/core';
 import {
   ApiClientService,
   extractArray,
+  getCompanyId,
 } from '../../cuadreEnv/services/apiClient';
 import type { PurchaseDto, ApiResponse } from '../../cuadreEnv/types/api';
 
-const PURCHASES_STORAGE_KEY = 'cuadreenv_purchases_db';
-const PURCHASE_ORDERS_STORAGE_KEY = 'cuadreenv_purchase_orders_db';
+const PURCHASES_STORAGE_KEY_BASE = 'cuadreenv_purchases_db';
+const PURCHASE_ORDERS_STORAGE_KEY_BASE = 'cuadreenv_purchase_orders_db';
+function getPurchasesStorageKey(): string {
+  const compId = getCompanyId() || 'default';
+  return `${PURCHASES_STORAGE_KEY_BASE}_${compId}`;
+}
+function getPurchaseOrdersStorageKey(): string {
+  const compId = getCompanyId() || 'default';
+  return `${PURCHASE_ORDERS_STORAGE_KEY_BASE}_${compId}`;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -16,7 +25,7 @@ export class PurchaseService {
 
   private getLocalPurchases(): PurchaseDto[] {
     try {
-      const raw = localStorage.getItem(PURCHASES_STORAGE_KEY);
+      const raw = localStorage.getItem(getPurchasesStorageKey());
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
@@ -25,7 +34,7 @@ export class PurchaseService {
 
   private saveLocalPurchases(list: PurchaseDto[]): void {
     try {
-      localStorage.setItem(PURCHASES_STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(getPurchasesStorageKey(), JSON.stringify(list));
     } catch (e) {
       console.warn('Error saving local purchases:', e);
     }
@@ -33,7 +42,7 @@ export class PurchaseService {
 
   private syncToPurchaseOrders(purchase: PurchaseDto): void {
     try {
-      const rawOrders = localStorage.getItem(PURCHASE_ORDERS_STORAGE_KEY);
+      const rawOrders = localStorage.getItem(getPurchaseOrdersStorageKey());
       const orders: any[] = rawOrders ? JSON.parse(rawOrders) : [];
       const poNum = `OC-${String(purchase.id || Date.now()).slice(-6)}`;
 
@@ -68,7 +77,7 @@ export class PurchaseService {
           })),
         };
         orders.unshift(newOrder);
-        localStorage.setItem(PURCHASE_ORDERS_STORAGE_KEY, JSON.stringify(orders));
+        localStorage.setItem(getPurchaseOrdersStorageKey(), JSON.stringify(orders));
       }
     } catch (e) {
       console.warn('Could not sync purchase to purchase orders:', e);

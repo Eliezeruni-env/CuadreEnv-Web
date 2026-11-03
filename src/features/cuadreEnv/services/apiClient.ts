@@ -122,7 +122,8 @@ export function purgeTenantStorage(): void {
         const isProtectedOffline =
           key?.startsWith('cuadre_offline_queue_') ||
           key?.startsWith('cuadre_offline_conflicts_') ||
-          key?.startsWith('cuadre_pos_held_sales_');
+          key?.startsWith('cuadre_pos_held_sales_') ||
+          key?.startsWith('cuadre_pos_active_draft_');
         if (key && !PRESERVED_STORAGE_KEYS.has(key) && !isProtectedOffline) {
           keysToRemove.push(key);
         }

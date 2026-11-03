@@ -10,6 +10,7 @@ import {
   signal,
   computed,
   inject,
+  effect,
   HostListener,
   ViewChild,
   ElementRef,
@@ -780,6 +781,17 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     );
   });
 
+  constructor() {
+    effect(() => {
+      const items = this.cartItems();
+      if (items.length > 0) {
+        this.saveActiveDraftBeforeExit();
+      } else {
+        this.draftStorageService.clearActiveDraft();
+      }
+    });
+  }
+
   ngOnInit() {
     this.loadInitialLookups();
     this.restoreLastCompletedSale();
@@ -1192,7 +1204,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     this.transferBank.set(draft.transferBank || '');
     this.transferReference.set(draft.transferReference || '');
 
-    this.draftStorageService.clearActiveDraft();
+    // Draft remains active and in-sync
     this.notificationService.info(
       'Se ha restaurado automáticamente la venta en curso previa a la expiración de sesión.',
     );

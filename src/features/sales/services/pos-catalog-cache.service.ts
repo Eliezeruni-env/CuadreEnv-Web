@@ -1,8 +1,9 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import type { ProductDto } from '../../cuadreEnv/types/api';
 import { ProductService } from '../../products/services/product.service';
+import { getCompanyId } from '../../cuadreEnv/services/apiClient';
 
-const DB_NAME = 'cuadre_pos_offline_db';
+const BASE_DB_PREFIX = 'cuadre_pos_offline_db_';
 const STORE_NAME = 'pos_products_catalog';
 const META_STORE = 'pos_catalog_metadata';
 
@@ -25,12 +26,31 @@ export class PosCatalogCacheService {
     this.initCacheFromStorage();
   }
 
+  /**
+   * Resuelve el nombre de la base de datos particionada por Tenant/Empresa
+   */
+  private getDbName(): string {
+    const compId = getCompanyId() || 'default';
+    return `${BASE_DB_PREFIX}${compId}`;
+  }
+
+  /**
+   * Limpia la memoria en RAM (usado en logout o cambio de empresa)
+   */
+  clearInMemoryCache(): void {
+    this.inMemoryProducts.set([]);
+    this.barcodeIndex.clear();
+    this.idIndex.clear();
+    this.isLoaded.set(false);
+  }
+
   private async openDb(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
       if (typeof window === 'undefined' || !window.indexedDB) {
         return reject('IndexedDB no soportado');
       }
-      const req = window.indexedDB.open(DB_NAME, 2);
+      const dbName = this.getDbName();
+      const req = window.indexedDB.open(dbName, 2);
       req.onupgradeneeded = (e: any) => {
         const db = req.result;
         if (!db.objectStoreNames.contains('sales_outbox_queue')) {
