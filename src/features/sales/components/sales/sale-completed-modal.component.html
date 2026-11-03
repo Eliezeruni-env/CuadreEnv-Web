@@ -30,34 +30,32 @@
         </div>
 
         <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
-          <button
-            type="button"
-            class="btn btn-outline-success d-flex align-items-center gap-1.5 px-3 shadow-xs fw-bold"
-            (click)="sendWhatsAppInvoice()"
-            title="Compartir comprobante formateado por WhatsApp"
-          >
-            <svg cIcon name="cilPhone" style="width: 15px; height: 15px;"></svg>
-            <span>WhatsApp</span>
-          </button>
-
-          <button
-            type="button"
-            class="btn btn-light border d-flex align-items-center gap-2 px-3 shadow-sm fw-semibold text-secondary"
-            (click)="printInvoice()"
-            title="Imprimir formato factura estándar"
-          >
-            <svg cIcon name="cilPrint" style="width: 16px; height: 16px;"></svg>
-            <span>Factura Carta</span>
-          </button>
+          @if (!thermalPrinterService.isConnected()) {
+            <button
+              type="button"
+              class="btn btn-outline-secondary d-none d-md-flex align-items-center gap-1.5 px-2.5 shadow-xs"
+              (click)="connectUsbPrinter()"
+              title="Conectar impresora térmica USB directa para impresión silenciosa sin confirmaciones"
+              style="font-size: 12.5px; height: 38px;"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+              <span>Conectar USB POS</span>
+            </button>
+          }
 
           <button
             type="button"
             class="btn btn-light border d-flex align-items-center gap-2 px-3 shadow-sm fw-semibold text-secondary"
             (click)="printTicket()"
-            title="Imprimir formato ticket térmico de 80mm/58mm"
+            [title]="thermalPrinterService.isConnected() ? 'Imprimir directo por USB/Bluetooth' : 'Imprimir formato ticket térmico de 80mm/58mm'"
           >
             <svg cIcon name="cilPrint" style="width: 16px; height: 16px;"></svg>
             <span>Ticket POS (80mm)</span>
+            @if (thermalPrinterService.isConnected()) {
+              <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 10px;">USB Directo</span>
+            }
           </button>
 
           <button

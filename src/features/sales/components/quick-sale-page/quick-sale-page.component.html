@@ -28,6 +28,11 @@
               <span class="badge-dot pulse-green"></span>
               <span>En línea</span>
             </span>
+            @if (catalogCache.totalCached() > 0) {
+              <span class="cuadre-badge badge-neutral" style="font-size: 11.5px; font-weight: 600; background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;" title="Catálogo sincronizado localmente en memoria RAM / IndexedDB para búsqueda sub-5ms">
+                ⚡ {{ catalogCache.totalCached() }} en memoria
+              </span>
+            }
           } @else {
             <div class="pos-network-sync-badge" [class.is-offline]="!offlineService.isOnline()">
               <span class="badge-dot" [class.pulse-yellow]="offlineService.isOnline()" [class.pulse-red]="!offlineService.isOnline()"></span>
@@ -69,6 +74,30 @@
     <!-- Botones de la cabecera (40px, con icono, atajo como kbd al lado del texto, borde uniforme #CBD5E1) -->
     @if (hasOpenSession()) {
     <div class="header-actions-row">
+      <!-- BOTÓN DE SONIDO / FEEDBACK AUDITIVO POS -->
+      <button
+        type="button"
+        class="btn-pos-outline btn-40"
+        (click)="posAudio.toggleMute()"
+        [title]="posAudio.isMuted() ? 'Sonido silenciado. Clic para activar alertas y beeps' : 'Sonido activo (Beeps de escáner y cobro). Clic para silenciar'"
+      >
+        @if (posAudio.isMuted()) {
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+            <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+            <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+          <span style="font-size: 12.5px;">Silenciado</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-success">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+          <span style="font-size: 12.5px;">Sonido On</span>
+        }
+      </button>
       <!-- 1. AUTO-IMPRESIÓN TOGGLE -->
       <label class="pos-toggle-switch-card" [class.active]="autoPrintTicket()" title="Auto-imprimir ticket térmico al cobrar una venta (58mm/80mm)">
         <input type="checkbox" [checked]="autoPrintTicket()" (change)="toggleAutoPrint()" />
@@ -916,12 +945,12 @@
 
                 <!-- Montos rápidos 3x2 (color de texto principal neutro #0F172A para todos, ¡500 NO en rojo!) -->
                 <div class="fast-cash-grid">
-                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 100" (click)="applyQuickCash(100)">100</button>
-                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 200" (click)="applyQuickCash(200)">200</button>
-                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 500" (click)="applyQuickCash(500)">500</button>
-                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 1000" (click)="applyQuickCash(1000)">1,000</button>
-                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 2000" (click)="applyQuickCash(2000)">2,000</button>
-                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 50" (click)="applyQuickCash(50)">50</button>
+                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 50" (click)="applyQuickCash(50)">RD$ 50</button>
+                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 100" (click)="applyQuickCash(100)">RD$ 100</button>
+                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 200" (click)="applyQuickCash(200)">RD$ 200</button>
+                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 500" (click)="applyQuickCash(500)">RD$ 500</button>
+                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 1000" (click)="applyQuickCash(1000)">RD$ 1,000</button>
+                  <button type="button" class="fast-cash-chip" [class.active]="amountReceived() === 2000" (click)="applyQuickCash(2000)">RD$ 2,000</button>
                 </div>
               </div>
             }
@@ -1109,26 +1138,34 @@
               @if (cashShortage() > 0) {
                 <div class="pos-cambio-card shortage">
                   <div class="cambio-left">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="8" x2="12" y2="12"></line>
-                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    <span class="cambio-label">Faltan</span>
+                    <div class="cambio-icon-badge shortage-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                      </svg>
+                    </div>
+                    <div class="cambio-text-group">
+                      <span class="cambio-label">FALTANTE POR COBRAR</span>
+                      <span class="cambio-sub-desc">Monto restante para completar</span>
+                    </div>
                   </div>
-                  <span class="cambio-amount">RD$ {{ cashShortage() | number:'1.2-2' }}</span>
+                  <span class="cambio-amount shortage-amount">RD$ {{ cashShortage() | number:'1.2-2' }}</span>
                 </div>
               } @else {
-                <div class="pos-cambio-card">
+                <div class="pos-cambio-card change-ready">
                   <div class="cambio-left">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="2" y="6" width="20" height="12" rx="2"></rect>
-                      <circle cx="12" cy="12" r="2"></circle>
-                      <path d="M6 12h.01M18 12h.01"></path>
-                    </svg>
-                    <span class="cambio-label">Cambio</span>
+                    <div class="cambio-icon-badge ready-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <div class="cambio-text-group">
+                      <span class="cambio-label">DEVUELTA AL CLIENTE</span>
+                      <span class="cambio-sub-desc">Cambio exacto a entregar</span>
+                    </div>
                   </div>
-                  <span class="cambio-amount">RD$ {{ change() | number:'1.2-2' }}</span>
+                  <span class="cambio-amount change-highlight">RD$ {{ change() | number:'1.2-2' }}</span>
                 </div>
               }
             }

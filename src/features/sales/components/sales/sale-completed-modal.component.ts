@@ -16,6 +16,7 @@ import { SendWhatsAppModalComponent } from './send-whatsapp-modal/send-whatsapp-
 import type { WhatsAppInvoiceData } from '../../services/whatsapp-share.service';
 
 import { CompanyService } from '../../../companies/services/company.service';
+import { ThermalPrinterService, type TicketData } from '../../services/thermal-printer.service';
 import { formatInvoiceDateTime, formatInvoiceDate, formatInvoiceTime } from '../../../cuadreEnv/utils/rd-date.util';
 
 export interface CompletedSaleItem {
@@ -60,6 +61,7 @@ export class SaleCompletedModalComponent {
   readonly translationService = inject(TranslationService);
   private notificationService = inject(NotificationService);
   readonly companyService = inject(CompanyService);
+  readonly thermalPrinterService = inject(ThermalPrinterService);
 
   @Input() visible = false;
   @Input() saleData: CompletedSaleDto | null = null;
@@ -163,7 +165,46 @@ export class SaleCompletedModalComponent {
     }
   }
 
-  printTicket() {
+  async printTicket() {
+    const company = this.companyService.currentSettings();
+    if (this.saleData && this.thermalPrinterService.isConnected()) {
+      try {
+        const ticketData: TicketData = {
+          companyName: company?.companyName || 'CuadreEnv',
+          commercialName: company?.commercialName || undefined,
+          rnc: company?.rnc || '',
+          address: company?.address || '',
+          phone: company?.phone || '',
+          invoiceNumber: this.saleData.invoiceNumber || ('VTA-' + (this.saleData.id || '1')),
+          date: this.saleData.date ? new Date(this.saleData.date) : new Date(),
+          cashierName: this.saleData.cashierName || 'Cajero',
+          customerName: this.saleData.customerName || 'Consumidor Final',
+          customerRnc: this.saleData.customerRnc || '',
+          items: (this.saleData.items || []).map((i) => ({
+            description: i.productName,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+            total: i.total,
+          })),
+          subtotal: this.saleData.subtotal || 0,
+          itbis: this.saleData.itbis || 0,
+          discount: this.saleData.discount || 0,
+          total: this.saleData.total || 0,
+          paymentMethod: this.saleData.paymentMethod || 'Efectivo',
+          amountReceived: this.saleData.amountReceived,
+          change: this.changeAmount,
+        };
+
+        const printed = await this.thermalPrinterService.printTicket(ticketData, '80mm');
+        if (printed) {
+          this.notificationService.success('Ticket impreso directamente vía térmica ESC/POS.');
+          return;
+        }
+      } catch (e) {
+        console.warn('Error imprimiendo directo en ticket térmico:', e);
+      }
+    }
+
     try {
       this.isTicketMode.set(true);
       setTimeout(() => {
@@ -181,6 +222,17 @@ export class SaleCompletedModalComponent {
       }, 150);
     } catch {
       this.notificationService.warning('Error al preparar el ticket de impresión.');
+    }
+  }
+
+  async connectUsbPrinter() {
+    try {
+      const ok = await this.thermalPrinterService.connectUsb();
+      if (ok) {
+        this.notificationService.success('Impresora térmica USB conectada.');
+      }
+    } catch (err: any) {
+      this.notificationService.warning(err?.message || 'No se pudo conectar la impresora USB.');
     }
   }
 

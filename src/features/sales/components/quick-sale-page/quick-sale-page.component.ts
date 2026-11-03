@@ -40,6 +40,8 @@ import type {
   SaleResponseDto,
 } from '../../../cuadreEnv/types/api';
 import { SaleService } from '../../services/sale.service';
+import { PosAudioService } from '../../services/pos-audio.service';
+import { PosCatalogCacheService } from '../../services/pos-catalog-cache.service';
 import {
   ThermalPrinterService,
   type TicketData,
@@ -148,6 +150,8 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   readonly unitService = inject(UnitOfMeasurementService);
   private saleService = inject(SaleService);
   readonly printerService = inject(ThermalPrinterService);
+  readonly posAudio = inject(PosAudioService);
+  readonly catalogCache = inject(PosCatalogCacheService);
 
   isLoading = signal<boolean>(false);
   isSubmitting = signal<boolean>(false);
@@ -1240,6 +1244,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       );
       return;
     }
+    this.posAudio.playCheckoutSuccess();
     this.isSaleCompletedModalOpen = true;
   }
 
@@ -1692,6 +1697,15 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       }
       if (prodList && prodList.length > 0) {
         this.products.set(prodList);
+        this.catalogCache.cacheProducts(prodList);
+        this.catalogCache.prefetchFullCatalog().then((count) => {
+          if (count > prodList.length) {
+            const allCached = this.catalogCache.searchFast('');
+            if (allCached.length > 0) {
+              this.products.set(allCached);
+            }
+          }
+        });
       }
       const rawCustData = custRes?.data as any;
       const custList = Array.isArray(rawCustData)
@@ -2638,6 +2652,25 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     const cleanDigits = raw.replace(/\D/g, '');
     const activeCid = this.authService.companyId() || Number(getCompanyId()) || 0;
 
+    // 0. Búsqueda instantánea sub-2ms en Catálogo Local RAM / IndexedDB
+    let cachedProduct = this.catalogCache.findByBarcode(clean);
+    if (!cachedProduct && cleanDigits.length >= 4) {
+      cachedProduct = this.catalogCache.findByBarcode(cleanDigits);
+    }
+    if (!cachedProduct) {
+      const fastMatches = this.catalogCache.searchFast(raw);
+      if (fastMatches && fastMatches.length > 0) {
+        cachedProduct = fastMatches[0];
+      }
+    }
+    if (cachedProduct && (!activeCid || cachedProduct.companyId == null || Number(cachedProduct.companyId) === 0 || Number(cachedProduct.companyId) === activeCid)) {
+      this.posAudio.playScanSuccess();
+      this.addProductToCart(cachedProduct);
+      this.notificationService.success(`+1 "${cachedProduct.description || 'Producto'}" agregado (Memoria Local).`);
+      this.focusCatalogSearch();
+      return;
+    }
+
     // 1. Check in local products list with multi-property and digits matching respecting tenant
     let product = this.products().find((p) => {
       if (this.isServiceItem(p)) return false;
@@ -2712,7 +2745,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     if (product) {
-      soundEffects.playScannerBeep();
+      this.posAudio.playScanSuccess(); soundEffects.playScannerBeep();
       this.addProductToCart(product);
 
       this.cameraBurstScannedCount.update((c) => c + 1);
@@ -2728,7 +2761,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       this.notificationService.success(`+1 "${product.description || 'Producto'}" agregado.`);
       this.focusCatalogSearch();
     } else {
-      soundEffects.playErrorBeep();
+      this.posAudio.playScanError(); soundEffects.playErrorBeep();
       this.notificationService.warning(`Código "${raw}" no encontrado en el catálogo de esta empresa.`);
       this.focusCatalogSearch();
     }
