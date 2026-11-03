@@ -645,3 +645,29 @@
   }
 }
 
+
+
+// ============================================================================
+// DARK THEME OVERRIDES FOR MOVEMENT DROPDOWN & MOVEMENTS TABLE
+// ============================================================================
+:host-context([data-coreui-theme='dark']),
+[data-coreui-theme='dark'] {
+  .custom-movement-dropdown-menu {
+    background-color: #1E293B !important;
+    border-color: #334155 !important;
+
+    .dropdown-item {
+      &:hover {
+        background-color: #334155 !important;
+      }
+
+      .text-dark {
+        color: #F8FAFC !important;
+      }
+
+      .text-secondary {
+        color: #94A3B8 !important;
+      }
+    }
+  }
+}

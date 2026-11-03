@@ -98,9 +98,36 @@ function unmarkRegisterAsClosed(id: number) {
   }
 }
 
+function getLocalMovementsKey(sessionId: number): string {
+  const compId = getCompanyId() || 'default';
+  return `cuadreenv_local_movements_${compId}_${sessionId}`;
+}
+
+function getLocalMovements(sessionId: number): CashRegisterMovementItem[] {
+  if (typeof window === 'undefined' || !window.localStorage) return [];
+  try {
+    const raw = window.localStorage.getItem(getLocalMovementsKey(sessionId));
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalMovement(sessionId: number, movement: CashRegisterMovementItem): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    const list = getLocalMovements(sessionId);
+    list.push(movement);
+    window.localStorage.setItem(getLocalMovementsKey(sessionId), JSON.stringify(list));
+  } catch {}
+}
+
 @Injectable({
   providedIn: 'root',
 })
+
+
+
 export class CashRegisterService {
   private api: ApiClientService;
   private realtimeAlertService?: RealtimeAlertService;
@@ -865,20 +892,38 @@ export class CashRegisterService {
     }
 
     try {
-      // Si la sesión fue abierta con un ID generado localmente (timestamp > 10,000,000,000) o no es una clave foránea en backend,
-      // evitamos pasar cashRegisterId inválido al backend remoto para evitar errores 400 (Bad Request).
       const isLocalTimestampId = typeof session.id === 'number' && session.id > 10000000000;
       let list: any[] = [];
 
       if (!isLocalTimestampId) {
         try {
           const res = await this.api.get<any, any>('/CashMovement', {
-            params: { cashRegisterId: session.id },
+            params: { cashRegisterId: session.cashRegisterId || session.id, cashSessionId: session.id },
             headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' },
           });
           list = extractArray<any>(res);
         } catch {
           list = [];
+        }
+      }
+
+      // Combinar con movimientos guardados localmente para respuesta instantánea y offline
+      const localMovs = getLocalMovements(session.id);
+      for (const lm of localMovs) {
+        const exists = list.some(apiM => 
+          (apiM.id && apiM.id === lm.id) ||
+          (Number(apiM.amount) === (lm.inAmount || lm.outAmount) && apiM.description === lm.description)
+        );
+        if (!exists) {
+          list.push({
+            id: lm.id,
+            amount: lm.inAmount || lm.outAmount,
+            type: lm.type,
+            description: lm.description,
+            createdDate: lm.rawDate,
+            paymentMethod: lm.paymentMethod,
+            reference: lm.reference,
+          });
         }
       }
 
@@ -911,14 +956,14 @@ export class CashRegisterService {
           typeUpper === '1' ||
           typeUpper === '3' ||
           typeUpper === '4';
-        const desc = m.description || '';
+        const desc = m.description || m.reason || '';
 
         let category: CashRegisterMovementItem['category'] = 'Ingresos';
         if (typeUpper === 'SALE' || typeUpper === '3' || desc.toLowerCase().includes('venta')) category = 'Ventas';
         else if (typeUpper === 'RECEIVABLEPAYMENT' || typeUpper === '4' || desc.toLowerCase().includes('cobro')) category = 'Cobros';
         else if (desc.toLowerCase().includes('compra')) category = 'Compras';
         else if (desc.toLowerCase().includes('gasto')) category = 'Gastos';
-        else if (desc.toLowerCase().includes('retiro') || typeUpper === 'CASHOUT' || typeUpper === '2') category = 'Retiro';
+        else if (desc.toLowerCase().includes('retiro') || typeUpper === 'CASHOUT' || typeUpper === '2' || typeUpper === 'SALIDA') category = 'Retiro';
         else if (desc.toLowerCase().includes('ajuste')) category = 'Ajuste';
         else if (!isIn) category = 'Retiro';
 
@@ -933,12 +978,12 @@ export class CashRegisterService {
           : formatDateTimeInRD();
 
         items.push({
-          id: m.id,
+          id: m.id || Date.now(),
           date: dateStr,
           rawDate: m.createdDate || new Date().toISOString(),
           type: isIn ? 'Entrada' : 'Salida',
           category,
-          description: desc || (isIn ? 'Entrada de efectivo' : 'Salida de efectivo'),
+          description: desc || (isIn ? 'Entrada manual de efectivo' : 'Salida manual de efectivo'),
           inAmount: isIn ? amt : null,
           outAmount: isIn ? null : amt,
           balance: runningBalance,
@@ -946,6 +991,12 @@ export class CashRegisterService {
           reference: m.reference || null,
           saleId: m.saleId || null,
         });
+      }
+
+      // Si el balance calculado actual difiere del balance de sesión, actualizar sesión local
+      if (Math.abs((session.currentBalance || 0) - runningBalance) > 0.01) {
+        session.currentBalance = runningBalance;
+        this.storeSessionLocally(session);
       }
 
       return { success: true, data: items };
@@ -973,24 +1024,57 @@ export class CashRegisterService {
       return { success: false, message: 'El monto debe ser mayor a cero.' };
     }
 
-    const typeEnum = item.type === 'Entrada' ? 1 : 2;
+    const typeStr = item.type === 'Entrada' ? 'Entrada' : 'Salida';
     let res: any = null;
     const isLocalTimestampId = typeof session.id === 'number' && session.id > 10000000000;
     try {
       res = await this.api.post<any, any>(
         '/CashMovement',
         {
-          cashRegisterId: isLocalTimestampId ? 1 : session.id,
+          cashRegisterId: session.cashRegisterId || (isLocalTimestampId ? 1 : session.id),
           cashSessionId: isLocalTimestampId ? 1 : session.id,
+          sessionId: isLocalTimestampId ? 1 : session.id,
           amount: amt,
-          type: typeEnum,
+          type: typeStr,
+          concept: item.description || item.category,
           reason: item.description || item.category,
           description: `${item.category}: ${item.description}`,
+          category: item.category,
         },
         { headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' } }
       );
     } catch (postErr) {
       console.warn('[Caja] No se pudo persistir movimiento en backend remoto, operando localmente:', postErr);
+    }
+
+    // Actualizar balance de la sesión de caja localmente de inmediato
+    if (item.type === 'Entrada') {
+      session.currentBalance = (session.currentBalance || 0) + amt;
+      session.totalIn = (session.totalIn || 0) + amt;
+    } else {
+      session.currentBalance = Math.max(0, (session.currentBalance || 0) - amt);
+      session.totalOut = (session.totalOut || 0) + amt;
+    }
+    this.storeSessionLocally(session);
+
+    // Guardar movimiento local para que nunca se pierda
+    const localMov: CashRegisterMovementItem = {
+      id: res?.id || res?.data?.id || Date.now(),
+      date: formatDateTimeInRD(),
+      rawDate: new Date().toISOString(),
+      type: item.type,
+      category: item.category,
+      description: item.description,
+      inAmount: item.type === 'Entrada' ? amt : null,
+      outAmount: item.type === 'Salida' ? amt : null,
+      balance: session.currentBalance,
+      paymentMethod: item.paymentMethod || 'Efectivo',
+      reference: item.reference || null,
+    };
+    saveLocalMovement(session.id, localMov);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cuadre_cash_register_changed', { detail: { action: 'MOVEMENT', session } }));
     }
 
     // Auditoría de Seguridad en Tiempo Real (SignalR / BroadcastHub)
@@ -1000,23 +1084,9 @@ export class CashRegisterService {
       this.realtimeAlertService?.triggerDrawerOpenedNoSale(session.name, session.cashierName);
     }
 
-    const movListRes = await this.getMovements();
-    const lastItem = movListRes.data?.[movListRes.data.length - 1];
-
     return {
       success: true,
-      data: lastItem || {
-        id: res?.id || Date.now(),
-        date: formatDateTimeInRD(),
-        rawDate: new Date().toISOString(),
-        type: item.type,
-        category: item.category,
-        description: item.description,
-        inAmount: item.type === 'Entrada' ? amt : null,
-        outAmount: item.type === 'Salida' ? amt : null,
-        balance: session.currentBalance + (item.type === 'Entrada' ? amt : -amt),
-        paymentMethod: item.paymentMethod || 'Efectivo',
-      },
+      data: localMov,
     };
   }
 

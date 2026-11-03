@@ -647,27 +647,55 @@
           </button>
 
           @if (showMovementMenu()) {
-            <div class="custom-movement-dropdown-menu shadow">
+            <div class="custom-movement-dropdown-menu shadow-lg p-1.5 rounded-3 border" style="min-width: 260px;">
               <a
                 routerLink="/pos"
-                class="dropdown-item py-2 fw-semibold text-primary"
+                class="dropdown-item py-2 px-2.5 rounded-2 d-flex align-items-center gap-2.5 mb-1"
                 (click)="showMovementMenu.set(false)"
               >
-                🏪 Abrir Punto de Venta (POS)
+                <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px; background: #eff6ff; color: #2563eb;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                  </svg>
+                </div>
+                <div class="lh-sm">
+                  <span class="d-block fw-bold text-primary" style="font-size: 0.88rem;">Abrir Punto de Venta (POS)</span>
+                  <small class="text-secondary fw-normal" style="font-size: 0.72rem;">Facturación y cobro rápido</small>
+                </div>
               </a>
+
               <button
                 type="button"
-                class="dropdown-item py-2"
+                class="dropdown-item py-2 px-2.5 rounded-2 d-flex align-items-center gap-2.5 mb-1 text-start"
                 (click)="openManualMovementModal('Entrada')"
               >
-                🟢 Registrar Ingreso Manual
+                <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px; background: #ecfdf5; color: #059669;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </div>
+                <div class="lh-sm">
+                  <span class="d-block fw-bold text-dark" style="font-size: 0.88rem;">Registrar Ingreso Manual</span>
+                  <small class="text-secondary fw-normal" style="font-size: 0.72rem;">Entrada de efectivo a gaveta</small>
+                </div>
               </button>
+
               <button
                 type="button"
-                class="dropdown-item py-2 text-danger"
+                class="dropdown-item py-2 px-2.5 rounded-2 d-flex align-items-center gap-2.5 text-start"
                 (click)="openManualMovementModal('Salida')"
               >
-                🔴 Registrar Salida / Gasto
+                <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px; background: #fef2f2; color: #dc2626;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </div>
+                <div class="lh-sm">
+                  <span class="d-block fw-bold text-danger" style="font-size: 0.88rem;">Registrar Salida / Gasto</span>
+                  <small class="text-secondary fw-normal" style="font-size: 0.72rem;">Retiro de dinero o gasto menor</small>
+                </div>
               </button>
             </div>
           }

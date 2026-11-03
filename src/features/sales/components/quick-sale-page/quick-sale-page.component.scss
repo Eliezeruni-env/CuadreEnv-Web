@@ -1485,34 +1485,66 @@ select.pos-category-select {
 
   // 8. TARJETA CAMBIO (56px, fondo #ECFDF5, borde #A7F3D0, radio 12)
   .pos-cambio-card {
-    height: 56px;
+    min-height: 60px;
+    height: auto;
     background-color: var(--cuadre-color-success-light, #ECFDF5);
     border: 1px solid var(--cuadre-color-success-border, #A7F3D0);
     border-radius: 12px;
-    padding: 0 16px;
+    padding: 8px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
     box-sizing: border-box;
 
     .cambio-left {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      min-width: 0;
+      flex: 1 1 auto;
       color: var(--cuadre-color-success-text, #047857);
 
+      .cambio-icon-badge {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .cambio-text-group {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+
       .cambio-label {
-        font-size: 15px;
-        font-weight: 700;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        line-height: 1.2;
         color: var(--cuadre-color-success-text, #047857);
+        white-space: nowrap;
+      }
+
+      .cambio-sub-desc {
+        font-size: 11px;
+        line-height: 1.2;
+        color: var(--cuadre-color-success-text, #047857);
+        opacity: 0.85;
+        white-space: nowrap;
       }
     }
 
     .cambio-amount {
-      font-size: 24px;
-      font-weight: 700;
+      font-size: 1.35rem;
+      font-weight: 800;
       color: var(--cuadre-color-success-text, #047857);
       font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+      white-space: nowrap;
+      text-align: right;
     }
 
     // Variante de Error si falta efectivo
@@ -1523,7 +1555,8 @@ select.pos-category-select {
       .cambio-left {
         color: var(--cuadre-color-danger-text, #B91C1C);
 
-        .cambio-label {
+        .cambio-label,
+        .cambio-sub-desc {
           color: var(--cuadre-color-danger-text, #B91C1C);
         }
       }

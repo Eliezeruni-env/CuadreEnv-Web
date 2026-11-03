@@ -1365,19 +1365,26 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   // =========================================================================
   async openRecentSalesModal(): Promise<void> {
     this.isRecentSalesModalOpen.set(true);
-    this.isLoadingRecentSales.set(true);
+    // Carga instantánea desde caché local (0ms de latencia percibida)
+    const localSales = this.saleService.getLocalSales();
+    if (localSales && localSales.length > 0) {
+      this.recentSales.set(localSales.slice(0, 20));
+      this.isLoadingRecentSales.set(false);
+    } else {
+      this.isLoadingRecentSales.set(true);
+    }
+
+    // Actualización en segundo plano (Stale-While-Revalidate)
     try {
       const res = await this.saleService.getSales({
         pageNumber: 1,
         pageSize: 20,
       });
-      if (res.success && res.data) {
+      if (res.success && res.data && res.data.length > 0) {
         this.recentSales.set(res.data);
-      } else {
-        this.recentSales.set(this.saleService.getLocalSales());
       }
     } catch {
-      this.recentSales.set(this.saleService.getLocalSales());
+      // Las ventas locales ya están disponibles
     } finally {
       this.isLoadingRecentSales.set(false);
     }
