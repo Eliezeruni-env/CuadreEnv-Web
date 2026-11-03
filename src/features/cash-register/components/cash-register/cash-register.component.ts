@@ -1,3 +1,4 @@
+import { formatPaymentMethodLabel } from '../../../cuadreEnv/utils/payment-method.util';
 import {
   Component,
   OnInit,
@@ -69,6 +70,11 @@ import { UserService } from '../../../users/services/user.service';
   ],
 })
 export class CashRegisterComponent implements OnInit, OnDestroy {
+  formatPaymentMethod(method?: string | null): string {
+    return formatPaymentMethodLabel(method);
+  }
+
+
   readonly Math = Math;
   readonly translationService = inject(TranslationService);
   private readonly cashRegisterService = inject(CashRegisterService);

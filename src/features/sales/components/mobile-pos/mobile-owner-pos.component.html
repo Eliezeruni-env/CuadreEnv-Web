@@ -1071,12 +1071,12 @@
             <div class="stat-value text-danger" style="color: #b91c1c;">
               RD$ {{ totalPendingFiaoAmount() | number:'1.2-2' }}
             </div>
-            <div class="stat-subtext">Saldo por cobrar</div>
+            <div class="stat-subtext">Saldo pendiente por cobrar</div>
           </div>
 
           <div class="cuadre-card stat-card">
             <div class="stat-header">
-              <span class="stat-title">Deudores</span>
+              <span class="stat-title">Por Cobrar</span>
               <div class="cuadre-icon-chip chip-blue chip-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -1087,8 +1087,45 @@
             <div class="stat-value">
               {{ totalPendingFiaoCount() }}
             </div>
-            <div class="stat-subtext">Cuentas pendientes</div>
+            <div class="stat-subtext">{{ totalPaidFiaoCount() }} cuenta(s) saldada(s)</div>
           </div>
+        </div>
+
+        <!-- SEGMENTED TABS: DIVISIÓN CLARA ENTRE PENDIENTES Y PAGADAS -->
+        <div class="fiao-segmented-control mb-3">
+          <button
+            type="button"
+            class="fiao-segment-btn"
+            [class.active]="fiaoStatusFilter() === 'pending'"
+            (click)="fiaoStatusFilter.set('pending')"
+          >
+            <span class="d-flex align-items-center justify-content-center gap-1.5">
+              <span>⏳ Por Cobrar</span>
+              <span class="segment-badge" [class.badge-active]="fiaoStatusFilter() === 'pending'">{{ totalPendingFiaoCount() }}</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            class="fiao-segment-btn"
+            [class.active]="fiaoStatusFilter() === 'paid'"
+            (click)="fiaoStatusFilter.set('paid')"
+          >
+            <span class="d-flex align-items-center justify-content-center gap-1.5">
+              <span>✓ Pagadas</span>
+              <span class="segment-badge" [class.badge-active]="fiaoStatusFilter() === 'paid'">{{ totalPaidFiaoCount() }}</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            class="fiao-segment-btn"
+            [class.active]="fiaoStatusFilter() === 'all'"
+            (click)="fiaoStatusFilter.set('all')"
+          >
+            <span class="d-flex align-items-center justify-content-center gap-1.5">
+              <span>Todas</span>
+              <span class="segment-badge" [class.badge-active]="fiaoStatusFilter() === 'all'">{{ fiaoList().length }}</span>
+            </span>
+          </button>
         </div>
 
         <!-- BUSCADOR DE FIAO -->
@@ -1128,20 +1165,25 @@
                     <strong class="d-block text-dark fs-6">{{ debt.customerName || 'Cliente sin nombre' }}</strong>
                     <small class="text-muted font-monospace">{{ debt.invoiceNumber || ('Fiao #' + debt.id) }} · {{ debt.creationDate | date:'shortDate' }}</small>
                   </div>
-                  <span class="cuadre-badge" [ngClass]="debt.status === 'Pagado' ? 'badge-ok' : (debt.status === 'Parcial' ? 'badge-warn' : 'badge-bad')">
+                  <span class="cuadre-badge" [ngClass]="(debt.status === 'Pagado' || (debt.pendingAmount || 0) <= 0) ? 'badge-ok' : (debt.status === 'Parcial' ? 'badge-warn' : 'badge-bad')">
                     <span class="badge-dot"></span>
-                    {{ debt.status }}
+                    {{ (debt.status === 'Pagado' || (debt.pendingAmount || 0) <= 0) ? '✓ Pagado' : debt.status }}
                   </span>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-baseline py-1 border-top border-bottom">
                   <div>
                     <small class="text-muted d-block">Total original: RD$ {{ debt.totalAmount | number:'1.2-2' }}</small>
-                    <small class="text-success">Pagado: RD$ {{ (debt.paidAmount || 0) | number:'1.2-2' }}</small>
+                    <small class="text-success fw-semibold">Pagado: RD$ {{ (debt.paidAmount || (debt.status === 'Pagado' ? debt.totalAmount : 0)) | number:'1.2-2' }}</small>
                   </div>
                   <div class="text-end">
-                    <small class="text-muted d-block">Pendiente</small>
-                    <strong class="fs-5 text-danger font-monospace">RD$ {{ debt.pendingAmount | number:'1.2-2' }}</strong>
+                    @if ((debt.pendingAmount || 0) > 0 && debt.status !== 'Pagado') {
+                      <small class="text-muted d-block">Pendiente</small>
+                      <strong class="fs-5 text-danger font-monospace">RD$ {{ debt.pendingAmount | number:'1.2-2' }}</strong>
+                    } @else {
+                      <small class="text-success d-block">Estado</small>
+                      <strong class="fs-6 text-success fw-bold">Saldada 100%</strong>
+                    }
                   </div>
                 </div>
 
@@ -1203,25 +1245,35 @@
         <!-- EMPRESA RESUMEN -->
         <div class="cuadre-card p-3 mb-3 d-flex align-items-center gap-3" style="background-color: var(--cuadre-bg-card, #FFFFFF); border: 1px solid var(--cuadre-border-color, #E2E8F0);">
           @if (companyLogo()) {
-            <img [src]="companyLogo()" alt="Logo Empresa" style="width: 50px; height: 50px; object-fit: contain; border-radius: 10px; border: 1px solid var(--cuadre-border-color, #E2E8F0); padding: 2px; background: #fff;" />
+            <div class="company-logo-avatar" style="width: 50px; height: 50px;">
+              <img [src]="companyLogo()" alt="Logo Empresa" />
+            </div>
           } @else {
-            <div class="d-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary fw-bold" style="width: 50px; height: 50px; font-size: 22px;">
-              🏢
+            <div class="company-icon-avatar" style="width: 50px; height: 50px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+                <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
+                <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+                <path d="M10 6h4"/>
+                <path d="M10 10h4"/>
+                <path d="M10 14h4"/>
+                <path d="M10 18h4"/>
+              </svg>
             </div>
           }
           <div class="flex-grow-1 overflow-hidden">
-            <h3 class="mb-0 text-dark fw-bold text-truncate" style="font-size: 16px;">{{ tenantName() }}</h3>
+            <h3 class="mb-0 company-card-title text-truncate">{{ tenantName() }}</h3>
             @if (companyLegalName() !== tenantName()) {
-              <span class="text-muted small d-block text-truncate">{{ companyLegalName() }}</span>
+              <span class="company-card-subtitle d-block text-truncate">{{ companyLegalName() }}</span>
             }
             @if (companyRnc()) {
-              <span class="text-primary small font-monospace d-block">RNC: {{ companyRnc() }}</span>
+              <span class="company-card-rnc d-block">RNC: {{ companyRnc() }}</span>
             }
             @if (companyPhone()) {
-              <span class="text-muted small d-block">Tel: {{ companyPhone() }}</span>
+              <span class="company-card-subtitle d-block">Tel: {{ companyPhone() }}</span>
             }
             @if (companyAddress()) {
-              <span class="text-muted small d-block text-truncate">{{ companyAddress() }}</span>
+              <span class="company-card-subtitle d-block text-truncate">{{ companyAddress() }}</span>
             }
           </div>
         </div>
@@ -2906,20 +2958,30 @@
         </button>
       </div>
 
-      <div class="cuadre-card p-3 mb-3 d-flex align-items-center gap-3" style="background-color: var(--cuadre-bg-subtle, #F8FAFC); border: 1px solid var(--cuadre-border-color, #E2E8F0);">
+      <div class="menu-company-card p-3 mb-3 d-flex align-items-center gap-3">
         @if (companyLogo()) {
-          <img [src]="companyLogo()" alt="Logo Empresa" style="width: 44px; height: 44px; object-fit: contain; border-radius: 8px; border: 1px solid var(--cuadre-border-color, #E2E8F0); background: #fff; padding: 2px;" />
+          <div class="company-logo-avatar">
+            <img [src]="companyLogo()" alt="Logo Empresa" />
+          </div>
         } @else {
-          <div class="d-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary fw-bold" style="width: 44px; height: 44px; font-size: 20px;">
-            🏢
+          <div class="company-icon-avatar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+              <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
+              <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+              <path d="M10 6h4"/>
+              <path d="M10 10h4"/>
+              <path d="M10 14h4"/>
+              <path d="M10 18h4"/>
+            </svg>
           </div>
         }
         <div class="flex-grow-1 overflow-hidden">
-          <strong class="d-block text-dark text-truncate" style="font-size: 14px;">{{ tenantName() }}</strong>
+          <strong class="d-block company-card-title text-truncate">{{ tenantName() }}</strong>
           @if (companyRnc()) {
-            <span class="text-primary small font-monospace d-block">RNC: {{ companyRnc() }}</span>
+            <span class="company-card-rnc d-block">RNC: {{ companyRnc() }}</span>
           }
-          <span class="text-muted small d-block">{{ authService.currentUser()?.fullName || userName() }} · {{ activeSession()?.name || 'Caja Principal' }}</span>
+          <span class="company-card-subtitle d-block text-truncate">{{ authService.currentUser()?.fullName || userName() }} · {{ activeSession()?.name || 'Caja Principal' }}</span>
         </div>
       </div>
 
@@ -3702,79 +3764,117 @@
   <!-- ======================================================== -->
   @if (isLogoutConfirmModalOpen()) {
     <div class="custom-modal-backdrop fade-in" (click)="cancelLogout()">
-      <div class="custom-modal-content rounded-4 overflow-hidden shadow-lg" style="max-width: 90vw; width: 390px; margin: auto;" (click)="$event.stopPropagation()">
-        <!-- Header -->
-        <div class="px-4 py-3.5 d-flex align-items-center justify-content-between border-bottom" [ngStyle]="{'background': hasPendingChangesOnLogout() ? '#fff1f2' : '#f8fafc'}">
-          <div class="d-flex align-items-center gap-2.5">
-            <div class="rounded-circle d-flex align-items-center justify-content-center p-2 flex-shrink-0" [ngClass]="hasPendingChangesOnLogout() ? 'bg-danger text-white' : 'bg-warning-subtle text-warning-emphasis'" style="width: 38px; height: 38px;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/>
-                <line x1="12" y1="17" x2="12.01" y2="17"/>
-              </svg>
-            </div>
-            <div>
-              <h6 class="mb-0 fw-bold" style="font-size: 0.95rem;" [ngClass]="hasPendingChangesOnLogout() ? 'text-danger' : 'text-dark'">
-                {{ hasPendingChangesOnLogout() ? '¿Cerrar con cambios pendientes?' : '¿Cerrar sesión en terminal?' }}
-              </h6>
-              <span class="text-secondary small" style="font-size: 0.75rem;">Terminal POS Móvil</span>
-            </div>
-          </div>
-          <button type="button" class="btn-close" (click)="cancelLogout()" aria-label="Cerrar modal"></button>
-        </div>
-
-        <!-- Body -->
-        <div class="px-4 py-3.5">
-          @if (hasPendingChangesOnLogout()) {
-            <div class="p-3 rounded-3 mb-3 border border-danger-subtle" style="background-color: #fef2f2;">
-              <div class="d-flex align-items-center gap-1.5 fw-bold text-danger small mb-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="8" x2="12" y2="12"></line>
-                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      <div class="custom-modal-content rounded-4 overflow-hidden shadow-lg pwa-logout-modal" style="max-width: 90vw; width: 380px; margin: auto;" (click)="$event.stopPropagation()">
+        @if (hasPendingChangesOnLogout()) {
+          <!-- HEADER: Advertencia con operaciones pendientes (Diseño coral/rojo) -->
+          <div class="px-4 py-3.5 d-flex align-items-center justify-content-between border-bottom bg-white modal-header-wrap">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px; background-color: #EF4444; color: #FFFFFF;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
-                <span>Operaciones activas sin completar:</span>
               </div>
-              <ul class="mb-0 ps-3 small text-dark" style="font-size: 0.85rem; line-height: 1.5;">
+              <div>
+                <h5 class="mb-0 fw-bold" style="font-size: 1.15rem; line-height: 1.25; color: #E11D48;">¿Cerrar con cambios pendientes?</h5>
+                <span class="text-secondary small" style="font-size: 0.8rem;">Terminal POS Móvil</span>
+              </div>
+            </div>
+            <button type="button" class="btn-close" (click)="cancelLogout()" aria-label="Cerrar modal"></button>
+          </div>
+
+          <!-- BODY: Alerta con detalles de cambios pendientes -->
+          <div class="px-4 py-4 bg-white modal-body-wrap">
+            <div class="p-3 rounded-3 mb-3 border warning-notice-box" style="background-color: #FFF1F2; border-color: #FECDD3 !important;">
+              <div class="d-flex align-items-center gap-1.5 fw-bold small mb-1.5 text-danger">
+                <span>⚠️ Hay operaciones activas sin completar:</span>
+              </div>
+              <ul class="mb-0 ps-3 small" style="font-size: 0.88rem; line-height: 1.5; color: #881337;">
                 @for (reason of pendingChangesReasons(); track reason) {
-                  <li class="mb-1 fw-semibold text-danger-emphasis">{{ reason }}</li>
+                  <li class="mb-1 fw-bold">{{ reason }}</li>
                 }
               </ul>
             </div>
-            <p class="mb-0 fw-normal" style="font-size: 0.875rem; color: #334155; line-height: 1.55;">
-              Si cierras la sesión ahora, el carrito actual o las ventas en espera no confirmadas podrían no conservarse. <strong>¿Deseas salir de todos modos?</strong>
-            </p>
-          } @else {
-            <p class="mb-0 fw-normal" style="font-size: 0.875rem; color: #334155; line-height: 1.55;">
-              ¿Estás seguro de que deseas salir del Punto de Venta Móvil? Tu terminal se bloqueará y se requerirán tus credenciales para volver a ingresar.
-            </p>
-          }
-        </div>
 
-        <!-- Footer Actions -->
-        <div class="p-3.5 border-top bg-light d-flex flex-column gap-2.5">
-          <button
-            type="button"
-            class="btn w-100 fw-bold d-flex align-items-center justify-content-center gap-2 rounded-3 text-white shadow-sm"
-            style="background-color: #dc2626; border: 1px solid #b91c1c; height: 46px; font-size: 0.9rem;"
-            (click)="confirmLogout()"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-            <span>Sí, cerrar sesión</span>
-          </button>
-          <button
-            type="button"
-            class="btn w-100 fw-bold rounded-3"
-            style="background-color: #ffffff; border: 1.5px solid #cbd5e1; color: #1e293b; height: 44px; font-size: 0.9rem;"
-            (click)="cancelLogout()"
-          >
-            Continuar trabajando
-          </button>
-        </div>
+            <p class="mb-0 text-secondary modal-body-text" style="font-size: 0.92rem; line-height: 1.55;">
+              Si cierras la sesión ahora, el carrito actual o las ventas en espera no confirmadas podrían no conservarse. ¿Deseas salir de todos modos?
+            </p>
+          </div>
+
+          <!-- FOOTER: Botones de confirmación de advertencia -->
+          <div class="px-4 pb-4 pt-1 bg-white modal-footer-wrap d-flex flex-column gap-2.5">
+            <button
+              type="button"
+              class="btn w-100 fw-bold d-flex align-items-center justify-content-center gap-2 text-white shadow-sm"
+              style="background-color: #EF4444; border: none; height: 48px; font-size: 0.95rem; border-radius: 12px; transition: all 0.15s ease;"
+              (click)="confirmLogout()"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              <span>Sí, cerrar sesión</span>
+            </button>
+            <button
+              type="button"
+              class="btn w-100 fw-bold btn-cancel-logout"
+              style="background-color: #FFFFFF; border: 1.5px solid #CBD5E1; color: #475569; height: 48px; font-size: 0.95rem; border-radius: 12px; transition: all 0.15s ease;"
+              (click)="cancelLogout()"
+            >
+              <span>Continuar trabajando</span>
+            </button>
+          </div>
+        } @else {
+          <!-- HEADER ESTÁNDAR (Diseño azul sin cambios pendientes) -->
+          <div class="px-4 py-3.5 d-flex align-items-center justify-content-between border-bottom bg-white modal-header-wrap">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px; background-color: #EFF6FF; color: #2563EB;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+              </div>
+              <div>
+                <h5 class="mb-0 fw-bold text-dark modal-header-title" style="font-size: 1.15rem; line-height: 1.25;">Cerrar sesión</h5>
+                <span class="text-secondary small" style="font-size: 0.8rem;">Terminal POS Móvil</span>
+              </div>
+            </div>
+            <button type="button" class="btn-close" (click)="cancelLogout()" aria-label="Cerrar modal"></button>
+          </div>
+
+          <!-- BODY ESTÁNDAR -->
+          <div class="px-4 py-4 bg-white modal-body-wrap">
+            <h6 class="fw-bold text-dark mb-2 modal-body-title" style="font-size: 1.05rem; line-height: 1.4;">
+              ¿Deseas cerrar la sesión de este terminal?
+            </h6>
+            <p class="mb-0 text-secondary modal-body-text" style="font-size: 0.92rem; line-height: 1.55;">
+              Al continuar, el terminal quedará bloqueado. Necesitarás tus credenciales para volver a ingresar.
+            </p>
+          </div>
+
+          <!-- FOOTER ESTÁNDAR -->
+          <div class="px-4 pb-4 pt-1 bg-white modal-footer-wrap d-flex flex-column gap-2.5">
+            <button
+              type="button"
+              class="btn w-100 fw-bold d-flex align-items-center justify-content-center text-white shadow-sm"
+              style="background-color: #2563EB; border: none; height: 48px; font-size: 0.95rem; border-radius: 12px; transition: all 0.15s ease;"
+              (click)="confirmLogout()"
+            >
+              <span>Sí, cerrar sesión</span>
+            </button>
+            <button
+              type="button"
+              class="btn w-100 fw-bold btn-cancel-logout"
+              style="background-color: #FFFFFF; border: 1.5px solid #CBD5E1; color: #1E293B; height: 48px; font-size: 0.95rem; border-radius: 12px; transition: all 0.15s ease;"
+              (click)="cancelLogout()"
+            >
+              <span>Continuar trabajando</span>
+            </button>
+          </div>
+        }
       </div>
     </div>
   }

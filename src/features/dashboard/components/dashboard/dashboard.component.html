@@ -433,7 +433,7 @@
               </div>
               <div class="d-flex justify-content-between align-items-center py-1">
                 <span class="text-secondary small">Fondo de Apertura</span>
-                <span class="text-secondary small font-monospace fw-semibold">RD$ {{ session.initialAmount | number:'1.2-2' }}</span>
+                <span class="text-dark small fw-bold">RD$ {{ session.initialAmount | number:'1.2-2' }}</span>
               </div>
             </div>
 
@@ -444,7 +444,7 @@
                   <div class="small fw-bold text-uppercase" style="color: #166534; font-size: 11px; letter-spacing: 0.5px;">Efectivo en Gaveta</div>
                   <small style="color: #15803d; font-size: 11.5px;">Balance estimado actual</small>
                 </div>
-                <div class="fw-bold font-monospace" style="color: #15803d; font-size: 1.25rem; letter-spacing: -0.02em;">
+                <div class="fw-bold" style="color: #15803d; font-size: 1.25rem; letter-spacing: -0.02em;">
                   RD$ {{ activeCashEstimatedCash() | number:'1.2-2' }}
                 </div>
               </div>
@@ -586,7 +586,7 @@
                         </td>
                         <td class="py-3">
                           <span class="badge rounded-pill px-2.5 py-1" [ngClass]="getPaymentMethodBadgeClass($any(sale).paymentMethod || 'Efectivo')" style="font-size: 0.72rem;">
-                            {{ $any(sale).paymentMethod || 'Efectivo' }}
+                            {{ formatPaymentMethod($any(sale).paymentMethod) }}
                           </span>
                         </td>
                         <td class="py-3 text-end font-monospace fw-bold text-dark">

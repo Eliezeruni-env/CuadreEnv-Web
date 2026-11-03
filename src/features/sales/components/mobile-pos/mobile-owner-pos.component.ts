@@ -1,3 +1,4 @@
+import { formatPaymentMethodLabel } from '../../../cuadreEnv/utils/payment-method.util';
 import {
   Component,
   OnInit,
@@ -153,6 +154,11 @@ function getStableDeviceId(): string {
   ],
 })
 export class MobileOwnerPosComponent implements OnInit, OnDestroy {
+  formatPaymentMethod(method?: string | null): string {
+    return formatPaymentMethodLabel(method);
+  }
+
+
   readonly Math = Math;
   private readonly sanitizer = inject(DomSanitizer);
   private readonly productService = inject(ProductService);
@@ -224,6 +230,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   fiaoList = signal<ReceivableDto[]>([]);
   isLoadingFiao = signal<boolean>(false);
   fiaoSearchTerm = signal<string>('');
+  fiaoStatusFilter = signal<'pending' | 'paid' | 'all'>('pending');
   isFiaoPaymentModalOpen = signal<boolean>(false);
   selectedFiaoForPayment = signal<ReceivableDto | null>(null);
   fiaoPaymentAmount = signal<number>(0);
@@ -232,9 +239,31 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   );
   fiaoPaymentNotes = signal<string>('');
 
+  readonly pendingFiaoList = computed(() => {
+    return this.fiaoList().filter(
+      (item) => (item.pendingAmount || 0) > 0 && item.status !== 'Pagado'
+    );
+  });
+
+  readonly paidFiaoList = computed(() => {
+    return this.fiaoList().filter(
+      (item) => item.status === 'Pagado' || (item.pendingAmount || 0) <= 0
+    );
+  });
+
+  readonly totalPaidFiaoCount = computed(() => this.paidFiaoList().length);
+
   readonly filteredFiaoList = computed(() => {
     const term = this.fiaoSearchTerm().trim().toLowerCase();
-    const list = this.fiaoList();
+    const filter = this.fiaoStatusFilter();
+    let list = this.fiaoList();
+
+    if (filter === 'pending') {
+      list = list.filter((item) => (item.pendingAmount || 0) > 0 && item.status !== 'Pagado');
+    } else if (filter === 'paid') {
+      list = list.filter((item) => item.status === 'Pagado' || (item.pendingAmount || 0) <= 0);
+    }
+
     if (!term) return list;
     return list.filter(
       (item) =>

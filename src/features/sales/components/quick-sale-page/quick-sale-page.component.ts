@@ -1,3 +1,4 @@
+import { formatPaymentMethodLabel } from '../../../cuadreEnv/utils/payment-method.util';
 import { firstValueFrom } from 'rxjs';
 import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
@@ -124,6 +125,11 @@ const LAST_SALE_STORAGE_KEY = 'cuadre_last_completed_sale';
   styleUrls: ['./quick-sale-page.component.scss'],
 })
 export class QuickSalePageComponent implements OnInit, OnDestroy {
+  formatPaymentMethod(method?: string | null): string {
+    return formatPaymentMethodLabel(method);
+  }
+
+
   @ViewChild('catalogSearchInput')
   catalogSearchInputRef?: ElementRef<HTMLInputElement>;
   @ViewChild('amountReceivedInput')

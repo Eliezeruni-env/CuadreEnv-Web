@@ -2061,7 +2061,7 @@
                     </td>
                     <td>
                       <span class="badge bg-light text-dark border" style="font-size: 11px;">
-                        {{ sale.paymentMethod || 'Efectivo' }}
+                        {{ formatPaymentMethod(sale.paymentMethod) }}
                       </span>
                     </td>
                     <td class="text-end fw-bold">
@@ -2317,8 +2317,8 @@
       <!-- Modal Header -->
       <div class="pos-modal-header px-4 py-3 border-bottom d-flex align-items-center justify-content-between" style="background-color: #f8fafc;">
         <div class="d-flex align-items-center gap-2.5">
-          <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background-color: #eff6ff; color: #2563eb; border: 1px solid #dbeafe;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; background-color: #f0fdf4; border: 1px solid #dcfce7;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-success">
               <path d="M3 5v14"></path>
               <path d="M8 5v14"></path>
               <path d="M12 5v14"></path>
@@ -2327,8 +2327,8 @@
             </svg>
           </div>
           <div>
-            <h3 class="pos-modal-title mb-0" style="font-size: 16px; font-weight: 700; color: #0f172a;">Planilla de Códigos de Barra</h3>
-            <span class="pos-modal-subtitle" style="font-size: 12px; color: #64748b;">Genera e imprime etiquetas autoadhesivas listas para tus productos</span>
+            <h3 class="pos-modal-title mb-0" style="font-size: 16px; font-weight: 700; color: #0f172a;">Planilla de Códigos de Barra para Imprimir</h3>
+            <span class="pos-modal-subtitle" style="font-size: 12px; color: #64748b;">Descarga o imprime etiquetas autoadhesivas listas para tus productos</span>
           </div>
         </div>
         <button type="button" class="btn-pos-close" (click)="isBarcodeSheetModalOpen.set(false)" aria-label="Cerrar modal">
@@ -2342,7 +2342,7 @@
       <!-- Modal Body -->
       <div class="pos-modal-body p-4">
         <div class="row g-3">
-          <div class="col-md-6">
+          <div class="col-12 col-md-6">
             <label class="form-label small fw-semibold text-secondary mb-1.5 d-flex align-items-center gap-1.5" for="barcodeFormatSelect">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -2354,7 +2354,7 @@
             <select
               id="barcodeFormatSelect"
               class="form-select fw-medium"
-              style="height: 42px; border-radius: 8px; border-color: #cbd5e1; font-size: 13.5px;"
+              style="height: 44px; border-radius: 8px; border-color: #cbd5e1; font-size: 13.5px; padding-right: 2.2rem; text-overflow: ellipsis;"
               [ngModel]="barcodeSheetFormat()"
               (ngModelChange)="barcodeSheetFormat.set($event)"
             >
@@ -2363,7 +2363,7 @@
             </select>
           </div>
 
-          <div class="col-md-6">
+          <div class="col-12 col-md-6">
             <label class="form-label small fw-semibold text-secondary mb-1.5 d-flex align-items-center gap-1.5" for="barcodeFilterSelect">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
@@ -2375,7 +2375,7 @@
             <select
               id="barcodeFilterSelect"
               class="form-select fw-medium"
-              style="height: 42px; border-radius: 8px; border-color: #cbd5e1; font-size: 13.5px;"
+              style="height: 44px; border-radius: 8px; border-color: #cbd5e1; font-size: 13.5px; padding-right: 2.2rem; text-overflow: ellipsis;"
               [ngModel]="barcodeFilterType()"
               (ngModelChange)="barcodeFilterType.set($event)"
             >
@@ -2393,9 +2393,9 @@
                     <line x1="12" y1="16" x2="12" y2="12"></line>
                     <line x1="12" y1="8" x2="12.01" y2="8"></line>
                   </svg>
-                  <span class="fw-bold text-dark small">Resumen de Generación</span>
+                  <span class="fw-bold text-dark small">Resumen de Generación:</span>
                 </div>
-                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill font-monospace px-2.5 py-1" style="font-size: 12px; font-weight: 700;">
+                <span class="badge text-white px-3 py-1.5 fw-bold" style="background-color: #4F46E5; border-radius: 6px; font-size: 13px;">
                   {{ getBarcodeItemsToExport().length }} etiquetas
                 </span>
               </div>
@@ -2442,7 +2442,7 @@
               <polyline points="7 10 12 15 17 10"></polyline>
               <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
-            <span>Descargar para Imprenta</span>
+            <span>Descargar Archivo para Imprenta</span>
           </button>
         </div>
       </div>

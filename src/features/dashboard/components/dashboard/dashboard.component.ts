@@ -1,3 +1,4 @@
+import { formatPaymentMethodLabel } from '../../../cuadreEnv/utils/payment-method.util';
 import { Component, OnInit, OnDestroy, signal, computed, inject, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -700,6 +701,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const d = new Date(rawDate);
     if (isNaN(d.getTime())) return 'Hoy';
     return d.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  formatPaymentMethod(method?: string | null): string {
+    return formatPaymentMethodLabel(method);
   }
 
   getPaymentMethodBadgeClass(method?: string): string {

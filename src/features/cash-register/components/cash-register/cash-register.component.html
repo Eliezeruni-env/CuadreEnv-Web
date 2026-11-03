@@ -1005,7 +1005,7 @@
               <div class="col-6 col-md-3">
                 <div class="p-3 bg-white rounded-3 border h-100 shadow-2xs">
                   <div class="text-secondary small fw-semibold text-uppercase tracking-wider mb-1" style="font-size: 11px;">Fondo Inicial</div>
-                  <div class="fs-5 fw-bold text-dark font-monospace mb-1">
+                  <div class="fs-5 fw-bold text-dark mb-1">
                     RD$ {{ (selectedSessionDetail()?.session?.initialAmount || 0) | number: '1.2-2' }}
                   </div>
                   <span class="badge bg-light text-secondary border font-size-2xs">Apertura</span>
@@ -1015,7 +1015,7 @@
               <div class="col-6 col-md-3">
                 <div class="p-3 bg-white rounded-3 border h-100 shadow-2xs">
                   <div class="text-secondary small fw-semibold text-uppercase tracking-wider mb-1" style="font-size: 11px;">Ventas Totales</div>
-                  <div class="fs-5 fw-bold text-dark font-monospace mb-1">
+                  <div class="fs-5 fw-bold text-dark mb-1">
                     RD$ {{ (selectedSessionDetail()?.totals?.totalSales || 0) | number: '1.2-2' }}
                   </div>
                   <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-size-2xs fw-semibold">
@@ -1027,7 +1027,7 @@
               <div class="col-6 col-md-3">
                 <div class="p-3 bg-white rounded-3 border h-100 shadow-2xs">
                   <div class="text-secondary small fw-semibold text-uppercase tracking-wider mb-1" style="font-size: 11px;">Monto Cierre (Contado)</div>
-                  <div class="fs-5 fw-bold text-dark font-monospace mb-1">
+                  <div class="fs-5 fw-bold text-dark mb-1">
                     RD$ {{ (selectedSessionDetail()?.session?.closingAmount || 0) | number: '1.2-2' }}
                   </div>
                   <span class="badge bg-light text-secondary border font-size-2xs">Efectivo auditado</span>
@@ -1038,7 +1038,7 @@
                 @if (selectedSessionDetail()?.session?.difference === 0) {
                   <div class="p-3 rounded-3 border h-100 shadow-2xs" style="background-color: #f0fdf4; border-color: #bbf7d0 !important;">
                     <div class="small fw-semibold text-uppercase tracking-wider mb-1" style="font-size: 11px; color: #166534;">Diferencia / Cuadre</div>
-                    <div class="fs-5 fw-bold font-monospace mb-1" style="color: #15803d;">
+                    <div class="fs-5 fw-bold mb-1" style="color: #15803d;">
                       RD$ 0.00
                     </div>
                     <span class="badge bg-white text-success border border-success-subtle font-size-2xs fw-bold">
@@ -1048,7 +1048,7 @@
                 } @else if ((selectedSessionDetail()?.session?.difference || 0) < 0) {
                   <div class="p-3 rounded-3 border h-100 shadow-2xs" style="background-color: #fef2f2; border-color: #fecaca !important;">
                     <div class="small fw-semibold text-uppercase tracking-wider mb-1" style="font-size: 11px; color: #991b1b;">Diferencia / Cuadre</div>
-                    <div class="fs-5 fw-bold font-monospace mb-1" style="color: #b91c1c;">
+                    <div class="fs-5 fw-bold mb-1" style="color: #b91c1c;">
                       - RD$ {{ Math.abs(selectedSessionDetail()?.session?.difference || 0) | number: '1.2-2' }}
                     </div>
                     <span class="badge bg-white text-danger border border-danger-subtle font-size-2xs fw-bold">
@@ -1058,7 +1058,7 @@
                 } @else {
                   <div class="p-3 rounded-3 border h-100 shadow-2xs" style="background-color: #eff6ff; border-color: #bfdbfe !important;">
                     <div class="small fw-semibold text-uppercase tracking-wider mb-1" style="font-size: 11px; color: #1e40af;">Diferencia / Cuadre</div>
-                    <div class="fs-5 fw-bold font-monospace mb-1" style="color: #1d4ed8;">
+                    <div class="fs-5 fw-bold mb-1" style="color: #1d4ed8;">
                       + RD$ {{ (selectedSessionDetail()?.session?.difference || 0) | number: '1.2-2' }}
                     </div>
                     <span class="badge bg-white text-primary border border-primary-subtle font-size-2xs fw-bold">
@@ -1095,7 +1095,7 @@
                           <small class="text-secondary" style="font-size: 0.72rem;">Cobros en efectivo físico</small>
                         </div>
                       </div>
-                      <strong class="text-dark font-monospace fs-6">RD$ {{ (selectedSessionDetail()?.totals?.cashSales || 0) | number: '1.2-2' }}</strong>
+                      <strong class="text-dark fs-6 fw-bold">RD$ {{ (selectedSessionDetail()?.totals?.cashSales || 0) | number: '1.2-2' }}</strong>
                     </div>
 
                     <!-- Tarjetas -->
@@ -1112,7 +1112,7 @@
                           <small class="text-secondary" style="font-size: 0.72rem;">Verifone / POS terminal</small>
                         </div>
                       </div>
-                      <strong class="text-dark font-monospace fs-6">RD$ {{ (selectedSessionDetail()?.totals?.cardSales || 0) | number: '1.2-2' }}</strong>
+                      <strong class="text-dark fs-6 fw-bold">RD$ {{ (selectedSessionDetail()?.totals?.cardSales || 0) | number: '1.2-2' }}</strong>
                     </div>
 
                     <!-- Transferencias -->
@@ -1128,7 +1128,7 @@
                           <small class="text-secondary" style="font-size: 0.72rem;">Depósitos y pagos directos</small>
                         </div>
                       </div>
-                      <strong class="text-dark font-monospace fs-6">RD$ {{ (selectedSessionDetail()?.totals?.transferSales || 0) | number: '1.2-2' }}</strong>
+                      <strong class="text-dark fs-6 fw-bold">RD$ {{ (selectedSessionDetail()?.totals?.transferSales || 0) | number: '1.2-2' }}</strong>
                     </div>
                   </div>
                 </div>
@@ -1156,7 +1156,7 @@
                           <small class="text-secondary" style="font-size: 0.72rem;">Cobro deudas / depósitos</small>
                         </div>
                       </div>
-                      <strong class="text-success font-monospace fs-6">+ RD$ {{ (selectedSessionDetail()?.totals?.cashIn || 0) | number: '1.2-2' }}</strong>
+                      <strong class="text-success fs-6 fw-bold">+ RD$ {{ (selectedSessionDetail()?.totals?.cashIn || 0) | number: '1.2-2' }}</strong>
                     </div>
 
                     <div class="p-2.5 bg-white rounded-3 border d-flex justify-content-between align-items-center shadow-2xs">
@@ -1172,7 +1172,7 @@
                           <small class="text-secondary" style="font-size: 0.72rem;">Gastos menores / entregas</small>
                         </div>
                       </div>
-                      <strong class="text-danger font-monospace fs-6">- RD$ {{ (selectedSessionDetail()?.totals?.cashOut || 0) | number: '1.2-2' }}</strong>
+                      <strong class="text-danger fs-6 fw-bold">- RD$ {{ (selectedSessionDetail()?.totals?.cashOut || 0) | number: '1.2-2' }}</strong>
                     </div>
                   </div>
                 </div>
@@ -1214,7 +1214,7 @@
                         <td class="text-secondary">{{ s.creationDate ? (s.creationDate | date: 'shortTime') : '-' }}</td>
                         <td class="fw-medium text-dark">{{ s.customer?.name || s.customerName || 'Consumidor Final' }}</td>
                         <td>
-                          <span class="badge bg-light text-secondary border">{{ s.paymentMethod || 'Efectivo' }}</span>
+                          <span class="badge bg-light text-secondary border">{{ formatPaymentMethod(s.paymentMethod) }}</span>
                         </td>
                         <td class="text-end fw-bold font-monospace text-dark">
                           RD$ {{ (s.total || s.paidAmount || 0) | number: '1.2-2' }}
