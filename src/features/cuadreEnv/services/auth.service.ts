@@ -1006,6 +1006,8 @@ export class AuthService {
         payload?.module ??
         payload?.user?.allowed_modules ??
         payload?.user?.allowedModules ??
+        payload?.user?.modules ??
+        payload?.user?.Modules ??
         payload?.user?.AllowedModulesJson;
 
       const rawLicensedModules = payload?.licensedModules ??
@@ -1083,6 +1085,12 @@ export class AuthService {
       this.entitlementErrorNotified = false;
       return true;
     } catch (error) {
+      // Si el usuario ya tenía módulos autenticados (del token o login), no eliminarlos a ciegas por un fallo de refresco
+      const currentAllowed = this.allowedModules();
+      if (currentAllowed && currentAllowed.length > 0) {
+        this.entitlementErrorNotified = true;
+        return true;
+      }
       this.licensedModules.set([]);
       this.allowedModules.set([]);
       this.moduleAccessService.setAllowedModules([]);

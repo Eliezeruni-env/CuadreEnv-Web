@@ -121,64 +121,75 @@
 
         <!-- Columna Asimétrica: Margen, Ticket y Venta Récord -->
         <div class="col-12 col-lg-5">
-          <div class="d-flex flex-column gap-3 h-100 justify-content-between">
+          <div class="d-flex flex-column gap-2.5 h-100 justify-content-between">
             <!-- Margen Comercial Bruto -->
-            <div class="asymmetric-metric-card p-3 rounded-4 bg-white border shadow-2xs">
-              <div class="d-flex justify-content-between align-items-center mb-1.5">
-                <div class="d-flex align-items-center gap-1.5">
-                  <span class="kpi-indicator-dot bg-emerald"></span>
+            <div class="asymmetric-metric-card p-3 rounded-3 bg-white border shadow-2xs">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="kpi-icon-pill kpi-icon-pill-emerald">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                  </div>
                   <span class="asymmetric-label">Margen Bruto Comercial</span>
                 </div>
                 <span class="asymmetric-pill pill-emerald">
                   {{ netMarginPercent() }}% Margen
                 </span>
               </div>
-              <div class="d-flex align-items-baseline gap-2 mb-1">
+              <div class="d-flex align-items-baseline gap-1.5 my-1">
                 <span class="kpi-currency-prefix text-success">RD$</span>
                 <span class="asymmetric-amount text-success">{{ netMarginAmount() | number:'1.2-2' }}</span>
               </div>
-              <small class="asymmetric-desc text-secondary d-block">
-                Ganancia estimada sobre el costo directo de compra de mercancía.
-              </small>
+              <div class="d-flex align-items-center justify-content-between">
+                <small class="asymmetric-desc text-secondary">
+                  Ganancia estimada sobre costo directo de mercancía
+                </small>
+                <div class="asymmetric-mini-bar" style="width: 65px; height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden;">
+                  <div style="height: 100%; background: #10b981; border-radius: 3px;" [style.width.%]="netMarginPercent() > 100 ? 100 : netMarginPercent()"></div>
+                </div>
+              </div>
             </div>
 
             <!-- Ticket Promedio (AOV) -->
-            <div class="asymmetric-metric-card p-3 rounded-4 bg-white border shadow-2xs">
-              <div class="d-flex justify-content-between align-items-center mb-1.5">
-                <div class="d-flex align-items-center gap-1.5">
-                  <span class="kpi-indicator-dot bg-blue"></span>
+            <div class="asymmetric-metric-card p-3 rounded-3 bg-white border shadow-2xs">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="kpi-icon-pill kpi-icon-pill-blue">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                  </div>
                   <span class="asymmetric-label">Ticket Promedio por Operación (AOV)</span>
                 </div>
                 <span class="asymmetric-pill pill-blue">
                   Gasto Medio
                 </span>
               </div>
-              <div class="d-flex align-items-baseline gap-2 mb-1">
+              <div class="d-flex align-items-baseline gap-1.5 my-1">
                 <span class="kpi-currency-prefix text-primary">RD$</span>
                 <span class="asymmetric-amount text-dark">{{ averageTicket() | number:'1.2-2' }}</span>
               </div>
               <small class="asymmetric-desc text-secondary d-block">
-                Monto promedio cobrado por cada factura emitida en el período.
+                Monto promedio cobrado por cada factura emitida
               </small>
             </div>
 
             <!-- Venta Récord Individual -->
-            <div class="asymmetric-metric-card p-3 rounded-4 bg-white border shadow-2xs">
-              <div class="d-flex justify-content-between align-items-center mb-1.5">
-                <div class="d-flex align-items-center gap-1.5">
-                  <span class="kpi-indicator-dot bg-indigo"></span>
+            <div class="asymmetric-metric-card p-3 rounded-3 bg-white border shadow-2xs">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="kpi-icon-pill kpi-icon-pill-indigo">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+                  </div>
                   <span class="asymmetric-label">Venta Récord (Pico Comercial)</span>
                 </div>
                 <span class="asymmetric-pill pill-indigo">
                   Ticket Máximo
                 </span>
               </div>
-              <div class="d-flex align-items-baseline gap-2 mb-1">
+              <div class="d-flex align-items-baseline gap-1.5 my-1">
                 <span class="kpi-currency-prefix text-dark">RD$</span>
                 <span class="asymmetric-amount text-dark">{{ maxSaleAmount() | number:'1.2-2' }}</span>
               </div>
               <small class="asymmetric-desc text-secondary d-block">
-                Mayor transacción individual completada en una sola factura.
+                Mayor transacción individual completada en una sola factura
               </small>
             </div>
           </div>
@@ -401,36 +412,36 @@
                 <span class="text-secondary font-monospace" style="font-size: 11px;">REV-DAY / AOV / MAX</span>
               </div>
 
-              <div class="d-flex flex-column gap-2.5">
-                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+              <div class="d-flex flex-column">
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2 border-bottom">
                   <div>
                     <strong class="text-dark d-block" style="font-size: 13px;">Facturación Diaria (Ritmo)</strong>
                     <span class="text-secondary" style="font-size: 11px;">RD$ {{ totalRevenue() | number:'1.0-0' }} divididos en período</span>
                   </div>
                   <div class="text-end">
-                    <strong class="text-primary d-block" style="font-size: 14px;">RD$ {{ dailyAvgRevenue() | number:'1.2-2' }}/día</strong>
+                    <strong class="text-primary d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;">RD$ {{ dailyAvgRevenue() | number:'1.2-2' }}/día</strong>
                     <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 10px;">Activo</span>
                   </div>
                 </div>
 
-                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2 border-bottom">
                   <div>
                     <strong class="text-dark d-block" style="font-size: 13px;">Ticket Promedio (AOV)</strong>
                     <span class="text-secondary" style="font-size: 11px;">Gasto promedio por cada factura emitida</span>
                   </div>
                   <div class="text-end">
-                    <strong class="text-dark d-block" style="font-size: 14px;">RD$ {{ averageTicket() | number:'1.2-2' }}</strong>
+                    <strong class="text-dark d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;">RD$ {{ averageTicket() | number:'1.2-2' }}</strong>
                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 10px;">Consistente</span>
                   </div>
                 </div>
 
-                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2">
                   <div>
                     <strong class="text-dark d-block" style="font-size: 13px;">Venta Récord Individual</strong>
                     <span class="text-secondary" style="font-size: 11px;">Mayor transacción concretada</span>
                   </div>
                   <div class="text-end">
-                    <strong class="text-dark d-block" style="font-size: 14px;">RD$ {{ maxSaleAmount() | number:'1.2-2' }}</strong>
+                    <strong class="text-dark d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;">RD$ {{ maxSaleAmount() | number:'1.2-2' }}</strong>
                     <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 10px;">Pico</span>
                   </div>
                 </div>
@@ -449,26 +460,37 @@
                 <span class="text-secondary font-monospace" style="font-size: 11px;">NET-MRG</span>
               </div>
 
-              <div class="d-flex flex-column gap-2.5">
-                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+              <div class="d-flex flex-column">
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2 border-bottom">
                   <div>
                     <strong class="text-dark d-block" style="font-size: 13px;">Margen Comercial Bruto</strong>
                     <span class="text-secondary" style="font-size: 11px;">Margen bruto sobre costo directo de mercancía</span>
                   </div>
                   <div class="text-end">
-                    <strong class="text-success d-block" style="font-size: 14px;">{{ netMarginPercent() }}%</strong>
+                    <strong class="text-success d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;">{{ netMarginPercent() }}%</strong>
                     <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 10px;">Rentable</span>
                   </div>
                 </div>
 
-                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2 border-bottom">
                   <div>
                     <strong class="text-dark d-block" style="font-size: 13px;">Utilidad Bruta en Moneda</strong>
-                    <span class="text-secondary" style="font-size: 11px;">Facturación menos costo de inventario</span>
+                    <span class="text-secondary" style="font-size: 11px;">Facturación menos costo directo de inventario</span>
                   </div>
                   <div class="text-end">
-                    <strong class="text-success d-block" style="font-size: 14px;">RD$ {{ netMarginAmount() | number:'1.2-2' }}</strong>
+                    <strong class="text-success d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;">RD$ {{ netMarginAmount() | number:'1.2-2' }}</strong>
                     <span class="badge bg-light text-secondary border" style="font-size: 10px;">Estimada</span>
+                  </div>
+                </div>
+
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">Costo Directo de Mercancía</strong>
+                    <span class="text-secondary" style="font-size: 11px;">Costo base de mercancía vendida (COGS)</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="text-secondary d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;">RD$ {{ totalCogs() | number:'1.2-2' }}</strong>
+                    <span class="badge bg-light text-secondary border" style="font-size: 10px;">Auditado</span>
                   </div>
                 </div>
               </div>
@@ -486,34 +508,34 @@
                 <span class="text-secondary font-monospace" style="font-size: 11px;">UPT / UNIT</span>
               </div>
 
-              <div class="d-flex flex-column gap-2.5">
-                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+              <div class="d-flex flex-column">
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2 border-bottom">
                   <div>
                     <strong class="text-dark d-block" style="font-size: 13px;">Profundidad de Cesta (UPT)</strong>
-                    <span class="text-secondary" style="font-size: 11px;">Artículos por ticket</span>
+                    <span class="text-secondary" style="font-size: 11px;">Artículos despachados por ticket</span>
                   </div>
                   <div class="text-end">
-                    <strong class="text-dark d-block" style="font-size: 14px;">{{ unitsPerTicket() }} uds</strong>
+                    <strong class="text-dark d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;">{{ unitsPerTicket() }} uds</strong>
                   </div>
                 </div>
 
-                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2 border-bottom">
                   <div>
                     <strong class="text-dark d-block" style="font-size: 13px;">Despacho Diario</strong>
-                    <span class="text-secondary" style="font-size: 11px;">Velocidad de salida</span>
+                    <span class="text-secondary" style="font-size: 11px;">Velocidad de salida por jornada</span>
                   </div>
                   <div class="text-end">
-                    <strong class="text-dark d-block" style="font-size: 14px;">{{ unitsPerDay() }} uds/día</strong>
+                    <strong class="text-dark d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;">{{ unitsPerDay() }} uds/día</strong>
                   </div>
                 </div>
 
-                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2">
                   <div>
                     <strong class="text-dark d-block" style="font-size: 13px;">Volumen Total</strong>
-                    <span class="text-secondary" style="font-size: 11px;">Unidades acumuladas</span>
+                    <span class="text-secondary" style="font-size: 11px;">Unidades acumuladas en período</span>
                   </div>
                   <div class="text-end">
-                    <strong class="text-dark d-block" style="font-size: 14px;">{{ totalUnitsSold() }} uds</strong>
+                    <strong class="text-dark d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;">{{ totalUnitsSold() }} uds</strong>
                   </div>
                 </div>
               </div>
@@ -531,14 +553,14 @@
                 <span class="text-secondary font-monospace" style="font-size: 11px;">CASH / NET</span>
               </div>
 
-              <div class="d-flex flex-column gap-2.5">
-                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+              <div class="d-flex flex-column">
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2 border-bottom">
                   <div>
                     <strong class="text-dark d-block" style="font-size: 13px;">Flujo Neto de Gaveta</strong>
                     <span class="text-secondary" style="font-size: 11px;">Entradas menos salidas de caja</span>
                   </div>
                   <div class="text-end">
-                    <strong class="d-block" style="font-size: 14px;" [ngClass]="netCashFlow() > 0 ? 'text-success' : (netCashFlow() === 0 ? 'text-secondary' : 'text-danger')">
+                    <strong class="d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;" [ngClass]="netCashFlow() > 0 ? 'text-success' : (netCashFlow() === 0 ? 'text-secondary' : 'text-danger')">
                       RD$ {{ netCashFlow() | number:'1.2-2' }}
                     </strong>
                     <span
@@ -551,30 +573,30 @@
                   </div>
                 </div>
 
-                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2 border-bottom">
                   <div>
                     <strong class="text-dark d-block" style="font-size: 13px;">% Efectivo Inmediato</strong>
-                    <span class="text-secondary" style="font-size: 11px;">Liquidez física en caja</span>
+                    <span class="text-secondary" style="font-size: 11px;">Liquidez física disponible</span>
                   </div>
                   <div class="text-end">
-                    <strong class="text-dark d-block" style="font-size: 14px;">{{ paymentBreakdown().cashPct }}%</strong>
+                    <strong class="text-dark d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;">{{ paymentBreakdown().cashPct }}%</strong>
                   </div>
                 </div>
 
-                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2">
                   <div>
                     <strong class="text-dark d-block" style="font-size: 13px;">% Bancarizado / Digital</strong>
                     <span class="text-secondary" style="font-size: 11px;">Tarjetas + transferencias</span>
                   </div>
                   <div class="text-end">
-                    <strong class="text-primary d-block" style="font-size: 14px;">{{ digitalSharePct() }}%</strong>
+                    <strong class="text-primary d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;">{{ digitalSharePct() }}%</strong>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- DOMINIO 05: CLIENTES & ESTRATEGIA COMERCIAL -->
+          <!-- DOMINIO 05: CLIENTES & CRÉDITO -->
           <div class="col-12 col-lg-4">
             <div class="domain-card p-3.5 rounded-3 border h-100 bg-white">
               <div class="domain-header d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
@@ -585,14 +607,14 @@
                 <span class="text-secondary font-monospace" style="font-size: 11px;">CXC / CUST</span>
               </div>
 
-              <div class="d-flex flex-column gap-2.5">
-                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+              <div class="d-flex flex-column">
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2 border-bottom">
                   <div>
                     <strong class="text-dark d-block" style="font-size: 13px;">Cartera Vencida (Mora)</strong>
                     <span class="text-secondary" style="font-size: 11px;">Créditos con plazo vencido</span>
                   </div>
                   <div class="text-end">
-                    <strong class="d-block" style="font-size: 14px;" [ngClass]="overdueDebtAmount() > 0 ? 'text-danger' : 'text-success'">
+                    <strong class="d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;" [ngClass]="overdueDebtAmount() > 0 ? 'text-danger' : 'text-success'">
                       RD$ {{ overdueDebtAmount() | number:'1.2-2' }}
                     </strong>
                     <span class="badge" style="font-size: 10px;" [ngClass]="overdueDebtCount() === 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'">
@@ -601,23 +623,23 @@
                   </div>
                 </div>
 
-                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2 border-bottom">
                   <div>
                     <strong class="text-dark d-block" style="font-size: 13px;">Descuentos Otorgados</strong>
                     <span class="text-secondary" style="font-size: 11px;">Rebajas en promociones</span>
                   </div>
                   <div class="text-end">
-                    <strong class="text-dark d-block" style="font-size: 14px;">RD$ {{ totalDiscounts() | number:'1.2-2' }}</strong>
+                    <strong class="text-dark d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;">RD$ {{ totalDiscounts() | number:'1.2-2' }}</strong>
                   </div>
                 </div>
 
-                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                <div class="domain-metric-row d-flex justify-content-between align-items-center py-2">
                   <div>
                     <strong class="text-dark d-block" style="font-size: 13px;">Gasto Promedio / Comprador</strong>
                     <span class="text-secondary" style="font-size: 11px;">Clientes únicos que compraron</span>
                   </div>
                   <div class="text-end">
-                    <strong class="text-dark d-block" style="font-size: 14px;">RD$ {{ avgSpentPerCustomer() | number:'1.2-2' }}</strong>
+                    <strong class="text-dark d-block" style="font-size: 13.5px; font-variant-numeric: tabular-nums;">RD$ {{ avgSpentPerCustomer() | number:'1.2-2' }}</strong>
                   </div>
                 </div>
               </div>
@@ -678,19 +700,30 @@
 
       <div class="top-products-grid">
         @for (p of topProducts(); track p.name; let idx = $index) {
-          <div class="top-product-card p-3 rounded-3 border bg-light d-flex flex-column justify-content-between">
-            <div class="d-flex align-items-start gap-2 mb-2">
-              <span class="badge rounded-pill bg-white text-dark border font-monospace px-2 py-0.5 fw-bold" style="font-size: 11px;">
-                #{{ idx + 1 }}
-              </span>
-              <div class="min-w-0 flex-grow-1">
-                <span class="fw-bold text-dark d-block text-truncate" style="font-size: 13px;" [title]="p.name">{{ p.name }}</span>
-                <span class="text-secondary small">{{ p.units }} unidades despachadas</span>
+          <div class="top-product-card p-3 rounded-3 border bg-white d-flex flex-column justify-content-between">
+            <div>
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <span
+                  class="badge px-2 py-0.5 fw-bold"
+                  [ngClass]="idx === 0 ? 'bg-warning-subtle text-warning border border-warning' : 'bg-light text-secondary border'"
+                  style="font-size: 11px;"
+                >
+                  {{ idx === 0 ? '🏆 #1 Líder' : ('#' + (idx + 1)) }}
+                </span>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 10.5px;">
+                  {{ p.units }} uds
+                </span>
+              </div>
+              <span class="fw-bold text-dark d-block text-truncate mb-2" style="font-size: 13px;" [title]="p.name">{{ p.name }}</span>
+              <div class="w-100 mb-2" style="height: 4px; background: #f1f5f9; border-radius: 2px; overflow: hidden;">
+                <div style="height: 100%; background: #2563eb; border-radius: 2px;" [style.width.%]="p.percentage || 10"></div>
               </div>
             </div>
             <div class="pt-2 border-top d-flex justify-content-between align-items-center">
-              <span class="small text-secondary">Facturación:</span>
-              <strong class="text-primary small" style="font-variant-numeric: tabular-nums;">RD$ {{ p.revenue | number:'1.2-2' }}</strong>
+              <span class="small text-secondary" style="font-size: 11.5px;">Facturado:</span>
+              <strong class="text-dark small" style="font-variant-numeric: tabular-nums; font-size: 12.5px;">
+                RD$ {{ p.revenue | number:'1.2-2' }}
+              </strong>
             </div>
           </div>
         }

@@ -1,16 +1,25 @@
 const isBrowser = typeof window !== 'undefined';
+const isLocalhost = isBrowser && (window.location?.hostname === 'localhost' || window.location?.hostname === '127.0.0.1');
 
 // Soporte dinámico para desarrollo en local:
-// - Por defecto, en local conecta a la API de Heroku para que puedas desarrollar y probar la web sin levantar base de datos local
-// - Si estás corriendo 'CuadreEnv-Api' en local (http://localhost:8080), simplemente abre la app con '?api=local'
-let useLocalApi = false;
+// - Por defecto en localhost, conecta a la API local http://localhost:8080 sincronizada con USM (puerto 3000) y Supabase
+// - Si se desea conectar a Heroku, simplemente abrir la app con '?api=remote' o '?api=heroku'
+let useLocalApi = isLocalhost;
 if (isBrowser) {
   if (window.location.search.includes('api=local')) {
     localStorage.setItem('cuadre_api_target', 'local');
+    useLocalApi = true;
   } else if (window.location.search.includes('api=remote') || window.location.search.includes('api=heroku')) {
     localStorage.setItem('cuadre_api_target', 'remote');
+    useLocalApi = false;
+  } else {
+    const stored = localStorage.getItem('cuadre_api_target');
+    if (stored === 'remote') {
+      useLocalApi = false;
+    } else if (stored === 'local' || isLocalhost) {
+      useLocalApi = true;
+    }
   }
-  useLocalApi = localStorage.getItem('cuadre_api_target') === 'local';
 }
 
 const resolvedOrigin = useLocalApi

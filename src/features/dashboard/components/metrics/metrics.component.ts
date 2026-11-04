@@ -117,6 +117,7 @@ export class MetricsComponent implements OnInit {
   totalRevenue = signal<number>(0);
   totalSalesCount = signal<number>(0);
   averageTicket = signal<number>(0);
+  totalCogs = signal<number>(0);
   netMarginAmount = signal<number>(0);
   netMarginPercent = signal<number>(0);
   totalItbis = signal<number>(0);
@@ -211,6 +212,7 @@ export class MetricsComponent implements OnInit {
       y: {
         beginAtZero: true,
         suggestedMin: 0,
+        min: 0,
         suggestedMax: 100,
         grid: { color: 'rgba(0, 0, 0, 0.05)' },
         ticks: {
@@ -391,6 +393,7 @@ export class MetricsComponent implements OnInit {
     });
 
     this.totalItbis.set(periodItbis);
+    this.totalCogs.set(periodCogs);
     const netMargin = Math.max(0, revenue - periodItbis - periodCogs);
     const marginPct = revenue > 0 ? Math.round((netMargin / revenue) * 1000) / 10 : 0;
     this.netMarginAmount.set(netMargin);
@@ -761,16 +764,16 @@ export class MetricsComponent implements OnInit {
       datasets: [
         {
           label: 'Ventas (RD$)',
-          backgroundColor: 'rgba(79, 70, 229, 0.08)',
-          borderColor: '#4f46e5',
-          borderWidth: 2.5,
-          pointBackgroundColor: '#4f46e5',
+          backgroundColor: 'rgba(37, 99, 235, 0.08)',
+          borderColor: '#2563eb',
+          borderWidth: 2,
+          pointBackgroundColor: '#2563eb',
           pointBorderColor: '#ffffff',
           pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6,
+          pointRadius: 3,
+          pointHoverRadius: 5,
           fill: true,
-          tension: 0.4,
+          tension: 0.25,
           data: salesSeries,
         },
       ],
