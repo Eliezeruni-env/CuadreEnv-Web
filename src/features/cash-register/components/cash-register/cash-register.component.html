@@ -1098,21 +1098,29 @@
             </div>
 
             <!-- Breakdown Section: Métodos de Pago y Operaciones de Caja -->
-            <div class="row g-3">
+            <div class="row g-3 mt-1 mb-2">
               <!-- Left Card: Métodos de Pago -->
-              <div class="col-md-7">
-                <div class="p-3.5 bg-light rounded-3 border h-100">
+              <div class="col-12 col-md-6">
+                <div class="session-breakdown-card p-3.5 bg-white rounded-3 border h-100 shadow-2xs">
                   <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
-                    <div class="fw-bold text-dark small text-uppercase tracking-wider" style="font-size: 11.5px;">Desglose de Ventas por Método</div>
-                    <span class="badge bg-white text-dark border font-size-2xs fw-bold">Total: RD$ {{ (selectedSessionDetail()?.totals?.totalSales || 0) | number: '1.2-2' }}</span>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 26px; height: 26px; background: #e0e7ff; color: #4338ca;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                          <line x1="2" y1="10" x2="22" y2="10"></line>
+                        </svg>
+                      </div>
+                      <span class="fw-bold text-dark small text-uppercase tracking-wider" style="font-size: 11.5px; letter-spacing: 0.04em;">Desglose de Ventas por Método</span>
+                    </div>
+                    <span class="badge bg-light text-dark border font-size-2xs fw-bold px-2.5 py-1">Total: RD$ {{ (selectedSessionDetail()?.totals?.totalSales || 0) | number: '1.2-2' }}</span>
                   </div>
 
-                  <div class="d-flex flex-column gap-2.5">
+                  <div class="d-flex flex-column gap-2">
                     <!-- Efectivo -->
-                    <div class="p-2.5 bg-white rounded-3 border d-flex justify-content-between align-items-center shadow-2xs">
+                    <div class="p-2.5 bg-light-subtle rounded-3 border d-flex justify-content-between align-items-center session-metric-row">
                       <div class="d-flex align-items-center gap-2.5">
                         <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 34px; height: 34px; background: #ecfdf5; color: #059669; border: 1px solid #d1fae5;">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="2" y="6" width="20" height="12" rx="2"></rect>
                             <circle cx="12" cy="12" r="2"></circle>
                             <path d="M6 12h.01M18 12h.01"></path>
@@ -1120,87 +1128,152 @@
                         </div>
                         <div>
                           <span class="small fw-bold text-dark d-block">Efectivo en Caja</span>
-                          <small class="text-secondary" style="font-size: 0.72rem;">Cobros en efectivo físico</small>
+                          <small class="text-secondary" style="font-size: 0.73rem;">Cobros en efectivo físico</small>
                         </div>
                       </div>
-                      <strong class="text-dark fs-6 fw-bold">RD$ {{ (selectedSessionDetail()?.totals?.cashSales || 0) | number: '1.2-2' }}</strong>
+                      <div class="text-end">
+                        <strong class="text-dark fs-6 fw-bold d-block" style="font-variant-numeric: tabular-nums;">RD$ {{ (selectedSessionDetail()?.totals?.cashSales || 0) | number: '1.2-2' }}</strong>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle font-size-2xs">Físico</span>
+                      </div>
                     </div>
 
                     <!-- Tarjetas -->
-                    <div class="p-2.5 bg-white rounded-3 border d-flex justify-content-between align-items-center shadow-2xs">
+                    <div class="p-2.5 bg-light-subtle rounded-3 border d-flex justify-content-between align-items-center session-metric-row">
                       <div class="d-flex align-items-center gap-2.5">
                         <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 34px; height: 34px; background: #eef2ff; color: #4f46e5; border: 1px solid #e0e7ff;">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="2" y="5" width="20" height="14" rx="2"></rect>
                             <line x1="2" y1="10" x2="22" y2="10"></line>
                           </svg>
                         </div>
                         <div>
                           <span class="small fw-bold text-dark d-block">Tarjetas de Débito / Crédito</span>
-                          <small class="text-secondary" style="font-size: 0.72rem;">Verifone / POS terminal</small>
+                          <small class="text-secondary" style="font-size: 0.73rem;">Verifone / POS terminal</small>
                         </div>
                       </div>
-                      <strong class="text-dark fs-6 fw-bold">RD$ {{ (selectedSessionDetail()?.totals?.cardSales || 0) | number: '1.2-2' }}</strong>
+                      <div class="text-end">
+                        <strong class="text-dark fs-6 fw-bold d-block" style="font-variant-numeric: tabular-nums;">RD$ {{ (selectedSessionDetail()?.totals?.cardSales || 0) | number: '1.2-2' }}</strong>
+                        <span class="badge bg-indigo-subtle text-primary border border-primary-subtle font-size-2xs">POS Terminal</span>
+                      </div>
                     </div>
 
                     <!-- Transferencias -->
-                    <div class="p-2.5 bg-white rounded-3 border d-flex justify-content-between align-items-center shadow-2xs">
+                    <div class="p-2.5 bg-light-subtle rounded-3 border d-flex justify-content-between align-items-center session-metric-row">
                       <div class="d-flex align-items-center gap-2.5">
                         <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 34px; height: 34px; background: #f0f9ff; color: #0284c7; border: 1px solid #e0f2fe;">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M3 21h18M3 10h18M5 10v11M19 10v11M9 10v11M15 10v11M12 2 2 7h20z"></path>
                           </svg>
                         </div>
                         <div>
                           <span class="small fw-bold text-dark d-block">Transferencias Bancarias</span>
-                          <small class="text-secondary" style="font-size: 0.72rem;">Depósitos y pagos directos</small>
+                          <small class="text-secondary" style="font-size: 0.73rem;">Depósitos y pagos directos</small>
                         </div>
                       </div>
-                      <strong class="text-dark fs-6 fw-bold">RD$ {{ (selectedSessionDetail()?.totals?.transferSales || 0) | number: '1.2-2' }}</strong>
+                      <div class="text-end">
+                        <strong class="text-dark fs-6 fw-bold d-block" style="font-variant-numeric: tabular-nums;">RD$ {{ (selectedSessionDetail()?.totals?.transferSales || 0) | number: '1.2-2' }}</strong>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle font-size-2xs">Digital</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               <!-- Right Card: Movimientos de Caja -->
-              <div class="col-md-5">
-                <div class="p-3.5 bg-light rounded-3 border h-100">
+              <div class="col-12 col-md-6">
+                <div class="session-breakdown-card p-3.5 bg-white rounded-3 border h-100 shadow-2xs">
                   <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
-                    <div class="fw-bold text-dark small text-uppercase tracking-wider" style="font-size: 11.5px;">Movimientos de Caja</div>
-                    <span class="badge bg-white text-secondary border font-size-2xs fw-bold">{{ selectedSessionDetail()?.movements?.length || 0 }} reg.</span>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 26px; height: 26px; background: #f1f5f9; color: #475569;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="17 1 21 5 17 9"></polyline>
+                          <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                          <polyline points="7 23 3 19 7 15"></polyline>
+                          <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                        </svg>
+                      </div>
+                      <span class="fw-bold text-dark small text-uppercase tracking-wider" style="font-size: 11.5px; letter-spacing: 0.04em;">Movimientos de Caja</span>
+                    </div>
+                    <span class="badge bg-light text-secondary border font-size-2xs fw-bold px-2.5 py-1">{{ selectedSessionDetail()?.movements?.length || 0 }} registros</span>
                   </div>
 
-                  <div class="d-flex flex-column gap-2.5">
-                    <div class="p-2.5 bg-white rounded-3 border d-flex justify-content-between align-items-center shadow-2xs">
+                  <div class="d-flex flex-column gap-2">
+                    <!-- Entradas -->
+                    <div class="p-2.5 bg-light-subtle rounded-3 border d-flex justify-content-between align-items-center session-metric-row">
                       <div class="d-flex align-items-center gap-2.5">
                         <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 34px; height: 34px; background: #ecfdf5; color: #059669; border: 1px solid #d1fae5;">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="7" y1="7" x2="17" y2="17"></line>
                             <polyline points="17 7 17 17 7 17"></polyline>
                           </svg>
                         </div>
                         <div>
                           <span class="small fw-bold text-dark d-block">Entradas Manuales</span>
-                          <small class="text-secondary" style="font-size: 0.72rem;">Cobro deudas / depósitos</small>
+                          <small class="text-secondary" style="font-size: 0.73rem;">Cobro deudas / depósitos</small>
                         </div>
                       </div>
-                      <strong class="text-success fs-6 fw-bold">+ RD$ {{ (selectedSessionDetail()?.totals?.cashIn || 0) | number: '1.2-2' }}</strong>
+                      <div class="text-end">
+                        <strong class="text-success fs-6 fw-bold d-block" style="font-variant-numeric: tabular-nums;">+ RD$ {{ (selectedSessionDetail()?.totals?.cashIn || 0) | number: '1.2-2' }}</strong>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle font-size-2xs">Ingresos</span>
+                      </div>
                     </div>
 
-                    <div class="p-2.5 bg-white rounded-3 border d-flex justify-content-between align-items-center shadow-2xs">
+                    <!-- Salidas -->
+                    <div class="p-2.5 bg-light-subtle rounded-3 border d-flex justify-content-between align-items-center session-metric-row">
                       <div class="d-flex align-items-center gap-2.5">
                         <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 34px; height: 34px; background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2;">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="7" y1="17" x2="17" y2="7"></line>
                             <polyline points="7 7 17 7 17 17"></polyline>
                           </svg>
                         </div>
                         <div>
                           <span class="small fw-bold text-dark d-block">Salidas / Retiros</span>
-                          <small class="text-secondary" style="font-size: 0.72rem;">Gastos menores / entregas</small>
+                          <small class="text-secondary" style="font-size: 0.73rem;">Gastos menores / entregas</small>
                         </div>
                       </div>
-                      <strong class="text-danger fs-6 fw-bold">- RD$ {{ (selectedSessionDetail()?.totals?.cashOut || 0) | number: '1.2-2' }}</strong>
+                      <div class="text-end">
+                        <strong class="text-danger fs-6 fw-bold d-block" style="font-variant-numeric: tabular-nums;">- RD$ {{ (selectedSessionDetail()?.totals?.cashOut || 0) | number: '1.2-2' }}</strong>
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-size-2xs">Egresos</span>
+                      </div>
+                    </div>
+
+                    <!-- Flujo Neto de Movimientos (3er elemento simétrico) -->
+                    <div class="p-2.5 bg-light-subtle rounded-3 border d-flex justify-content-between align-items-center session-metric-row">
+                      <div class="d-flex align-items-center gap-2.5">
+                        <div
+                          class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                          style="width: 34px; height: 34px;"
+                          [style.background]="((selectedSessionDetail()?.totals?.cashIn || 0) - (selectedSessionDetail()?.totals?.cashOut || 0)) >= 0 ? '#eff6ff' : '#fff7ed'"
+                          [style.color]="((selectedSessionDetail()?.totals?.cashIn || 0) - (selectedSessionDetail()?.totals?.cashOut || 0)) >= 0 ? '#2563eb' : '#c2410c'"
+                          [style.border]="((selectedSessionDetail()?.totals?.cashIn || 0) - (selectedSessionDetail()?.totals?.cashOut || 0)) >= 0 ? '1px solid #dbeafe' : '1px solid #ffedd5'"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="3" x2="12" y2="21"></line>
+                            <polyline points="8 8 4 12 8 16"></polyline>
+                            <polyline points="16 16 20 12 16 8"></polyline>
+                          </svg>
+                        </div>
+                        <div>
+                          <span class="small fw-bold text-dark d-block">Flujo Neto de Gaveta</span>
+                          <small class="text-secondary" style="font-size: 0.73rem;">Entradas menos salidas de caja</small>
+                        </div>
+                      </div>
+                      <div class="text-end">
+                        <strong
+                          class="fs-6 fw-bold d-block"
+                          style="font-variant-numeric: tabular-nums;"
+                          [ngClass]="((selectedSessionDetail()?.totals?.cashIn || 0) - (selectedSessionDetail()?.totals?.cashOut || 0)) >= 0 ? 'text-primary' : 'text-danger'"
+                        >
+                          {{ ((selectedSessionDetail()?.totals?.cashIn || 0) - (selectedSessionDetail()?.totals?.cashOut || 0)) >= 0 ? '+' : '-' }} RD$ {{ Math.abs((selectedSessionDetail()?.totals?.cashIn || 0) - (selectedSessionDetail()?.totals?.cashOut || 0)) | number: '1.2-2' }}
+                        </strong>
+                        <span
+                          class="badge font-size-2xs"
+                          [ngClass]="((selectedSessionDetail()?.totals?.cashIn || 0) - (selectedSessionDetail()?.totals?.cashOut || 0)) >= 0 ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'"
+                        >
+                          Balance Neto
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

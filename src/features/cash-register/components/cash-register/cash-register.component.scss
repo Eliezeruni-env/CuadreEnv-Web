@@ -671,3 +671,48 @@
     }
   }
 }
+
+// Session Breakdown Cards & Metric Rows (Desglose de Ventas y Movimientos)
+.session-breakdown-card {
+  border: 1px solid var(--cui-border-color, #e2e8f0);
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 1px 2px rgba(15, 23, 42, 0.02);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  }
+}
+
+.session-metric-row {
+  background-color: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+  padding: 10px 14px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    transform: translateY(-1px);
+  }
+}
+
+[data-coreui-theme='dark'] {
+  .session-breakdown-card {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+  }
+
+  .session-metric-row {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+
+    &:hover {
+      background-color: #1e293b !important;
+    }
+  }
+}
