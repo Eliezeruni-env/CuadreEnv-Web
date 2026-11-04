@@ -408,15 +408,20 @@ export class ProductService {
    */
   private sanitizeProductPayload(product: ProductDto): any {
     const activeCompanyId = Number(getCompanyId()) || 0;
-    const resolvedCompanyId = activeCompanyId > 0 ? activeCompanyId : (product.companyId && product.companyId > 0 ? product.companyId : 0);
+    const resolvedCompanyId = activeCompanyId > 0 ? activeCompanyId : (product.companyId && product.companyId > 0 ? product.companyId : 1);
 
     const cost = Number(product.cost) || 0;
     const price = Number(product.price) || (cost > 0 ? Math.round(cost * 1.35 * 100) / 100 : 0);
+    const profitMargin = cost > 0 && price > 0 ? Math.round(((price - cost) / cost) * 100 * 100) / 100 : 35;
 
     const clean: Record<string, any> = {
       description: String(product.description || '').trim(),
+      barcode: String(product.barcode || '').trim(),
+      reference: String(product.reference || '').trim(),
+      shortDescription: String(product.shortDescription || '').trim(),
       cost: cost,
       price: price,
+      profitMargin: profitMargin,
       stock: Number(product.stock) || 0,
       productTypeId: Number(product.productTypeId) || 1,
       categoryId: Number(product.categoryId) || 1,
@@ -426,22 +431,14 @@ export class ProductService {
       invoiceWithoutStock: Boolean(product.invoiceWithoutStock),
       allowFractional: Boolean(product.allowFractional),
       isOrganic: Boolean(product.isOrganic),
+      companyId: resolvedCompanyId,
     };
 
     if (product.id != null && Number(product.id) > 0) {
       clean['id'] = Number(product.id);
     }
-    if (resolvedCompanyId > 0) {
-      clean['companyId'] = resolvedCompanyId;
-    }
-    if (product.barcode && String(product.barcode).trim()) {
-      clean['barcode'] = String(product.barcode).trim();
-    }
-    if (product.reference && String(product.reference).trim()) {
-      clean['reference'] = String(product.reference).trim();
-    }
-    if (product.shortDescription && String(product.shortDescription).trim()) {
-      clean['shortDescription'] = String(product.shortDescription).trim();
+    if (product.imageUrl && String(product.imageUrl).trim()) {
+      clean['imageUrl'] = String(product.imageUrl).trim();
     }
     if (product.expirationDate && String(product.expirationDate).trim()) {
       clean['expirationDate'] = String(product.expirationDate).trim();

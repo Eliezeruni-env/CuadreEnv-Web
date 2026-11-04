@@ -116,12 +116,18 @@ export class ProductModalComponent {
     // 1. Product Types
     try {
       const typesRes = await this.productTypeService.getProductTypes();
-      typeItems = Array.isArray(typesRes?.data) ? typesRes.data : [];
-      // Filtrar tipo Servicio: los servicios tienen su propio módulo y catálogo
-      typeItems = typeItems.filter((t: any) => {
-        const name = (t.name || t.description || '').toLowerCase();
-        return t.id !== 2 && !name.includes('serv');
-      });
+      const rawTypes = Array.isArray(typesRes?.data) ? typesRes.data : [];
+      typeItems = rawTypes
+        .filter((t: any) => {
+          const id = Number(t.id ?? t.Id);
+          const name = (t.name || t.Name || t.description || t.Description || '').toLowerCase();
+          return id !== 2 && !name.includes('serv');
+        })
+        .map((t: any) => ({
+          id: Number(t.id ?? t.Id) || 1,
+          name: t.name ?? t.Name ?? t.description ?? t.Description ?? 'Estándar',
+          description: t.description ?? t.Description ?? t.name ?? t.Name ?? 'Estándar'
+        }));
       if (typeItems.length === 0) {
         typeItems = [{ id: 1, name: 'Estándar', description: 'Estándar' }];
       }
@@ -134,16 +140,21 @@ export class ProductModalComponent {
     // 2. Categories
     try {
       const catsRes = await this.categoryService.getCategories();
-      catItems = Array.isArray(catsRes?.data) ? catsRes.data : [];
-      if (catItems.length === 0) {
+      let rawCats = Array.isArray(catsRes?.data) ? catsRes.data : [];
+      if (rawCats.length === 0) {
         try {
           const created = await this.categoryService.createCategory({ description: 'General' });
           const createdData = created?.data?.data || created?.data || { id: 1, description: 'General', name: 'General' };
-          catItems = [createdData];
+          rawCats = [createdData];
         } catch {
-          catItems = [{ id: 1, description: 'General', name: 'General' }];
+          rawCats = [{ id: 1, description: 'General', name: 'General' }];
         }
       }
+      catItems = rawCats.map((c: any) => ({
+        id: Number(c.id ?? c.Id) || 1,
+        name: c.name ?? c.Name ?? c.description ?? c.Description ?? 'General',
+        description: c.description ?? c.Description ?? c.name ?? c.Name ?? 'General'
+      }));
       this.categories.set(catItems);
     } catch {
       catItems = [{ id: 1, description: 'General', name: 'General' }];
@@ -153,13 +164,16 @@ export class ProductModalComponent {
     // 3. Units of Measurement
     try {
       const unitsRes = await this.unitService.getUnitsOfMeasurement();
-      unitItems = Array.isArray(unitsRes?.data) ? unitsRes.data : [];
-      if (unitItems.length === 0) {
-        unitItems = [{ id: 1, name: 'Unidad', symbol: 'und' }];
-      }
+      const rawUnits = Array.isArray(unitsRes?.data) ? unitsRes.data : [];
+      unitItems = (rawUnits.length > 0 ? rawUnits : [{ id: 1, name: 'Unidad', symbol: 'und' }]).map((u: any) => ({
+        id: Number(u.id ?? u.Id) || 1,
+        name: u.name ?? u.Name ?? u.description ?? u.Description ?? 'Unidad',
+        symbol: u.symbol ?? u.Symbol ?? 'und',
+        allowsDecimals: Boolean(u.allowsDecimals ?? u.AllowsDecimals)
+      }));
       this.units.set(unitItems);
     } catch {
-      unitItems = [{ id: 1, name: 'Unidad', symbol: 'und' }];
+      unitItems = [{ id: 1, name: 'Unidad', symbol: 'und', allowsDecimals: false }];
       this.units.set(unitItems);
     }
 
@@ -179,9 +193,9 @@ export class ProductModalComponent {
       description: '',
       barcode: '',
       reference: '',
-      productTypeId: this.productTypes().length > 0 ? this.productTypes()[0].id : null,
-      categoryId: this.categories().length > 0 ? this.categories()[0].id : null,
-      unitOfMeasurementId: this.units().length > 0 ? this.units()[0].id : 1,
+      productTypeId: this.productTypes().length > 0 ? (this.productTypes()[0].id ?? this.productTypes()[0].Id ?? 1) : 1,
+      categoryId: this.categories().length > 0 ? (this.categories()[0].id ?? this.categories()[0].Id ?? 1) : 1,
+      unitOfMeasurementId: this.units().length > 0 ? (this.units()[0].id || 1) : 1,
       cost: 0,
       stock: 0,
       shortDescription: '',
