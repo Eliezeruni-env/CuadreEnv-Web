@@ -97,7 +97,7 @@
               <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white h-100">
                 <div class="text-muted small mb-1" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Método de Pago</div>
                 <div class="fw-bold text-primary text-truncate" style="font-size: 0.85rem;">
-                  {{ sale.paymentMethod || 'Efectivo' }}
+                  {{ formatPaymentMethod(sale.paymentMethod) }}
                 </div>
                 <div class="text-success small fw-semibold" style="font-size: 0.75rem;">
                   Pagado: RD$ {{ sale.paidAmount | number: '1.2-2' }}

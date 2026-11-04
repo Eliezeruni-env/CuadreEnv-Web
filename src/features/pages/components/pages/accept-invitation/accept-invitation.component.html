@@ -36,7 +36,7 @@
                   <c-col md="6" class="mb-3">
                     <c-input-group>
                       <span cInputGroupText><svg cIcon name="cilUser"></svg></span>
-                      <input formControlName="firstName" cFormControl placeholder="First Name" />
+                      <input formControlName="firstName" cFormControl placeholder="Nombre" />
                     </c-input-group>
                     @if (acceptForm.get('firstName')?.touched && acceptForm.get('firstName')?.errors?.['required']) {
                       <div class="text-danger small mt-1">First name is required.</div>
@@ -47,7 +47,7 @@
                   <c-col md="6" class="mb-3">
                     <c-input-group>
                       <span cInputGroupText><svg cIcon name="cilUser"></svg></span>
-                      <input formControlName="lastName" cFormControl placeholder="Last Name" />
+                      <input formControlName="lastName" cFormControl placeholder="Apellido" />
                     </c-input-group>
                     @if (acceptForm.get('lastName')?.touched && acceptForm.get('lastName')?.errors?.['required']) {
                       <div class="text-danger small mt-1">Last name is required.</div>

@@ -1311,7 +1311,7 @@
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--cuadre-border-color);">
                   <span style="color: var(--cuadre-text-muted);">Método:</span>
-                  <span>{{ lastCompletedSale()?.paymentMethod }}</span>
+                  <span>{{ formatPaymentMethod(lastCompletedSale()?.paymentMethod) }}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--cuadre-border-color);">
                   <span style="color: var(--cuadre-text-muted);">Total Pagado:</span>

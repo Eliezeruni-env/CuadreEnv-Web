@@ -1,3 +1,4 @@
+import { formatPaymentMethodLabel } from '../../../cuadreEnv/utils/payment-method.util';
 import {
   Component,
   Input,
@@ -55,6 +56,10 @@ export interface CompletedSaleDto {
   styleUrls: ['./sale-completed-modal.component.scss'],
 })
 export class SaleCompletedModalComponent {
+  formatPaymentMethod(method?: string | null): string {
+    return formatPaymentMethodLabel(method);
+  }
+
   @ViewChild('sendEmailModal') sendEmailModal!: SendInvoiceEmailModalComponent;
   @ViewChild('sendWhatsAppModal') sendWhatsAppModal!: SendWhatsAppModalComponent;
 

@@ -340,7 +340,7 @@
                 }
                 <div><strong>CAJA:</strong> {{ saleData?.cashRegisterName || 'Caja Principal' }}</div>
                 <div><strong>CAJERO:</strong> {{ saleData?.cashierName || 'Admin' }}</div>
-                <div><strong>PAGO:</strong> {{ saleData?.paymentMethod || 'Efectivo' }}</div>
+                <div><strong>PAGO:</strong> {{ formatPaymentMethod(saleData?.paymentMethod) }}</div>
               </div>
 
               <div class="ticket-divider text-center">--------------------------------</div>
@@ -437,7 +437,7 @@
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <span class="text-secondary small">Método de pago</span>
                 <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill fw-semibold">
-                  {{ saleData?.paymentMethod || 'Efectivo' }}
+                  {{ formatPaymentMethod(saleData?.paymentMethod) }}
                 </span>
               </div>
 

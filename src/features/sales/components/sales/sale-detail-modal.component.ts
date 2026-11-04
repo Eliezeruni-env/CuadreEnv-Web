@@ -1,3 +1,4 @@
+import { formatPaymentMethodLabel } from '../../../cuadreEnv/utils/payment-method.util';
 import {
   Component,
   Input,
@@ -57,6 +58,10 @@ export interface SaleDetailItemView {
   templateUrl: './sale-detail-modal.component.html',
 })
 export class SaleDetailModalComponent implements OnInit, OnChanges {
+  formatPaymentMethod(method?: string | null): string {
+    return formatPaymentMethodLabel(method);
+  }
+
   readonly translationService = inject(TranslationService);
 
   @Input() visible = false;

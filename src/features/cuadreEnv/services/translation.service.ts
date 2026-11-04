@@ -816,7 +816,12 @@ export class TranslationService {
     }
 
     const stored = window.localStorage.getItem(this.storageKey);
-    return stored === 'en' ? 'en' : 'es';
+    if (!stored || stored !== 'es') {
+      try {
+        window.localStorage.setItem(this.storageKey, 'es');
+      } catch {}
+    }
+    return 'es';
   }
 
   getTranslatedNavItems(rawItems: INavData[]): INavData[] {
