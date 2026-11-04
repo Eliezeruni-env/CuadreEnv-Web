@@ -2977,7 +2977,7 @@
           </div>
         }
         <div class="flex-grow-1 overflow-hidden">
-          <strong class="d-block company-card-title text-truncate">{{ tenantName() }}</strong>
+          <strong class="d-block company-card-title text-truncate">{{ tenantName() || companyLegalName() || "Mi Negocio / Empresa" }}</strong>
           @if (companyRnc()) {
             <span class="company-card-rnc d-block">RNC: {{ companyRnc() }}</span>
           }

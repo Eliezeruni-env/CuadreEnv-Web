@@ -183,7 +183,7 @@ export class MetricsComponent implements OnInit {
     layout: {
       padding: {
         top: 8,
-        bottom: 8,
+        bottom: 16,
         left: 4,
         right: 8,
       },
@@ -246,7 +246,7 @@ export class MetricsComponent implements OnInit {
     layout: {
       padding: {
         top: 8,
-        bottom: 8,
+        bottom: 16,
         left: 4,
         right: 8,
       },

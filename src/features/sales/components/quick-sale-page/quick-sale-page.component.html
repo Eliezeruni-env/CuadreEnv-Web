@@ -1146,11 +1146,13 @@
                       </svg>
                     </div>
                     <div class="cambio-text-group">
-                      <span class="cambio-label">FALTANTE POR COBRAR</span>
-                      <span class="cambio-sub-desc">Monto restante para completar</span>
+                      <div class="cambio-label">FALTANTE POR COBRAR</div>
+                      <div class="cambio-sub-desc">Monto restante para completar</div>
                     </div>
                   </div>
-                  <span class="cambio-amount shortage-amount">RD$ {{ cashShortage() | number:'1.2-2' }}</span>
+                  <div class="cambio-amount-wrapper">
+                    <span class="cambio-amount shortage-amount">RD$ {{ cashShortage() | number:'1.2-2' }}</span>
+                  </div>
                 </div>
               } @else {
                 <div class="pos-cambio-card change-ready">
@@ -1161,11 +1163,13 @@
                       </svg>
                     </div>
                     <div class="cambio-text-group">
-                      <span class="cambio-label">DEVUELTA AL CLIENTE</span>
-                      <span class="cambio-sub-desc">Cambio exacto a entregar</span>
+                      <div class="cambio-label">DEVUELTA AL CLIENTE</div>
+                      <div class="cambio-sub-desc">Cambio exacto a entregar</div>
                     </div>
                   </div>
-                  <span class="cambio-amount change-highlight">RD$ {{ change() | number:'1.2-2' }}</span>
+                  <div class="cambio-amount-wrapper">
+                    <span class="cambio-amount change-highlight">RD$ {{ change() | number:'1.2-2' }}</span>
+                  </div>
                 </div>
               }
             }

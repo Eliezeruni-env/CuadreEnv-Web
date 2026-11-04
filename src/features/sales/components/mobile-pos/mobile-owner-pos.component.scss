@@ -2248,3 +2248,51 @@
     }
   }
 }
+
+/* BLINDAJE ULTRA ROBUSTO MODO OSCURO PARA MENÚ MÓVIL Y ACCESOS DIRECTOS */
+:host-context([data-coreui-theme='dark']),
+:host-context(.dark-theme),
+[data-coreui-theme='dark'],
+.dark-theme {
+  .menu-company-card {
+    background-color: #1E293B !important;
+    border-color: #334155 !important;
+    color: #F8FAFC !important;
+
+    .company-logo-avatar {
+      background-color: #0F172A !important;
+      border-color: #334155 !important;
+    }
+
+    .company-icon-avatar {
+      background-color: rgba(37, 99, 235, 0.2) !important;
+      color: #60A5FA !important;
+    }
+
+    .company-card-title {
+      color: #F8FAFC !important;
+    }
+
+    .company-card-rnc {
+      color: #93C5FD !important;
+    }
+
+    .company-card-subtitle {
+      color: #94A3B8 !important;
+    }
+  }
+
+  .cuadre-shortcut-btn {
+    background-color: #1E293B !important;
+    border-color: #334155 !important;
+    color: #F8FAFC !important;
+
+    &:active {
+      background-color: #334155 !important;
+    }
+
+    span {
+      color: #F8FAFC !important;
+    }
+  }
+}

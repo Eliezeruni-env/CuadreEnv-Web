@@ -121,51 +121,63 @@
 
         <!-- Columna Asimétrica: Margen, Ticket y Venta Récord -->
         <div class="col-12 col-lg-5">
-          <div class="d-flex flex-column gap-3 h-100">
+          <div class="d-flex flex-column gap-3 h-100 justify-content-between">
             <!-- Margen Comercial Bruto -->
-            <div class="asymmetric-metric-card p-3.5 rounded-4 bg-white border shadow-2xs flex-grow-1">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="asymmetric-label">Margen Bruto Comercial</span>
-                <span class="badge bg-emerald-subtle text-emerald border px-2 py-0.5 fw-bold" style="font-size: 11.5px; background-color: #ecfdf5; color: #047857; border-color: #a7f3d0;">
+            <div class="asymmetric-metric-card p-3 rounded-4 bg-white border shadow-2xs">
+              <div class="d-flex justify-content-between align-items-center mb-1.5">
+                <div class="d-flex align-items-center gap-1.5">
+                  <span class="kpi-indicator-dot bg-emerald"></span>
+                  <span class="asymmetric-label">Margen Bruto Comercial</span>
+                </div>
+                <span class="asymmetric-pill pill-emerald">
                   {{ netMarginPercent() }}% Margen
                 </span>
               </div>
-              <div class="d-flex align-items-baseline gap-2">
-                <h3 class="asymmetric-amount text-success mb-0">RD$ {{ netMarginAmount() | number:'1.2-2' }}</h3>
+              <div class="d-flex align-items-baseline gap-2 mb-1">
+                <span class="kpi-currency-prefix text-success">RD$</span>
+                <span class="asymmetric-amount text-success">{{ netMarginAmount() | number:'1.2-2' }}</span>
               </div>
-              <small class="asymmetric-desc text-secondary d-block mt-1">
+              <small class="asymmetric-desc text-secondary d-block">
                 Ganancia estimada sobre el costo directo de compra de mercancía.
               </small>
             </div>
 
             <!-- Ticket Promedio (AOV) -->
-            <div class="asymmetric-metric-card p-3.5 rounded-4 bg-white border shadow-2xs flex-grow-1">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="asymmetric-label">Ticket Promedio por Operación (AOV)</span>
-                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 fw-bold" style="font-size: 11px;">
+            <div class="asymmetric-metric-card p-3 rounded-4 bg-white border shadow-2xs">
+              <div class="d-flex justify-content-between align-items-center mb-1.5">
+                <div class="d-flex align-items-center gap-1.5">
+                  <span class="kpi-indicator-dot bg-blue"></span>
+                  <span class="asymmetric-label">Ticket Promedio por Operación (AOV)</span>
+                </div>
+                <span class="asymmetric-pill pill-blue">
                   Gasto Medio
                 </span>
               </div>
-              <div class="d-flex align-items-baseline gap-2">
-                <h3 class="asymmetric-amount text-dark mb-0">RD$ {{ averageTicket() | number:'1.2-2' }}</h3>
+              <div class="d-flex align-items-baseline gap-2 mb-1">
+                <span class="kpi-currency-prefix text-primary">RD$</span>
+                <span class="asymmetric-amount text-dark">{{ averageTicket() | number:'1.2-2' }}</span>
               </div>
-              <small class="asymmetric-desc text-secondary d-block mt-1">
+              <small class="asymmetric-desc text-secondary d-block">
                 Monto promedio cobrado por cada factura emitida en el período.
               </small>
             </div>
 
             <!-- Venta Récord Individual -->
-            <div class="asymmetric-metric-card p-3.5 rounded-4 bg-white border shadow-2xs flex-grow-1">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="asymmetric-label">Venta Récord (Pico Comercial)</span>
-                <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-0.5 fw-bold" style="font-size: 11px;">
+            <div class="asymmetric-metric-card p-3 rounded-4 bg-white border shadow-2xs">
+              <div class="d-flex justify-content-between align-items-center mb-1.5">
+                <div class="d-flex align-items-center gap-1.5">
+                  <span class="kpi-indicator-dot bg-indigo"></span>
+                  <span class="asymmetric-label">Venta Récord (Pico Comercial)</span>
+                </div>
+                <span class="asymmetric-pill pill-indigo">
                   Ticket Máximo
                 </span>
               </div>
-              <div class="d-flex align-items-baseline gap-2">
-                <h3 class="asymmetric-amount text-dark mb-0">RD$ {{ maxSaleAmount() | number:'1.2-2' }}</h3>
+              <div class="d-flex align-items-baseline gap-2 mb-1">
+                <span class="kpi-currency-prefix text-dark">RD$</span>
+                <span class="asymmetric-amount text-dark">{{ maxSaleAmount() | number:'1.2-2' }}</span>
               </div>
-              <small class="asymmetric-desc text-secondary d-block mt-1">
+              <small class="asymmetric-desc text-secondary d-block">
                 Mayor transacción individual completada en una sola factura.
               </small>
             </div>
@@ -287,38 +299,38 @@
       </div>
     </section>
 
-    <!-- 4. GRÁFICOS DE RITMO Y FLUJO DE CAJA -->
-    <section class="row g-3 mb-4">
+    <!-- 4. GRÁFICOS DE RITMO Y FLUJO DE CAJA (CON ALTURA Y DESBORDAMIENTO DELIMITADOS) -->
+    <section class="row g-4 mb-5 pb-1">
       <div class="col-12 col-lg-7">
-        <div class="card border rounded-4 p-4 bg-white shadow-2xs h-100">
+        <div class="card border rounded-4 p-4 bg-white shadow-2xs h-100 chart-panel-card">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
               <h5 class="fw-bold text-dark mb-0" style="font-size: 15px;">Ritmo de Facturación en el Tiempo</h5>
               <small class="text-secondary">Evolución de ventas por fecha según el período seleccionado</small>
             </div>
-            <span class="badge bg-light text-secondary border px-2 py-1 small">Tendencia</span>
+            <span class="badge bg-light text-secondary border px-2.5 py-1 small fw-semibold">Tendencia Diaria</span>
           </div>
-          <div style="height: 240px; position: relative;">
+          <div class="chart-canvas-wrapper">
             <c-chart type="line" [data]="chartSalesOverTime" [options]="salesChartOptions"></c-chart>
           </div>
         </div>
       </div>
 
       <div class="col-12 col-lg-5">
-        <div class="card border rounded-4 p-4 bg-white shadow-2xs h-100">
+        <div class="card border rounded-4 p-4 bg-white shadow-2xs h-100 chart-panel-card">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
               <h5 class="fw-bold text-dark mb-0" style="font-size: 15px;">Flujo Operativo de Caja</h5>
               <small class="text-secondary">Entradas vs Salidas auditadas en gaveta</small>
             </div>
             <span
-              class="badge px-2 py-1 fw-bold"
+              class="badge px-2.5 py-1 fw-bold"
               [ngClass]="netCashFlow() > 0 ? 'bg-success-subtle text-success border border-success-subtle' : (netCashFlow() === 0 ? 'bg-light text-secondary border' : 'bg-danger-subtle text-danger border border-danger-subtle')"
             >
               {{ netCashFlow() > 0 ? 'Superávit' : (netCashFlow() === 0 ? 'Neutro' : 'Déficit') }}
             </span>
           </div>
-          <div style="height: 240px; position: relative;">
+          <div class="chart-canvas-wrapper">
             <c-chart type="bar" [data]="chartCashFlow" [options]="salesChartOptions"></c-chart>
           </div>
         </div>
@@ -664,25 +676,32 @@
         <a routerLink="/products" class="btn btn-sm btn-light border fw-semibold small text-secondary">Ver Catálogo</a>
       </div>
 
-      <div class="row g-2">
-        @for (p of topProducts(); track p.name) {
-          <div class="col-12 col-md">
-            <div class="p-3 rounded-3 border bg-light h-100 d-flex flex-column justify-content-between">
-              <div>
+      <div class="top-products-grid">
+        @for (p of topProducts(); track p.name; let idx = $index) {
+          <div class="top-product-card p-3 rounded-3 border bg-light d-flex flex-column justify-content-between">
+            <div class="d-flex align-items-start gap-2 mb-2">
+              <span class="badge rounded-pill bg-white text-dark border font-monospace px-2 py-0.5 fw-bold" style="font-size: 11px;">
+                #{{ idx + 1 }}
+              </span>
+              <div class="min-w-0 flex-grow-1">
                 <span class="fw-bold text-dark d-block text-truncate" style="font-size: 13px;" [title]="p.name">{{ p.name }}</span>
-                <span class="text-secondary small">{{ p.units }} unidades</span>
+                <span class="text-secondary small">{{ p.units }} unidades despachadas</span>
               </div>
-              <div class="pt-2 mt-2 border-top d-flex justify-content-between align-items-center">
-                <span class="small text-secondary">Total:</span>
-                <strong class="text-primary small">RD$ {{ p.revenue | number:'1.2-2' }}</strong>
-              </div>
+            </div>
+            <div class="pt-2 border-top d-flex justify-content-between align-items-center">
+              <span class="small text-secondary">Facturación:</span>
+              <strong class="text-primary small" style="font-variant-numeric: tabular-nums;">RD$ {{ p.revenue | number:'1.2-2' }}</strong>
             </div>
           </div>
         }
       </div>
     </section>
 
-    <!-- 7. FACTURACIÓN ELECTRÓNICA DGII (MOCK ACTIVO & PREPARADO PARA CREDENCIALES) -->
+    <!--
+    ========================================================================================
+    7. FACTURACIÓN ELECTRÓNICA DGII (OCULTO VISUALMENTE A NIVEL DE CÓDIGO - CONFIGURACIÓN VÍA ENV EN BACKEND)
+    Para reactivar en el sistema cuando se proporcionen credenciales oficiales, descomentar este bloque.
+    ========================================================================================
     <section class="card border rounded-4 p-4 shadow-2xs text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
         <div class="d-flex align-items-center gap-3">
@@ -721,11 +740,15 @@
         </button>
       </div>
     </section>
+    -->
 
   </div>
 }
 
-<!-- MODAL DE CONFIGURACIÓN CREDENCIALES OFICIALES DGII -->
+<!--
+========================================================================================
+MODAL DE CONFIGURACIÓN CREDENCIALES OFICIALES DGII (OCULTO VISUALMENTE A NIVEL DE CÓDIGO)
+========================================================================================
 @if (isDgiiConfigModalOpen()) {
   <div class="pos-modal-backdrop" (click)="isDgiiConfigModalOpen.set(false)">
     <div class="pos-modal-card" style="max-width: 580px; width: 95vw; border-radius: 16px;" (click)="$event.stopPropagation()">
@@ -831,3 +854,4 @@
     </div>
   </div>
 }
+-->

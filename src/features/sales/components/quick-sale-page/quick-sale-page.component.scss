@@ -1526,31 +1526,37 @@ select.pos-category-select {
       }
 
       .cambio-label {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 800;
-        letter-spacing: 0.03em;
-        line-height: 1.2;
+        letter-spacing: 0.04em;
+        line-height: 1.25;
         color: #065F46;
+        display: block;
         white-space: nowrap;
       }
 
       .cambio-sub-desc {
-        font-size: 11.5px;
-        line-height: 1.2;
+        font-size: 11px;
+        line-height: 1.25;
         color: #047857;
         opacity: 0.85;
+        display: block;
         white-space: nowrap;
       }
     }
 
+    .cambio-amount-wrapper {
+      flex-shrink: 0;
+      text-align: right;
+    }
+
     .cambio-amount {
-      font-size: 1.45rem;
+      font-size: 1.4rem;
       font-weight: 800;
       color: #065F46;
       font-variant-numeric: tabular-nums;
-      flex-shrink: 0;
       white-space: nowrap !important;
-      text-align: right;
+      display: inline-block;
       letter-spacing: -0.02em;
     }
 
@@ -1701,13 +1707,30 @@ select.pos-category-select {
 
   .pc-bank-chips-grid {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     flex-wrap: wrap;
 
     .category-chip {
-      height: 32px;
-      font-size: 12px;
-      padding: 0 10px;
+      height: 36px;
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1px solid var(--cuadre-border-color, #E2E8F0);
+      background-color: #FFFFFF;
+      transition: all 0.15s ease;
+
+      &:hover {
+        border-color: #CBD5E1;
+        background-color: #F8FAFC;
+      }
+
+      &.active {
+        background-color: #EFF6FF;
+        border-color: #3B82F6;
+        color: #1D4ED8;
+        font-weight: 700;
+      }
     }
   }
 
