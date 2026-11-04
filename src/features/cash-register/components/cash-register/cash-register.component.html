@@ -1317,13 +1317,13 @@
                       <tr>
                         <td class="text-secondary font-monospace small">{{ m.creationDate ? (m.creationDate | date: 'shortTime') : '-' }}</td>
                         <td>
-                          <span class="badge" [ngClass]="m.type === 1 || m.type === 'CashIn' || m.type === 4 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'">
-                            {{ m.type === 1 || m.type === 'CashIn' ? '＋ Entrada' : m.type === 2 || m.type === 'CashOut' ? '－ Salida' : m.type === 3 ? 'Venta' : 'Cobro' }}
+                          <span class="badge" [ngClass]="isMovementEntry(m) ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'">
+                            {{ isMovementEntry(m) ? '＋ Entrada' : '－ Salida' }}
                           </span>
                         </td>
                         <td class="small text-dark">{{ m.reason || m.description || 'Movimiento de caja' }}</td>
-                        <td class="text-end fw-bold font-monospace" [ngClass]="m.type === 2 || m.type === 'CashOut' ? 'text-danger' : 'text-success'">
-                          {{ m.type === 2 || m.type === 'CashOut' ? '-' : '+' }} RD$ {{ (Math.abs(m.amount || 0)) | number: '1.2-2' }}
+                        <td class="text-end fw-bold font-monospace" [ngClass]="isMovementEntry(m) ? 'text-success' : 'text-danger'">
+                          {{ isMovementEntry(m) ? '+' : '-' }} RD$ {{ (Math.abs(m.amount || 0)) | number: '1.2-2' }}
                         </td>
                       </tr>
                     }

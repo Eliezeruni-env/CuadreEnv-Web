@@ -2052,7 +2052,7 @@
                       </span>
                     </td>
                     <td style="font-size: 12px; color: var(--cuadre-text-muted);">
-                      {{ sale.creationDate ? (sale.creationDate | date:'short':'':'es-DO') : (sale.createdAt | date:'short':'':'es-DO') }}
+                      {{ formatSaleDate(sale) }}
                     </td>
                     <td>
                       <span class="text-truncate d-inline-block" style="max-width: 140px;" [title]="sale.customerName || 'Consumidor final'">
@@ -2060,7 +2060,17 @@
                       </span>
                     </td>
                     <td>
-                      <span class="badge bg-light text-dark border" style="font-size: 11px;">
+                      <span
+                        class="badge border fw-semibold"
+                        style="font-size: 11px; padding: 4px 8px; border-radius: 6px;"
+                        [ngClass]="{
+                          'bg-success-subtle text-success border-success-subtle': formatPaymentMethod(sale.paymentMethod) === 'Efectivo',
+                          'bg-primary-subtle text-primary border-primary-subtle': formatPaymentMethod(sale.paymentMethod) === 'Tarjeta',
+                          'bg-info-subtle text-info-emphasis border-info-subtle': formatPaymentMethod(sale.paymentMethod) === 'Transferencia',
+                          'bg-warning-subtle text-warning-emphasis border-warning-subtle': formatPaymentMethod(sale.paymentMethod) === 'Crédito',
+                          'bg-light text-secondary border-secondary-subtle': ['Efectivo','Tarjeta','Transferencia','Crédito'].indexOf(formatPaymentMethod(sale.paymentMethod)) === -1
+                        }"
+                      >
                         {{ formatPaymentMethod(sale.paymentMethod) }}
                       </span>
                     </td>
@@ -2358,7 +2368,7 @@
               [ngModel]="barcodeSheetFormat()"
               (ngModelChange)="barcodeSheetFormat.set($event)"
             >
-              <option value="grid">Planilla Carta / A4 (Stickers)</option>
+              <option value="grid">Planilla A4 / Carta (Stickers)</option>
               <option value="roll">Rollo Térmico Continuo (58 / 80mm)</option>
             </select>
           </div>
@@ -2396,7 +2406,7 @@
                   <span class="fw-bold text-dark small">Resumen de Generación:</span>
                 </div>
                 <span class="badge text-white px-3 py-1.5 fw-bold" style="background-color: #4F46E5; border-radius: 6px; font-size: 13px;">
-                  {{ getBarcodeItemsToExport().length }} etiquetas
+                  {{ getBarcodeItemsToExport().length === 1 ? '1 etiqueta' : (getBarcodeItemsToExport().length + ' etiquetas') }}
                 </span>
               </div>
               <p class="small text-secondary mb-0" style="font-size: 12.5px; line-height: 1.55;">

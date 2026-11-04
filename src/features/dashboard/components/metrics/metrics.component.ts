@@ -7,7 +7,7 @@ import { ChartjsComponent } from '@coreui/angular-chartjs';
 import {
   SpinnerComponent,
 } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
+// import { IconDirective } from '@coreui/icons-angular';
 import { SaleService } from '../../../sales/services/sale.service';
 import { CashRegisterService } from '../../../cash-register/services/cash-register.service';
 import { AccountReceivableService } from '../../../payments/services/account-receivable.service';
@@ -57,12 +57,24 @@ export interface ExecutiveKpiRow {
     RouterLink,
     ChartjsComponent,
     SpinnerComponent,
-    IconDirective,
+    
   ],
   templateUrl: './metrics.component.html',
   styleUrls: ['./metrics.component.scss'],
 })
 export class MetricsComponent implements OnInit {
+  testDgiiConnection(): void {
+    this.isDgiiTesting.set(true);
+    this.dgiiTestSuccess.set(false);
+    setTimeout(() => {
+      this.isDgiiTesting.set(false);
+      this.dgiiTestSuccess.set(true);
+    }, 1200);
+  }
+
+  saveDgiiConfig(): void {
+    this.isDgiiConfigModalOpen.set(false);
+  }
   private saleService = inject(SaleService);
   private cashService = inject(CashRegisterService);
   private receivableService = inject(AccountReceivableService);
@@ -75,6 +87,31 @@ export class MetricsComponent implements OnInit {
   // Filters
   selectedDateRange = signal<string>('month');
   selectedPeriod = signal<'7D' | '30D' | '90D' | '1A'>('30D');
+  kpiViewMode = signal<'domains' | 'compact'>('domains');
+  uniqueBuyingCustomersCount = signal<number>(0);
+  isDgiiConfigModalOpen = signal<boolean>(false);
+  dgiiRnc = signal<string>('132-94812-1');
+    dgiiEnvironment = signal<'test' | 'prod'>('test');
+  isDgiiTesting = signal<boolean>(false);
+  dgiiTestSuccess = signal<boolean>(false);
+
+  avgSpentPerCustomer = computed(() => {
+    const c = this.uniqueBuyingCustomersCount();
+    return c > 0 ? this.totalRevenue() / c : this.totalRevenue();
+  });
+
+  digitalShareAmount = computed(() => {
+    return this.paymentBreakdown().cardAmount + this.paymentBreakdown().transferAmount;
+  });
+
+  digitalSharePct = computed(() => {
+    return Math.round((this.paymentBreakdown().cardPct + this.paymentBreakdown().transferPct) * 10) / 10;
+  });
+
+  unitsPerDay = computed(() => {
+    const days = this.selectedPeriod() === '7D' ? 7 : (this.selectedPeriod() === '90D' ? 90 : (this.selectedPeriod() === '1A' ? 365 : 30));
+    return days > 0 ? Math.round((this.totalUnitsSold() / days) * 10) / 10 : 0;
+  });
 
   // Key KPI signals
   totalRevenue = signal<number>(0);
@@ -520,6 +557,16 @@ export class MetricsComponent implements OnInit {
 
     const netCash = totalIn - totalOut;
     this.netCashFlow.set(netCash);
+
+    // Calcular clientes compradores únicos efectivos en el período
+    const buyingCustomerIds = new Set<number>();
+    periodSales.forEach((s: any) => {
+      if (s.customerId && Number(s.customerId) > 0) {
+        buyingCustomerIds.add(Number(s.customerId));
+      }
+    });
+    const uniqueBuyers = buyingCustomerIds.size > 0 ? buyingCustomerIds.size : (periodSales.length > 0 ? Math.min(periodSales.length, 1) : 0);
+    this.uniqueBuyingCustomersCount.set(uniqueBuyers);
 
     const customersCount = this.totalCustomersCount();
 

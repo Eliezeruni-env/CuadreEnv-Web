@@ -1,3 +1,5 @@
+import { TokenRefreshService } from '../../features/cuadreEnv/services/token-refresh.service';
+import { switchMap } from 'rxjs/operators';
 import { Injectable, inject } from '@angular/core';
 import {
   HttpRequest,
@@ -10,7 +12,7 @@ import {
 import { Observable, catchError, throwError } from 'rxjs';
 import { Router } from '@angular/router';
 import { NotificationService } from '../../features/cuadreEnv/services/notification.service';
-import { getAccessToken, setAccessToken, setRefreshToken } from '../../features/cuadreEnv/services/apiClient';
+import { getAccessToken, setAccessToken, setRefreshToken, setCompanyId } from '../../features/cuadreEnv/services/apiClient';
 import { SessionInvalidationService } from '../../features/cuadreEnv/services/session-invalidation.service';
 
 const recentForbiddenNotifications = new Map<string, number>();
@@ -28,10 +30,34 @@ export const appHttpInterceptorFn: HttpInterceptorFn = (req, next) => {
   const notificationService = inject(NotificationService, { optional: true });
   const router = inject(Router, { optional: true });
   const sessionInvalidation = inject(SessionInvalidationService);
+  const tokenRefreshService = inject(TokenRefreshService);
   const moduleSnapshot = getModuleSnapshot();
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
+      const lowerUrl = req.url.toLowerCase();
+      const isPublic =
+        lowerUrl.includes('/auth/login') ||
+        lowerUrl.includes('/auth/refresh') ||
+        lowerUrl.includes('/auth/register');
+
+      if (error.status === 401 && !isPublic && !req.headers.has('X-Retry-After-Refresh')) {
+        return tokenRefreshService.refreshToken().pipe(
+          switchMap((newToken) => {
+            const retryReq = req.clone({
+              headers: req.headers
+                .set('Authorization', `Bearer ${newToken}`)
+                .set('X-Retry-After-Refresh', 'true'),
+            });
+            return next(retryReq);
+          }),
+          catchError((refreshErr) => {
+            handleGlobalHttpError(error, req, notificationService, router, sessionInvalidation, moduleSnapshot);
+            return throwError(() => refreshErr);
+          })
+        );
+      }
+
       handleGlobalHttpError(error, req, notificationService, router, sessionInvalidation, moduleSnapshot);
       return throwError(() => error);
     })
@@ -45,6 +71,7 @@ export class AppHttpInterceptor implements HttpInterceptor {
   private readonly notificationService = inject(NotificationService, { optional: true });
   private readonly router = inject(Router, { optional: true });
   private readonly sessionInvalidation = inject(SessionInvalidationService);
+  private readonly tokenRefreshService = inject(TokenRefreshService);
 
   intercept(
     req: HttpRequest<any>,
@@ -53,6 +80,29 @@ export class AppHttpInterceptor implements HttpInterceptor {
     const moduleSnapshot = getModuleSnapshot();
     return next.handle(req).pipe(
       catchError((error: HttpErrorResponse) => {
+        const lowerUrl = req.url.toLowerCase();
+        const isPublic =
+          lowerUrl.includes('/auth/login') ||
+          lowerUrl.includes('/auth/refresh') ||
+          lowerUrl.includes('/auth/register');
+
+        if (error.status === 401 && !isPublic && !req.headers.has('X-Retry-After-Refresh')) {
+          return this.tokenRefreshService.refreshToken().pipe(
+            switchMap((newToken) => {
+              const retryReq = req.clone({
+                headers: req.headers
+                  .set('Authorization', `Bearer ${newToken}`)
+                  .set('X-Retry-After-Refresh', 'true'),
+              });
+              return next.handle(retryReq);
+            }),
+            catchError((refreshErr) => {
+              handleGlobalHttpError(error, req, this.notificationService, this.router, this.sessionInvalidation, moduleSnapshot);
+              return throwError(() => refreshErr);
+            })
+          );
+        }
+
         handleGlobalHttpError(error, req, this.notificationService, this.router, this.sessionInvalidation, moduleSnapshot);
         return throwError(() => error);
       })
@@ -128,6 +178,8 @@ function handleGlobalHttpError(
 
     const errorBody = error.error;
     const isMissingCompany =
+      errorBody?.errorCode === 'COMPANY_CONTEXT_REQUIRED' ||
+      errorBody?.code === 'COMPANY_CONTEXT_REQUIRED' ||
       errorBody?.errorCode === 'MISSING_COMPANY_CLAIM' ||
       errorBody?.code === 'MISSING_COMPANY_CLAIM' ||
       errorBody?.message?.includes?.('CompanyId claim missing') ||
@@ -136,6 +188,10 @@ function handleGlobalHttpError(
       (typeof errorBody === 'string' && (errorBody.includes('CompanyId claim missing') || errorBody.includes('MISSING_COMPANY_CLAIM')));
 
     if (isMissingCompany) {
+      setCompanyId(null);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cuadre_company_context_invalidated'));
+      }
       if (notificationService) {
         notificationService.error(
           'Tu usuario no tiene una empresa activa asignada o seleccionada. Selecciona una empresa o sucursal para continuar.',
@@ -202,6 +258,8 @@ function handleGlobalHttpError(
   if (status === 403) {
     const errorBody = error.error;
     const isMissingCompany =
+      errorBody?.errorCode === 'COMPANY_CONTEXT_REQUIRED' ||
+      errorBody?.code === 'COMPANY_CONTEXT_REQUIRED' ||
       errorBody?.errorCode === 'MISSING_COMPANY_CLAIM' ||
       errorBody?.code === 'MISSING_COMPANY_CLAIM' ||
       errorBody?.message?.includes?.('CompanyId claim missing') ||
@@ -210,6 +268,10 @@ function handleGlobalHttpError(
       (typeof errorBody === 'string' && (errorBody.includes('CompanyId claim missing') || errorBody.includes('MISSING_COMPANY_CLAIM')));
 
     if (isMissingCompany) {
+      setCompanyId(null);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cuadre_company_context_invalidated'));
+      }
       if (notificationService) {
         notificationService.error(
           'Acceso denegado por ausencia de empresa activa. Por favor, selecciona una empresa vinculada a tu cuenta.',

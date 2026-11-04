@@ -125,8 +125,29 @@ const LAST_SALE_STORAGE_KEY = 'cuadre_last_completed_sale';
   styleUrls: ['./quick-sale-page.component.scss'],
 })
 export class QuickSalePageComponent implements OnInit, OnDestroy {
-  formatPaymentMethod(method?: string | null): string {
+  formatPaymentMethod(method?: string | number | null): string {
     return formatPaymentMethodLabel(method);
+  }
+
+  formatSaleDate(sale: any): string {
+    if (!sale) return '—';
+    const val = sale.date || sale.creationDate || sale.createdAt || sale.createdDate;
+    if (!val) return '—';
+    try {
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return '—';
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      let hours = d.getHours();
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'p. m.' : 'a. m.';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      return `${day}/${month}/${year}, ${hours}:${minutes} ${ampm}`;
+    } catch {
+      return '—';
+    }
   }
 
 

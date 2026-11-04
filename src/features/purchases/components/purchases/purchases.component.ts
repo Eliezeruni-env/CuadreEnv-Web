@@ -93,7 +93,10 @@ export class PurchasesComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     try {
-      const purRes = await this.purchaseService.getPurchases();
+      const purRes = await this.purchaseService.getPurchases({
+        pageNumber: this.currentPage(),
+        pageSize: Math.min(this.pageSize, 100),
+      });
       if (purRes.success && purRes.data) {
         this.purchases.set(purRes.data);
         this.totalItems.set(this.getFilteredPurchasesCount());

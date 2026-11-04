@@ -662,6 +662,22 @@ export class CashRegisterComponent implements OnInit, OnDestroy {
     }
   }
 
+  
+  isMovementEntry(m: any): boolean {
+    if (!m) return true;
+    const typeUpper = String(m.type ?? '').toUpperCase();
+    return (
+      m.type === 1 ||
+      m.type === 4 ||
+      typeUpper === 'IN' ||
+      typeUpper === 'CASHIN' ||
+      typeUpper === 'ENTRADA' ||
+      typeUpper === 'ENTRY' ||
+      typeUpper === 'INGRESO' ||
+      typeUpper === 'SALE'
+    );
+  }
+
   closeSessionDetailModal() {
     this.isSessionDetailModalOpen.set(false);
     this.selectedSessionDetail.set(null);

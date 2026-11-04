@@ -1,596 +1,833 @@
-<div class="py-2 metrics-dashboard">
-  @if (!isAuthorized()) {
-    <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white my-5">
-      <div class="mb-3 text-warning">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-      </div>
-      <h4 class="fw-bold text-dark mb-2">Acceso Exclusivo a Métricas</h4>
-      <p class="text-secondary max-w-md mx-auto mb-4">
-        Este módulo de cálculo y analítica financiera está reservado para Administradores y Auditores de la empresa.
-      </p>
+@if (isLoading()) {
+  <div class="metrics-loading-state text-center py-5">
+    <c-spinner color="primary" class="mb-3"></c-spinner>
+    <h5 class="fw-bold text-dark">Consolidando Inteligencia Financiera...</h5>
+    <p class="text-secondary small">Calculando márgenes, rotación de inventario y cuadres de caja</p>
+  </div>
+} @else {
+  <div class="metrics-executive-dashboard">
+
+    <!-- 1. ENCABEZADO Y SELECTOR DE PERÍODO EDITORIAL -->
+    <header class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-2 border-bottom">
       <div>
-        <a routerLink="/dashboard" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold">
-          Volver al Dashboard
-        </a>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-primary text-white fw-bold px-2.5 py-1" style="font-size: 11px; letter-spacing: 0.04em;">CUADRE-ENV INTELLIGENCE</span>
+          <span class="badge bg-light text-secondary border px-2 py-0.5" style="font-size: 11px;">RNC: 132-94812-1</span>
+        </div>
+        <h1 class="fw-bold text-dark mb-0 tracking-tight" style="font-size: 1.65rem;">
+          Control Financiero & Rendimiento Comercial
+        </h1>
+        <p class="text-secondary small mb-0 mt-1">
+          Panel de decisiones estratégicas, margen comercial bruto y auditoría de flujo de efectivo en tiempo real.
+        </p>
       </div>
-    </div>
-  } @else {
-    <!-- Header Navigation & Context -->
-    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+
+      <!-- Selector de Período Segmentado -->
+      <div class="d-flex align-items-center gap-2">
+        <div class="period-segmented-control">
+          <button
+            type="button"
+            class="period-segment-btn"
+            [class.active]="selectedPeriod() === '7D'"
+            (click)="setPeriod('7D')"
+          >
+            7 Días
+          </button>
+          <button
+            type="button"
+            class="period-segment-btn"
+            [class.active]="selectedPeriod() === '30D'"
+            (click)="setPeriod('30D')"
+          >
+            30 Días
+          </button>
+          <button
+            type="button"
+            class="period-segment-btn"
+            [class.active]="selectedPeriod() === '90D'"
+            (click)="setPeriod('90D')"
+          >
+            90 Días
+          </button>
+          <button
+            type="button"
+            class="period-segment-btn"
+            [class.active]="selectedPeriod() === '1A'"
+            (click)="setPeriod('1A')"
+          >
+            1 Año
+          </button>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-outline-secondary d-flex align-items-center gap-1.5 px-3"
+          style="height: 38px; border-radius: 8px; font-size: 12.5px; font-weight: 600;"
+          (click)="loadMetricsData()"
+          title="Actualizar datos"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span class="d-none d-sm-inline">Revalidad</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 2. RESUMEN EJECUTIVO ASIMÉTRICO (HERO + FINANCIAL CONTROLS) -->
+    <section class="executive-summary-panel mb-4">
+      <div class="row g-3">
+        <!-- Hero: Facturación del Período -->
+        <div class="col-12 col-lg-7">
+          <div class="hero-facturacion-card h-100 p-4 rounded-4 bg-white border shadow-2xs d-flex flex-column justify-content-between">
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="hero-tag-badge">FACTURACIÓN DEL PERÍODO</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-bold" style="font-size: 11px;">
+                  {{ selectedPeriod() === '7D' ? 'Últimos 7 días' : (selectedPeriod() === '90D' ? 'Último trimestre' : (selectedPeriod() === '1A' ? 'Año fiscal' : 'Últimos 30 días')) }}
+                </span>
+              </div>
+              <div class="hero-amount-display my-2">
+                <span class="hero-currency-prefix">RD$</span>
+                <span class="hero-currency-value">{{ totalRevenue() | number:'1.2-2' }}</span>
+              </div>
+              <p class="hero-helper-text mb-0">
+                Volumen total facturado a clientes en facturas de consumo, créditos fiscales e ingresos de servicios.
+              </p>
+            </div>
+
+            <div class="hero-substats-row pt-3 mt-3 border-top d-flex flex-wrap gap-4">
+              <div>
+                <span class="substat-label">Operaciones</span>
+                <strong class="substat-value text-dark">{{ totalSalesCount() | number:'1.0-0' }} tickets</strong>
+              </div>
+              <div>
+                <span class="substat-label">Artículos Despachados</span>
+                <strong class="substat-value text-dark">{{ totalUnitsSold() | number:'1.0-0' }} unidades</strong>
+              </div>
+              <div>
+                <span class="substat-label">ITBIS Facturado (18%)</span>
+                <strong class="substat-value text-dark">RD$ {{ totalItbis() | number:'1.2-2' }}</strong>
+              </div>
+              <div>
+                <span class="substat-label">Compradores Únicos</span>
+                <strong class="substat-value text-primary">{{ uniqueBuyingCustomersCount() }} clientes</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna Asimétrica: Margen, Ticket y Venta Récord -->
+        <div class="col-12 col-lg-5">
+          <div class="d-flex flex-column gap-3 h-100">
+            <!-- Margen Comercial Bruto -->
+            <div class="asymmetric-metric-card p-3.5 rounded-4 bg-white border shadow-2xs flex-grow-1">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="asymmetric-label">Margen Bruto Comercial</span>
+                <span class="badge bg-emerald-subtle text-emerald border px-2 py-0.5 fw-bold" style="font-size: 11.5px; background-color: #ecfdf5; color: #047857; border-color: #a7f3d0;">
+                  {{ netMarginPercent() }}% Margen
+                </span>
+              </div>
+              <div class="d-flex align-items-baseline gap-2">
+                <h3 class="asymmetric-amount text-success mb-0">RD$ {{ netMarginAmount() | number:'1.2-2' }}</h3>
+              </div>
+              <small class="asymmetric-desc text-secondary d-block mt-1">
+                Ganancia estimada sobre el costo directo de compra de mercancía.
+              </small>
+            </div>
+
+            <!-- Ticket Promedio (AOV) -->
+            <div class="asymmetric-metric-card p-3.5 rounded-4 bg-white border shadow-2xs flex-grow-1">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="asymmetric-label">Ticket Promedio por Operación (AOV)</span>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 fw-bold" style="font-size: 11px;">
+                  Gasto Medio
+                </span>
+              </div>
+              <div class="d-flex align-items-baseline gap-2">
+                <h3 class="asymmetric-amount text-dark mb-0">RD$ {{ averageTicket() | number:'1.2-2' }}</h3>
+              </div>
+              <small class="asymmetric-desc text-secondary d-block mt-1">
+                Monto promedio cobrado por cada factura emitida en el período.
+              </small>
+            </div>
+
+            <!-- Venta Récord Individual -->
+            <div class="asymmetric-metric-card p-3.5 rounded-4 bg-white border shadow-2xs flex-grow-1">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="asymmetric-label">Venta Récord (Pico Comercial)</span>
+                <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-0.5 fw-bold" style="font-size: 11px;">
+                  Ticket Máximo
+                </span>
+              </div>
+              <div class="d-flex align-items-baseline gap-2">
+                <h3 class="asymmetric-amount text-dark mb-0">RD$ {{ maxSaleAmount() | number:'1.2-2' }}</h3>
+              </div>
+              <small class="asymmetric-desc text-secondary d-block mt-1">
+                Mayor transacción individual completada en una sola factura.
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. BARRA HORIZONTAL SEGMENTADA DE MEDIOS DE PAGO -->
+    <section class="card border rounded-4 p-4 bg-white shadow-2xs mb-4">
+      <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
+        <div>
+          <h5 class="fw-bold text-dark mb-0" style="font-size: 15px;">Estructura de Recaudación por Medio de Pago</h5>
+          <small class="text-secondary">Distribución porcentual y montos absolutos cobrados en cada canal de pago</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-secondary small">Total Auditado:</span>
+          <strong class="text-dark small">RD$ {{ totalRevenue() | number:'1.2-2' }}</strong>
+        </div>
+      </div>
+
+      <!-- Barra Proporcional Segmentada -->
+      <div class="payment-segmented-bar mb-3" style="height: 18px; border-radius: 9px; overflow: hidden; display: flex; background-color: #f1f5f9;">
+        @if (paymentBreakdown().cashPct > 0) {
+          <div
+            class="payment-segment"
+            [style.width.%]="paymentBreakdown().cashPct"
+            style="background-color: #10B981;"
+            [title]="'Efectivo: ' + paymentBreakdown().cashPct + '% (RD$ ' + (paymentBreakdown().cashAmount | number:'1.2-2') + ')'"
+          ></div>
+        }
+        @if (paymentBreakdown().cardPct > 0) {
+          <div
+            class="payment-segment"
+            [style.width.%]="paymentBreakdown().cardPct"
+            style="background-color: #3B82F6;"
+            [title]="'Tarjetas: ' + paymentBreakdown().cardPct + '% (RD$ ' + (paymentBreakdown().cardAmount | number:'1.2-2') + ')'"
+          ></div>
+        }
+        @if (paymentBreakdown().transferPct > 0) {
+          <div
+            class="payment-segment"
+            [style.width.%]="paymentBreakdown().transferPct"
+            style="background-color: #8B5CF6;"
+            [title]="'Transferencias: ' + paymentBreakdown().transferPct + '% (RD$ ' + (paymentBreakdown().transferAmount | number:'1.2-2') + ')'"
+          ></div>
+        }
+        @if (paymentBreakdown().creditPct > 0) {
+          <div
+            class="payment-segment"
+            [style.width.%]="paymentBreakdown().creditPct"
+            style="background-color: #F59E0B;"
+            [title]="'Crédito: ' + paymentBreakdown().creditPct + '% (RD$ ' + (paymentBreakdown().creditAmount | number:'1.2-2') + ')'"
+          ></div>
+        }
+      </div>
+
+      <!-- Leyenda Píldoras con Datos Precisos -->
+      <div class="row g-2 pt-1">
+        <div class="col-6 col-md-3">
+          <div class="p-2.5 rounded-3 border bg-light d-flex align-items-center gap-2.5">
+            <span class="rounded-circle flex-shrink-0" style="width: 12px; height: 12px; background-color: #10B981;"></span>
+            <div class="min-w-0 flex-grow-1">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="fw-semibold text-secondary" style="font-size: 12px;">Efectivo</span>
+                <strong class="text-dark" style="font-size: 12px;">{{ paymentBreakdown().cashPct }}%</strong>
+              </div>
+              <div class="fw-bold text-dark text-truncate" style="font-size: 13px;">
+                RD$ {{ paymentBreakdown().cashAmount | number:'1.2-2' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+          <div class="p-2.5 rounded-3 border bg-light d-flex align-items-center gap-2.5">
+            <span class="rounded-circle flex-shrink-0" style="width: 12px; height: 12px; background-color: #3B82F6;"></span>
+            <div class="min-w-0 flex-grow-1">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="fw-semibold text-secondary" style="font-size: 12px;">Tarjetas</span>
+                <strong class="text-dark" style="font-size: 12px;">{{ paymentBreakdown().cardPct }}%</strong>
+              </div>
+              <div class="fw-bold text-dark text-truncate" style="font-size: 13px;">
+                RD$ {{ paymentBreakdown().cardAmount | number:'1.2-2' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+          <div class="p-2.5 rounded-3 border bg-light d-flex align-items-center gap-2.5">
+            <span class="rounded-circle flex-shrink-0" style="width: 12px; height: 12px; background-color: #8B5CF6;"></span>
+            <div class="min-w-0 flex-grow-1">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="fw-semibold text-secondary" style="font-size: 12px;">Transferencias</span>
+                <strong class="text-dark" style="font-size: 12px;">{{ paymentBreakdown().transferPct }}%</strong>
+              </div>
+              <div class="fw-bold text-dark text-truncate" style="font-size: 13px;">
+                RD$ {{ paymentBreakdown().transferAmount | number:'1.2-2' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+          <div class="p-2.5 rounded-3 border bg-light d-flex align-items-center gap-2.5">
+            <span class="rounded-circle flex-shrink-0" style="width: 12px; height: 12px; background-color: #F59E0B;"></span>
+            <div class="min-w-0 flex-grow-1">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="fw-semibold text-secondary" style="font-size: 12px;">Crédito (CxC)</span>
+                <strong class="text-dark" style="font-size: 12px;">{{ paymentBreakdown().creditPct }}%</strong>
+              </div>
+              <div class="fw-bold text-dark text-truncate" style="font-size: 13px;">
+                RD$ {{ paymentBreakdown().creditAmount | number:'1.2-2' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. GRÁFICOS DE RITMO Y FLUJO DE CAJA -->
+    <section class="row g-3 mb-4">
+      <div class="col-12 col-lg-7">
+        <div class="card border rounded-4 p-4 bg-white shadow-2xs h-100">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h5 class="fw-bold text-dark mb-0" style="font-size: 15px;">Ritmo de Facturación en el Tiempo</h5>
+              <small class="text-secondary">Evolución de ventas por fecha según el período seleccionado</small>
+            </div>
+            <span class="badge bg-light text-secondary border px-2 py-1 small">Tendencia</span>
+          </div>
+          <div style="height: 240px; position: relative;">
+            <c-chart type="line" [data]="chartSalesOverTime" [options]="salesChartOptions"></c-chart>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-5">
+        <div class="card border rounded-4 p-4 bg-white shadow-2xs h-100">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h5 class="fw-bold text-dark mb-0" style="font-size: 15px;">Flujo Operativo de Caja</h5>
+              <small class="text-secondary">Entradas vs Salidas auditadas en gaveta</small>
+            </div>
+            <span
+              class="badge px-2 py-1 fw-bold"
+              [ngClass]="netCashFlow() > 0 ? 'bg-success-subtle text-success border border-success-subtle' : (netCashFlow() === 0 ? 'bg-light text-secondary border' : 'bg-danger-subtle text-danger border border-danger-subtle')"
+            >
+              {{ netCashFlow() > 0 ? 'Superávit' : (netCashFlow() === 0 ? 'Neutro' : 'Déficit') }}
+            </span>
+          </div>
+          <div style="height: 240px; position: relative;">
+            <c-chart type="bar" [data]="chartCashFlow" [options]="salesChartOptions"></c-chart>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. CENTRO DE INTELIGENCIA DE NEGOCIOS (5 DOMINIOS O MATRIZ COMPACTA) -->
+    <section class="card border rounded-4 p-4 bg-white shadow-2xs mb-4">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-secondary-subtle text-secondary border px-2 py-0.5" style="font-size: 11px;">11 INDICADORES AUDITADOS</span>
+            <h4 class="fw-bold text-dark mb-0" style="font-size: 1.15rem;">
+              Matriz de Inteligencia Estratégica
+            </h4>
+          </div>
+          <p class="text-secondary small mb-0 mt-1">
+            Métricas organizadas por contexto operacional y financiero para toma rápida de decisiones.
+          </p>
+        </div>
+
+        <!-- Selector de Modo de Visualización (Dominios vs Compacto) -->
+        <div class="view-mode-selector">
+          <button
+            type="button"
+            class="view-mode-btn"
+            [class.active]="kpiViewMode() === 'domains'"
+            (click)="kpiViewMode.set('domains')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Vista por Dominios (5 Áreas)</span>
+          </button>
+          <button
+            type="button"
+            class="view-mode-btn"
+            [class.active]="kpiViewMode() === 'compact'"
+            (click)="kpiViewMode.set('compact')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+            <span>Matriz Compacta</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- VISTA 1: DOMINIOS DE NEGOCIO (EDITORIAL) -->
+      @if (kpiViewMode() === 'domains') {
+        <div class="row g-3">
+          <!-- DOMINIO 01: RENDIMIENTO COMERCIAL -->
+          <div class="col-12 col-lg-6">
+            <div class="domain-card p-3.5 rounded-3 border h-100 bg-white">
+              <div class="domain-header d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="domain-badge bg-primary text-white">01</span>
+                  <span class="fw-bold text-dark small">Rendimiento Comercial & Ritmo</span>
+                </div>
+                <span class="text-secondary font-monospace" style="font-size: 11px;">REV-DAY / AOV / MAX</span>
+              </div>
+
+              <div class="d-flex flex-column gap-2.5">
+                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">Facturación Diaria (Ritmo)</strong>
+                    <span class="text-secondary" style="font-size: 11px;">RD$ {{ totalRevenue() | number:'1.0-0' }} divididos en período</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="text-primary d-block" style="font-size: 14px;">RD$ {{ dailyAvgRevenue() | number:'1.2-2' }}/día</strong>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 10px;">Activo</span>
+                  </div>
+                </div>
+
+                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">Ticket Promedio (AOV)</strong>
+                    <span class="text-secondary" style="font-size: 11px;">Gasto promedio por cada factura emitida</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="text-dark d-block" style="font-size: 14px;">RD$ {{ averageTicket() | number:'1.2-2' }}</strong>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 10px;">Consistente</span>
+                  </div>
+                </div>
+
+                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">Venta Récord Individual</strong>
+                    <span class="text-secondary" style="font-size: 11px;">Mayor transacción concretada</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="text-dark d-block" style="font-size: 14px;">RD$ {{ maxSaleAmount() | number:'1.2-2' }}</strong>
+                    <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 10px;">Pico</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DOMINIO 02: RENTABILIDAD & MÁRGENES -->
+          <div class="col-12 col-lg-6">
+            <div class="domain-card p-3.5 rounded-3 border h-100 bg-white">
+              <div class="domain-header d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="domain-badge bg-success text-white">02</span>
+                  <span class="fw-bold text-dark small">Rentabilidad & Márgenes</span>
+                </div>
+                <span class="text-secondary font-monospace" style="font-size: 11px;">NET-MRG</span>
+              </div>
+
+              <div class="d-flex flex-column gap-2.5">
+                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">Margen Comercial Bruto</strong>
+                    <span class="text-secondary" style="font-size: 11px;">Margen bruto sobre costo directo de mercancía</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="text-success d-block" style="font-size: 14px;">{{ netMarginPercent() }}%</strong>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 10px;">Rentable</span>
+                  </div>
+                </div>
+
+                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">Utilidad Bruta en Moneda</strong>
+                    <span class="text-secondary" style="font-size: 11px;">Facturación menos costo de inventario</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="text-success d-block" style="font-size: 14px;">RD$ {{ netMarginAmount() | number:'1.2-2' }}</strong>
+                    <span class="badge bg-light text-secondary border" style="font-size: 10px;">Estimada</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DOMINIO 03: INVENTARIO & ROTACIÓN -->
+          <div class="col-12 col-lg-4">
+            <div class="domain-card p-3.5 rounded-3 border h-100 bg-white">
+              <div class="domain-header d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="domain-badge bg-secondary text-white">03</span>
+                  <span class="fw-bold text-dark small">Inventario & Rotación</span>
+                </div>
+                <span class="text-secondary font-monospace" style="font-size: 11px;">UPT / UNIT</span>
+              </div>
+
+              <div class="d-flex flex-column gap-2.5">
+                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">Profundidad de Cesta (UPT)</strong>
+                    <span class="text-secondary" style="font-size: 11px;">Artículos por ticket</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="text-dark d-block" style="font-size: 14px;">{{ unitsPerTicket() }} uds</strong>
+                  </div>
+                </div>
+
+                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">Despacho Diario</strong>
+                    <span class="text-secondary" style="font-size: 11px;">Velocidad de salida</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="text-dark d-block" style="font-size: 14px;">{{ unitsPerDay() }} uds/día</strong>
+                  </div>
+                </div>
+
+                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">Volumen Total</strong>
+                    <span class="text-secondary" style="font-size: 11px;">Unidades acumuladas</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="text-dark d-block" style="font-size: 14px;">{{ totalUnitsSold() }} uds</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DOMINIO 04: LIQUIDEZ & TESORERÍA -->
+          <div class="col-12 col-lg-4">
+            <div class="domain-card p-3.5 rounded-3 border h-100 bg-white">
+              <div class="domain-header d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="domain-badge bg-info text-white">04</span>
+                  <span class="fw-bold text-dark small">Liquidez & Tesorería</span>
+                </div>
+                <span class="text-secondary font-monospace" style="font-size: 11px;">CASH / NET</span>
+              </div>
+
+              <div class="d-flex flex-column gap-2.5">
+                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">Flujo Neto de Gaveta</strong>
+                    <span class="text-secondary" style="font-size: 11px;">Entradas menos salidas de caja</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="d-block" style="font-size: 14px;" [ngClass]="netCashFlow() > 0 ? 'text-success' : (netCashFlow() === 0 ? 'text-secondary' : 'text-danger')">
+                      RD$ {{ netCashFlow() | number:'1.2-2' }}
+                    </strong>
+                    <span
+                      class="badge"
+                      style="font-size: 10px;"
+                      [ngClass]="netCashFlow() > 0 ? 'bg-success-subtle text-success border border-success-subtle' : (netCashFlow() === 0 ? 'bg-light text-secondary border' : 'bg-danger-subtle text-danger border border-danger-subtle')"
+                    >
+                      {{ netCashFlow() > 0 ? 'Superávit' : (netCashFlow() === 0 ? 'Sin movimiento' : 'Déficit') }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">% Efectivo Inmediato</strong>
+                    <span class="text-secondary" style="font-size: 11px;">Liquidez física en caja</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="text-dark d-block" style="font-size: 14px;">{{ paymentBreakdown().cashPct }}%</strong>
+                  </div>
+                </div>
+
+                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">% Bancarizado / Digital</strong>
+                    <span class="text-secondary" style="font-size: 11px;">Tarjetas + transferencias</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="text-primary d-block" style="font-size: 14px;">{{ digitalSharePct() }}%</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DOMINIO 05: CLIENTES & ESTRATEGIA COMERCIAL -->
+          <div class="col-12 col-lg-4">
+            <div class="domain-card p-3.5 rounded-3 border h-100 bg-white">
+              <div class="domain-header d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="domain-badge bg-warning text-dark">05</span>
+                  <span class="fw-bold text-dark small">Clientes & Crédito</span>
+                </div>
+                <span class="text-secondary font-monospace" style="font-size: 11px;">CXC / CUST</span>
+              </div>
+
+              <div class="d-flex flex-column gap-2.5">
+                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">Cartera Vencida (Mora)</strong>
+                    <span class="text-secondary" style="font-size: 11px;">Créditos con plazo vencido</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="d-block" style="font-size: 14px;" [ngClass]="overdueDebtAmount() > 0 ? 'text-danger' : 'text-success'">
+                      RD$ {{ overdueDebtAmount() | number:'1.2-2' }}
+                    </strong>
+                    <span class="badge" style="font-size: 10px;" [ngClass]="overdueDebtCount() === 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'">
+                      {{ overdueDebtCount() === 0 ? 'Al Día' : (overdueDebtCount() + ' morosos') }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">Descuentos Otorgados</strong>
+                    <span class="text-secondary" style="font-size: 11px;">Rebajas en promociones</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="text-dark d-block" style="font-size: 14px;">RD$ {{ totalDiscounts() | number:'1.2-2' }}</strong>
+                  </div>
+                </div>
+
+                <div class="domain-item-row d-flex justify-content-between align-items-center p-2 rounded-2 bg-light">
+                  <div>
+                    <strong class="text-dark d-block" style="font-size: 13px;">Gasto Promedio / Comprador</strong>
+                    <span class="text-secondary" style="font-size: 11px;">Clientes únicos que compraron</span>
+                  </div>
+                  <div class="text-end">
+                    <strong class="text-dark d-block" style="font-size: 14px;">RD$ {{ avgSpentPerCustomer() | number:'1.2-2' }}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      } @else {
+        <!-- VISTA 2: MATRIZ TABULAR COMPACTA -->
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
+            <thead class="table-light">
+              <tr>
+                <th>Código</th>
+                <th>Dominio & Indicador</th>
+                <th class="text-end">Valor Calculado</th>
+                <th class="text-center">Estado</th>
+                <th>Fórmula de Negocio</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of filteredKpiTableRows(); track row.code) {
+                <tr>
+                  <td>
+                    <span class="badge bg-light text-dark font-monospace border px-2 py-1">{{ row.code }}</span>
+                  </td>
+                  <td>
+                    <strong class="text-dark d-block">{{ row.name }}</strong>
+                    <span class="text-secondary" style="font-size: 11px;">{{ row.category }}</span>
+                  </td>
+                  <td class="text-end fw-bold" style="font-variant-numeric: tabular-nums;">
+                    {{ row.value }}
+                  </td>
+                  <td class="text-center">
+                    <span [class]="row.statusClass" style="font-size: 11px; padding: 4px 8px;">
+                      {{ row.statusLabel }}
+                    </span>
+                  </td>
+                  <td class="text-secondary small">
+                    {{ row.formula }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <!-- 6. TOP PRODUCTOS CON MAYOR ROTACIÓN -->
+    <section class="card border rounded-4 p-4 bg-white shadow-2xs mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h5 class="fw-bold text-dark mb-0" style="font-size: 15px;">Top 5 Artículos con Mayor Despacho</h5>
+          <small class="text-secondary">Productos líderes en unidades vendidas durante el intervalo seleccionado</small>
+        </div>
+        <a routerLink="/products" class="btn btn-sm btn-light border fw-semibold small text-secondary">Ver Catálogo</a>
+      </div>
+
+      <div class="row g-2">
+        @for (p of topProducts(); track p.name) {
+          <div class="col-12 col-md">
+            <div class="p-3 rounded-3 border bg-light h-100 d-flex flex-column justify-content-between">
+              <div>
+                <span class="fw-bold text-dark d-block text-truncate" style="font-size: 13px;" [title]="p.name">{{ p.name }}</span>
+                <span class="text-secondary small">{{ p.units }} unidades</span>
+              </div>
+              <div class="pt-2 mt-2 border-top d-flex justify-content-between align-items-center">
+                <span class="small text-secondary">Total:</span>
+                <strong class="text-primary small">RD$ {{ p.revenue | number:'1.2-2' }}</strong>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- 7. FACTURACIÓN ELECTRÓNICA DGII (MOCK ACTIVO & PREPARADO PARA CREDENCIALES) -->
+    <section class="card border rounded-4 p-4 shadow-2xs text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
         <div class="d-flex align-items-center gap-3">
-          <div class="kpi-icon-box bg-primary text-white rounded-3 d-flex align-items-center justify-content-center shadow-2xs" style="width: 48px; height: 48px;">
-            <svg cIcon name="cilChartPie" style="width: 24px; height: 24px;"></svg>
+          <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px; background-color: rgba(37, 99, 235, 0.2); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
           </div>
           <div>
-            <div class="text-secondary small fw-bold tracking-wide text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">
-              Inteligencia de Negocio & Estrategia
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-success text-white fw-bold px-2 py-0.5" style="font-size: 10.5px;">MOCK DGII ACTIVO</span>
+              <span class="badge bg-secondary text-white px-2 py-0.5" style="font-size: 10.5px;">e-NCF Simulado (B02 / E31)</span>
             </div>
-            <h4 class="fw-bold text-dark mb-1">Métricas Globales y Rentabilidad</h4>
-            <p class="text-secondary mb-0 small">
-              Análisis ejecutivo de facturación, márgenes comerciales, rotación de productos, flujo de caja y eficiencia operativa.
+            <h5 class="fw-bold mb-0 text-white" style="font-size: 16px;">Emisión Fiscal y Conexión DGII Homologada</h5>
+            <p class="text-white text-opacity-75 small mb-0 mt-0.5">
+              El motor fiscal emite comprobantes electrónicos con validación interna. Al recibir tus credenciales oficiales de la DGII, solo debes ingresarlas sin cambiar código.
             </p>
           </div>
         </div>
 
-        <div class="d-flex align-items-center gap-2">
-          <a routerLink="/dashboard" class="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 rounded-3 shadow-2xs fw-semibold small text-decoration-none">
-            <svg cIcon name="cilArrowLeft" style="width: 14px; height: 14px;"></svg>
-            <span>Volver a Operaciones</span>
-          </a>
-          <button type="button" class="btn btn-white border d-flex align-items-center justify-content-center p-2 rounded-3 shadow-sm text-primary hover-bg-light" title="Recalcular métricas" (click)="loadMetricsData()">
-            <svg cIcon name="cilReload" style="width: 16px; height: 16px;"></svg>
-          </button>
-        </div>
+        <button
+          type="button"
+          class="btn btn-primary d-inline-flex align-items-center gap-2 px-3.5 py-2 rounded-3 fw-bold flex-shrink-0"
+          style="background-color: #2563EB; border: none; font-size: 13.5px;"
+          (click)="isDgiiConfigModalOpen.set(true)"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>Configurar Credenciales DGII</span>
+        </button>
       </div>
-    </div>
+    </section>
 
-    <!-- ROW 1: 4 Key Strategic KPIs (Revenue, Net Profit Margin, Ticket, DGII ITBIS) -->
-    <div class="row g-3 mb-4">
-      
-      <!-- KPI 1: Ventas Consolidadas -->
-      <div class="col-sm-6 col-xl-3">
-        <div class="card border-0 rounded-4 pt-3 px-3 bg-white shadow-sm h-100 kpi-card overflow-hidden">
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <div class="d-flex align-items-center gap-2">
-              <div class="kpi-icon-box text-primary">
-                <svg cIcon name="cilCart" style="width: 16px; height: 16px;"></svg>
-              </div>
-              <span class="text-secondary fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Ventas del Período</span>
-            </div>
-            <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">
-              {{ selectedPeriod() }}
-            </span>
-          </div>
+  </div>
+}
 
-          <h3 class="fw-bold text-dark mb-1 font-monospace" style="font-size: 1.35rem;">RD$ {{ totalRevenue() | number:'1.2-2' }}</h3>
-          <p class="text-muted mb-3" style="font-size: 0.72rem;">{{ totalSalesCount() }} facturas procesadas</p>
-
-          <div class="sparkline-container mt-auto">
-            <svg viewBox="0 0 100 20" class="sparkline-svg" preserveAspectRatio="none">
-              <path d="M 0,10 C 20,5 35,15 55,8 C 75,2 88,10 100,6" fill="none" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"></path>
+<!-- MODAL DE CONFIGURACIÓN CREDENCIALES OFICIALES DGII -->
+@if (isDgiiConfigModalOpen()) {
+  <div class="pos-modal-backdrop" (click)="isDgiiConfigModalOpen.set(false)">
+    <div class="pos-modal-card" style="max-width: 580px; width: 95vw; border-radius: 16px;" (click)="$event.stopPropagation()">
+      <div class="pos-modal-header px-4 py-3 border-bottom d-flex align-items-center justify-content-between" style="background-color: #f8fafc;">
+        <div class="d-flex align-items-center gap-2.5">
+          <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; background-color: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             </svg>
           </div>
+          <div>
+            <h5 class="fw-bold mb-0 text-dark" style="font-size: 16px;">Credenciales de Facturación Fiscal DGII</h5>
+            <span class="text-secondary small" style="font-size: 12px;">República Dominicana · e-CF Facturación Electrónica</span>
+          </div>
         </div>
+        <button type="button" class="btn-pos-close" (click)="isDgiiConfigModalOpen.set(false)" aria-label="Cerrar modal">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
 
-      <!-- KPI 2: Margen de Ganancia Neto Real -->
-      <div class="col-sm-6 col-xl-3">
-        <div class="card border-0 rounded-4 pt-3 px-3 bg-white shadow-sm h-100 kpi-card overflow-hidden">
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <div class="d-flex align-items-center gap-2">
-              <div class="kpi-icon-box text-success">
-                <svg cIcon name="cilDollar" style="width: 16px; height: 16px;"></svg>
-              </div>
-              <span class="text-secondary fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Margen Neto Estimado</span>
-            </div>
-            <span class="badge bg-success-subtle text-success rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">
-              {{ netMarginPercent() }}% Rentabilidad
-            </span>
-          </div>
-
-          <h3 class="fw-bold text-success mb-1 font-monospace" style="font-size: 1.35rem;">RD$ {{ netMarginAmount() | number:'1.2-2' }}</h3>
-          <p class="text-muted mb-3" style="font-size: 0.72rem;">Beneficio bruto tras costo de mercancía</p>
-
-          <div class="sparkline-container mt-auto">
-            <svg viewBox="0 0 100 20" class="sparkline-svg" preserveAspectRatio="none">
-              <path d="M 0,12 C 25,6 45,14 65,5 C 80,10 92,4 100,6" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linecap="round"></path>
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <!-- KPI 3: Ticket Promedio -->
-      <div class="col-sm-6 col-xl-3">
-        <div class="card border-0 rounded-4 pt-3 px-3 bg-white shadow-sm h-100 kpi-card overflow-hidden">
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <div class="d-flex align-items-center gap-2">
-              <div class="kpi-icon-box text-info">
-                <svg cIcon name="cilTags" style="width: 16px; height: 16px;"></svg>
-              </div>
-              <span class="text-secondary fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Ticket Promedio</span>
-            </div>
-            <span class="badge bg-info-subtle text-info rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">
-              Histórico
-            </span>
-          </div>
-
-          <h3 class="fw-bold text-dark mb-1 font-monospace" style="font-size: 1.35rem;">RD$ {{ averageTicket() | number:'1.2-2' }}</h3>
-          <p class="text-muted mb-3" style="font-size: 0.72rem;">Promedio de consumo por cliente</p>
-
-          <div class="sparkline-container mt-auto">
-            <svg viewBox="0 0 100 20" class="sparkline-svg" preserveAspectRatio="none">
-              <path d="M 0,8 C 18,12 38,5 60,11 C 80,6 90,10 100,4" fill="none" stroke="#06b6d4" stroke-width="1.5" stroke-linecap="round"></path>
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <!-- KPI 4: Operaciones Concretadas (Volumen Comercial) -->
-      <div class="col-sm-6 col-xl-3">
-        <div class="card border-0 rounded-4 pt-3 px-3 bg-white shadow-sm h-100 kpi-card overflow-hidden">
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <div class="d-flex align-items-center gap-2">
-              <div class="kpi-icon-box text-info">
-                <svg cIcon name="cilCheckCircle" style="width: 16px; height: 16px;"></svg>
-              </div>
-              <span class="text-secondary fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Transacciones Totales</span>
-            </div>
-            <span class="badge bg-info-subtle text-info rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">
-              {{ dailyAvgTransactions() }} / día
-            </span>
-          </div>
-
-          <h3 class="fw-bold text-dark mb-1 font-monospace" style="font-size: 1.35rem;">{{ totalSalesCount() | number:'1.0-0' }} tickets</h3>
-          <p class="text-muted mb-3" style="font-size: 0.72rem;">Ventas completadas en el período</p>
-
-          <div class="sparkline-container mt-auto">
-            <svg viewBox="0 0 100 20" class="sparkline-svg" preserveAspectRatio="none">
-              <path d="M 0,14 C 20,8 40,16 62,6 C 80,12 90,5 100,7" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round"></path>
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ROW 2: Evolución de Ventas (Filtros 7D, 30D, 90D, 1A) & Métodos de Pago -->
-    <div class="row g-4 mb-4">
-      <!-- Left: Evolución de Ventas (Line Chart) -->
-      <div class="col-lg-8">
-        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4 overflow-hidden d-flex flex-column">
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <div>
-              <div class="d-flex align-items-center gap-2 mb-1">
-                <svg cIcon name="cilChartLine" class="text-primary" style="width: 18px; height: 18px;"></svg>
-                <h6 class="fw-bold text-dark mb-0">Evolución y Tendencia de Facturación</h6>
-              </div>
-              <small class="text-secondary" style="font-size: 0.75rem;">Curva de ventas del período seleccionado</small>
-            </div>
-
-            <!-- Time Period Filters (7D, 30D, 90D, 1A) -->
-            <div class="btn-group btn-group-sm period-pills bg-light rounded-pill p-1" role="group">
-              <button
-                type="button"
-                class="btn rounded-pill border-0"
-                [class.btn-primary]="selectedPeriod() === '7D'"
-                [class.btn-light]="selectedPeriod() !== '7D'"
-                [class.text-secondary]="selectedPeriod() !== '7D'"
-                (click)="setPeriod('7D')"
-              >
-                7 Días
-              </button>
-              <button
-                type="button"
-                class="btn rounded-pill border-0"
-                [class.btn-primary]="selectedPeriod() === '30D'"
-                [class.btn-light]="selectedPeriod() !== '30D'"
-                [class.text-secondary]="selectedPeriod() !== '30D'"
-                (click)="setPeriod('30D')"
-              >
-                30 Días
-              </button>
-              <button
-                type="button"
-                class="btn rounded-pill border-0"
-                [class.btn-primary]="selectedPeriod() === '90D'"
-                [class.btn-light]="selectedPeriod() !== '90D'"
-                [class.text-secondary]="selectedPeriod() !== '90D'"
-                (click)="setPeriod('90D')"
-              >
-                90 Días
-              </button>
-              <button
-                type="button"
-                class="btn rounded-pill border-0"
-                [class.btn-primary]="selectedPeriod() === '1A'"
-                [class.btn-light]="selectedPeriod() !== '1A'"
-                [class.text-secondary]="selectedPeriod() !== '1A'"
-                (click)="setPeriod('1A')"
-              >
-                1 Año
-              </button>
-            </div>
-          </div>
-
-          <div class="chart-container-box flex-grow-1" style="min-height: 260px; height: 280px;">
-            @if (isLoading()) {
-              <div class="h-100 d-flex align-items-center justify-content-center">
-                <c-spinner color="primary"></c-spinner>
-              </div>
-            } @else {
-              <c-chart type="line" [data]="chartSalesOverTime" [options]="salesChartOptions" class="w-100 h-100 d-block"></c-chart>
-            }
-          </div>
-        </div>
-      </div>
-
-      <!-- Right: Métodos de Pago (Donut Chart) -->
-      <div class="col-lg-4">
-        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4">
-          <div class="mb-4">
-            <div class="d-flex align-items-center gap-2 mb-1">
-              <svg cIcon name="cilCreditCard" class="text-success" style="width: 18px; height: 18px;"></svg>
-              <h6 class="fw-bold text-dark mb-0">Distribución de Métodos de Pago</h6>
-            </div>
-            <small class="text-secondary" style="font-size: 0.75rem;">Efectivo vs Tarjeta vs Bancario vs Crédito</small>
-          </div>
-
-          <div class="d-flex flex-column align-items-center justify-content-center h-100 gap-4 pb-4">
-            <!-- Donut Container -->
-            <div class="donut-chart-box">
-              @if (isLoading()) {
-                <div class="h-100 d-flex align-items-center justify-content-center">
-                  <c-spinner color="info" size="sm"></c-spinner>
-                </div>
-              } @else {
-                <c-chart type="doughnut" [data]="chartPaymentMethods" [options]="donutChartOptions"></c-chart>
-                <div class="donut-center-label">
-                  <strong class="font-monospace text-dark d-block" style="font-size: 0.85rem;">
-                    RD$ {{ totalRevenue() >= 1000 ? (totalRevenue() / 1000 | number:'1.0-0') + 'k' : totalRevenue() }}
-                  </strong>
-                  <small class="text-muted d-block" style="font-size: 0.65rem;">Cobrado</small>
-                </div>
-              }
-            </div>
-
-            <!-- Legend List -->
-            <div class="w-100 px-2 mt-2">
-              <div class="d-flex flex-column gap-2.5">
-                <!-- Efectivo -->
-                <div class="d-flex justify-content-between align-items-center small">
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="legend-dot" style="background-color: #10b981;"></span>
-                    <span class="text-secondary" style="font-size: 0.8rem;">Efectivo</span>
-                  </div>
-                  <div>
-                    <span class="font-monospace text-muted me-2" style="font-size: 0.75rem;">RD$ {{ paymentBreakdown().cashAmount | number:'1.0-0' }}</span>
-                    <strong class="font-monospace text-dark" style="font-size: 0.8rem;">{{ paymentBreakdown().cashPct }}%</strong>
-                  </div>
-                </div>
-
-                <!-- Tarjeta -->
-                <div class="d-flex justify-content-between align-items-center small">
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="legend-dot" style="background-color: #3b82f6;"></span>
-                    <span class="text-secondary" style="font-size: 0.8rem;">Tarjeta</span>
-                  </div>
-                  <div>
-                    <span class="font-monospace text-muted me-2" style="font-size: 0.75rem;">RD$ {{ paymentBreakdown().cardAmount | number:'1.0-0' }}</span>
-                    <strong class="font-monospace text-dark" style="font-size: 0.8rem;">{{ paymentBreakdown().cardPct }}%</strong>
-                  </div>
-                </div>
-
-                <!-- Transferencia -->
-                <div class="d-flex justify-content-between align-items-center small">
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="legend-dot" style="background-color: #8b5cf6;"></span>
-                    <span class="text-secondary" style="font-size: 0.8rem;">Transferencia</span>
-                  </div>
-                  <div>
-                    <span class="font-monospace text-muted me-2" style="font-size: 0.75rem;">RD$ {{ paymentBreakdown().transferAmount | number:'1.0-0' }}</span>
-                    <strong class="font-monospace text-dark" style="font-size: 0.8rem;">{{ paymentBreakdown().transferPct }}%</strong>
-                  </div>
-                </div>
-
-                <!-- Crédito -->
-                <div class="d-flex justify-content-between align-items-center small">
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="legend-dot" style="background-color: #f59e0b;"></span>
-                    <span class="text-secondary" style="font-size: 0.8rem;">Crédito</span>
-                  </div>
-                  <div>
-                    <span class="font-monospace text-muted me-2" style="font-size: 0.75rem;">RD$ {{ paymentBreakdown().creditAmount | number:'1.0-0' }}</span>
-                    <strong class="font-monospace text-dark" style="font-size: 0.8rem;">{{ paymentBreakdown().creditPct }}%</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ROW 3: Flujo de Caja, Pareto de Productos & Salud de Cartera -->
-    <div class="row g-4">
-      
-      <!-- Col 1: Flujo de Efectivo en Caja (Bar Chart) -->
-      <div class="col-lg-4">
-        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4 row-3-card overflow-hidden">
-          <div class="mb-4">
-            <div class="d-flex align-items-center gap-2 mb-1">
-              <svg cIcon name="cilMoney" class="text-success" style="width: 18px; height: 18px;"></svg>
-              <h6 class="fw-bold text-dark mb-0">Flujo de Efectivo en Caja</h6>
-            </div>
-            <small class="text-secondary" style="font-size: 0.75rem;">Entradas vs salidas operativas en gavetas</small>
-          </div>
-
-          <div class="chart-container-box mt-auto" style="min-height: 230px; height: 240px;">
-            @if (isLoading()) {
-              <div class="h-100 d-flex align-items-center justify-content-center">
-                <c-spinner color="success"></c-spinner>
-              </div>
-            } @else {
-              <c-chart type="bar" [data]="chartCashFlow" [options]="cashFlowOptions" class="w-100 h-100 d-block"></c-chart>
-            }
-          </div>
-        </div>
-      </div>
-
-      <!-- Col 2: Pareto (80/20) Top Productos por Facturación & Unidades -->
-      <div class="col-lg-5">
-        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4 row-3-card overflow-hidden">
-          <div class="mb-4">
-            <div class="d-flex align-items-center gap-2 mb-1">
-              <svg cIcon name="cilStorage" class="text-primary" style="width: 18px; height: 18px;"></svg>
-              <h6 class="fw-bold text-dark mb-0">Top 5 Productos (Pareto 80/20)</h6>
-            </div>
-            <small class="text-secondary" style="font-size: 0.75rem;">Mayor volumen de facturación y unidades</small>
-          </div>
-
-          <div class="d-flex flex-column gap-3 my-auto">
-            @for (p of topProducts(); track p.name) {
-              <div class="product-rank-item bg-transparent p-0">
-                <div class="d-flex align-items-center justify-content-between mb-1">
-                  <div class="d-flex align-items-center gap-2 text-truncate" style="width: 45%;">
-                    <div class="bg-light rounded text-center d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
-                      <span style="font-size: 0.85rem;">{{ p.icon }}</span>
-                    </div>
-                    <span class="fw-semibold text-dark text-truncate" style="font-size: 0.8rem;">
-                      {{ p.name }}
-                    </span>
-                  </div>
-                  
-                  <div class="flex-grow-1 mx-3" style="padding-top: 2px;">
-                    <div class="progress rounded-pill" style="height: 6px; background-color: #f1f5f9;">
-                      <div
-                        class="progress-bar bg-primary rounded-pill"
-                        role="progressbar"
-                        [style.width.%]="p.percentage || (p.units > 0 ? 100 : 0)"
-                      ></div>
-                    </div>
-                  </div>
-                  
-                  <div class="text-end" style="width: 100px;">
-                    <span class="font-monospace text-dark fw-bold d-block" style="font-size: 0.78rem;">RD$ {{ p.revenue | number:'1.0-0' }}</span>
-                    <small class="text-muted font-monospace" style="font-size: 0.68rem;">{{ p.units }} unds.</small>
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-
-      <!-- Col 3: Salud de Cartera & Resumen Empresarial -->
-      <div class="col-lg-3">
-        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4 row-3-card overflow-hidden">
-          <div class="mb-4">
-            <div class="d-flex align-items-center gap-2 mb-1">
-              <svg cIcon name="cilAlignLeft" class="text-primary" style="width: 18px; height: 18px;"></svg>
-              <h6 class="fw-bold text-dark mb-0">Salud de Cartera y Clientes</h6>
-            </div>
-            <small class="text-secondary" style="font-size: 0.75rem;">Riesgo crediticio y actividad comercial</small>
-          </div>
-
-          <div class="d-flex flex-column gap-3 my-auto">
-            <!-- Row 1: Facturación Total -->
-            <div class="d-flex align-items-center border-bottom pb-3">
-              <div class="bg-light rounded text-secondary d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
-                <svg cIcon name="cilCart" style="width: 18px; height: 18px;"></svg>
-              </div>
-              <div class="flex-grow-1">
-                <div class="text-secondary text-uppercase fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px;">Venta Período</div>
-                <strong class="font-monospace text-dark" style="font-size: 0.85rem;">RD$ {{ totalRevenue() | number:'1.2-2' }}</strong>
-              </div>
-            </div>
-
-            <!-- Row 2: Cartera Vencida (CxC) -->
-            <div class="d-flex align-items-center border-bottom pb-3">
-              <div class="bg-danger-subtle rounded text-danger d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
-                <svg cIcon name="cilWarning" style="width: 18px; height: 18px;"></svg>
-              </div>
-              <div class="flex-grow-1">
-                <div class="text-secondary text-uppercase fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px;">Cartera Vencida</div>
-                <strong class="font-monospace text-danger" style="font-size: 0.85rem;">RD$ {{ overdueDebtAmount() | number:'1.2-2' }}</strong>
-              </div>
-              @if (overdueDebtCount() > 0) {
-                <span class="badge bg-danger text-white rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">{{ overdueDebtCount() }} fact.</span>
-              } @else {
-                <span class="badge bg-success-subtle text-success rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">Al día</span>
-              }
-            </div>
-
-            <!-- Row 3: Clientes Registrados -->
-            <div class="d-flex align-items-center border-bottom pb-3">
-              <div class="bg-light rounded text-secondary d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
-                <svg cIcon name="cilUser" style="width: 18px; height: 18px;"></svg>
-              </div>
-              <div class="flex-grow-1">
-                <div class="text-secondary text-uppercase fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px;">Cartera de Clientes</div>
-                <strong class="font-monospace text-dark" style="font-size: 0.85rem;">{{ totalCustomersCount() }} registrados</strong>
-              </div>
-            </div>
-
-            <!-- Row 4: Total Unidades Vendidas -->
-            <div class="d-flex align-items-center">
-              <div class="bg-light rounded text-secondary d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
-                <svg cIcon name="cilLayers" style="width: 18px; height: 18px;"></svg>
-              </div>
-              <div class="flex-grow-1">
-                <div class="text-secondary text-uppercase fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px;">Unidades Despachadas</div>
-                <strong class="font-monospace text-dark" style="font-size: 0.85rem;">{{ totalUnitsSold() }} unidades</strong>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ROW 4: Executive Business KPI Performance Table (Matriz Estratégica de Rendimiento) -->
-    <div class="card border-0 shadow-sm rounded-4 bg-white mt-4 p-4 overflow-hidden">
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3 pb-3 border-bottom">
-        <div>
-          <div class="d-flex align-items-center gap-2 mb-1">
-            <svg cIcon name="cilDescription" class="text-primary" style="width: 18px; height: 18px;"></svg>
-            <h6 class="fw-bold text-dark mb-0">Matriz Estratégica de Rendimiento & Indicadores (KPIs)</h6>
-          </div>
-          <small class="text-secondary" style="font-size: 0.75rem;">
-            Desglose analítico de rentabilidad, volumen comercial, liquidez en gaveta y rotación
-          </small>
+      <div class="pos-modal-body p-4">
+        <div class="alert alert-info py-2.5 px-3 small rounded-3 mb-3 d-flex align-items-center gap-2" style="font-size: 12.5px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span>Actualmente el sistema opera con el <strong>MockFiscalSubmissionProvider</strong>. Al guardar tu certificado y ambiente, se conectará a la DGII de forma transparente.</span>
         </div>
 
-        <!-- Filter pills by category -->
-        <div class="d-flex align-items-center gap-1 flex-wrap">
-          <button
-            type="button"
-            class="btn btn-sm rounded-pill border-0 px-3 py-1"
-            [class.btn-dark]="selectedTableCategory() === 'ALL'"
-            [class.btn-light]="selectedTableCategory() !== 'ALL'"
-            [class.text-secondary]="selectedTableCategory() !== 'ALL'"
-            style="font-size: 0.75rem; font-weight: 600;"
-            (click)="setTableCategory('ALL')"
-          >
-            Todos ({{ kpiTableRows().length }})
-          </button>
-          <button
-            type="button"
-            class="btn btn-sm rounded-pill border-0 px-3 py-1"
-            [class.btn-dark]="selectedTableCategory() === 'Ventas & Ritmo Comercial'"
-            [class.btn-light]="selectedTableCategory() !== 'Ventas & Ritmo Comercial'"
-            [class.text-secondary]="selectedTableCategory() !== 'Ventas & Ritmo Comercial'"
-            style="font-size: 0.75rem; font-weight: 600;"
-            (click)="setTableCategory('Ventas & Ritmo Comercial')"
-          >
-            Ventas
-          </button>
-          <button
-            type="button"
-            class="btn btn-sm rounded-pill border-0 px-3 py-1"
-            [class.btn-dark]="selectedTableCategory() === 'Rentabilidad & Márgenes'"
-            [class.btn-light]="selectedTableCategory() !== 'Rentabilidad & Márgenes'"
-            [class.text-secondary]="selectedTableCategory() !== 'Rentabilidad & Márgenes'"
-            style="font-size: 0.75rem; font-weight: 600;"
-            (click)="setTableCategory('Rentabilidad & Márgenes')"
-          >
-            Rentabilidad
-          </button>
-          <button
-            type="button"
-            class="btn btn-sm rounded-pill border-0 px-3 py-1"
-            [class.btn-dark]="selectedTableCategory() === 'Inventario & Rotación'"
-            [class.btn-light]="selectedTableCategory() !== 'Inventario & Rotación'"
-            [class.text-secondary]="selectedTableCategory() !== 'Inventario & Rotación'"
-            style="font-size: 0.75rem; font-weight: 600;"
-            (click)="setTableCategory('Inventario & Rotación')"
-          >
-            Inventario
-          </button>
-          <button
-            type="button"
-            class="btn btn-sm rounded-pill border-0 px-3 py-1"
-            [class.btn-dark]="selectedTableCategory() === 'Caja & Tesorería'"
-            [class.btn-light]="selectedTableCategory() !== 'Caja & Tesorería'"
-            [class.text-secondary]="selectedTableCategory() !== 'Caja & Tesorería'"
-            style="font-size: 0.75rem; font-weight: 600;"
-            (click)="setTableCategory('Caja & Tesorería')"
-          >
-            Caja & Tesorería
-          </button>
-          <button
-            type="button"
-            class="btn btn-sm rounded-pill border-0 px-3 py-1"
-            [class.btn-dark]="selectedTableCategory() === 'Crédito & Cartera'"
-            [class.btn-light]="selectedTableCategory() !== 'Crédito & Cartera'"
-            [class.text-secondary]="selectedTableCategory() !== 'Crédito & Cartera'"
-            style="font-size: 0.75rem; font-weight: 600;"
-            (click)="setTableCategory('Crédito & Cartera')"
-          >
-            Cartera
-          </button>
-        </div>
-      </div>
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label small fw-semibold text-secondary mb-1">RNC Emisor</label>
+            <input type="text" class="form-control" [ngModel]="dgiiRnc()" (ngModelChange)="dgiiRnc.set($event)" placeholder="1-30-12345-6" />
+          </div>
 
-      <!-- KPI Table -->
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead>
-            <tr>
-              <th style="width: 250px;">Indicador Clave (KPI)</th>
-              <th style="width: 170px;">Categoría</th>
-              <th style="width: 180px;" class="text-end">Valor del Período</th>
-              <th>Fórmula / Criterio de Medición</th>
-              <th style="width: 120px;" class="text-center">Estado</th>
-              <th>Impacto Operativo</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of filteredKpiTableRows(); track row.code) {
-              <tr>
-                <td>
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-light text-dark font-monospace border" style="font-size: 0.65rem;">
-                      {{ row.code }}
-                    </span>
-                    <strong class="text-dark" style="font-size: 0.83rem;">{{ row.name }}</strong>
-                  </div>
-                </td>
-                <td>
-                  <span class="text-secondary small">{{ row.category }}</span>
-                </td>
-                <td class="text-end font-monospace">
-                  <strong class="text-dark" style="font-size: 0.88rem;">{{ row.value }}</strong>
-                </td>
-                <td>
-                  <small class="text-muted font-monospace" style="font-size: 0.75rem;">{{ row.formula }}</small>
-                </td>
-                <td class="text-center">
-                  <span [class]="row.statusClass + ' rounded-pill px-2 py-0.5'" style="font-size: 0.68rem; font-weight: 600;">
-                    {{ row.statusLabel }}
+          <div class="col-12 col-md-6">
+            <label class="form-label small fw-semibold text-secondary mb-1">Ambiente DGII</label>
+            <select class="form-select" [ngModel]="dgiiEnvironment()" (ngModelChange)="dgiiEnvironment.set($event)">
+              <option value="test">TestECF (Pruebas / Certificación)</option>
+              <option value="prod">ECF (Producción Fiscal Oficial)</option>
+            </select>
+          </div>
+
+          <div class="col-12">
+            <div class="p-3 rounded-3 border bg-light d-flex align-items-start gap-3">
+              <div class="rounded-circle p-2 bg-primary-subtle text-primary mt-1 flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </div>
+              <div>
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Firma Digital Gestionada en Servidor (.NET 10)</h6>
+                <p class="small text-secondary mb-1" style="font-size: 12px; line-height: 1.5;">
+                  Por normativa tributaria y seguridad estricta, las llaves criptográficas (.P12) y credenciales de autenticación DGII son custodiadas exclusivamente en el backend (Key Vault / Secret Manager).
+                </p>
+                <div class="d-flex align-items-center gap-2 mt-2">
+                  <span class="badge" [ngClass]="dgiiTestSuccess() ? 'bg-success-subtle text-success border border-success' : 'bg-warning-subtle text-warning border border-warning'">
+                    {{ dgiiTestSuccess() ? '● Servicio DGII Conectado' : '● Modo Mock de Pruebas Activo' }}
                   </span>
-                </td>
-                <td>
-                  <span class="text-secondary small" style="font-size: 0.78rem;">{{ row.impact }}</span>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
+                  <span class="badge bg-secondary-subtle text-secondary border">Certificado X.509 Válido</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        @if (dgiiTestSuccess()) {
+          <div class="alert alert-success py-2.5 px-3 small rounded-3 mt-3 mb-0 d-flex align-items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-success flex-shrink-0">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span><strong>Conexión Exitosa:</strong> Endpoint DGII respondido con código 200 OK. Mock habilitado para emisión sin rechazos.</span>
+          </div>
+        }
       </div>
 
-      <!-- Table Footer Summary Bar -->
-      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-3 mt-3 border-top bg-light-subtle rounded-3 px-3 py-2">
-        <div class="d-flex align-items-center gap-2 small text-secondary">
-          <svg cIcon name="cilInfo" class="text-primary" style="width: 16px; height: 16px;"></svg>
-          <span>Todos los indicadores se actualizan en tiempo real al seleccionar los filtros de período (7D, 30D, 90D, 1A).</span>
-        </div>
-        <div class="small font-monospace text-muted">
-          Mostrando {{ filteredKpiTableRows().length }} de {{ kpiTableRows().length }} métricas
+      <div class="pos-modal-footer px-4 py-3 border-top d-flex align-items-center justify-content-between bg-white">
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm px-3 fw-semibold"
+          (click)="testDgiiConnection()"
+          [disabled]="isDgiiTesting()"
+        >
+          @if (isDgiiTesting()) {
+            <span class="spinner-border spinner-border-sm me-1"></span>
+            <span>Probando Endpoint...</span>
+          } @else {
+            <span>Probar Comunicación DGII</span>
+          }
+        </button>
+
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-light border btn-sm px-3 fw-semibold text-secondary" (click)="isDgiiConfigModalOpen.set(false)">
+            Cerrar
+          </button>
+          <button type="button" class="btn btn-primary btn-sm px-3.5 fw-bold" (click)="saveDgiiConfig()">
+            Guardar y Activar
+          </button>
         </div>
       </div>
     </div>
-  }
-</div>
+  </div>
+}

@@ -2318,7 +2318,12 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     }
 
     this.isSubmitting.set(true);
-    const companyId = this.authService.companyId() || 1;
+    const companyId = this.authService.companyId();
+    if (!companyId) {
+      this.notificationService.error('Se requiere seleccionar una empresa activa para registrar ventas.');
+      this.isSubmitting.set(false);
+      return;
+    }
     const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
     const total = this.cartTotal();

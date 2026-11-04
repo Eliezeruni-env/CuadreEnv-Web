@@ -336,7 +336,7 @@ export class ReceivableService {
     // Attempt to record in new backend AccountReceivable API
     try {
       const arPayload = {
-        companyId: 1,
+        ...(getCompanyId() ? { companyId: Number(getCompanyId()) } : {}),
         customerId: dto.customerId || null,
         saleId: null,
         totalAmount: dto.totalAmount,

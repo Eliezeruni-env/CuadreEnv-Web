@@ -1024,7 +1024,8 @@ export class CashRegisterService {
       return { success: false, message: 'El monto debe ser mayor a cero.' };
     }
 
-    const typeStr = item.type === 'Entrada' ? 'Entrada' : 'Salida';
+    const typeStr = item.type === 'Entrada' ? 'In' : 'Out';
+    const movTypeEnum = item.type === 'Entrada' ? 1 : 2;
     let res: any = null;
     const isLocalTimestampId = typeof session.id === 'number' && session.id > 10000000000;
     try {
@@ -1032,10 +1033,12 @@ export class CashRegisterService {
         '/CashMovement',
         {
           cashRegisterId: session.cashRegisterId || (isLocalTimestampId ? 1 : session.id),
-          cashSessionId: isLocalTimestampId ? 1 : session.id,
-          sessionId: isLocalTimestampId ? 1 : session.id,
+          cashSessionId: session.sessionId || (isLocalTimestampId ? 1 : session.id),
+          sessionId: session.sessionId || (isLocalTimestampId ? 1 : session.id),
           amount: amt,
           type: typeStr,
+          movementType: movTypeEnum,
+          typeId: movTypeEnum,
           concept: item.description || item.category,
           reason: item.description || item.category,
           description: `${item.category}: ${item.description}`,
@@ -1322,18 +1325,34 @@ export class CashRegisterService {
   }
 
   async getSessionDetail(sessionId: number, basicSession?: CashRegisterSessionDto): Promise<any> {
-    // 1. Fetch movements for this register
+    // 1. Fetch movements for this register & combine with local
     let movements: any[] = [];
     const isLocalTimestampId = typeof sessionId === 'number' && sessionId > 10000000000;
     if (!isLocalTimestampId) {
       try {
         const movRes = await this.api.get<any, any>('/CashMovement', {
-          params: { cashRegisterId: sessionId },
+          params: { cashRegisterId: sessionId, cashSessionId: sessionId },
           headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' },
         });
         movements = extractArray<any>(movRes);
       } catch (e) {
         console.warn('Error fetching movements for session:', e);
+      }
+    }
+
+    const localMovs = getLocalMovements(sessionId);
+    for (const lm of localMovs) {
+      const exists = movements.some(m => m.id === lm.id || (Number(m.amount) === (lm.inAmount || lm.outAmount) && m.description === lm.description));
+      if (!exists) {
+        movements.push({
+          id: lm.id,
+          amount: lm.inAmount || lm.outAmount,
+          type: lm.type === 'Entrada' ? 'In' : 'Out',
+          category: lm.category,
+          description: lm.description,
+          creationDate: lm.rawDate,
+          paymentMethod: lm.paymentMethod,
+        });
       }
     }
 
@@ -1381,8 +1400,27 @@ export class CashRegisterService {
     let cashOut = 0;
     movements.forEach((m) => {
       const amt = Math.abs(Number(m.amount || 0));
-      if (m.type === 1 || m.type === 'CashIn' || m.type === 4) cashIn += amt;
-      else if (m.type === 2 || m.type === 'CashOut') cashOut += amt;
+      const typeUpper = String(m.type ?? '').toUpperCase();
+      const isEntry =
+        m.type === 1 ||
+        m.type === 4 ||
+        typeUpper === 'IN' ||
+        typeUpper === 'CASHIN' ||
+        typeUpper === 'ENTRADA' ||
+        typeUpper === 'ENTRY' ||
+        typeUpper === 'INGRESO' ||
+        typeUpper === 'SALE';
+      const isExit =
+        m.type === 2 ||
+        typeUpper === 'OUT' ||
+        typeUpper === 'CASHOUT' ||
+        typeUpper === 'SALIDA' ||
+        typeUpper === 'WITHDRAWAL' ||
+        typeUpper === 'GASTO' ||
+        typeUpper === 'RETIRO';
+
+      if (isEntry) cashIn += amt;
+      else if (isExit) cashOut += amt;
     });
 
     // Product breakdown
