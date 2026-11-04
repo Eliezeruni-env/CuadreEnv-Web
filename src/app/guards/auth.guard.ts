@@ -93,8 +93,7 @@ function hasElevatedAccess(authService: AuthService | null, moduleService: Modul
   const isSuper =
     authService.isSuperUser() === true ||
     authService.isPlatformSuperUser() === true ||
-    authService.isSuperAdmin() === true ||
-    authService.hasRole(['Admin', 'SuperUser', 'SuperAdmin', 'SysAdmin', 'Manager']) === true;
+    authService.isSuperAdmin() === true;
 
   const hasWildcard =
     authService.hasAllModules?.() === true ||
@@ -102,7 +101,7 @@ function hasElevatedAccess(authService: AuthService | null, moduleService: Modul
     authService.allowedModules?.()?.includes('*') === true ||
     authService.allowedModules?.()?.includes('all') === true;
 
-  return isSuper || hasWildcard;
+  return (isSuper && hasWildcard) || hasWildcard;
 }
 
 /**

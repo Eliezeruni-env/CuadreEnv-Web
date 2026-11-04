@@ -239,37 +239,20 @@ export class ModuleAccessService {
 
     const currentModules = this.allowedModulesSignal();
 
-    const userRole = (this.userRoleSignal() || this.getStoredRole() || '').toLowerCase();
-    const isAdmin =
-      this.getStoredIsSuperUser() ||
-      userRole === 'admin' ||
-      userRole === 'administrador' ||
-      userRole === 'owner' ||
-      userRole === 'dueño' ||
-      userRole === 'dueno' ||
-      userRole === 'gerente' ||
-      userRole === 'superadmin' ||
-      userRole === 'superuser' ||
-      userRole === 'sysadmin';
-    if (isAdmin) {
-      return true;
-    }
-
     // 1. Si allowed_modules está vacío ([]), ningún módulo debe verse (retornar false)
     if (!currentModules || currentModules.length === 0) {
       return false;
     }
 
-    // Dashboard está disponible si el usuario tiene al menos un módulo asignado
-    if (targetCode === 'dashboard') {
-      return currentModules.length > 0;
-    }
-
     // 2. Si tiene comodín '*' o 'all', otorga acceso completo a todos los módulos.
-    // Solo si NO tiene una lista explícita de módulos (o contiene wildcard), un superadmin/superuser tiene bypass total.
     const hasWildcard = currentModules.includes('*') || currentModules.includes('all');
     if (hasWildcard) {
       return true;
+    }
+
+    // Dashboard está disponible si el usuario tiene al menos un módulo asignado
+    if (targetCode === 'dashboard') {
+      return currentModules.length > 0;
     }
 
     // 3. Coincidencia directa exacta

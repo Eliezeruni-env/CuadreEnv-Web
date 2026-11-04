@@ -1031,27 +1031,6 @@ export class AuthService {
             .filter(Boolean),
         ),
       ];
-
-      if (assignedModules.length === 0) {
-        const roleLower = String(this.currentRole() || '').toLowerCase();
-        if (
-          this.isPlatformSuperUser() ||
-          roleLower === 'admin' ||
-          roleLower === 'administrador' ||
-          roleLower === 'owner' ||
-          roleLower === 'dueño' ||
-          roleLower === 'dueno' ||
-          roleLower === 'gerente'
-        ) {
-          assignedModules.push('*');
-        } else if (roleLower === 'supervisor') {
-          assignedModules.push('dashboard', 'sales', 'cashregister', 'inventory', 'customers', 'audit', 'reports', 'users');
-        } else if (roleLower.includes('cajer') || roleLower.includes('cashier')) {
-          assignedModules.push('dashboard', 'sales', 'cashregister', 'customers');
-        } else {
-          assignedModules.push('dashboard', 'sales', 'cashregister', 'customers');
-        }
-      }
       let licensedModules = [
         ...new Set(
           this.parseStringList(rawLicensedModules)
