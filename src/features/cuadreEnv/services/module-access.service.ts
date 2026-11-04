@@ -38,7 +38,10 @@ export class ModuleAccessService {
     'purchases-orders': ['purchases-orders', 'orders'],
     'purchases-receipts': ['purchases-receipts', 'receipts'],
     'reports': ['reports', 'metricas', 'metrics', 'billing-reports-dgii'],
+    'metrics': ['metrics', 'metricas', 'reports', 'billing-reports-dgii'],
+    'billing-reports-dgii': ['billing-reports-dgii', 'reports', 'metricas', 'metrics'],
     'audit': ['audit', 'fraud-guardian'],
+    'fraud-guardian': ['fraud-guardian', 'audit'],
     'users': ['users', 'usuarios'],
     'admin-roles': ['admin-roles', 'roles'],
     'company-settings': ['company-settings', 'company', 'empresa']

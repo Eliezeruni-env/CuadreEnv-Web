@@ -88,6 +88,8 @@ interface AuthenticatedUser {
   email: string;
   id: number;
   fullName?: string;
+  role?: string | null;
+  isSuperUser?: boolean;
   allowedModules: string[];
 }
 
@@ -574,10 +576,12 @@ export class AuthService {
 
     this.userPermissions.set(parsedPermissions);
     this.allowedModules.set(literalModules);
-    const currentUserObj = {
+    const currentUserObj: AuthenticatedUser = {
       email,
       id,
       fullName,
+      role: rawRole,
+      isSuperUser: this.isPlatformSuperUser() || this.isSuperUser(),
       allowedModules: literalModules,
     };
     this.currentUser.set(currentUserObj);
@@ -594,6 +598,10 @@ export class AuthService {
       try {
         sessionStorage.setItem('currentUser', JSON.stringify(currentUserObj));
         localStorage.setItem('currentUser', JSON.stringify(currentUserObj));
+        if (rawRole) {
+          sessionStorage.setItem('user_role', rawRole);
+          localStorage.setItem('user_role', rawRole);
+        }
       } catch {}
       if (window.sessionStorage) {
         sessionStorage.setItem(
@@ -902,10 +910,12 @@ export class AuthService {
     if (!moduleCode?.trim()) return false;
     if (this.isSuperUser() || this.isPlatformSuperUser()) return true;
 
-    // Si tiene comodín explícito '*', o es superusuario de plataforma sin lista restrictiva
+    // Si tiene comodín explícito '*' o 'all', otorgar acceso completo
     const assigned = this.allowedModules();
     const hasWildcard = assigned.includes('*') || assigned.includes('all');
-    if (!hasWildcard && assigned.length > 0) {
+    if (hasWildcard) return true;
+
+    if (assigned.length > 0) {
       // Si el usuario tiene una lista taxativa de módulos asignados desde el USM, se respeta estrictamente
       return this.moduleAccessService.hasModuleAccess(moduleCode);
     }
@@ -918,18 +928,9 @@ export class AuthService {
       if (!this.isModuleLicensed(moduleCode, licensed)) {
         return false;
       }
-    } else if (licensed === null && hasWildcard) {
-      // Si las licencias de la empresa aún no han cargado y el usuario tiene comodín '*',
-      // no abrir acceso general hasta confirmar contra /auth/me/modules
-      return false;
     }
 
-    // 2. Si el usuario tiene asignado '*', tiene acceso a los módulos licenciados por la empresa
-    if (hasWildcard) {
-      return true;
-    }
-
-    // 3. De lo contrario, verificar autorización explícita / granular
+    // 2. De lo contrario, verificar autorización granular
     return this.moduleAccessService.hasModuleAccess(moduleCode);
   }
 
@@ -944,20 +945,24 @@ export class AuthService {
 
   hasLicensedModule(moduleCode: string): boolean {
     if (!moduleCode?.trim()) return false;
+    if (this.isSuperUser() || this.isPlatformSuperUser()) return true;
+    if (this.hasAllModules()) return true;
     if (this.normalizeModuleCode(moduleCode) === 'inventory-warehouses')
       return true;
     const licensed = this.licensedModules();
-    if (licensed === null) return false;
+    if (licensed === null) return true;
     return this.isModuleLicensed(moduleCode, licensed);
   }
 
   hasAnyModuleAccess(): boolean {
-    const licensed = this.licensedModules();
-    if (licensed === null) return false;
-    if (licensed.length === 0) return false;
+    if (this.isSuperUser() || this.isPlatformSuperUser()) return true;
     const assignedModules = this.allowedModules();
+    if (assignedModules.includes('*') || assignedModules.includes('all')) return true;
+    const licensed = this.licensedModules();
+    if (licensed === null) return assignedModules.length > 0;
+    if (licensed.length === 0) return false;
     if (!assignedModules.length) return false;
-    if (assignedModules.includes('*') || licensed.includes('*')) return true;
+    if (licensed.includes('*')) return true;
     return assignedModules.some((module) => this.isModuleLicensed(module, licensed));
   }
 

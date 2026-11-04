@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { Router, CanActivateChildFn, CanActivateFn } from '@angular/router';
 import { AuthService } from '../../features/cuadreEnv/services/auth.service';
 import { PermissionService } from '../../features/roles/services/permission.service';
+import { ModuleAccessService } from '../../features/cuadreEnv/services/module-access.service';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { filter, map, take } from 'rxjs/operators';
 
@@ -84,7 +85,25 @@ export const adminGuard: CanActivateFn = () => {
   return false;
 };
 
-import { ModuleAccessService } from '../../features/cuadreEnv/services/module-access.service';
+/**
+ * Helper unificado para determinar si el usuario tiene acceso irrestricto de administración o wildcard.
+ */
+function hasElevatedAccess(authService: AuthService | null, moduleService: ModuleAccessService): boolean {
+  if (!authService) return false;
+  const isSuper =
+    authService.isSuperUser() === true ||
+    authService.isPlatformSuperUser() === true ||
+    authService.isSuperAdmin() === true ||
+    authService.hasRole(['Admin', 'SuperUser', 'SuperAdmin', 'SysAdmin', 'Manager']) === true;
+
+  const hasWildcard =
+    authService.hasAllModules?.() === true ||
+    moduleService.hasAllModules === true ||
+    authService.allowedModules?.()?.includes('*') === true ||
+    authService.allowedModules?.()?.includes('all') === true;
+
+  return isSuper || hasWildcard;
+}
 
 /**
  * Guard que valida que el usuario tenga acceso al módulo especificado por código o ruta.
@@ -98,14 +117,18 @@ export function moduleGuard(moduleCodeOrRoute: any, state?: any): any {
     return () => {
       const authService = inject(AuthService, { optional: true });
       const moduleService = inject(ModuleAccessService);
+      const permissionService = inject(PermissionService, { optional: true });
       const router = inject(Router);
 
-      const isSuperAdmin =
-        authService?.isSuperAdmin() === true ||
-        authService?.currentRole()?.toLowerCase() === 'superadmin';
+      if (hasElevatedAccess(authService, moduleService)) {
+        return true;
+      }
+
       const hasAccess =
-        (isSuperAdmin && authService?.hasAllModules()) ||
-        (moduleService.hasModuleAccess ? moduleService.hasModuleAccess(moduleCode) : moduleService.hasModule(moduleCode));
+        (moduleService.hasModuleAccess ? moduleService.hasModuleAccess(moduleCode) : moduleService.hasModule(moduleCode)) ||
+        (authService?.hasModuleAccess ? authService.hasModuleAccess(moduleCode) : authService?.hasModule(moduleCode)) ||
+        (permissionService?.hasModuleAccess ? permissionService.hasModuleAccess(moduleCode) : false);
+
       if (hasAccess) return true;
 
       router.navigate(['/403'], { queryParams: { error: 'no-access', module: moduleCode } });
@@ -116,15 +139,19 @@ export function moduleGuard(moduleCodeOrRoute: any, state?: any): any {
   const route = moduleCodeOrRoute;
   const authService = inject(AuthService, { optional: true });
   const moduleService = inject(ModuleAccessService);
+  const permissionService = inject(PermissionService, { optional: true });
   const router = inject(Router);
   const targetModule = (route?.data?.['module'] as string) || 'dashboard';
 
-  const isSuperAdmin =
-    authService?.isSuperAdmin() === true ||
-    authService?.currentRole()?.toLowerCase() === 'superadmin';
+  if (hasElevatedAccess(authService, moduleService)) {
+    return true;
+  }
+
   const hasAccess =
-    (isSuperAdmin && authService?.hasAllModules()) ||
-    (moduleService.hasModuleAccess ? moduleService.hasModuleAccess(targetModule) : moduleService.hasModule(targetModule));
+    (moduleService.hasModuleAccess ? moduleService.hasModuleAccess(targetModule) : moduleService.hasModule(targetModule)) ||
+    (authService?.hasModuleAccess ? authService.hasModuleAccess(targetModule) : authService?.hasModule(targetModule)) ||
+    (permissionService?.hasModuleAccess ? permissionService.hasModuleAccess(targetModule) : false);
+
   if (hasAccess) return true;
 
   router.navigate(['/403'], { queryParams: { error: 'no-access', module: targetModule } });
@@ -136,16 +163,21 @@ export const moduleAccessGuard = moduleGuard;
 export const moduleChildAccessGuard: CanActivateChildFn = (route, state) => {
   const authService = inject(AuthService, { optional: true });
   const moduleService = inject(ModuleAccessService);
+  const permissionService = inject(PermissionService, { optional: true });
   const router = inject(Router);
   const targetModule = (route?.data?.['module'] as string) || 'dashboard';
 
+  if (hasElevatedAccess(authService, moduleService)) {
+    return true;
+  }
+
   const hasAccess =
-    authService?.isSuperUser() ||
-    authService?.hasRole(['Admin', 'SuperUser', 'SuperAdmin', 'SysAdmin']) ||
-    (authService?.hasModuleAccess(targetModule) ?? moduleService.hasModule(targetModule));
+    (moduleService.hasModuleAccess ? moduleService.hasModuleAccess(targetModule) : moduleService.hasModule(targetModule)) ||
+    (authService?.hasModuleAccess ? authService.hasModuleAccess(targetModule) : authService?.hasModule(targetModule)) ||
+    (permissionService?.hasModuleAccess ? permissionService.hasModuleAccess(targetModule) : false);
+
   if (hasAccess) return true;
 
   router.navigate(['/403'], { queryParams: { error: 'no-access', module: targetModule } });
   return false;
 };
-

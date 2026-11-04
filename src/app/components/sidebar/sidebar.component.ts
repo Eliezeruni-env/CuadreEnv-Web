@@ -301,7 +301,10 @@ export class SidebarComponent {
 
   hasModule(moduleCode?: string): boolean {
     if (!moduleCode) return false;
-    return this.permissionService.hasModule(moduleCode);
+    return (
+      this.permissionService.hasModule(moduleCode) ||
+      this.moduleAccessService.hasModule(moduleCode)
+    );
   }
 
   private filterMenuItems(items: readonly RouteInfo[]): RouteInfo[] {
@@ -357,3 +360,4 @@ export class SidebarComponent {
     clearTimeout(this.hoverTimeout);
   }
 }
+
