@@ -2,8 +2,20 @@ export function parseUserModules(user: any): string[] {
   if (!user) return [];
 
   const role = String(user.role || '').toLowerCase();
-  // SuperAdmin global siempre retorna acceso total
-  if (user.isSuperUser === true || role === 'superadmin') {
+  const isAdminRole =
+    user.isSuperUser === true ||
+    role === 'superadmin' ||
+    role === 'superuser' ||
+    role === 'sysadmin' ||
+    role === 'admin' ||
+    role === 'administrador' ||
+    role === 'owner' ||
+    role === 'dueño' ||
+    role === 'dueno' ||
+    role === 'gerente';
+
+  // Administrador / Owner siempre tiene acceso total
+  if (isAdminRole) {
     return ['*'];
   }
 
@@ -13,37 +25,40 @@ export function parseUserModules(user: any): string[] {
     user.AllowedModulesJson ??
     user.allowedModulesJson;
 
+  let list: string[] = [];
   if (Array.isArray(raw)) {
-    return [...new Set(raw.map((m) => String(m).trim()).filter(Boolean))];
-  }
-
-  if (typeof raw === 'string') {
+    list = [...new Set(raw.map((m) => String(m).trim()).filter(Boolean))];
+  } else if (typeof raw === 'string') {
     const trimmed = raw.trim();
     if (trimmed === '*' || trimmed === 'ALL' || trimmed === 'all') return ['*'];
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
-        return [
-          ...new Set(parsed.map((m) => String(m).trim()).filter(Boolean)),
-        ];
+        list = [...new Set(parsed.map((m) => String(m).trim()).filter(Boolean))];
       }
     } catch {
-      return [];
+      list = [];
     }
   }
 
-  // Fallback si no tiene módulos explícitos configurados según su rol
-  if (role === 'admin') {
-    return ['*'];
+  if (list.length > 0) {
+    return list;
   }
+
+  // Fallback si no tiene módulos explícitos configurados según su rol
   if (role === 'supervisor') {
     return [
       'dashboard',
       'sales',
       'cash-register',
+      'cashregister',
       'inventory-stock',
+      'inventory',
       'customers',
       'reports',
+      'purchases',
+      'users',
+      'audit',
       'fraud-guardian',
     ];
   }
@@ -52,15 +67,16 @@ export function parseUserModules(user: any): string[] {
       'dashboard',
       'sales',
       'cash-register',
+      'cashregister',
       'customers',
       'products-detail-sales',
     ];
   }
-  if (role === 'vendedor') {
-    return ['dashboard', 'sales', 'inventory-stock', 'customers'];
+  if (role.includes('vendedor') || role.includes('seller')) {
+    return ['dashboard', 'sales', 'inventory-stock', 'inventory', 'customers'];
   }
 
-  return [];
+  return ['dashboard', 'sales', 'cashregister', 'customers'];
 }
 
 export interface MenuItemDefinition {

@@ -548,11 +548,27 @@ export class AuthService {
     ];
 
     if (literalModules.length === 0) {
-      if (preservePreviousModules && this.allowedModules().length > 0) {
+      const roleLower = String(rawRole || '').toLowerCase();
+      if (
+        this.isPlatformSuperUser() ||
+        roleLower === 'admin' ||
+        roleLower === 'administrador' ||
+        roleLower === 'owner' ||
+        roleLower === 'dueño' ||
+        roleLower === 'dueno' ||
+        roleLower === 'gerente'
+      ) {
+        literalModules = ['*'];
+      } else if (roleLower === 'supervisor') {
+        literalModules = ['dashboard', 'sales', 'cashregister', 'inventory', 'customers', 'audit', 'reports', 'users'];
+      } else if (roleLower.includes('cajer') || roleLower.includes('cashier')) {
+        literalModules = ['dashboard', 'sales', 'cashregister', 'customers', 'products.detail_sales'];
+      } else if (roleLower.includes('vendedor') || roleLower.includes('seller')) {
+        literalModules = ['dashboard', 'sales', 'inventory', 'customers'];
+      } else if (preservePreviousModules && this.allowedModules().length > 0) {
         literalModules = this.allowedModules();
       } else {
-        this.clearSession();
-        return;
+        literalModules = ['dashboard', 'sales', 'cashregister', 'customers'];
       }
     }
 
@@ -884,6 +900,7 @@ export class AuthService {
 
   hasModule(moduleCode: string): boolean {
     if (!moduleCode?.trim()) return false;
+    if (this.isSuperUser() || this.isPlatformSuperUser()) return true;
 
     // Si tiene comodín explícito '*', o es superusuario de plataforma sin lista restrictiva
     const assigned = this.allowedModules();
@@ -892,8 +909,6 @@ export class AuthService {
       // Si el usuario tiene una lista taxativa de módulos asignados desde el USM, se respeta estrictamente
       return this.moduleAccessService.hasModuleAccess(moduleCode);
     }
-
-    if (this.isSuperUser() || this.isPlatformSuperUser()) return true;
 
     const licensed = this.licensedModules();
     if (licensed !== null && licensed.length === 0) return false;
@@ -1009,6 +1024,27 @@ export class AuthService {
             .filter(Boolean),
         ),
       ];
+
+      if (assignedModules.length === 0) {
+        const roleLower = String(this.currentRole() || '').toLowerCase();
+        if (
+          this.isPlatformSuperUser() ||
+          roleLower === 'admin' ||
+          roleLower === 'administrador' ||
+          roleLower === 'owner' ||
+          roleLower === 'dueño' ||
+          roleLower === 'dueno' ||
+          roleLower === 'gerente'
+        ) {
+          assignedModules.push('*');
+        } else if (roleLower === 'supervisor') {
+          assignedModules.push('dashboard', 'sales', 'cashregister', 'inventory', 'customers', 'audit', 'reports', 'users');
+        } else if (roleLower.includes('cajer') || roleLower.includes('cashier')) {
+          assignedModules.push('dashboard', 'sales', 'cashregister', 'customers');
+        } else {
+          assignedModules.push('dashboard', 'sales', 'cashregister', 'customers');
+        }
+      }
       let licensedModules = [
         ...new Set(
           this.parseStringList(rawLicensedModules)
@@ -1571,9 +1607,15 @@ export class AuthService {
     const role = (this.currentRole() || '').toLowerCase();
     return (
       role === 'admin' ||
+      role === 'administrador' ||
+      role === 'owner' ||
+      role === 'dueño' ||
+      role === 'dueno' ||
+      role === 'gerente' ||
       role === 'superuser' ||
       role === 'superadmin' ||
-      role === 'sysadmin'
+      role === 'sysadmin' ||
+      this.isPlatformSuperUser()
     );
   }
 }

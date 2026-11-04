@@ -236,6 +236,22 @@ export class ModuleAccessService {
 
     const currentModules = this.allowedModulesSignal();
 
+    const userRole = (this.userRoleSignal() || this.getStoredRole() || '').toLowerCase();
+    const isAdmin =
+      this.getStoredIsSuperUser() ||
+      userRole === 'admin' ||
+      userRole === 'administrador' ||
+      userRole === 'owner' ||
+      userRole === 'dueño' ||
+      userRole === 'dueno' ||
+      userRole === 'gerente' ||
+      userRole === 'superadmin' ||
+      userRole === 'superuser' ||
+      userRole === 'sysadmin';
+    if (isAdmin) {
+      return true;
+    }
+
     // 1. Si allowed_modules está vacío ([]), ningún módulo debe verse (retornar false)
     if (!currentModules || currentModules.length === 0) {
       return false;
