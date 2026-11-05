@@ -49,14 +49,18 @@ export class LoginComponent implements OnInit {
         } catch {}
       }
 
-      const rememberedPwa = localStorage.getItem('cuadre_is_pwa_detected') === 'true';
-      const isMobileDevice =
-        window.innerWidth <= 768 ||
-        /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent.toLowerCase());
+      // Si el usuario ya cuenta con sesión autenticada activa, redirigir a su vista correspondiente
+      if (this.authService.isAuthenticated()) {
+        const isMobileDevice =
+          window.innerWidth <= 768 ||
+          /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent.toLowerCase());
+        const forceDesktop = this.route.snapshot.queryParamMap.get('view') === 'desktop';
 
-      const forceDesktop = this.route.snapshot.queryParamMap.get('view') === 'desktop';
-      if ((isStandalonePwa || rememberedPwa || isMobileDevice) && !forceDesktop) {
-        this.router.navigate(['/mobile']);
+        if ((isStandalonePwa || isMobileDevice) && !forceDesktop) {
+          this.router.navigate(['/mobile']);
+        } else {
+          this.router.navigate(['/dashboard']);
+        }
       }
     }
   }

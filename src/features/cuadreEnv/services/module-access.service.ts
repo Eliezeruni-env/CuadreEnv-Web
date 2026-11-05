@@ -286,12 +286,8 @@ export class ModuleAccessService {
       if (currentModules.includes('no-mobile') || currentModules.includes('no-mobile-pos')) {
         return false;
       }
-      const hasGranularPos = currentModules.some(m => m.startsWith('pos-') || m.startsWith('pos_'));
-      if (hasGranularPos) {
-        return false;
-      }
-      // Usuarios legacy en producción con permiso de ventas: acceden a mobile
-      return this.hasModuleAccess('sales');
+      // Usuarios en producción con permiso de ventas o caja acceden a terminal móvil por defecto
+      return this.hasModuleAccess('sales') || this.hasModuleAccess('cashregister');
     }
 
     // Acceso a contenedor padre de inventario o compras si tiene algún submódulo

@@ -17,17 +17,13 @@ export const authGuard: CanActivateFn = (route, state) => {
       return true;
     }
 
-    const isPwaOrMobile =
+    const isStandalonePwa =
       typeof window !== 'undefined' &&
       (window.matchMedia('(display-mode: standalone)').matches ||
         (navigator as any).standalone === true ||
-        window.location.search.includes('source=pwa') ||
-        window.location.search.includes('pwa=true') ||
-        window.innerWidth <= 768 ||
-        /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent.toLowerCase()) ||
         sessionStorage.getItem('cuadre_mobile_session_active') === 'true');
 
-    if (isPwaOrMobile) {
+    if (isStandalonePwa) {
       router.navigate(['/mobile']);
       return false;
     }

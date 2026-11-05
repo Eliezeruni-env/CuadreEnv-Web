@@ -198,7 +198,9 @@ function handleGlobalHttpError(
           'Empresa Requerida'
         );
       }
-      if (router && !router.url.includes('/login') && !router.url.includes('/company/settings') && !router.url.includes('/companies/create')) {
+      const currentUrl = (router?.url || (typeof window !== 'undefined' ? window.location.pathname : '')).toLowerCase();
+      const isMobileRoute = currentUrl.includes('/mobile');
+      if (router && !currentUrl.includes('/login') && !currentUrl.includes('/company/settings') && !currentUrl.includes('/companies/create') && !isMobileRoute) {
         router.navigate(['/company/settings']);
       }
       return;
@@ -248,7 +250,9 @@ function handleGlobalHttpError(
       );
     }
 
-    if (router && !router.url.includes('/login')) {
+    const currentUrl = (router?.url || (typeof window !== 'undefined' ? window.location.pathname : '')).toLowerCase();
+    const isMobileRoute = currentUrl.includes('/mobile');
+    if (router && !currentUrl.includes('/login') && !isMobileRoute) {
       router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
     }
     return;

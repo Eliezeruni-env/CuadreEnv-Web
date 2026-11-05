@@ -193,12 +193,38 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   // =========================================================================
   // Mobile Session Authentication (Reconoce sesión existente sin doble login)
   // =========================================================================
-  readonly isMobileAuthenticated = signal<boolean>(
-    typeof window !== 'undefined' && this.authService.isAuthenticated(),
-  );
+  readonly isMobileAuthenticated = computed(() => {
+    return (
+      this.authService.isAuthenticated() ||
+      (typeof window !== 'undefined' &&
+        !!(
+          localStorage.getItem('accessToken') ||
+          sessionStorage.getItem('accessToken') ||
+          localStorage.getItem('cuadre_access_token') ||
+          sessionStorage.getItem('cuadre_access_token')
+        ))
+    );
+  });
 
   readonly canAccessMobile = computed(() => {
     if (!this.isMobileAuthenticated()) return true;
+    if (
+      this.authService.isSuperUser() ||
+      this.authService.hasRole([
+        'Admin',
+        'Administrador',
+        'SuperUser',
+        'SuperAdmin',
+        'SysAdmin',
+        'Owner',
+        'Dueño',
+        'Dueno',
+        'Gerente',
+        'Supervisor',
+      ])
+    ) {
+      return true;
+    }
     return this.moduleAccess.hasModuleAccess('mobile-pos');
   });
 
@@ -852,6 +878,18 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
         this.draftStorageService.clearActiveDraft();
       }
     });
+
+    // Reaccionar automáticamente cuando la sesión de autenticación termine de inicializarse
+    effect(() => {
+      const isInit = this.authService.isInitializing();
+      const isAuth = this.authService.isAuthenticated();
+      if (!isInit && isAuth) {
+        if (this.authService.userCompanies().length === 0) {
+          this.authService.loadUserCompanies().catch(() => {});
+        }
+        void this.initMobileData();
+      }
+    });
   }
 
   private syncActiveDraft(): void {
@@ -900,10 +938,8 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
       });
       document.addEventListener('visibilitychange', this.onVisibilityChangeHandler);
     }
-    // Cargar siempre datos de configuración de empresa de la sesión
-    this.companyService.getCompanySettings().catch(() => {});
     if (this.authService.isAuthenticated()) {
-      this.isMobileAuthenticated.set(true);
+      this.companyService.getCompanySettings().catch(() => {});
       if (this.authService.userCompanies().length === 0) {
         this.authService.loadUserCompanies().catch(() => {});
       }
@@ -981,7 +1017,6 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
         }
       }
 
-      this.isMobileAuthenticated.set(true);
       this.notificationService.success(`Bienvenido a CuadreEnv Móvil`);
       await this.initMobileData();
     } catch (err: any) {
@@ -1090,17 +1125,16 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('cuadre_mobile_session_active');
     }
-    this.isMobileAuthenticated.set(false);
     this.mobileLoginPassword = '';
     await this.authService.logout();
     this.notificationService.info('Terminal móvil bloqueada / sesión cerrada.');
-    await this.router.navigate(['/login']);
   }
 
   async loadExecutiveData(): Promise<void> {
+    if (!this.authService.isAuthenticated()) return;
     try {
-      // 1. Cargar sesión activa real de caja
-      const sessionRes = await this.cashRegisterService.getActiveSession();
+      // 1. Cargar sesión activa real de caja (con fallback silencioso)
+      const sessionRes = await this.cashRegisterService.getActiveSession().catch(() => null);
       if (sessionRes?.data && sessionRes.data.isOpen) {
         this.activeSessions.set([sessionRes.data]);
       } else {
