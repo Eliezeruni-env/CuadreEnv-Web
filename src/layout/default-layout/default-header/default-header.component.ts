@@ -30,6 +30,7 @@ import {
 import { IconDirective } from '@coreui/icons-angular';
 import { HasModuleDirective } from '../../../app/shared/directives/has-module.directive';
 import { CompanyService } from '../../../features/companies/services/company.service';
+import { ModuleAccessService } from '../../../features/cuadreEnv/services/module-access.service';
 
 @Component({
   selector: 'app-default-header',
@@ -63,9 +64,14 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
   public translationService = inject(TranslationService);
   public themeService = inject(ThemeService);
   public companyService = inject(CompanyService);
+  public readonly moduleAccess = inject(ModuleAccessService);
   private readonly permissionService = inject(PermissionService);
   private cashRegisterService = inject(CashRegisterService);
   private router = inject(Router);
+
+  canAccessFeature(featureCode: string): boolean {
+    return this.moduleAccess.hasFeature(featureCode);
+  }
 
   @ViewChild('commandPalette') commandPalette?: CommandPaletteComponent;
 

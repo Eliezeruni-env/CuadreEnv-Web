@@ -44,6 +44,7 @@ import type {
 import { SaleService } from '../../services/sale.service';
 import { PosAudioService } from '../../services/pos-audio.service';
 import { PosCatalogCacheService } from '../../services/pos-catalog-cache.service';
+import { ModuleAccessService } from '../../../cuadreEnv/services/module-access.service';
 import {
   ThermalPrinterService,
   type TicketData,
@@ -180,6 +181,15 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   readonly printerService = inject(ThermalPrinterService);
   readonly posAudio = inject(PosAudioService);
   readonly catalogCache = inject(PosCatalogCacheService);
+  readonly moduleAccess = inject(ModuleAccessService);
+
+  canAccessFeature(code: string, parentModule?: string): boolean {
+    return this.moduleAccess.hasFeature(code, parentModule);
+  }
+
+  readonly canConfigureNcf = computed(() =>
+    this.moduleAccess.hasFeature('pos-configure-ncf', 'billing')
+  );
 
   isLoading = signal<boolean>(false);
   isSubmitting = signal<boolean>(false);
@@ -3150,6 +3160,10 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     if (step === 2) {
+      if (!this.canConfigureNcf()) {
+        this.goToStep(3);
+        return;
+      }
       this.checkoutStep.set(2);
       return;
     }

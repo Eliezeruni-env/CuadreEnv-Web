@@ -54,6 +54,7 @@ import {
   type ReceivableDto,
 } from '../../services/receivable.service';
 import { ThemeService } from '../../../cuadreEnv/services/theme.service';
+import { ModuleAccessService } from '../../../cuadreEnv/services/module-access.service';
 import {
   PosDraftStorageService,
   type PosHeldSale,
@@ -184,6 +185,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   closeRegisterModal?: CloseRegisterModalComponent;
 
   readonly themeService = inject(ThemeService);
+  readonly moduleAccess = inject(ModuleAccessService);
   readonly isDarkMode = computed(() => this.themeService.isDark);
   readonly draftStorageService = inject(PosDraftStorageService);
   isHeldSalesModalOpen = signal<boolean>(false);

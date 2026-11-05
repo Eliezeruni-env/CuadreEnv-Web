@@ -75,6 +75,7 @@
     @if (hasOpenSession()) {
     <div class="header-actions-row">
       <!-- BOTÓN DE SONIDO / FEEDBACK AUDITIVO POS -->
+      @if (canAccessFeature('pos-sound', 'sales')) {
       <button
         type="button"
         class="btn-pos-outline btn-40"
@@ -98,14 +99,19 @@
           <span style="font-size: 12.5px;">Sonido On</span>
         }
       </button>
+      }
+
       <!-- 1. AUTO-IMPRESIÓN TOGGLE -->
+      @if (canAccessFeature('pos-autoprint', 'sales')) {
       <label class="pos-toggle-switch-card" [class.active]="autoPrintTicket()" title="Auto-imprimir ticket térmico al cobrar una venta (58mm/80mm)">
         <input type="checkbox" [checked]="autoPrintTicket()" (change)="toggleAutoPrint()" />
         <span class="switch-slider"></span>
         <span class="switch-label">Auto-imprimir</span>
       </label>
+      }
 
       <!-- 3. HISTORIAL & ANULACIÓN DE FACTURA -->
+      @if (canAccessFeature('pos-void-history', 'sales')) {
       <button
         type="button"
         class="btn-pos-outline btn-40"
@@ -118,8 +124,10 @@
         </svg>
         <span>Historial / Anular</span>
       </button>
+      }
 
       <!-- 5. DATOS DEL NEGOCIO PARA EL TICKET -->
+      @if (canAccessFeature('pos-ticket-config', 'sales')) {
       <button
         type="button"
         class="btn-pos-outline btn-40"
@@ -132,8 +140,10 @@
         </svg>
         <span>Datos Ticket</span>
       </button>
+      }
 
       <!-- 6. CÓDIGOS DE BARRA (DESCARGA / IMPRESIÓN PLANILLA) -->
+      @if (canAccessFeature('pos-barcodes', 'sales')) {
       <button
         type="button"
         class="btn-pos-outline btn-40"
@@ -150,8 +160,10 @@
         </svg>
         <span>Códigos de Barra</span>
       </button>
+      }
 
       <!-- MODO COMPACTO (15" / 1366x768 / ALTA DENSIDAD) -->
+      @if (canAccessFeature('pos-compact-mode', 'sales')) {
       <button
         type="button"
         class="btn-pos-outline btn-40"
@@ -167,8 +179,10 @@
         </svg>
         <span>{{ isCompactMode() ? 'Compacto: ON' : 'Modo Compacto' }}</span>
       </button>
+      }
 
       <!-- Atajos [F1] -->
+      @if (canAccessFeature('pos-shortcuts', 'sales')) {
       <button
         type="button"
         class="btn-pos-outline btn-40"
@@ -186,8 +200,10 @@
         <span>Atajos</span>
         <span class="kbd-pill">F1</span>
       </button>
+      }
 
       <!-- Calc [F3] -->
+      @if (canAccessFeature('pos-calculator', 'sales')) {
       <button
         type="button"
         class="btn-pos-outline btn-40"
@@ -203,8 +219,10 @@
         <span>Calc</span>
         <span class="kbd-pill">F3</span>
       </button>
+      }
 
       <!-- En espera -->
+      @if (canAccessFeature('pos-held-sales', 'sales')) {
       <button
         type="button"
         class="btn-pos-outline btn-40"
@@ -236,8 +254,10 @@
         <span>Pausar</span>
         <span class="kbd-pill">F8</span>
       </button>
+      }
 
       <!-- Reimprimir -->
+      @if (canAccessFeature('pos-reprint', 'sales')) {
       <button
         type="button"
         class="btn-pos-outline btn-40"
@@ -252,8 +272,10 @@
         </svg>
         <span>Reimprimir</span>
       </button>
+      }
 
       <!-- Abrir gaveta -->
+      @if (canAccessFeature('pos-open-drawer', 'cash-register')) {
       <button
         type="button"
         class="btn-pos-outline btn-40"
@@ -266,8 +288,10 @@
         </svg>
         <span>Abrir gaveta</span>
       </button>
+      }
 
       <!-- Limpiar (danger-outline) -->
+      @if (canAccessFeature('pos-clear-cart', 'sales')) {
       <button
         type="button"
         class="btn-pos-danger-outline"
@@ -280,6 +304,7 @@
         </svg>
         <span>Limpiar</span>
       </button>
+      }
     </div>
     }
   </header>
@@ -752,17 +777,23 @@
       <!-- COLUMNA DERECHA (Fija 420px, Panel de cobro) -->
       <div class="pos-right-column">
         <div class="pos-card pos-checkout-card">
-          <!-- 1. STEPPER DE 3 PASOS GUIADOS -->
+          <!-- 1. STEPPER DE PASOS GUIADOS -->
           <div class="pos-stepper-container">
             <div class="pos-stepper-header-banner">
               <div class="flow-step-tag">
                 <span class="flow-pulse-dot"></span>
-                <span class="flow-tag-text">PASO {{ checkoutStep() }} DE 3</span>
+                <span class="flow-tag-text">
+                  @if (canConfigureNcf()) {
+                    PASO {{ checkoutStep() }} DE 3
+                  } @else {
+                    PASO {{ checkoutStep() === 3 ? 2 : 1 }} DE 2
+                  }
+                </span>
               </div>
               <div class="flow-step-hint">
                 @if (checkoutStep() === 1) { 1. Método de Pago y Cobro }
                 @else if (checkoutStep() === 2) { 2. Factura / Cliente (Opcional) }
-                @else { 3. Comprobante Fiscal e-CF }
+                @else { {{ canConfigureNcf() ? '3. Comprobante Fiscal e-CF' : '2. Comprobante Fiscal e-CF' }} }
               </div>
             </div>
 
@@ -789,31 +820,35 @@
                   <span class="step-label">Cobrar</span>
                 </div>
               </button>
-              <div class="step-connector-line" [class.filled]="checkoutStep() > 1"></div>
-              <button
-                type="button"
-                class="pos-step-btn"
-                [class.active]="checkoutStep() === 2"
-                [class.completed]="checkoutStep() > 2"
-                [disabled]="!isStep1Valid()"
-                (click)="goToStep(2)"
-                title="Paso 2: Factura (opcional)"
-              >
-                <span class="step-circle">
-                  @if (checkoutStep() > 2) {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  } @else {
-                    2
-                  }
-                </span>
-                <div class="step-info-col">
-                  <span class="step-badge-kicker">PASO 2</span>
-                  <span class="step-label">Factura</span>
-                </div>
-              </button>
-              <div class="step-connector-line" [class.filled]="checkoutStep() > 2"></div>
+
+              @if (canConfigureNcf()) {
+                <div class="step-connector-line" [class.filled]="checkoutStep() > 1"></div>
+                <button
+                  type="button"
+                  class="pos-step-btn"
+                  [class.active]="checkoutStep() === 2"
+                  [class.completed]="checkoutStep() > 2"
+                  [disabled]="!isStep1Valid()"
+                  (click)="goToStep(2)"
+                  title="Paso 2: Factura (opcional)"
+                >
+                  <span class="step-circle">
+                    @if (checkoutStep() > 2) {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    } @else {
+                      2
+                    }
+                  </span>
+                  <div class="step-info-col">
+                    <span class="step-badge-kicker">PASO 2</span>
+                    <span class="step-label">Factura</span>
+                  </div>
+                </button>
+              }
+
+              <div class="step-connector-line" [class.filled]="checkoutStep() === 3"></div>
               <button
                 type="button"
                 class="pos-step-btn"
@@ -821,11 +856,11 @@
                 [class.completed]="checkoutStep() === 3"
                 [disabled]="!isStep1Valid()"
                 (click)="goToStep(3)"
-                title="Paso 3: Comprobante"
+                [title]="canConfigureNcf() ? 'Paso 3: Comprobante' : 'Paso 2: Comprobante'"
               >
-                <span class="step-circle">3</span>
+                <span class="step-circle">{{ canConfigureNcf() ? '3' : '2' }}</span>
                 <div class="step-info-col">
-                  <span class="step-badge-kicker">PASO 3</span>
+                  <span class="step-badge-kicker">{{ canConfigureNcf() ? 'PASO 3' : 'PASO 2' }}</span>
                   <span class="step-label">Comprobante</span>
                 </div>
               </button>
@@ -1197,18 +1232,20 @@
             </button>
 
             <!-- ENLACE A PASO 2 (Configurar comprobante fiscal / cliente) -->
-            <button
-              type="button"
-              class="step2-link"
-              [disabled]="!isStep1Valid()"
-              (click)="goToStep(2)"
-            >
-              Configurar comprobante fiscal / cliente (paso 2)
-            </button>
+            @if (canConfigureNcf()) {
+              <button
+                type="button"
+                class="step2-link"
+                [disabled]="!isStep1Valid()"
+                (click)="goToStep(2)"
+              >
+                Configurar comprobante fiscal / cliente (paso 2)
+              </button>
+            }
           }
 
           <!-- PASO 2: FACTURA (OPCIONAL) -->
-          @if (checkoutStep() === 2) {
+          @if (checkoutStep() === 2 && canConfigureNcf()) {
             <div style="display: flex; flex-direction: column; gap: 12px;">
               <div>
                 <h3 style="font-size: 14px; font-weight: 700; color: var(--cuadre-text-main); margin-bottom: 8px;">Tipo de Comprobante Fiscal (DGII)</h3>

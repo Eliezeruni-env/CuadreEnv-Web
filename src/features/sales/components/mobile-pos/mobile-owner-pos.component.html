@@ -180,6 +180,7 @@
     </div>
 
     <div class="d-flex align-items-center gap-1.5">
+      @if (moduleAccess.hasFeature('system-theme')) {
       <button
         type="button"
         class="btn-topbar-action"
@@ -205,6 +206,7 @@
           </svg>
         }
       </button>
+      }
 
       <button
         type="button"
@@ -3001,6 +3003,7 @@
         <button type="button" class="cuadre-chip w-100 justify-content-start" (click)="setTab('fiao'); isSideMenuOpen.set(false)">
           Fiao (Deudas)
         </button>
+        @if (moduleAccess.hasFeature('system-theme')) {
         <button type="button" class="cuadre-chip w-100 justify-content-between" (click)="toggleTheme()">
           <span>Modo Oscuro</span>
           <span class="cuadre-badge" [ngClass]="isDarkMode() ? 'badge-ok' : 'badge-off'">
@@ -3008,6 +3011,7 @@
             {{ isDarkMode() ? 'Activado' : 'Desactivado' }}
           </span>
         </button>
+        }
         <button type="button" class="cuadre-chip w-100 justify-content-between" (click)="toggleFullscreen()">
           <span>Pantalla Completa</span>
           <span class="cuadre-badge" [ngClass]="isFullscreen() ? 'badge-ok' : 'badge-off'">

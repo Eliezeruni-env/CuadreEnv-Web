@@ -28,7 +28,7 @@ export const navItems: ModuleNavItem[] = [
     name: 'Ventas Mostrador',
     url: '/sales',
     moduleCode: 'sales',
-    iconComponent: { name: 'cil-calculator' },
+    iconComponent: { name: 'cil-basket' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
@@ -42,7 +42,7 @@ export const navItems: ModuleNavItem[] = [
     name: 'Rutas de Distribución',
     url: '/sales/distribution',
     moduleCode: 'sales.distribution',
-    iconComponent: { name: 'cil-truck' },
+    iconComponent: { name: 'cil-location-pin' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
@@ -70,7 +70,7 @@ export const navItems: ModuleNavItem[] = [
     name: 'Servicios',
     url: '/services',
     moduleCode: 'services',
-    iconComponent: { name: 'cil-briefcase' },
+    iconComponent: { name: 'cil-settings' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
@@ -102,7 +102,7 @@ export const navItems: ModuleNavItem[] = [
     name: 'Reportes Financieros',
     url: '/metrics',
     moduleCode: 'reports',
-    iconComponent: { name: 'cil-chart-pie' },
+    iconComponent: { name: 'cil-chart' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
@@ -113,12 +113,12 @@ export const navItems: ModuleNavItem[] = [
     name: 'Catálogo de Productos',
     url: '/products',
     moduleCode: 'products',
-    iconComponent: { name: 'cil-layers' },
+    iconComponent: { name: 'cil-tags' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
     name: 'Gestión de Almacén',
-    iconComponent: { name: 'cil-storage' },
+    iconComponent: { name: 'cil-layers' },
     children: [
       {
         name: 'Control de Stock',
@@ -205,7 +205,7 @@ export const navItems: ModuleNavItem[] = [
     name: 'Roles y Permisos',
     url: '/admin/roles',
     moduleCode: 'admin-roles',
-    iconComponent: { name: 'cil-shield-alt' },
+    iconComponent: { name: 'cil-lock-locked' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {

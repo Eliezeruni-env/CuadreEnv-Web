@@ -271,7 +271,7 @@
           </a>
 
           <!-- 7. POS Móvil -->
-          <a routerLink="/mobile" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
+          <a *hasModule="'mobile-pos'" routerLink="/mobile" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
             <svg cIcon name="cilMobile" class="text-success" style="width: 16px; height: 16px;"></svg>
             <span>POS Móvil</span>
           </a>
@@ -396,10 +396,10 @@
 
         <!-- Estado de Turno / Caja del Día (Opción A: Balance y Operación de Caja Activa) -->
         <div *hasModule="'CashRegister'" class="card border-0 rounded-4 p-4 alarm-panel-card bg-white shadow-xs">
-          <div class="d-flex justify-content-between align-items-center mb-3.5">
+          <div class="d-flex justify-content-between align-items-center mb-4">
             <div class="d-flex align-items-center gap-2.5">
-              <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px; background: rgba(16, 185, 129, 0.12); color: #059669;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 36px; height: 36px; background: rgba(16, 185, 129, 0.12); color: #059669;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="2" y="4" width="20" height="16" rx="2"></rect>
                   <line x1="2" y1="10" x2="22" y2="10"></line>
                   <circle cx="7" cy="15" r="1"></circle>
@@ -407,60 +407,60 @@
                   <circle cx="17" cy="15" r="1"></circle>
                 </svg>
               </div>
-              <h6 class="fw-bold text-dark mb-0" style="font-size: 15px;">Estado de Turno / Caja</h6>
+              <h6 class="fw-bold text-dark mb-0" style="font-size: 15.5px; letter-spacing: -0.01em;">Estado de Turno / Caja</h6>
             </div>
             @if (activeCashSession()?.isOpen || activeCashRegistersCount() > 0) {
-              <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1.5" style="font-size: 0.72rem; font-weight: 600;">
+              <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 d-inline-flex align-items-center gap-1.5" style="font-size: 0.74rem; font-weight: 600;">
                 <span class="pulse-dot"></span> Caja Abierta
               </span>
             } @else {
-              <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+              <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-3 py-1.5" style="font-size: 0.74rem; font-weight: 600;">
                 Sin Turno Activo
               </span>
             }
           </div>
 
           @if (activeCashSession(); as session) {
-            <!-- Info Box Pulido y Proporcional -->
-            <div class="p-3 rounded-3 mb-3 border bg-light-subtle" style="border-color: #e2e8f0 !important;">
-              <div class="d-flex justify-content-between align-items-center py-1 border-bottom" style="border-color: #f1f5f9 !important;">
-                <span class="text-secondary small fw-medium">Caja Registradora</span>
-                <span class="fw-bold text-dark small">{{ session.name || 'Caja Principal' }}</span>
+            <!-- Info Box Pulido y con Espaciado Generoso -->
+            <div class="p-3.5 rounded-3 mb-3.5 border bg-light-subtle" style="border-color: #e2e8f0 !important;">
+              <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="border-color: #f1f5f9 !important;">
+                <span class="text-secondary small fw-medium" style="font-size: 13px;">Caja Registradora</span>
+                <span class="fw-bold text-dark small" style="font-size: 13.5px;">{{ session.name || 'Caja Principal' }}</span>
               </div>
-              <div class="d-flex justify-content-between align-items-center py-1 border-bottom" style="border-color: #f1f5f9 !important;">
-                <span class="text-secondary small fw-medium">Cajero Responsable</span>
-                <span class="fw-semibold text-dark small">{{ session.cashierName || 'Usuario Actual' }}</span>
+              <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="border-color: #f1f5f9 !important;">
+                <span class="text-secondary small fw-medium" style="font-size: 13px;">Cajero Responsable</span>
+                <span class="fw-semibold text-dark small" style="font-size: 13.5px;">{{ session.cashierName || 'Usuario Actual' }}</span>
               </div>
-              <div class="d-flex justify-content-between align-items-center py-1">
-                <span class="text-secondary small fw-medium">Fondo de Apertura</span>
-                <span class="text-dark small fw-bold" style="font-variant-numeric: tabular-nums;">RD$ {{ session.initialAmount | number:'1.2-2' }}</span>
+              <div class="d-flex justify-content-between align-items-center py-2">
+                <span class="text-secondary small fw-medium" style="font-size: 13px;">Fondo de Apertura</span>
+                <span class="text-dark small fw-bold" style="font-size: 13.5px; font-variant-numeric: tabular-nums;">RD$ {{ session.initialAmount | number:'1.2-2' }}</span>
               </div>
             </div>
 
             <!-- Destacado Efectivo en Gaveta -->
-            <div class="p-3 rounded-3 mb-3.5 border" style="background-color: #f0fdf4; border-color: #bbf7d0 !important;">
+            <div class="p-3.5 px-4 rounded-3 mb-4 border" style="background-color: #f0fdf4; border-color: #bbf7d0 !important;">
               <div class="d-flex justify-content-between align-items-center">
                 <div>
-                  <div class="small fw-bold text-uppercase" style="color: #166534; font-size: 11px; letter-spacing: 0.5px;">Efectivo en Gaveta</div>
-                  <small style="color: #15803d; font-size: 11.5px;">Balance auditado disponible</small>
+                  <div class="small fw-bold text-uppercase" style="color: #166534; font-size: 11.5px; letter-spacing: 0.6px; margin-bottom: 2px;">Efectivo en Gaveta</div>
+                  <small style="color: #15803d; font-size: 12px;">Balance auditado disponible</small>
                 </div>
-                <div class="fw-bold" style="color: #15803d; font-size: 1.35rem; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
+                <div class="fw-bold" style="color: #15803d; font-size: 1.45rem; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
                   RD$ {{ activeCashEstimatedCash() | number:'1.2-2' }}
                 </div>
               </div>
             </div>
 
-            <div class="d-flex gap-2.5">
-              <a routerLink="/cash-register" class="btn btn-outline-secondary w-50 rounded-3 py-2 fw-semibold small text-decoration-none d-flex align-items-center justify-content-center gap-1.5 shadow-2xs" style="height: 42px; border-color: #cbd5e1; color: #1e293b;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <div class="d-flex gap-3">
+              <a routerLink="/cash-register" class="btn btn-outline-secondary w-50 rounded-3 py-2 fw-semibold small text-decoration-none d-flex align-items-center justify-content-center gap-2 shadow-2xs" style="height: 44px; border-color: #cbd5e1; color: #1e293b;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                   <polyline points="14 2 14 8 20 8"></polyline>
                 </svg>
                 <span>Arqueo / Turno</span>
               </a>
-              <a routerLink="/pos" class="btn btn-primary w-50 rounded-3 py-2 fw-semibold small text-white text-decoration-none shadow-sm d-flex align-items-center justify-content-center gap-1.5" style="background-color: #2563EB; border-color: #2563EB; height: 42px;">
+              <a routerLink="/pos" class="btn btn-primary w-50 rounded-3 py-2 fw-semibold small text-white text-decoration-none shadow-sm d-flex align-items-center justify-content-center gap-2" style="background-color: #2563EB; border-color: #2563EB; height: 44px;">
                 <span>Cobrar POS</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                   <polyline points="12 5 19 12 12 19"></polyline>
                 </svg>

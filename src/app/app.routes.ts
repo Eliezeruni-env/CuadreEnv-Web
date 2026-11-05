@@ -7,9 +7,11 @@ import {
   moduleAccessGuard,
   moduleChildAccessGuard,
 } from './guards/auth.guard';
+import { ModuleAccessService } from '../features/cuadreEnv/services/module-access.service';
 
 export const rootRedirectGuard: CanActivateFn = () => {
   const router = inject(Router);
+  const moduleAccess = inject(ModuleAccessService);
   const isMobile =
     typeof window !== 'undefined' &&
     (window.innerWidth <= 768 ||
@@ -21,7 +23,7 @@ export const rootRedirectGuard: CanActivateFn = () => {
       window.location.search.includes('source=pwa') ||
       window.location.search.includes('pwa=true'));
 
-  if (isMobile) {
+  if (isMobile && moduleAccess.hasModuleAccess('mobile-pos')) {
     router.navigate(['/mobile']);
     return false;
   }
@@ -42,7 +44,8 @@ export const routes: Routes = [
       import('../features/sales/components/mobile-pos/mobile-owner-pos.component').then(
         (m) => m.MobileOwnerPosComponent,
       ),
-    data: { module: 'sales', title: 'CuadreEnv Mobile POS & Vista Ejecutiva' },
+    canActivate: [authGuard, moduleGuard('mobile-pos')],
+    data: { module: 'mobile-pos', title: 'CuadreEnv Mobile POS & Vista Ejecutiva' },
   },
   {
     path: 'mobile-pos',
