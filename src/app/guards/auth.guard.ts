@@ -11,6 +11,12 @@ export const authGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
 
   const redirectLogin = () => {
+    const currentUrl = (state?.url || router.url || '').toLowerCase();
+    // Si ya estamos en /mobile o intentando acceder a /mobile, nunca redirigir a /mobile (evita bucle infinito de parpadeo)
+    if (currentUrl.includes('/mobile')) {
+      return true;
+    }
+
     const isPwaOrMobile =
       typeof window !== 'undefined' &&
       (window.matchMedia('(display-mode: standalone)').matches ||

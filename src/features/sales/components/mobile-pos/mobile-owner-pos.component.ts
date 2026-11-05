@@ -197,6 +197,11 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     typeof window !== 'undefined' && this.authService.isAuthenticated(),
   );
 
+  readonly canAccessMobile = computed(() => {
+    if (!this.isMobileAuthenticated()) return true;
+    return this.moduleAccess.hasModuleAccess('mobile-pos');
+  });
+
   readonly isFullscreen = signal<boolean>(
     typeof document !== 'undefined' && !!document.fullscreenElement,
   );

@@ -144,6 +144,28 @@
         <p class="text-muted font-size-xs mt-3 mb-1">CuadreEnv SaaS © 2026 · POS Móvil</p>
       </div>
     </div>
+  } @else if (!canAccessMobile()) {
+    <!-- PANTALLA INFORMATIVA SI EL USUARIO NO TIENE PERMISO MÓVIL (SIN REDIRECT LOOP) -->
+    <div class="p-4 d-flex flex-column justify-content-center align-items-center text-center" style="min-height: 100dvh; background: #fff;">
+      <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle mb-3" style="background: rgba(239, 68, 68, 0.1); color: #DC2626; width: 64px; height: 64px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+        </svg>
+      </div>
+      <h2 class="h5 fw-bold text-dark mb-2">Terminal Móvil No Autorizada</h2>
+      <p class="text-secondary small mb-4" style="max-width: 320px; line-height: 1.5;">
+        Tu usuario no cuenta con autorización para utilizar la versión móvil de CuadreEnv. Si requieres acceso, solicita a tu administrador habilitarlo en el USM.
+      </p>
+      <div class="d-flex flex-column gap-2 w-100" style="max-width: 260px;">
+        <a routerLink="/dashboard" class="btn btn-primary fw-semibold py-2.5 rounded-3 text-white text-decoration-none shadow-sm" style="background-color: #2563EB;">
+          Ir al Panel Web
+        </a>
+        <button type="button" (click)="logoutMobile()" class="btn btn-outline-secondary py-2 rounded-3 text-secondary small">
+          Cerrar Sesión
+        </button>
+      </div>
+    </div>
   } @else {
 
   <!-- ======================================================== -->

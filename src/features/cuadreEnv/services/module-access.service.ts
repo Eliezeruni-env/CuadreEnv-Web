@@ -278,6 +278,22 @@ export class ModuleAccessService {
       return true;
     }
 
+    // 3.5 Soporte especial y retrocompatible para Terminal Móvil (mobile-pos)
+    if (targetCode === 'mobile-pos' || targetCode === 'mobile' || targetCode === 'mobilepos' || targetCode === 'pos-mobile') {
+      if (currentModules.includes('mobile-pos') || currentModules.includes('mobile') || currentModules.includes('mobilepos') || currentModules.includes('pos-mobile')) {
+        return true;
+      }
+      if (currentModules.includes('no-mobile') || currentModules.includes('no-mobile-pos')) {
+        return false;
+      }
+      const hasGranularPos = currentModules.some(m => m.startsWith('pos-') || m.startsWith('pos_'));
+      if (hasGranularPos) {
+        return false;
+      }
+      // Usuarios legacy en producción con permiso de ventas: acceden a mobile
+      return this.hasModuleAccess('sales');
+    }
+
     // Acceso a contenedor padre de inventario o compras si tiene algún submódulo
     if (targetCode === 'inventory' || targetCode === 'inventario') {
       const inventoryCodes = ['inventory', 'inventario', 'inventory-stock', 'inventory-entries', 'inventory-outlets', 'inventory-transfers', 'inventory-warehouses', 'inventory-manage-requests', 'stock'];
