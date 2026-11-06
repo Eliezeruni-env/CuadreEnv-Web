@@ -2296,3 +2296,22 @@
     }
   }
 }
+
+// Inputs estilizados para modal y formularios
+.cuadre-styled-input {
+  height: 46px;
+  background-color: var(--cuadre-bg-card, #FFFFFF);
+  border: 1.5px solid var(--cuadre-border-input, #CBD5E1);
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--cuadre-text-main, #0F172A);
+  transition: all 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--cuadre-color-primary, #2563EB);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+}

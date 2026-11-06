@@ -667,6 +667,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   // =========================================================================
   // SPEED POS: ESCÁNER EN RÁFAGA (CÁMARA + ESCÁNER FÍSICO USB/BLUETOOTH)
   // =========================================================================
+  scannerMode = signal<'pos' | 'stock_entry'>('pos');
   cameraScanFlash = signal<boolean>(false);
   cameraLastScannedItem = signal<{
     name: string;
@@ -853,6 +854,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   }
 
   private syncInterval: any = null;
+  private isMobileDataInitializing = false;
   private onWindowFocusHandler = () => {
     if (this.authService.isAuthenticated()) {
       void this.loadExecutiveData();
@@ -963,17 +965,25 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   }
 
   async initMobileData(): Promise<void> {
+    if (this.isMobileDataInitializing) return;
+    this.isMobileDataInitializing = true;
     try {
       await Promise.allSettled([
         this.companyService.getCompanySettings(),
         this.authService.loadUserCompanies(),
       ]);
     } catch {}
-    this.loadExecutiveData();
-    this.loadCatalog();
-    this.loadServicesCatalog();
-    this.loadFiaoList();
-    this.restoreActiveDraftIfAny();
+    try {
+      await Promise.allSettled([
+        this.loadExecutiveData(),
+        this.loadCatalog(),
+        this.loadServicesCatalog(),
+        this.loadFiaoList(),
+      ]);
+      this.restoreActiveDraftIfAny();
+    } finally {
+      this.isMobileDataInitializing = false;
+    }
   }
 
   async loginMobile(): Promise<void> {
@@ -1137,7 +1147,8 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
       const sessionRes = await this.cashRegisterService.getActiveSession().catch(() => null);
       if (sessionRes?.data && sessionRes.data.isOpen) {
         this.activeSessions.set([sessionRes.data]);
-      } else {
+      } else if (sessionRes !== null && (!sessionRes.data || sessionRes.data.isOpen === false)) {
+        // Solo vaciar si el servidor respondió explícitamente que la sesión está cerrada
         this.activeSessions.set([]);
       }
 
@@ -3652,7 +3663,19 @@ ${itemsList}
   // =========================================================================
   // ESCÁNER CONTINUO EN RÁFAGA CON CÁMARA (NATIVE BARCODE DETECTOR + ZXING FALLBACK)
   // =========================================================================
-  async openCameraScanner(): Promise<void> {
+  openStockEntryScanner(): void {
+    this.isStockEntryModalOpen.set(false);
+    void this.openCameraScanner('stock_entry');
+  }
+
+  setScannerMode(mode: 'pos' | 'stock_entry'): void {
+    this.scannerMode.set(mode);
+    soundEffects.playBeep();
+    triggerHaptic(15);
+  }
+
+  async openCameraScanner(mode: 'pos' | 'stock_entry' = 'pos'): Promise<void> {
+    this.scannerMode.set(mode);
     if (
       typeof window !== 'undefined' &&
       !window.isSecureContext &&
@@ -4016,6 +4039,37 @@ ${itemsList}
     }
 
     if (found) {
+      if (this.scannerMode() === 'stock_entry') {
+        this.cameraBurstScannedCount.update((c) => c + 1);
+        this.cameraLastScannedItem.set({
+          name: found.description || 'Producto',
+          price: found.cost || found.price || 0,
+          time: new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }),
+        });
+
+        this.cameraScanFlash.set(true);
+        setTimeout(() => this.cameraScanFlash.set(false), 250);
+
+        soundEffects.playScannerBeep();
+        triggerHaptic(30);
+
+        this.stockEntryProductId.set(found.id ?? null);
+        if (found.cost) {
+          this.stockEntryCost.set(found.cost);
+        }
+        this.closeCameraScanner();
+        this.isStockEntryModalOpen.set(true);
+        const unitSym = this.getProductUnitSymbol(found);
+        this.notificationService.success(
+          `📦 "${found.description}" seleccionado para Entrada de Almacén (Existencia actual: ${found.stock || 0} ${unitSym})`
+        );
+        return;
+      }
+
       this.addToCart(found);
       this.cameraBurstScannedCount.update((c) => c + 1);
       this.cameraLastScannedItem.set({
@@ -4036,7 +4090,7 @@ ${itemsList}
 
       if (!isFromCamera) {
         this.notificationService.success(
-          `Producto agregado: ${found.description}`,
+          `Producto agregado: ${found.description} (Precio Venta: RD$ ${(found.price || 0).toLocaleString()})`,
         );
       }
     } else {
