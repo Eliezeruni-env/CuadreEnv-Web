@@ -572,6 +572,9 @@ function logRequestError(method: string, url: string, error: any, mapped?: Mappe
   });
 }
 
+const lastTelemetryDispatchMap = new Map<string, number>();
+const TELEMETRY_THROTTLE_MS = 6000;
+
 function dispatchTelemetry(
   method: string,
   url: string,
@@ -579,6 +582,14 @@ function dispatchTelemetry(
   mapped: MappedApiError,
   rawError: any,
 ) {
+  const key = `${method}:${url}`;
+  const now = Date.now();
+  const last = lastTelemetryDispatchMap.get(key) || 0;
+  if (now - last < TELEMETRY_THROTTLE_MS) {
+    return;
+  }
+  lastTelemetryDispatchMap.set(key, now);
+
   const telemetryData = {
     method,
     url,

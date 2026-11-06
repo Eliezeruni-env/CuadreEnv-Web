@@ -28,6 +28,9 @@ export class ProductService {
     (environment.apiUrl || 'http://localhost:8080').replace(/\/v1\/?$/, '').replace(/\/$/, '') + '/v1';
   private readonly PHOTO_STORAGE_KEY = 'cuadreenv_product_photos_v1';
   private readonly METRICS_STORAGE_KEY = 'cuadreEnv_product_cost_metrics_v1';
+  private inFlightPagedMap = new Map<string, Promise<ApiResponse<PagedProductsResponse>>>();
+  private pagedCacheMap = new Map<string, { timestamp: number; data: ApiResponse<PagedProductsResponse> }>();
+  private readonly PAGED_CACHE_TTL = 10000; // 10s deduplication/cooldown cache
 
   isServiceItem(p: any): boolean {
     if (!p) return false;
@@ -240,56 +243,80 @@ export class ProductService {
     maxCost?: number,
     excludeServices = false,
     categoryId?: number,
+    forceRefresh = false,
   ): Promise<ApiResponse<PagedProductsResponse>> {
     const validSize = Math.min(100, Math.max(1, pageSize || 10));
     const activeCompanyId = Number(getCompanyId()) || 0;
-    try {
-      return await firstValueFrom(
-        this.getPagedProducts$(pageNumber, validSize, {
-          description,
-          minCost,
-          maxCost,
-          excludeServices,
-          categoryId,
-        })
-      );
-    } catch {
-      // Fallback a /v1/product sin /paged si el endpoint de paginación tiene otra ruta
+    const cacheKey = `${activeCompanyId}:${pageNumber}:${validSize}:${description || ''}:${minCost ?? ''}:${maxCost ?? ''}:${excludeServices}:${categoryId ?? ''}`;
+
+    const now = Date.now();
+    if (!forceRefresh) {
+      const cached = this.pagedCacheMap.get(cacheKey);
+      if (cached && now - cached.timestamp < this.PAGED_CACHE_TTL) {
+        return cached.data;
+      }
+    }
+
+    if (this.inFlightPagedMap.has(cacheKey)) {
+      return this.inFlightPagedMap.get(cacheKey)!;
+    }
+
+    const requestPromise = (async () => {
       try {
-        let params = new HttpParams()
-          .set('pageNumber', pageNumber.toString())
-          .set('pageSize', validSize.toString());
-        if (activeCompanyId > 0) {
-          params = params.set('companyId', activeCompanyId.toString()).set('CompanyId', activeCompanyId.toString());
+        const result = await firstValueFrom(
+          this.getPagedProducts$(pageNumber, validSize, {
+            description,
+            minCost,
+            maxCost,
+            excludeServices,
+            categoryId,
+          })
+        );
+        this.pagedCacheMap.set(cacheKey, { timestamp: Date.now(), data: result });
+        return result;
+      } catch (err: any) {
+        const status = err?.status ?? err?.statusCode;
+        // Solo fallback a /product si es 404 (endpoint no encontrado). Si es 500+, evitar sobrecarga en cascada
+        if (status === 404) {
+          try {
+            let params = new HttpParams()
+              .set('pageNumber', pageNumber.toString())
+              .set('pageSize', validSize.toString());
+            if (activeCompanyId > 0) {
+              params = params.set('companyId', activeCompanyId.toString()).set('CompanyId', activeCompanyId.toString());
+            }
+            if (description?.trim()) {
+              const term = description.trim();
+              params = params.set('description', term).set('barcode', term);
+            }
+            const res: any = await firstValueFrom(this.http.get<any>(`${this.baseUrl}/product`, { params }));
+            let rawList: ProductDto[] = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : (res?.data?.items || []));
+            if (activeCompanyId > 0) {
+              rawList = rawList.filter((p: any) => {
+                const pCid = p.companyId ?? p.CompanyId;
+                return pCid == null || Number(pCid) === 0 || Number(pCid) === activeCompanyId;
+              });
+            }
+            if (excludeServices) {
+              rawList = rawList.filter((p) => !this.isServiceItem(p));
+            }
+            const fallbackRes: ApiResponse<PagedProductsResponse> = {
+              success: true,
+              data: {
+                items: rawList,
+                pageSize: validSize,
+                pageCount: 1,
+                totalItemCount: rawList.length,
+                total: rawList.length,
+                page: pageNumber,
+              },
+            };
+            this.pagedCacheMap.set(cacheKey, { timestamp: Date.now(), data: fallbackRes });
+            return fallbackRes;
+          } catch {}
         }
-        if (description?.trim()) {
-          const term = description.trim();
-          params = params.set('description', term).set('barcode', term);
-        }
-        const res: any = await firstValueFrom(this.http.get<any>(`${this.baseUrl}/product`, { params }));
-        let rawList: ProductDto[] = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : (res?.data?.items || []));
-        if (activeCompanyId > 0) {
-          rawList = rawList.filter((p: any) => {
-            const pCid = p.companyId ?? p.CompanyId;
-            return pCid == null || Number(pCid) === 0 || Number(pCid) === activeCompanyId;
-          });
-        }
-        if (excludeServices) {
-          rawList = rawList.filter((p) => !this.isServiceItem(p));
-        }
-        return {
-          success: true,
-          data: {
-            items: rawList,
-            pageSize: validSize,
-            pageCount: 1,
-            totalItemCount: rawList.length,
-            total: rawList.length,
-            page: pageNumber,
-          },
-        };
-      } catch {
-        return {
+
+        const emptyRes: ApiResponse<PagedProductsResponse> = {
           success: false,
           data: {
             items: [],
@@ -300,8 +327,15 @@ export class ProductService {
             page: pageNumber,
           },
         };
+        this.pagedCacheMap.set(cacheKey, { timestamp: Date.now(), data: emptyRes });
+        return emptyRes;
+      } finally {
+        this.inFlightPagedMap.delete(cacheKey);
       }
-    }
+    })();
+
+    this.inFlightPagedMap.set(cacheKey, requestPromise);
+    return requestPromise;
   }
 
   /**

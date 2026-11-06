@@ -126,6 +126,9 @@ function getModuleSnapshot(): string | null {
   }
 }
 
+const last500LoggedMap = new Map<string, number>();
+const THROTTLE_500_MS = 6000;
+
 function handleGlobalHttpError(
   error: HttpErrorResponse,
   req: HttpRequest<any>,
@@ -134,7 +137,7 @@ function handleGlobalHttpError(
   sessionInvalidation: SessionInvalidationService,
   moduleSnapshot: string | null,
 ): void {
-  const status = error.status;
+  const status: number = Number(error.status || 0);
   const lowerUrl = req.url.toLowerCase();
   const isLoginRequest = lowerUrl.includes('/auth/login');
   const isRefreshRequest = lowerUrl.includes('/auth/refresh');
@@ -418,7 +421,7 @@ function handleGlobalHttpError(
     return;
   }
 
-  // 8. Manejo 500: Error interno de servidor
+  // 8. Manejo 500: Error interno de servidor (con circuit-breaker / rate-limiting)
   if (status >= 500) {
     const requestId =
       error.headers?.get('x-request-id') ||
@@ -430,22 +433,29 @@ function handleGlobalHttpError(
     const fullUrl = error.url || req.urlWithParams || req.url;
     const currentUser = getAccessToken() ? 'authenticated' : 'unauthenticated';
 
-    // Registrar detalle técnico ÚNICAMENTE en el logger del frontend
-    console.error('[API 500 Internal Server Error]', {
-      timestamp: new Date().toISOString(),
-      url: fullUrl,
-      method: req.method,
-      status: error.status,
-      statusText: error.statusText,
-      responseBody: error.error,
-      requestId,
-      authenticatedUser: currentUser,
-    });
+    const logKey = `${req.method}:${fullUrl}`;
+    const now = Date.now();
+    const lastLogged = last500LoggedMap.get(logKey) || 0;
 
-    // Mostrar al usuario mensaje genérico amigable sin stack traces ni SQL
-    if (notificationService) {
+    // Solo loguear en consola si pasaron al menos 6 segundos para no congelar el navegador
+    if (now - lastLogged > THROTTLE_500_MS) {
+      last500LoggedMap.set(logKey, now);
+      console.error('[API 500 Internal Server Error]', {
+        timestamp: new Date().toISOString(),
+        url: fullUrl,
+        method: req.method,
+        status: error.status,
+        statusText: error.statusText,
+        responseBody: error.error,
+        requestId,
+        authenticatedUser: currentUser,
+      });
+    }
+
+    // Mostrar modal/toast al usuario ÚNICAMENTE si fue una acción intencional (mutación), nunca en consultas GET de fondo
+    if (notificationService && req.method !== 'GET') {
       notificationService.error(
-        'Ocurrió un error interno. Intenta nuevamente.',
+        'Ocurrió un error interno al procesar la operación.',
         'Error del Servidor',
         requestId
       );

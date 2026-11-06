@@ -8,6 +8,7 @@ import {
   signal,
   computed,
   effect,
+  untracked,
   ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -888,10 +889,12 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
       const isInit = this.authService.isInitializing();
       const isAuth = this.authService.isAuthenticated();
       if (!isInit && isAuth) {
-        if (this.authService.userCompanies().length === 0) {
-          this.authService.loadUserCompanies().catch(() => {});
-        }
-        void this.initMobileData();
+        untracked(() => {
+          if (this.authService.userCompanies().length === 0) {
+            this.authService.loadUserCompanies().catch(() => {});
+          }
+          void this.initMobileData();
+        });
       }
     });
   }

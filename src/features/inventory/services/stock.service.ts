@@ -15,6 +15,10 @@ export class StockService {
   private warehouseService = inject(WarehouseService);
   private productService = inject(ProductService);
 
+  private isInitializing = false;
+  private lastInitAttempt = 0;
+  private readonly INIT_COOLDOWN_MS = 15000;
+
   private getLocalStock(): Stock[] {
     try {
       const raw = localStorage.getItem(STOCK_STORAGE_KEY);
@@ -37,29 +41,39 @@ export class StockService {
     const current = this.getLocalStock();
     if (current.length > 0) return;
 
-    // Build initial stock matrix from warehouses and physical products only (services have NO stock)
-    const whRes = await this.warehouseService.getWarehouses();
-    const prodRes = await this.productService.getPagedProducts(1, 100);
-
-    const warehouses = whRes?.data || [];
-    const allProducts = prodRes?.data?.items || [];
-    const products = allProducts.filter((p: any) => {
-      const isService =
-        p.isService === true ||
-        p.type === 'service' ||
-        p.type === 'Servicio' ||
-        p.productTypeId === 2 ||
-        p.ProductTypeId === 2 ||
-        p.invoiceWithoutStock === true ||
-        String(p.barcode || p.reference || '').toUpperCase().startsWith('SERV') ||
-        String(p.productTypeName || p.productType?.name || '').toLowerCase().includes('serv') ||
-        String(p.categoryName || p.category?.name || '').toLowerCase().includes('serv');
-      return !isService;
-    });
-
-    if (warehouses.length === 0 || products.length === 0) {
+    const now = Date.now();
+    if (this.isInitializing || now - this.lastInitAttempt < this.INIT_COOLDOWN_MS) {
       return;
     }
+    this.isInitializing = true;
+    this.lastInitAttempt = now;
+
+    try {
+      // Build initial stock matrix from warehouses and physical products only (services have NO stock)
+      const [whRes, prodRes] = await Promise.all([
+        this.warehouseService.getWarehouses().catch(() => null),
+        this.productService.getPagedProducts(1, 100).catch(() => null),
+      ]);
+
+      const warehouses = whRes?.data || [];
+      const allProducts = prodRes?.data?.items || [];
+      const products = allProducts.filter((p: any) => {
+        const isService =
+          p.isService === true ||
+          p.type === 'service' ||
+          p.type === 'Servicio' ||
+          p.productTypeId === 2 ||
+          p.ProductTypeId === 2 ||
+          p.invoiceWithoutStock === true ||
+          String(p.barcode || p.reference || '').toUpperCase().startsWith('SERV') ||
+          String(p.productTypeName || p.productType?.name || '').toLowerCase().includes('serv') ||
+          String(p.categoryName || p.category?.name || '').toLowerCase().includes('serv');
+        return !isService;
+      });
+
+      if (warehouses.length === 0 || products.length === 0) {
+        return;
+      }
 
     const initialStock: Stock[] = [];
     let idCounter = 1;
@@ -90,7 +104,12 @@ export class StockService {
       }
     }
 
-    this.saveLocalStock(initialStock);
+      this.saveLocalStock(initialStock);
+    } catch (err) {
+      console.warn('[StockService] initializeStockIfEmpty encountered an error:', err);
+    } finally {
+      this.isInitializing = false;
+    }
   }
 
   async getStock(filters?: {

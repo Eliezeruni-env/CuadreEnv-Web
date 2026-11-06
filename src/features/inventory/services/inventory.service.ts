@@ -17,13 +17,43 @@ import type {
 })
 export class InventoryService {
   private readonly api = inject(ApiClientService);
+  private lastWarehousesFetch = 0;
+  private cachedWarehouses: ApiResponse<WarehouseDto[]> | null = null;
+  private inFlightWarehouses: Promise<ApiResponse<WarehouseDto[]>> | null = null;
+  private readonly WAREHOUSES_TTL = 15000;
+
   // Warehouses
   async getWarehouses(params?: {
     pageNumber?: number;
     pageSize?: number;
-  }): Promise<ApiResponse<WarehouseDto[]>> {
-    const res = await this.api.get<any, any>('/warehouse', { params });
-    return { success: true, data: extractArray<WarehouseDto>(res) };
+  }, forceRefresh = false): Promise<ApiResponse<WarehouseDto[]>> {
+    const now = Date.now();
+    if (!forceRefresh && this.cachedWarehouses && now - this.lastWarehousesFetch < this.WAREHOUSES_TTL) {
+      return this.cachedWarehouses;
+    }
+    if (this.inFlightWarehouses) {
+      return this.inFlightWarehouses;
+    }
+
+    this.inFlightWarehouses = (async () => {
+      try {
+        const res = await this.api.get<any, any>('/warehouse', { params });
+        const list = extractArray<WarehouseDto>(res) || [];
+        const result: ApiResponse<WarehouseDto[]> = { success: true, data: list };
+        this.lastWarehousesFetch = Date.now();
+        this.cachedWarehouses = result;
+        return result;
+      } catch {
+        const fallback: ApiResponse<WarehouseDto[]> = { success: true, data: [] };
+        this.lastWarehousesFetch = Date.now();
+        this.cachedWarehouses = fallback;
+        return fallback;
+      } finally {
+        this.inFlightWarehouses = null;
+      }
+    })();
+
+    return this.inFlightWarehouses;
   }
 
   async createWarehouse(name: string): Promise<ApiResponse<WarehouseDto>> {

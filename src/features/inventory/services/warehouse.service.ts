@@ -39,6 +39,11 @@ const DEFAULT_CONCEPTS: WarehouseConcept[] = [
 export class WarehouseService {
   private api = inject(ApiClientService);
 
+  private inFlightWarehousesPromise: Promise<ApiResponse<Warehouse[]>> | null = null;
+  private lastWarehousesFetch = 0;
+  private cachedWarehousesRes: ApiResponse<Warehouse[]> | null = null;
+  private readonly WAREHOUSES_CACHE_TTL = 15000; // 15s cache to avoid rapid refetch storms
+
   public getLocalWarehouses(): Warehouse[] {
     try {
       const raw = localStorage.getItem(WAREHOUSES_STORAGE_KEY);
@@ -91,49 +96,72 @@ export class WarehouseService {
     return warehouses;
   }
 
-  async getWarehouses(): Promise<ApiResponse<Warehouse[]>> {
-    try {
-      const res = await this.api.get<any, any>('/warehouse');
-
-      const list = extractArray<any>(res);
-      if (list && list.length > 0) {
-        const normalized: Warehouse[] = list.map((item: any, idx: number) => {
-          const id = item.id ?? item.warehouseId ?? (idx + 1);
-          return {
-            id,
-            name: item.name || item.description || item.warehouseName || `Almacén #${id}`,
-            code: item.code || item.warehouseCode || `ALM-${String(id).padStart(2, '0')}`,
-            address: item.address || '',
-            phone: item.phone || '',
-            managerName: item.managerName || '',
-            isMain: item.isMain === true,
-            isActive: item.isActive !== false,
-            createdAt: item.createdAt || new Date().toISOString(),
-          };
-        });
-
-        // Combinar con almacenes locales para que nunca se pierda un almacén creado por el usuario
-        const local = this.getLocalWarehouses();
-        const map = new Map<string | number, Warehouse>();
-        normalized.forEach((w) => map.set(w.id, w));
-        local.forEach((w) => {
-          if (!map.has(w.id)) {
-            map.set(w.id, w);
-          }
-        });
-        const combined = this.enforceSingleMainWarehouse(Array.from(map.values()));
-        this.saveLocalWarehouses(combined);
-        return { success: true, data: combined };
-      }
-
-      // Si el servidor devolvió lista vacía, usar almacenes locales sin autogenerar por defecto
-      const local = this.enforceSingleMainWarehouse(this.getLocalWarehouses());
-      return { success: true, data: local };
-    } catch {
-      // Si la API falla por MODULE_NOT_LICENSED, restricciones de plan o modo offline:
-      const local = this.enforceSingleMainWarehouse(this.getLocalWarehouses());
-      return { success: true, data: local, message: 'Almacenes cargados correctamente.' };
+  async getWarehouses(forceRefresh = false): Promise<ApiResponse<Warehouse[]>> {
+    const now = Date.now();
+    if (!forceRefresh && this.cachedWarehousesRes && now - this.lastWarehousesFetch < this.WAREHOUSES_CACHE_TTL) {
+      return this.cachedWarehousesRes;
     }
+    if (this.inFlightWarehousesPromise) {
+      return this.inFlightWarehousesPromise;
+    }
+
+    this.inFlightWarehousesPromise = (async () => {
+      try {
+        const res = await this.api.get<any, any>('/warehouse');
+
+        const list = extractArray<any>(res);
+        if (list && list.length > 0) {
+          const normalized: Warehouse[] = list.map((item: any, idx: number) => {
+            const id = item.id ?? item.warehouseId ?? (idx + 1);
+            return {
+              id,
+              name: item.name || item.description || item.warehouseName || `Almacén #${id}`,
+              code: item.code || item.warehouseCode || `ALM-${String(id).padStart(2, '0')}`,
+              address: item.address || '',
+              phone: item.phone || '',
+              managerName: item.managerName || '',
+              isMain: item.isMain === true,
+              isActive: item.isActive !== false,
+              createdAt: item.createdAt || new Date().toISOString(),
+            };
+          });
+
+          // Combinar con almacenes locales para que nunca se pierda un almacén creado por el usuario
+          const local = this.getLocalWarehouses();
+          const map = new Map<string | number, Warehouse>();
+          normalized.forEach((w) => map.set(w.id, w));
+          local.forEach((w) => {
+            if (!map.has(w.id)) {
+              map.set(w.id, w);
+            }
+          });
+          const combined = this.enforceSingleMainWarehouse(Array.from(map.values()));
+          this.saveLocalWarehouses(combined);
+          const response: ApiResponse<Warehouse[]> = { success: true, data: combined };
+          this.lastWarehousesFetch = Date.now();
+          this.cachedWarehousesRes = response;
+          return response;
+        }
+
+        // Si el servidor devolvió lista vacía, usar almacenes locales sin autogenerar por defecto
+        const local = this.enforceSingleMainWarehouse(this.getLocalWarehouses());
+        const response: ApiResponse<Warehouse[]> = { success: true, data: local };
+        this.lastWarehousesFetch = Date.now();
+        this.cachedWarehousesRes = response;
+        return response;
+      } catch {
+        // Si la API falla por MODULE_NOT_LICENSED, restricciones de plan o modo offline:
+        const local = this.enforceSingleMainWarehouse(this.getLocalWarehouses());
+        const fallback: ApiResponse<Warehouse[]> = { success: true, data: local, message: 'Almacenes cargados correctamente.' };
+        this.lastWarehousesFetch = Date.now();
+        this.cachedWarehousesRes = fallback;
+        return fallback;
+      } finally {
+        this.inFlightWarehousesPromise = null;
+      }
+    })();
+
+    return this.inFlightWarehousesPromise;
   }
 
   async getWarehouse(id: number): Promise<ApiResponse<Warehouse>> {
