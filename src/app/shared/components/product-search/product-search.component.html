@@ -13,12 +13,30 @@
           </svg>
         </span>
         <input
+          #searchInput
           type="text"
           class="form-control"
           placeholder="Escriba nombre o pase el lector de código..."
           [(ngModel)]="searchTerm"
           (input)="onSearchInput()"
+          (keydown.enter)="onBarcodeEntered($event)"
         />
+        <button
+          type="button"
+          class="btn btn-outline-secondary d-flex align-items-center gap-1"
+          (click)="onBarcodeEntered()"
+          title="Buscar por código de barras escaneado"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="5" x2="3" y2="19"></line>
+            <line x1="7" y1="5" x2="7" y2="19"></line>
+            <line x1="11" y1="5" x2="11" y2="19"></line>
+            <line x1="15" y1="5" x2="15" y2="19"></line>
+            <line x1="18" y1="5" x2="18" y2="19"></line>
+            <line x1="21" y1="5" x2="21" y2="19"></line>
+          </svg>
+          <span class="d-none d-sm-inline font-size-xs fw-semibold">Escanear</span>
+        </button>
       </div>
     </div>
 
@@ -96,7 +114,9 @@
           min="0.01"
           step="any"
           class="form-control form-control-sm text-center font-monospace fw-bold"
+          #quantityInput
           [(ngModel)]="quantity"
+          (keydown.enter)="submitProduct()"
         />
       </div>
 
@@ -206,17 +226,50 @@
     </div>
   }
 
-  <!-- Selected Product Card Banner -->
+  <!-- Selected Product Card Banner (Detalles Completos por Código de Barra) -->
   @if (selectedProduct) {
-    <div class="selected-banner mt-2 p-2 px-3 rounded-2 bg-primary-subtle border border-primary-subtle d-flex align-items-center justify-content-between flex-wrap gap-2">
-      <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-primary text-white">Seleccionado</span>
-        <strong class="text-dark">{{ selectedProduct.description }}</strong>
-        <span class="text-secondary font-monospace small">({{ selectedProduct.barcode || 'Sin código' }})</span>
+    <div class="selected-banner mt-3 p-3 rounded-3 border bg-light-subtle shadow-xs">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2 pb-2 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold px-2 py-1">
+            ✓ Producto Seleccionado
+          </span>
+          <h6 class="fw-bold text-dark mb-0 fs-6">{{ selectedProduct.description }}</h6>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-dark-subtle text-dark font-monospace px-2 py-1">
+            Código: {{ selectedProduct.barcode || selectedProduct.reference || 'Sin código' }}
+          </span>
+          <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" (click)="resetSelection()" title="Cambiar producto">
+            ✕ Quitar
+          </button>
+        </div>
       </div>
-      <div class="d-flex align-items-center gap-3 small">
-        <span>Stock en Almacén: <strong class="font-monospace text-dark">{{ selectedProduct.stockInWarehouse }} uds</strong></span>
-        <span>Subtotal Renglón: <strong class="font-monospace text-primary">RD$ {{ (quantity * cost) | number:'1.2-2' }}</strong></span>
+      <div class="row g-2 text-center small font-monospace">
+        <div class="col-6 col-md-3">
+          <div class="p-2 rounded bg-white border">
+            <span class="text-secondary d-block font-sans">Stock Almacén</span>
+            <strong class="text-dark fs-6">{{ selectedProduct.stockInWarehouse }} uds</strong>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="p-2 rounded bg-white border">
+            <span class="text-secondary d-block font-sans">Costo Compra</span>
+            <strong class="text-dark fs-6">RD$ {{ (selectedProduct.cost || 0) | number:'1.2-2' }}</strong>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="p-2 rounded bg-white border">
+            <span class="text-secondary d-block font-sans">Precio Venta</span>
+            <strong class="text-primary fs-6">RD$ {{ (selectedProduct.priceList || selectedProduct.cost ? (selectedProduct.cost * 1.3) : 0) | number:'1.2-2' }}</strong>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="p-2 rounded bg-success-subtle border border-success-subtle">
+            <span class="text-success d-block font-sans fw-semibold">Subtotal Línea</span>
+            <strong class="text-success fs-6">RD$ {{ (quantity * cost) | number:'1.2-2' }}</strong>
+          </div>
+        </div>
       </div>
     </div>
   }

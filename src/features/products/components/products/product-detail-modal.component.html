@@ -2,10 +2,10 @@
   <div class="custom-modal-backdrop" (click)="close()">
     <div class="custom-modal-content modal-lg product-detail-modal" (click)="$event.stopPropagation()">
       <!-- Modal Header -->
-      <div class="custom-modal-header bg-gradient-header d-flex justify-content-between align-items-center p-3 border-bottom">
+      <div class="custom-modal-header d-flex justify-content-between align-items-center px-4 py-3 border-bottom bg-white">
         <div class="d-flex align-items-center gap-3">
           <div class="header-icon-box">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="3" y1="5" x2="3" y2="19"></line>
               <line x1="7" y1="5" x2="7" y2="19"></line>
               <line x1="11" y1="5" x2="11" y2="19"></line>
@@ -15,84 +15,94 @@
             </svg>
           </div>
           <div>
-            <h5 class="fw-bold mb-0 text-dark">{{ currentProduct()?.description }}</h5>
-            <span class="text-secondary small font-monospace">
-              Ref: {{ currentProduct()?.reference || 'Sin Referencia' }} · SKU: {{ currentProduct()?.barcode || 'PRD-' + currentProduct()?.id }}
-            </span>
+            <h5 class="fw-bold mb-0 text-dark fs-5">{{ currentProduct()?.description }}</h5>
+            <div class="d-flex align-items-center gap-2 mt-0.5">
+              <span class="text-secondary small font-monospace">
+                Ref: {{ currentProduct()?.reference || 'Sin Referencia' }}
+              </span>
+              <span class="text-muted small">·</span>
+              <span class="badge bg-light text-secondary border font-monospace" style="font-size: 11px;">
+                SKU: {{ currentProduct()?.barcode || 'PRD-' + currentProduct()?.id }}
+              </span>
+            </div>
           </div>
         </div>
         <button type="button" class="btn-close" (click)="close()" aria-label="Close"></button>
       </div>
 
       <!-- Modal Body -->
-      <div class="custom-modal-body p-4" style="max-height: 80vh; overflow-y: auto;">
-        <div class="row g-4">
+      <div class="custom-modal-body p-4">
+        <div class="row g-3">
           <!-- Left Column: Photo & Literal Barcode -->
           <div class="col-md-5 d-flex flex-column gap-3">
             <!-- Product Photo Card -->
-            <div class="product-photo-card p-3 rounded-4 border bg-white shadow-xs text-center">
+            <div class="card border rounded-3 p-3 bg-white shadow-2xs text-center">
               <div class="photo-container mb-2">
                 @if (currentProduct()?.imageUrl) {
                   <img
                     [src]="currentProduct()?.imageUrl"
                     [alt]="currentProduct()?.description"
-                    class="product-real-img rounded-3 shadow-xs"
+                    class="product-real-img rounded-2"
                   />
                 } @else {
-                  <div class="photo-placeholder rounded-3 d-flex flex-column align-items-center justify-content-center p-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <div class="photo-placeholder rounded-2 d-flex flex-column align-items-center justify-content-center p-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                       <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                       <circle cx="8.5" cy="8.5" r="1.5"></circle>
                       <polyline points="21 15 16 10 5 21"></polyline>
                     </svg>
-                    <span class="text-muted small mt-2 fw-semibold">Sin Foto Registrada</span>
+                    <span class="text-muted small mt-2 fw-medium" style="font-size: 12px;">Sin Foto Registrada</span>
                   </div>
                 }
               </div>
-              <div class="badge-row d-flex justify-content-center gap-1 flex-wrap">
-                <span class="badge bg-light text-dark border">
-                  {{ currentProduct()?.categoryName || 'Categoría General' }}
-                </span>
+
+              <!-- Product Badges -->
+              <div class="badge-row d-flex justify-content-center gap-1.5 flex-wrap">
+                @if (currentProduct()?.categoryName && currentProduct()?.categoryName !== 'dfasdf' && currentProduct()?.categoryName !== 'General') {
+                  <span class="badge bg-light text-dark border fw-medium px-2 py-1" style="font-size: 11.5px;">
+                    {{ currentProduct()?.categoryName }}
+                  </span>
+                }
                 @if (currentProduct()?.isOrganic) {
-                  <span class="badge bg-success-subtle text-success border border-success-subtle">
+                  <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold px-2 py-1" style="font-size: 11.5px;">
                     🌱 Orgánico
                   </span>
                 }
                 @if (currentProduct()?.allowFractional) {
-                  <span class="badge bg-info-subtle text-info border border-info-subtle">
-                    ⚖️ Venta al Detalle / Granel
+                  <span class="badge bg-info-subtle text-info border border-info-subtle fw-semibold px-2 py-1" style="font-size: 11.5px;">
+                    ⚖️ Venta al Detalle
                   </span>
                 }
               </div>
             </div>
 
             <!-- Literal Barcode Card -->
-            <div class="barcode-card-container p-3 rounded-4 border bg-white shadow-xs text-center">
-              <div class="barcode-card-header mb-2 d-flex justify-content-between align-items-center">
-                <span class="small fw-bold text-uppercase text-secondary tracking-wider">Código de Barras Oficial</span>
-                <span class="badge bg-primary-subtle text-primary font-monospace">EAN-13 / Code128</span>
+            <div class="card border rounded-3 p-3 bg-white shadow-2xs text-center">
+              <div class="mb-2 d-flex justify-content-between align-items-center">
+                <span class="small fw-bold text-uppercase text-secondary tracking-wider" style="font-size: 11px;">Código de Barras</span>
+                <span class="badge bg-light text-secondary border font-monospace" style="font-size: 11px;">EAN-13</span>
               </div>
-              
+
               <!-- Literal Barcode Rendered with real SVG bars -->
-              <div class="barcode-svg-wrapper p-3 bg-light rounded-3 border border-dashed mb-2">
+              <div class="barcode-svg-wrapper p-2.5 bg-white rounded-2 border mb-2.5 d-flex flex-column align-items-center justify-content-center">
                 <div [innerHTML]="barcodeSvg()"></div>
-                <div class="barcode-digits font-monospace fw-bold text-dark mt-1" style="letter-spacing: 0.18em; font-size: 13px;">
+                <div class="barcode-digits font-monospace fw-bold text-dark mt-1" style="letter-spacing: 0.16em; font-size: 13px;">
                   {{ currentProduct()?.barcode || currentProduct()?.reference || '746101000' + currentProduct()?.id }}
                 </div>
               </div>
 
               <!-- Barcode Quick Actions -->
               <div class="d-flex justify-content-center gap-2">
-                <button type="button" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1.5 fw-semibold" (click)="printBarcodeLabel()">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1.5 fw-semibold px-2.5" (click)="printBarcodeLabel()">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="6 9 6 2 18 2 18 9"></polyline>
                     <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
                     <rect x="6" y="14" width="12" height="8"></rect>
                   </svg>
                   <span>Imprimir Etiqueta</span>
                 </button>
-                <button type="button" class="btn btn-sm btn-light border d-flex align-items-center gap-1.5" (click)="downloadBarcodeSvg()">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button type="button" class="btn btn-sm btn-light border d-flex align-items-center gap-1.5 px-2.5" (click)="downloadBarcodeSvg()">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
                     <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -106,41 +116,46 @@
           <!-- Right Column: Financial Analysis, Stock & Inventory Tracking -->
           <div class="col-md-7 d-flex flex-column gap-3">
             <!-- Financial Profitability Card -->
-            <div class="card border rounded-4 shadow-xs p-3 bg-white">
-              <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
-                <span class="p-1.5 bg-success-subtle text-success rounded-circle">💰</span>
-                <span>Análisis de Margen & Utilidad Comercial</span>
-              </h6>
-              
+            <div class="card border rounded-3 p-3 bg-white shadow-2xs">
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="p-1 rounded-2 bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 26px; height: 26px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                </div>
+                <h6 class="fw-bold text-dark mb-0 fs-6">Análisis de Margen & Utilidad Comercial</h6>
+              </div>
+
               <div class="row g-2 mb-3">
                 <div class="col-6 col-sm-3">
-                  <div class="p-2.5 bg-light rounded-3 border text-center">
-                    <span class="text-secondary small d-block">Costo Compra</span>
+                  <div class="p-2.5 bg-light-subtle rounded-2 border text-center">
+                    <span class="text-secondary small d-block mb-1" style="font-size: 11px;">Costo Compra</span>
                     <strong class="text-dark font-monospace fs-6">RD$ {{ financialAnalysis().cost | number:'1.2-2' }}</strong>
                   </div>
                 </div>
                 <div class="col-6 col-sm-3">
-                  <div class="p-2.5 bg-light rounded-3 border text-center">
-                    <span class="text-secondary small d-block">Precio Venta</span>
+                  <div class="p-2.5 bg-light-subtle rounded-2 border text-center">
+                    <span class="text-secondary small d-block mb-1" style="font-size: 11px;">Precio Venta</span>
                     <strong class="text-primary font-monospace fs-6">RD$ {{ financialAnalysis().price | number:'1.2-2' }}</strong>
                   </div>
                 </div>
                 <div class="col-6 col-sm-3">
-                  <div class="p-2.5 bg-success-subtle rounded-3 border border-success-subtle text-center">
-                    <span class="text-success small d-block fw-semibold">Ganancia / Ud</span>
+                  <div class="p-2.5 bg-success-subtle rounded-2 border border-success-subtle text-center">
+                    <span class="text-success small d-block fw-semibold mb-1" style="font-size: 11px;">Ganancia / Ud</span>
                     <strong class="text-success font-monospace fs-6">+RD$ {{ financialAnalysis().profit | number:'1.2-2' }}</strong>
                   </div>
                 </div>
                 <div class="col-6 col-sm-3">
-                  <div class="p-2.5 bg-primary-subtle rounded-3 border border-primary-subtle text-center">
-                    <span class="text-primary small d-block fw-semibold">Margen %</span>
+                  <div class="p-2.5 bg-primary-subtle rounded-2 border border-primary-subtle text-center">
+                    <span class="text-primary small d-block fw-semibold mb-1" style="font-size: 11px;">Margen %</span>
                     <strong class="text-primary font-monospace fs-6">{{ financialAnalysis().marginPct }}%</strong>
                   </div>
                 </div>
               </div>
 
               <!-- Profitability Bar -->
-              <div class="progress" style="height: 8px;">
+              <div class="progress rounded-pill overflow-hidden" style="height: 6px; background-color: #e2e8f0;">
                 <div
                   class="progress-bar bg-success"
                   role="progressbar"
@@ -151,60 +166,64 @@
                 ></div>
               </div>
               <div class="d-flex justify-content-between mt-1 text-muted" style="font-size: 11px;">
-                <span>Costo de Adquisición: {{ 100 - financialAnalysis().marginPct }}%</span>
-                <span class="fw-bold text-success">Retorno de Inversión: {{ financialAnalysis().marginPct }}%</span>
+                <span>Costo Adquisición: {{ 100 - financialAnalysis().marginPct }}%</span>
+                <span class="fw-semibold text-success">Retorno de Inversión: {{ financialAnalysis().marginPct }}%</span>
               </div>
             </div>
 
             <!-- Stock & Almacén Status Card -->
-            <div class="card border rounded-4 shadow-xs p-3 bg-white">
+            <div class="card border rounded-3 p-3 bg-white shadow-2xs">
               <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-                  <span class="p-1.5 bg-primary-subtle text-primary rounded-circle">📦</span>
-                  <span>Existencias & Control de Inventario</span>
-                </h6>
-                <span class="badge py-1.5 px-3 rounded-pill" [ngClass]="stockHealth().colorClass">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="p-1 rounded-2 bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 26px; height: 26px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    </svg>
+                  </div>
+                  <h6 class="fw-bold text-dark mb-0 fs-6">Existencias & Control de Inventario</h6>
+                </div>
+                <span class="badge py-1.5 px-3 rounded-pill fw-semibold" [ngClass]="stockHealth().colorClass" style="font-size: 11.5px;">
                   {{ stockHealth().label }}
                 </span>
               </div>
 
               @if (isService()) {
-                <div class="p-3 rounded-3 bg-light border text-center">
-                  <div class="text-primary fw-bold mb-1">🛠️ Mano de Obra / Servicio Intangible</div>
-                  <p class="text-secondary small mb-0">
-                    Este ítem corresponde a una prestación de trabajo manual o servicio profesional. No ocupa espacio en almacén ni requiere control de existencias físicas.
+                <div class="p-3 rounded-2 bg-light border text-center">
+                  <div class="text-primary fw-bold mb-1 small">🛠️ Mano de Obra / Servicio Intangible</div>
+                  <p class="text-secondary small mb-0" style="font-size: 12px;">
+                    Este ítem corresponde a una prestación de servicio profesional. No ocupa espacio físico ni requiere control de existencias en almacén.
                   </p>
                 </div>
               } @else {
                 <div class="row g-2 mb-3">
                   <div class="col-4">
-                    <div class="p-2 bg-light rounded-3 text-center border">
-                      <span class="text-secondary small d-block">Existencia Actual</span>
-                      <strong class="font-monospace fs-5 text-dark">{{ currentProduct()?.stock }} uds</strong>
+                    <div class="p-2.5 bg-light-subtle rounded-2 text-center border">
+                      <span class="text-secondary small d-block mb-1" style="font-size: 11px;">Existencia Actual</span>
+                      <strong class="font-monospace fs-6 text-dark">{{ currentProduct()?.stock }} uds</strong>
                     </div>
                   </div>
                   <div class="col-4">
-                    <div class="p-2 bg-light rounded-3 text-center border">
-                      <span class="text-secondary small d-block">Stock Mínimo</span>
-                      <strong class="font-monospace fs-5 text-warning-emphasis">{{ currentProduct()?.minimumQuantity || 0 }} uds</strong>
+                    <div class="p-2.5 bg-light-subtle rounded-2 text-center border">
+                      <span class="text-secondary small d-block mb-1" style="font-size: 11px;">Stock Mínimo</span>
+                      <strong class="font-monospace fs-6 text-warning-emphasis">{{ currentProduct()?.minimumQuantity || 0 }} uds</strong>
                     </div>
                   </div>
                   <div class="col-4">
-                    <div class="p-2 bg-light rounded-3 text-center border">
-                      <span class="text-secondary small d-block">Stock Máximo</span>
-                      <strong class="font-monospace fs-5 text-secondary">{{ currentProduct()?.maximumQuantity || 'Sin límite' }}</strong>
+                    <div class="p-2.5 bg-light-subtle rounded-2 text-center border">
+                      <span class="text-secondary small d-block mb-1" style="font-size: 11px;">Stock Máximo</span>
+                      <strong class="font-monospace fs-6 text-secondary">{{ currentProduct()?.maximumQuantity || 'Sin límite' }}</strong>
                     </div>
                   </div>
                 </div>
 
-                <div class="p-2.5 rounded-3 bg-light border small text-secondary">
-                  <div class="row g-1">
+                <div class="p-2.5 rounded-2 bg-light-subtle border small text-secondary">
+                  <div class="row g-2" style="font-size: 12px;">
                     <div class="col-sm-6">
-                      <strong>Facturar sin stock:</strong>
+                      <strong class="text-dark">Facturar sin stock:</strong>
                       {{ currentProduct()?.invoiceWithoutStock ? 'Permitido' : 'Bloqueado (Control Estricto)' }}
                     </div>
                     <div class="col-sm-6">
-                      <strong>Vencimiento:</strong>
+                      <strong class="text-dark">Vencimiento:</strong>
                       {{ currentProduct()?.expirationDate ? (currentProduct()?.expirationDate | date:'dd/MM/yyyy') : 'No aplica' }}
                     </div>
                   </div>
@@ -214,9 +233,9 @@
 
             <!-- Descripción detallada / Notas -->
             @if (currentProduct()?.shortDescription) {
-              <div class="card border rounded-4 shadow-xs p-3 bg-white">
-                <span class="text-secondary small fw-bold text-uppercase tracking-wider mb-1 d-block">Notas & Descripción:</span>
-                <p class="mb-0 text-dark small">{{ currentProduct()?.shortDescription }}</p>
+              <div class="card border rounded-3 p-3 bg-white shadow-2xs">
+                <span class="text-secondary small fw-bold text-uppercase tracking-wider mb-1 d-block" style="font-size: 11px;">Notas & Descripción:</span>
+                <p class="mb-0 text-dark small" style="font-size: 12.5px;">{{ currentProduct()?.shortDescription }}</p>
               </div>
             }
           </div>
@@ -224,12 +243,12 @@
       </div>
 
       <!-- Modal Footer -->
-      <div class="custom-modal-footer bg-light p-3 border-top d-flex justify-content-between align-items-center">
-        <button type="button" class="btn btn-outline-secondary px-3" (click)="close()">
+      <div class="custom-modal-footer bg-white px-4 py-3 border-top d-flex justify-content-between align-items-center">
+        <button type="button" class="btn btn-outline-secondary px-3 py-1.5 fw-medium small rounded-2" (click)="close()">
           Cerrar
         </button>
-        <button type="button" class="btn btn-primary px-4 fw-bold d-flex align-items-center gap-2" (click)="onEditClick()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button type="button" class="btn btn-primary px-3.5 py-1.5 fw-semibold small rounded-2 d-flex align-items-center gap-2 shadow-sm" style="background-color: #2563eb;" (click)="onEditClick()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
           </svg>

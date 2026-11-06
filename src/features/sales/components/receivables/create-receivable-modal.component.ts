@@ -410,7 +410,7 @@ export class CreateReceivableModalComponent implements OnInit {
     this.tempProductId.set(pId);
     const prod = this.products().find((p) => p.id === pId);
     if (prod) {
-      const defaultPrice = prod.cost ? Math.round(prod.cost * 1.3 * 100) / 100 : 0;
+      const defaultPrice = Number(prod.price || prod.priceList || (prod.cost ? Math.round(prod.cost * 1.3 * 100) / 100 : 0));
       this.tempUnitPrice.set(defaultPrice);
     }
   }

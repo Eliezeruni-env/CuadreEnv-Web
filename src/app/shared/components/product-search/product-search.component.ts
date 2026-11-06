@@ -6,6 +6,8 @@ import {
   OnInit,
   OnChanges,
   SimpleChanges,
+  ViewChild,
+  ElementRef,
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -54,6 +56,9 @@ export class ProductSearchComponent implements OnInit, OnChanges {
   entryMode: 'base' | 'package' = 'base';
   packageCount = 1;
   packageCost = 0;
+  scannedBarcode = '';
+  @ViewChild('quantityInput') quantityInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
 
   async ngOnInit() {
     await this.loadProducts();
@@ -139,6 +144,14 @@ export class ProductSearchComponent implements OnInit, OnChanges {
   }
 
   async onSearchInput() {
+    const raw = (this.searchTerm || '').trim();
+    if (raw.length >= 6) {
+      const direct = this.allProducts.find(p => p.barcode && p.barcode.trim().toLowerCase() === raw.toLowerCase());
+      if (direct) {
+        await this.handleDirectBarcodeMatch(direct);
+        return;
+      }
+    }
     await this.refreshFilteredProducts();
   }
 
@@ -207,6 +220,61 @@ export class ProductSearchComponent implements OnInit, OnChanges {
     this.quantity = detail.quantity;
     this.cost = detail.cost || detail.price || 0;
     this.currentPackaging = this.packagingService.getPackaging(detail.productId);
+  }
+
+  
+  async handleDirectBarcodeMatch(found: Product) {
+    const stock = await this.stockService.getProductStockInWarehouse(
+      this.warehouseId,
+      found.id,
+    );
+    this.scannedBarcode = found.barcode || found.reference || String(found.id);
+    this.selectProduct({ ...found, stockInWarehouse: stock });
+    this.searchTerm = '';
+    this.scannedBarcode = '';
+    this.notificationService.success('¡Código escaneado! ' + found.description);
+    setTimeout(() => {
+      this.quantityInput?.nativeElement?.focus();
+      this.quantityInput?.nativeElement?.select();
+    }, 100);
+  }
+
+  async onBarcodeEntered(event?: Event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const raw = (this.searchTerm || '').trim();
+    if (!raw) return;
+
+    const lower = raw.toLowerCase();
+    const exact = this.allProducts.find(
+      (p) =>
+        (p.barcode && p.barcode.trim().toLowerCase() === lower) ||
+        (p.reference && p.reference.trim().toLowerCase() === lower) ||
+        String(p.id) === lower,
+    );
+
+    if (exact) {
+      await this.handleDirectBarcodeMatch(exact);
+      return;
+    }
+
+    if (this.filteredProducts.length === 1) {
+      const single = this.filteredProducts[0];
+      await this.handleDirectBarcodeMatch(single);
+      return;
+    }
+
+    const partialBarcode = this.allProducts.find(
+      (p) => p.barcode && p.barcode.toLowerCase().includes(lower),
+    );
+    if (partialBarcode) {
+      await this.handleDirectBarcodeMatch(partialBarcode);
+      return;
+    }
+
+    this.notificationService.warning('No se encontró ningún producto con el código de barras "' + raw + '".');
   }
 
   submitProduct() {

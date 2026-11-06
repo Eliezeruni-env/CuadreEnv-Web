@@ -6,6 +6,7 @@ import { ProductService } from '../../services/product.service';
 import { ProductTypeService } from '../../services/product-type.service';
 import { CategoryService } from '../../services/category.service';
 import { UnitOfMeasurementService, type UnitOfMeasurement } from '../../services/unit-of-measurement.service';
+import { StockService } from '../../../inventory/services/stock.service';
 import { ProductPackagingService, type ProductPackaging } from '../../services/product-packaging.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
@@ -50,6 +51,7 @@ export class ProductModalComponent {
   private categoryService = inject(CategoryService);
   private unitService = inject(UnitOfMeasurementService);
   private packagingService = inject(ProductPackagingService);
+  private stockService = inject(StockService);
   private notificationService = inject(NotificationService);
   private confirmService = inject(ConfirmDialogService);
   private fb = inject(FormBuilder);
@@ -426,6 +428,9 @@ export class ProductModalComponent {
       }
 
       if (savedId) {
+        if (!this.isEditMode && Number(formVal.stock) > 0) {
+          void this.stockService.setInitialStock(savedId, Number(formVal.stock), formVal.description, barcode, Number(formVal.cost), Number(formVal.price));
+        }
         if (formVal.imageUrl) {
           this.productService.saveProductPhoto(savedId, formVal.imageUrl);
           if (barcode) {

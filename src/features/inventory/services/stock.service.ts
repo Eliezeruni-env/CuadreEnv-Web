@@ -127,6 +127,48 @@ export class StockService {
     return item ? item.quantity : 0;
   }
 
+  async setInitialStock(
+    productId: number,
+    initialStock: number,
+    productName: string,
+    barcode?: string,
+    cost?: number,
+    price?: number,
+    warehouseId: number = 1,
+  ): Promise<void> {
+    await this.initializeStockIfEmpty();
+    const list = this.getLocalStock();
+    let item = list.find((s) => s.warehouseId === warehouseId && s.productId === productId);
+
+    if (item) {
+      item.quantity = initialStock;
+      item.lastUpdated = new Date().toISOString();
+      if (productName) item.productName = productName;
+      if (barcode) item.barcode = barcode;
+      if (cost !== undefined) item.cost = cost;
+      if (price !== undefined) item.price = price;
+    } else {
+      const whRes = await this.warehouseService.getWarehouse(warehouseId).catch(() => null);
+      const whName = whRes?.data?.name || `Almacén #${warehouseId}`;
+      item = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        warehouseId,
+        warehouseName: whName,
+        productId,
+        productName: productName || `Producto #${productId}`,
+        barcode: barcode || '',
+        quantity: initialStock,
+        minimumQuantity: 5,
+        maximumQuantity: 100,
+        cost: cost || 0,
+        price: price || (cost ? cost * 1.3 : 0),
+        lastUpdated: new Date().toISOString(),
+      };
+      list.push(item);
+    }
+    this.saveLocalStock(list);
+  }
+
   async updateStock(
     warehouseId: number,
     productId: number,
@@ -139,8 +181,22 @@ export class StockService {
     let item = list.find((s) => s.warehouseId === warehouseId && s.productId === productId);
 
     if (!item) {
-      const whRes = await this.warehouseService.getWarehouse(warehouseId);
+      const whRes = await this.warehouseService.getWarehouse(warehouseId).catch(() => null);
       const whName = whRes?.data?.name || `Almacén #${warehouseId}`;
+
+      // Si el producto no existía en el almacén pero tenía stock inicial registrado en su catálogo:
+      let baseInitialQty = 0;
+      let pCost = 0;
+      let pPrice = 0;
+      try {
+        const prodRes = await this.productService.getProduct(productId);
+        if (prodRes?.data) {
+          baseInitialQty = Number(prodRes.data.stock) || 0;
+          pCost = Number(prodRes.data.cost) || 0;
+          pPrice = Number(prodRes.data.price || (prodRes.data as any).priceList) || 0;
+        }
+      } catch {}
+
       item = {
         id: Date.now() + Math.floor(Math.random() * 1000),
         warehouseId,
@@ -148,9 +204,11 @@ export class StockService {
         productId,
         productName: productName || `Producto #${productId}`,
         barcode: barcode || '',
-        quantity: 0,
+        quantity: baseInitialQty, // Preserva el stock inicial al registrar la primera entrada
         minimumQuantity: 5,
         maximumQuantity: 100,
+        cost: pCost,
+        price: pPrice,
         lastUpdated: new Date().toISOString(),
       };
       list.push(item);

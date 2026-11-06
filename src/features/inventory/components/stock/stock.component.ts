@@ -68,7 +68,7 @@ export class StockComponent implements OnInit {
 
   readonly totalValuation = computed(() => {
     return this.filteredStock().reduce(
-      (acc, s) => acc + (s.quantity || 0) * (s.cost || s.price || 0),
+      (acc, s) => acc + (s.quantity || 0) * (s.price || s.cost || 0),
       0,
     );
   });

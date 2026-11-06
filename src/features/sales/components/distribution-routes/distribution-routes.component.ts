@@ -240,7 +240,7 @@ export class DistributionRoutesComponent implements OnInit {
     const prod = this.products().find((p) => p.id === productId);
     if (!prod) return;
 
-    const price = Number((prod as any).price || prod.cost || 100);
+    const price = Number(prod.price || (prod as any).priceList || prod.cost || 100);
     const routes = [...this.routes()];
     const rIdx = routes.findIndex((r) => r.id === route.id);
     if (rIdx === -1) return;
