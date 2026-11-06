@@ -10,30 +10,59 @@ import type { CustomerDto, ApiResponse } from '../../cuadreEnv/types/api';
 })
 export class CustomerService {
   private readonly api = inject(ApiClientService);
+  private inFlightMap = new Map<string, Promise<ApiResponse<CustomerDto[]>>>();
+  private cacheMap = new Map<string, { time: number; data: ApiResponse<CustomerDto[]> }>();
+  private readonly CACHE_TTL = 10000;
+
   async getCustomers(params?: {
     pageNumber?: number;
     pageSize?: number;
     search?: string;
-  }): Promise<ApiResponse<CustomerDto[]>> {
+  }, forceRefresh = false): Promise<ApiResponse<CustomerDto[]>> {
     const validParams = {
       ...params,
       pageSize: params?.pageSize ? Math.min(100, Math.max(1, params.pageSize)) : 100,
     };
-    try {
-      const res = await this.api.get<any, any>('/Customer', { params: validParams });
-      const items = extractArray<CustomerDto>(res);
-      return { success: true, data: items };
-    } catch (err: any) {
-      if (err?.status === 404) {
-        try {
-          const res2 = await this.api.get<any, any>('/customers', { params: validParams });
-          return { success: true, data: extractArray<CustomerDto>(res2) };
-        } catch {
-          // Fallback failed
-        }
+    const key = JSON.stringify(validParams);
+    const now = Date.now();
+
+    if (!forceRefresh) {
+      const cached = this.cacheMap.get(key);
+      if (cached && now - cached.time < this.CACHE_TTL) {
+        return cached.data;
       }
-      return { success: true, data: [] };
     }
+
+    if (this.inFlightMap.has(key)) {
+      return this.inFlightMap.get(key)!;
+    }
+
+    const promise = (async () => {
+      try {
+        const res = await this.api.get<any, any>('/Customer', { params: validParams });
+        const items = extractArray<CustomerDto>(res);
+        const result: ApiResponse<CustomerDto[]> = { success: true, data: items };
+        this.cacheMap.set(key, { time: Date.now(), data: result });
+        return result;
+      } catch (err: any) {
+        if (err?.status === 404) {
+          try {
+            const res2 = await this.api.get<any, any>('/customers', { params: validParams });
+            const fallback: ApiResponse<CustomerDto[]> = { success: true, data: extractArray<CustomerDto>(res2) };
+            this.cacheMap.set(key, { time: Date.now(), data: fallback });
+            return fallback;
+          } catch {}
+        }
+        const empty: ApiResponse<CustomerDto[]> = { success: true, data: [] };
+        this.cacheMap.set(key, { time: Date.now(), data: empty });
+        return empty;
+      } finally {
+        this.inFlightMap.delete(key);
+      }
+    })();
+
+    this.inFlightMap.set(key, promise);
+    return promise;
   }
 
   async getActiveCustomers(days?: number): Promise<ApiResponse<CustomerDto[]>> {

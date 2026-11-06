@@ -7,23 +7,48 @@ import type { ApiResponse } from '../../cuadreEnv/types/api';
 })
 export class CategoryService {
   private readonly api = inject(ApiClientService);
+  private inFlightCategories: Promise<ApiResponse<any[]>> | null = null;
+  private cachedCategories: ApiResponse<any[]> | null = null;
+  private lastFetchTime = 0;
+  private readonly CACHE_TTL = 15000;
 
-  async getCategories(): Promise<ApiResponse<any[]>> {
-    try {
-      const res = await this.api.get<any, any>('/Category');
-      const list = extractArray<any>(res);
-      return { success: true, data: list };
-    } catch (err: any) {
-      if (err?.status === 404) {
-        try {
-          const res2 = await this.api.get<any, any>('/categories');
-          return { success: true, data: extractArray<any>(res2) };
-        } catch {
-          // Fallback failed
-        }
-      }
-      return { success: true, data: [] };
+  async getCategories(forceRefresh = false): Promise<ApiResponse<any[]>> {
+    const now = Date.now();
+    if (!forceRefresh && this.cachedCategories && now - this.lastFetchTime < this.CACHE_TTL) {
+      return this.cachedCategories;
     }
+    if (this.inFlightCategories) {
+      return this.inFlightCategories;
+    }
+
+    this.inFlightCategories = (async () => {
+      try {
+        const res = await this.api.get<any, any>('/Category');
+        const list = extractArray<any>(res);
+        const result: ApiResponse<any[]> = { success: true, data: list };
+        this.lastFetchTime = Date.now();
+        this.cachedCategories = result;
+        return result;
+      } catch (err: any) {
+        if (err?.status === 404) {
+          try {
+            const res2 = await this.api.get<any, any>('/categories');
+            const fallback: ApiResponse<any[]> = { success: true, data: extractArray<any>(res2) };
+            this.lastFetchTime = Date.now();
+            this.cachedCategories = fallback;
+            return fallback;
+          } catch {}
+        }
+        const empty: ApiResponse<any[]> = { success: true, data: [] };
+        this.lastFetchTime = Date.now();
+        this.cachedCategories = empty;
+        return empty;
+      } finally {
+        this.inFlightCategories = null;
+      }
+    })();
+
+    return this.inFlightCategories;
   }
 
   async createCategory(category: any): Promise<ApiResponse<any>> {

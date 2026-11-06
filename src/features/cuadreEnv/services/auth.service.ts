@@ -122,6 +122,8 @@ export class AuthService {
     ? new HttpClient(this.httpBackend)
     : null;
   private moduleEntitlementRefresh: Promise<boolean> | null = null;
+  private lastModuleRefreshAttempt = 0;
+  private readonly MODULE_REFRESH_COOLDOWN_MS = 60000;
   private moduleRefreshInterval: number | null = null;
   private entitlementErrorNotified = false;
 
@@ -968,6 +970,11 @@ export class AuthService {
 
   refreshModuleEntitlements(silent = false): Promise<boolean> {
     if (this.moduleEntitlementRefresh) return this.moduleEntitlementRefresh;
+    const now = Date.now();
+    if (now - this.lastModuleRefreshAttempt < this.MODULE_REFRESH_COOLDOWN_MS) {
+      return Promise.resolve(this.allowedModules().length > 0);
+    }
+    this.lastModuleRefreshAttempt = now;
 
     const wrappedRefresh = this.loadModuleEntitlements(silent).finally(() => {
       this.moduleEntitlementRefresh = null;
@@ -989,13 +996,20 @@ export class AuthService {
       try {
         const response = await this.api.get<any, any>('/auth/me/modules');
         payload = response?.data ?? response?.Data ?? response;
-      } catch {
-        try {
-          const response = await this.api.get<any, any>('/api/users/login-sync');
-          payload = response?.data ?? response?.Data ?? response;
-        } catch {
-          const response = await this.api.get<any, any>('/v1/auth/me');
-          payload = response?.data ?? response?.Data ?? response;
+      } catch (err: any) {
+        const status = err?.status ?? err?.statusCode;
+        // Solo intentar endpoints alternativos si fue un 404 (ruta antigua o no encontrada).
+        // Si fue un 500 (servidor/base de datos caída), no saturar con llamadas extra.
+        if (status === 404) {
+          try {
+            const response = await this.api.get<any, any>('/api/users/login-sync');
+            payload = response?.data ?? response?.Data ?? response;
+          } catch (syncErr: any) {
+            if ((syncErr?.status ?? syncErr?.statusCode) === 404) {
+              const response = await this.api.get<any, any>('/v1/auth/me');
+              payload = response?.data ?? response?.Data ?? response;
+            }
+          }
         }
       }
 
