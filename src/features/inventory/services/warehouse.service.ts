@@ -1,7 +1,13 @@
 import { Injectable, inject } from '@angular/core';
-import { ApiClientService, extractArray } from '../../cuadreEnv/services/apiClient';
+import {
+  ApiClientService,
+  extractArray,
+} from '../../cuadreEnv/services/apiClient';
 import type { ApiResponse } from '../../cuadreEnv/types/api';
-import type { Warehouse, WarehouseConcept } from '../../../app/models/warehouse';
+import type {
+  Warehouse,
+  WarehouseConcept,
+} from '../../../app/models/warehouse';
 
 const WAREHOUSES_STORAGE_KEY = 'cuadreenv_warehouses_db';
 
@@ -9,28 +15,121 @@ const DEFAULT_WAREHOUSES: Warehouse[] = [];
 
 const DEFAULT_CONCEPTS: WarehouseConcept[] = [
   // Conceptos de Entrada (ENTRY)
-  { id: 1, name: 'Compra / Recepción de Mercancía', type: 'ENTRY', description: 'Ingreso directo por compras a proveedores' },
-  { id: 2, name: 'Producción / Fraccionamiento al Detalle', type: 'ENTRY', description: 'Envasado o conversión de sacos/bultos a unidades menores o libras' },
-  { id: 3, name: 'Ajuste de Inventario (+)', type: 'ENTRY', description: 'Corrección de conteo físico sobrante' },
-  { id: 4, name: 'Devolución de Cliente / Nota de Crédito', type: 'ENTRY', description: 'Reingreso por devolución de mercancía vendida' },
-  { id: 5, name: 'Retorno de Surtidor / Liquidación de Ruta', type: 'ENTRY', description: 'Retorno de mercancía no vendida por el chofer o surtidor' },
-  { id: 6, name: 'Entrada por Muestra Comercial o Donación', type: 'ENTRY', description: 'Ingreso de artículos promocionales o muestras' },
+  {
+    id: 1,
+    name: 'Compra / Recepción de Mercancía',
+    type: 'ENTRY',
+    description: 'Ingreso directo por compras a proveedores',
+  },
+  {
+    id: 2,
+    name: 'Producción / Fraccionamiento al Detalle',
+    type: 'ENTRY',
+    description:
+      'Envasado o conversión de sacos/bultos a unidades menores o libras',
+  },
+  {
+    id: 3,
+    name: 'Ajuste de Inventario (+)',
+    type: 'ENTRY',
+    description: 'Corrección de conteo físico sobrante',
+  },
+  {
+    id: 4,
+    name: 'Devolución de Cliente / Nota de Crédito',
+    type: 'ENTRY',
+    description: 'Reingreso por devolución de mercancía vendida',
+  },
+  {
+    id: 5,
+    name: 'Retorno de Surtidor / Liquidación de Ruta',
+    type: 'ENTRY',
+    description: 'Retorno de mercancía no vendida por el chofer o surtidor',
+  },
+  {
+    id: 6,
+    name: 'Entrada por Muestra Comercial o Donación',
+    type: 'ENTRY',
+    description: 'Ingreso de artículos promocionales o muestras',
+  },
 
   // Conceptos de Salida (OUTLET)
-  { id: 7, name: 'Venta Directa / Despacho a Cliente', type: 'OUTLET', description: 'Salida por facturación comercial al cliente' },
-  { id: 8, name: 'Carga a Surtidor / Despacho a Ruta', type: 'OUTLET', description: 'Asignación de mercancía al vehículo del surtidor para reparto' },
-  { id: 9, name: 'Consumo Interno / Uso Operativo', type: 'OUTLET', description: 'Salida de insumos, limpieza o uso en instalaciones' },
-  { id: 10, name: 'Merma / Avería / Daño Físico', type: 'OUTLET', description: 'Producto deteriorado, roto o inutilizable' },
-  { id: 11, name: 'Vencimiento / Caducidad', type: 'OUTLET', description: 'Retiro y descarte de productos con fecha de vencimiento cumplida' },
-  { id: 12, name: 'Ajuste de Inventario (-)', type: 'OUTLET', description: 'Corrección de faltante físico en auditoría' },
-  { id: 13, name: 'Devolución a Proveedor por Defecto', type: 'OUTLET', description: 'Retorno de mercancía defectuosa al suplidor' },
-  { id: 14, name: 'Muestra Comercial / Degustación', type: 'OUTLET', description: 'Entrega de producto como prueba comercial' },
+  {
+    id: 7,
+    name: 'Venta Directa / Despacho a Cliente',
+    type: 'OUTLET',
+    description: 'Salida por facturación comercial al cliente',
+  },
+  {
+    id: 8,
+    name: 'Carga a Surtidor / Despacho a Ruta',
+    type: 'OUTLET',
+    description:
+      'Asignación de mercancía al vehículo del surtidor para reparto',
+  },
+  {
+    id: 9,
+    name: 'Consumo Interno / Uso Operativo',
+    type: 'OUTLET',
+    description: 'Salida de insumos, limpieza o uso en instalaciones',
+  },
+  {
+    id: 10,
+    name: 'Merma / Avería / Daño Físico',
+    type: 'OUTLET',
+    description: 'Producto deteriorado, roto o inutilizable',
+  },
+  {
+    id: 11,
+    name: 'Vencimiento / Caducidad',
+    type: 'OUTLET',
+    description:
+      'Retiro y descarte de productos con fecha de vencimiento cumplida',
+  },
+  {
+    id: 12,
+    name: 'Ajuste de Inventario (-)',
+    type: 'OUTLET',
+    description: 'Corrección de faltante físico en auditoría',
+  },
+  {
+    id: 13,
+    name: 'Devolución a Proveedor por Defecto',
+    type: 'OUTLET',
+    description: 'Retorno de mercancía defectuosa al suplidor',
+  },
+  {
+    id: 14,
+    name: 'Muestra Comercial / Degustación',
+    type: 'OUTLET',
+    description: 'Entrega de producto como prueba comercial',
+  },
 
   // Conceptos de Transferencia (TRANSFER)
-  { id: 15, name: 'Transferencia Inter-Sucursales', type: 'TRANSFER', description: 'Reubicación de existencias entre almacenes centrales' },
-  { id: 16, name: 'Envío a Almacén Móvil / Camión de Ruta', type: 'TRANSFER', description: 'Transferencia a unidad móvil para venta en calle' },
-  { id: 17, name: 'Retorno desde Móvil a Depósito Central', type: 'TRANSFER', description: 'Descarga de mercancía sobrante de ruta hacia almacén' },
-  { id: 18, name: 'Reubicación a Zona de Cuarentena / Revisión', type: 'TRANSFER', description: 'Aislamiento preventivo para control de calidad' },
+  {
+    id: 15,
+    name: 'Transferencia Inter-Sucursales',
+    type: 'TRANSFER',
+    description: 'Reubicación de existencias entre almacenes centrales',
+  },
+  {
+    id: 16,
+    name: 'Envío a Almacén Móvil / Camión de Ruta',
+    type: 'TRANSFER',
+    description: 'Transferencia a unidad móvil para venta en calle',
+  },
+  {
+    id: 17,
+    name: 'Retorno desde Móvil a Depósito Central',
+    type: 'TRANSFER',
+    description: 'Descarga de mercancía sobrante de ruta hacia almacén',
+  },
+  {
+    id: 18,
+    name: 'Reubicación a Zona de Cuarentena / Revisión',
+    type: 'TRANSFER',
+    description: 'Aislamiento preventivo para control de calidad',
+  },
 ];
 
 @Injectable({
@@ -39,7 +138,8 @@ const DEFAULT_CONCEPTS: WarehouseConcept[] = [
 export class WarehouseService {
   private api = inject(ApiClientService);
 
-  private inFlightWarehousesPromise: Promise<ApiResponse<Warehouse[]>> | null = null;
+  private inFlightWarehousesPromise: Promise<ApiResponse<Warehouse[]>> | null =
+    null;
   private lastWarehousesFetch = 0;
   private cachedWarehousesRes: ApiResponse<Warehouse[]> | null = null;
   private readonly WAREHOUSES_CACHE_TTL = 15000; // 15s cache to avoid rapid refetch storms
@@ -98,7 +198,11 @@ export class WarehouseService {
 
   async getWarehouses(forceRefresh = false): Promise<ApiResponse<Warehouse[]>> {
     const now = Date.now();
-    if (!forceRefresh && this.cachedWarehousesRes && now - this.lastWarehousesFetch < this.WAREHOUSES_CACHE_TTL) {
+    if (
+      !forceRefresh &&
+      this.cachedWarehousesRes &&
+      now - this.lastWarehousesFetch < this.WAREHOUSES_CACHE_TTL
+    ) {
       return this.cachedWarehousesRes;
     }
     if (this.inFlightWarehousesPromise) {
@@ -112,11 +216,18 @@ export class WarehouseService {
         const list = extractArray<any>(res);
         if (list && list.length > 0) {
           const normalized: Warehouse[] = list.map((item: any, idx: number) => {
-            const id = item.id ?? item.warehouseId ?? (idx + 1);
+            const id = item.id ?? item.warehouseId ?? idx + 1;
             return {
               id,
-              name: item.name || item.description || item.warehouseName || `Almacén #${id}`,
-              code: item.code || item.warehouseCode || `ALM-${String(id).padStart(2, '0')}`,
+              name:
+                item.name ||
+                item.description ||
+                item.warehouseName ||
+                `Almacén #${id}`,
+              code:
+                item.code ||
+                item.warehouseCode ||
+                `ALM-${String(id).padStart(2, '0')}`,
               address: item.address || '',
               phone: item.phone || '',
               managerName: item.managerName || '',
@@ -135,24 +246,40 @@ export class WarehouseService {
               map.set(w.id, w);
             }
           });
-          const combined = this.enforceSingleMainWarehouse(Array.from(map.values()));
+          const combined = this.enforceSingleMainWarehouse(
+            Array.from(map.values()),
+          );
           this.saveLocalWarehouses(combined);
-          const response: ApiResponse<Warehouse[]> = { success: true, data: combined };
+          const response: ApiResponse<Warehouse[]> = {
+            success: true,
+            data: combined,
+          };
           this.lastWarehousesFetch = Date.now();
           this.cachedWarehousesRes = response;
           return response;
         }
 
         // Si el servidor devolvió lista vacía, usar almacenes locales sin autogenerar por defecto
-        const local = this.enforceSingleMainWarehouse(this.getLocalWarehouses());
-        const response: ApiResponse<Warehouse[]> = { success: true, data: local };
+        const local = this.enforceSingleMainWarehouse(
+          this.getLocalWarehouses(),
+        );
+        const response: ApiResponse<Warehouse[]> = {
+          success: true,
+          data: local,
+        };
         this.lastWarehousesFetch = Date.now();
         this.cachedWarehousesRes = response;
         return response;
       } catch {
         // Si la API falla por MODULE_NOT_LICENSED, restricciones de plan o modo offline:
-        const local = this.enforceSingleMainWarehouse(this.getLocalWarehouses());
-        const fallback: ApiResponse<Warehouse[]> = { success: true, data: local, message: 'Almacenes cargados correctamente.' };
+        const local = this.enforceSingleMainWarehouse(
+          this.getLocalWarehouses(),
+        );
+        const fallback: ApiResponse<Warehouse[]> = {
+          success: true,
+          data: local,
+          message: 'Almacenes cargados correctamente.',
+        };
         this.lastWarehousesFetch = Date.now();
         this.cachedWarehousesRes = fallback;
         return fallback;
@@ -171,7 +298,9 @@ export class WarehouseService {
     return { success: false, message: 'Almacén no encontrado.' };
   }
 
-  async createWarehouse(wh: Partial<Warehouse>): Promise<ApiResponse<Warehouse>> {
+  async createWarehouse(
+    wh: Partial<Warehouse>,
+  ): Promise<ApiResponse<Warehouse>> {
     const list = this.getLocalWarehouses();
     const newId = list.length > 0 ? Math.max(...list.map((w) => w.id)) + 1 : 1;
     const newWarehouse: Warehouse = {
@@ -203,7 +332,11 @@ export class WarehouseService {
       }
     }
 
-    return { success: true, data: newWarehouse, message: 'Almacén registrado exitosamente.' };
+    return {
+      success: true,
+      data: newWarehouse,
+      message: 'Almacén registrado exitosamente.',
+    };
   }
 
   async updateWarehouse(wh: Warehouse): Promise<ApiResponse<Warehouse>> {
@@ -242,7 +375,11 @@ export class WarehouseService {
       }
     }
 
-    return { success: true, data: list[idx], message: 'Almacén actualizado correctamente.' };
+    return {
+      success: true,
+      data: list[idx],
+      message: 'Almacén actualizado correctamente.',
+    };
   }
 
   async deleteWarehouse(id: number): Promise<ApiResponse<boolean>> {
