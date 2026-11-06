@@ -21,6 +21,7 @@ import {
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { getCompanyId } from '../../../cuadreEnv/services/apiClient';
 import { ProductService } from '../../../products/services/product.service';
+import { BarcodeLookupService } from '../../../products/services/barcode-lookup.service';
 import { CategoryService } from '../../../products/services/category.service';
 import {
   UnitOfMeasurementService,
@@ -188,6 +189,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   readonly moduleAccess = inject(ModuleAccessService);
   readonly isDarkMode = computed(() => this.themeService.isDark);
   readonly draftStorageService = inject(PosDraftStorageService);
+  private readonly barcodeLookupService: BarcodeLookupService = inject(BarcodeLookupService);
   isHeldSalesModalOpen = signal<boolean>(false);
 
   // =========================================================================
@@ -4096,9 +4098,21 @@ ${itemsList}
     } else {
       soundEffects.playErrorBeep();
       triggerHaptic([30, 40, 30]);
-      this.notificationService.warning(
-        `Código "${barcode}" no registrado en el catálogo de esta empresa.`,
-      );
+      void (this.barcodeLookupService as any).lookupUniversalProduct(barcode).then((meta: any) => {
+        if (meta) {
+          this.notificationService.info(
+            `✨ Identificado globalmente (Brocade): "${meta.name}" (${meta.brand || 'General'}). Listo para registrar.`
+          );
+        } else {
+          this.notificationService.warning(
+            `Código "${barcode}" no registrado en el catálogo de esta empresa.`
+          );
+        }
+      }).catch(() => {
+        this.notificationService.warning(
+          `Código "${barcode}" no registrado en el catálogo de esta empresa.`
+        );
+      });
       if (!isFromCamera) {
         this.searchTerm.set(barcode);
         this.closeCameraScanner();

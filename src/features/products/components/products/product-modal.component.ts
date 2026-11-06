@@ -17,6 +17,7 @@ import {
   type ProductDto,
 } from '../../../cuadreEnv/types/api';
 import { generateDominicanEan13 } from '../../../cuadreEnv/utils/barcode.util';
+import { BarcodeLookupService, type UniversalProductMetadata } from '../../services/barcode-lookup.service';
 import {
   ButtonDirective,
   ColComponent,
@@ -57,6 +58,11 @@ export class ProductModalComponent {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private barcodeLookupService = inject(BarcodeLookupService);
+
+  isLookingUpBarcode = signal<boolean>(false);
+  isDecodingBarcodeImage = signal<boolean>(false);
+  detectedGlobalProduct = signal<UniversalProductMetadata | null>(null);
 
   @Input() visible = false;
   @Output() visibleChange = new EventEmitter<boolean>();
@@ -190,6 +196,7 @@ export class ProductModalComponent {
   async openCreate() {
     this.isEditMode = false;
     this.selectedProductId = null;
+    this.detectedGlobalProduct.set(null);
     await this.loadLookups();
     this.productForm.reset({
       description: '',
@@ -261,6 +268,7 @@ export class ProductModalComponent {
   }
 
   close() {
+    this.detectedGlobalProduct.set(null);
     this.visible = false;
     this.visibleChange.emit(false);
   }
@@ -298,6 +306,80 @@ export class ProductModalComponent {
     const generated = generateDominicanEan13(catId, name || ref);
     this.productForm.patchValue({ barcode: generated });
     this.notificationService.info(`Código de barra EAN-13 generado: ${generated}`);
+  }
+
+  async onBarcodeImageSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    this.isDecodingBarcodeImage.set(true);
+    try {
+      const barcode = await this.barcodeLookupService.decodeBarcodeFromImage(file);
+      this.productForm.patchValue({ barcode });
+      this.notificationService.success(`Código decodificado exitosamente de la imagen: ${barcode}`);
+      void this.lookupGlobalBarcode(barcode);
+    } catch (err: any) {
+      this.notificationService.warning(err.message || 'No se pudo decodificar el código de barra de la imagen.');
+    } finally {
+      this.isDecodingBarcodeImage.set(false);
+      input.value = '';
+    }
+  }
+
+  async lookupGlobalBarcode(codeOverride?: string): Promise<void> {
+    const code = String(codeOverride || this.productForm.get('barcode')?.value || '').trim();
+    if (!code) {
+      this.notificationService.warning('Por favor ingresa o escanea un código de barra primero.');
+      return;
+    }
+    this.isLookingUpBarcode.set(true);
+    this.detectedGlobalProduct.set(null);
+    try {
+      const meta = await this.barcodeLookupService.lookupUniversalProduct(code);
+      if (meta) {
+        this.detectedGlobalProduct.set(meta);
+        const currentDesc = String(this.productForm.get('description')?.value || '').trim();
+        const currentRef = String(this.productForm.get('reference')?.value || '').trim();
+        const currentImg = String(this.productForm.get('imageUrl')?.value || '').trim();
+
+        const patchPayload: any = {};
+        if (!currentDesc || currentDesc.length < 3) {
+          patchPayload.description = meta.description;
+        }
+        if (!currentRef) {
+          patchPayload.reference = meta.brand ? `${meta.brand.slice(0, 4).toUpperCase()}-${meta.barcode.slice(-4)}` : `REF-${meta.barcode.slice(-4)}`;
+        }
+        if (!currentImg && meta.imageUrl) {
+          patchPayload.imageUrl = meta.imageUrl;
+        }
+
+        if (meta.category && this.categories().length > 0 && !this.productForm.get('categoryId')?.value) {
+          const matchCat = this.categories().find(c => {
+            const cName = (c.name || c.description || '').toLowerCase();
+            return cName.includes(meta.category!.toLowerCase()) || meta.category!.toLowerCase().includes(cName);
+          });
+          if (matchCat) {
+            patchPayload.categoryId = matchCat.id;
+          }
+        }
+
+        if (Object.keys(patchPayload).length > 0) {
+          this.productForm.patchValue(patchPayload);
+        }
+
+        this.notificationService.success(
+          `✨ Producto identificado en Base de Datos Global: "${meta.name}". Datos autocompletados.`
+        );
+      } else {
+        this.notificationService.info(
+          `Código ${code} no encontrado en la Base de Datos Global. Puedes registrar sus datos manualmente.`
+        );
+      }
+    } catch {
+      this.notificationService.info(`No se pudo consultar el código ${code} en este momento.`);
+    } finally {
+      this.isLookingUpBarcode.set(false);
+    }
   }
 
   onPhotoSelected(event: Event): void {
