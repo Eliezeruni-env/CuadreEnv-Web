@@ -256,7 +256,7 @@ export class CorporateSalesComponent implements OnInit {
 
     const items = [...this.orderItems()];
     const existing = items.find((i) => i.productId === productId);
-    const price = Number((p as any).price || p.cost || 100);
+    const price = Number((p as any).price != null && (p as any).price > 0 ? (p as any).price : (p as any).priceList || 0);
 
     if (existing) {
       existing.quantity += 1;

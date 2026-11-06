@@ -118,7 +118,8 @@ export class CreateSaleModalComponent implements OnInit {
     itemGroup.get('productId')?.valueChanges.subscribe((prodId) => {
       const p = this.products().find((x) => x.id === Number(prodId));
       if (p) {
-        const price = Number(p.price || (p as any).priceList || (p.cost ? p.cost * 1.3 : 0));
+        // Usar estrictamente el Precio Unitario de Venta (nunca el Costo de Compra)
+        const price = Number(p.price != null && p.price > 0 ? p.price : (p as any).priceList || 0);
         itemGroup.patchValue({ unitPrice: price }, { emitEvent: false });
         this.recalculatePaid();
       }

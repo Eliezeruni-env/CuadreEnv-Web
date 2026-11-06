@@ -50,7 +50,7 @@
                         <select cSelect formControlName="productId">
                           <option value="" disabled selected>{{ translationService.t('common.select') }}</option>
                           @for (p of products(); track p.id) {
-                            <option [value]="p.id">{{ p.description }}</option>
+                            <option [value]="p.id">{{ p.description }} (Precio Venta: RD$ {{ (p.price || 0) | number:'1.2-2' }})</option>
                           }
                         </select>
                       </div>
@@ -59,8 +59,8 @@
                         <input type="number" formControlName="quantity" cFormControl />
                       </div>
                       <div class="col-md-3">
-                        <label class="small text-secondary mb-1">{{ translationService.t('sales.modal.unitPrice') }} (Bloqueado)</label>
-                        <input type="number" formControlName="unitPrice" cFormControl readonly style="background-color: var(--cui-tertiary-bg, #f1f5f9); cursor: not-allowed;" title="El precio unitario solo se puede editar en el módulo de Productos" />
+                        <label class="small text-secondary mb-1">Precio Venta (RD$)</label>
+                        <input type="number" formControlName="unitPrice" cFormControl readonly style="background-color: var(--cui-tertiary-bg, #f1f5f9); cursor: not-allowed;" title="Precio Unitario de Venta configurado en el catálogo del producto" />
                       </div>
                       <div class="col-md-1 text-center">
                         <button type="button" cButton color="danger" size="sm" variant="ghost" class="mb-1" (click)="removeItem(idx)">

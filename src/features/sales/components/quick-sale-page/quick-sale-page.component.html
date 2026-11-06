@@ -531,7 +531,7 @@
 
                   <div class="product-card-bottom">
                     <div class="product-price-box">
-                      <span class="product-price">RD$ {{ (prod.price || prod.priceList || prod.cost || 100) | number:'1.2-2' }}</span>
+                      <span class="product-price">RD$ {{ (prod.price || prod.priceList || 0) | number:'1.2-2' }}</span>
                       <span class="product-unit">/ {{ getProductUnitSymbol(prod) }}</span>
                     </div>
                     <div class="product-bottom-actions">
@@ -2546,7 +2546,7 @@
           <div class="col-6">
             <div class="p-2 rounded bg-light border">
               <span class="text-secondary d-block">Precio al Público:</span>
-              <strong class="text-primary fs-6 font-monospace">RD$ {{ (prodPhoto.price || prodPhoto.priceList || prodPhoto.cost || 100) | number:'1.2-2' }}</strong>
+              <strong class="text-primary fs-6 font-monospace">RD$ {{ (prodPhoto.price || prodPhoto.priceList || 0) | number:'1.2-2' }}</strong>
             </div>
           </div>
           <div class="col-6">

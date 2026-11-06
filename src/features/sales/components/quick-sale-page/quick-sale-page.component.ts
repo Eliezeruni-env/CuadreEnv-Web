@@ -334,7 +334,7 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   setDetailSaleByMoney(amount: number): void {
     const prod = this.selectedProductForMeasurement();
     if (!prod) return;
-    const unitPrice = this.getEffectiveUnitPrice() || Number(prod.price || prod.priceList || prod.cost || 100);
+    const unitPrice = this.getEffectiveUnitPrice() || Number(prod.price || prod.priceList || 0);
     if (unitPrice <= 0) return;
     this.selectedSaleAmountMoney.set(amount);
     const calculatedQty = Math.round((amount / unitPrice) * 1000) / 1000;
@@ -1625,7 +1625,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         id: p.id || 1,
         name: p.description || 'Producto',
         code,
-        price: Number(p.price || p.priceList || p.cost || 100),
+        price: Number(p.price || p.priceList || 0),
         categoryName: p.categoryName || undefined,
       };
     });
@@ -2138,13 +2138,13 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     if (pkg && mode === 'package') {
       return (
         pkg.packagePrice ||
-        Number(prod.price || prod.priceList || prod.cost || 100) * (pkg.packageUnitsCount || 1)
+        Number(prod.price || prod.priceList || 0) * (pkg.packageUnitsCount || 1)
       );
     }
     if (pkg && mode === 'individual') {
       return pkg.individualUnitPrice || 15;
     }
-    return Number(prod.price || prod.priceList || prod.cost || 100);
+    return Number(prod.price || prod.priceList || 0);
   }
 
   getEffectiveUnitLabel(): string {
@@ -2345,7 +2345,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       );
     }
 
-    const price = Number(product.price || product.priceList || product.cost || 100);
+    const price = Number(product.price != null && product.price > 0 ? product.price : product.priceList || 0);
     const code =
       product.barcode ||
       product.reference ||
@@ -2807,7 +2807,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       this.cameraBurstScannedCount.update((c) => c + 1);
       this.cameraLastScannedItem.set({
         name: product.description || 'Producto',
-        price: Number(product.price || product.priceList || product.cost || 100),
+        price: Number(product.price || product.priceList || 0),
         time: formatTimeInRD(new Date()),
       });
 

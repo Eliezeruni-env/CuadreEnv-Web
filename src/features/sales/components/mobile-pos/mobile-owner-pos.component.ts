@@ -1529,14 +1529,14 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     if (pkg && mode === 'package') {
       return (
         pkg.packagePrice ||
-        (prod.price || (prod.cost ? prod.cost * 1.3 : 100)) *
+        Number(prod.price || (prod as any).priceList || 0) *
           (pkg.packageUnitsCount || 1)
       );
     }
     if (pkg && mode === 'individual') {
       return pkg.individualUnitPrice || 15;
     }
-    return prod.price || (prod.cost ? prod.cost * 1.3 : 100);
+    return Number(prod.price || (prod as any).priceList || 0);
   }
 
   getEffectiveUnitLabel(): string {
@@ -1855,7 +1855,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
         i.product.id === product.id &&
         (isGeneric ? i.product.description === product.description : true),
     );
-    const price = product.price || (product.cost ? product.cost * 1.3 : 100);
+    const price = Number(product.price != null && product.price > 0 ? product.price : (product as any).priceList || 0);
     const itbisRate = product.taxRate ?? 0.18;
     const unitSymbol = this.getProductUnitSymbol(product);
     const allowsDecimals = this.isProductMeasurable(product);
