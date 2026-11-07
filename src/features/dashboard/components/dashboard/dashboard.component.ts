@@ -494,7 +494,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         // Filtrar productos con stock crítico o agotado (excluyendo servicios e inactivos)
         const criticalProducts = enrichedProducts.filter((p) => {
           const pAny = p as any;
-          const isService = pAny.isService || pAny.invoiceWithoutStock || pAny.productTypeId === 2;
+          const isService = pAny.isService || pAny.productTypeId === 2;
           if (isService) return false;
           if (pAny.active === false || pAny.isDeleted) return false;
 

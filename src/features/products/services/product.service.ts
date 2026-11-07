@@ -36,7 +36,6 @@ export class ProductService {
     if (!p) return false;
     if (p.isService === true || p.type === 'service' || p.type === 'Servicio') return true;
     if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
-    if (p.invoiceWithoutStock === true) return true;
     const ref = String(p.barcode || p.reference || '').toUpperCase().trim();
     if (ref.startsWith('SERV-') || ref.startsWith('SERV')) return true;
     const typeName = String(p.productTypeName || p.productType?.name || '').toLowerCase();

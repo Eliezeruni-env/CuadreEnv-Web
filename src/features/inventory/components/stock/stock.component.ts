@@ -48,7 +48,7 @@ export class StockComponent implements OnInit {
 
     if (this.statusFilter !== 'ALL') {
       list = list.filter((s) => {
-        const st = this.stockService.getStockStatus(s.quantity, s.minimumQuantity || 5, s.maximumQuantity || 100);
+        const st = this.stockService.getStockStatus(s.quantity, s.minimumQuantity || 5, s.maximumQuantity || null);
         return st.type === this.statusFilter;
       });
     }
@@ -82,11 +82,11 @@ export class StockComponent implements OnInit {
   });
 
   readonly normalCount = computed(() => {
-    return this.stockList().filter((s) => s.quantity > (s.minimumQuantity || 5) && s.quantity < (s.maximumQuantity || 100)).length;
+    return this.stockList().filter((s) => s.quantity > (s.minimumQuantity || 5) && (!s.maximumQuantity || s.maximumQuantity <= 0 || s.quantity < s.maximumQuantity)).length;
   });
 
   readonly overstockCount = computed(() => {
-    return this.stockList().filter((s) => s.quantity >= (s.maximumQuantity || 100)).length;
+    return this.stockList().filter((s) => (s.maximumQuantity != null && s.maximumQuantity > 0) && s.quantity >= s.maximumQuantity).length;
   });
 
   readonly allCount = computed(() => {
@@ -104,9 +104,10 @@ export class StockComponent implements OnInit {
   }
 
   getStockPercentage(s: Stock): number {
-    const max = s.maximumQuantity || 100;
-    if (max <= 0) return 0;
-    return Math.min(100, Math.max(0, Math.round(((s.quantity || 0) / max) * 100)));
+    if (!s.maximumQuantity || s.maximumQuantity <= 0) {
+      return s.quantity > 0 ? 50 : 0;
+    }
+    return Math.min(100, Math.max(0, Math.round(((s.quantity || 0) / s.maximumQuantity) * 100)));
   }
 
   ngOnInit() {

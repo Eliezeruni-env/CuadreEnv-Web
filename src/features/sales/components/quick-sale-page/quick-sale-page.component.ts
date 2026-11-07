@@ -717,7 +717,6 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     if (p.isService === true || p.type === 'service' || p.type === 'Servicio')
       return true;
     if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
-    if (p.invoiceWithoutStock === true) return true;
 
     const code = String(p.barcode || p.reference || p.code || '')
       .toUpperCase()

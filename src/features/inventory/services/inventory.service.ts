@@ -128,16 +128,20 @@ export class InventoryService {
     to?: string;
     type?: string;
   }): Promise<ApiResponse<MovementDto[]>> {
+    const queryParams: any = { ...params };
+    if (queryParams.to && typeof queryParams.to === 'string' && queryParams.to.length === 10) {
+      queryParams.to = `${queryParams.to}T23:59:59.999Z`;
+    }
     try {
       const res = await this.api.get<any, any>('/inventory/movements', {
-        params,
+        params: queryParams,
       });
       const data = extractArray<MovementDto>(res);
       return { success: true, data: data || [] };
     } catch {
       // Try fallback endpoint
       try {
-        const res2 = await this.api.get<any, any>('/v1/inventory/movements', { params });
+        const res2 = await this.api.get<any, any>('/v1/inventory/movements', { params: queryParams });
         const data2 = extractArray<MovementDto>(res2);
         return { success: true, data: data2 || [] };
       } catch {

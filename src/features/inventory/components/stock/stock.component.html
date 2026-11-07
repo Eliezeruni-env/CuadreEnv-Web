@@ -241,7 +241,7 @@
             </tr>
           } @else {
             @for (s of pagedStock(); track s.id) {
-              @let status = stockService.getStockStatus(s.quantity, s.minimumQuantity || 5, s.maximumQuantity || 100);
+              @let status = stockService.getStockStatus(s.quantity, s.minimumQuantity || 5, s.maximumQuantity || null);
               @let pct = getStockPercentage(s);
               <tr class="stock-interactive-row" [ngClass]="'row-' + status.type.toLowerCase()">
                 <td class="ps-4">
@@ -278,7 +278,7 @@
                 <td class="text-center font-monospace text-secondary" style="font-size: 0.78rem;">
                   <span title="Stock Mínimo">{{ s.minimumQuantity || 5 }}</span>
                   <span class="text-muted mx-1">/</span>
-                  <span title="Stock Máximo">{{ s.maximumQuantity || 100 }}</span>
+                  <span title="Stock Máximo">{{ s.maximumQuantity && s.maximumQuantity > 0 ? s.maximumQuantity : 'Sin límite' }}</span>
                 </td>
                 <td class="text-end font-monospace">
                   <div class="fw-bold text-dark">RD$ {{ (s.price || s.cost || 0) | number:'1.2-2' }}</div>

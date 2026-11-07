@@ -96,7 +96,7 @@ export class StockService {
           barcode: pBarcode,
           quantity: baseQty,
           minimumQuantity: p.minimumQuantity || 5,
-          maximumQuantity: p.maximumQuantity || 100,
+          maximumQuantity: p.maximumQuantity || 0,
           cost: pCost,
           price: pPrice,
           lastUpdated: new Date().toISOString(),
@@ -260,7 +260,7 @@ export class StockService {
   getStockStatus(
     quantity: number,
     minQty: number = 5,
-    maxQty: number = 100,
+    maxQty?: number | null,
   ): { label: string; badgeClass: string; color: string; type: 'CRITICAL' | 'LOW' | 'NORMAL' | 'OVERSTOCK' } {
     if (quantity <= 0) {
       return {
@@ -278,7 +278,7 @@ export class StockService {
         type: 'LOW',
       };
     }
-    if (quantity >= maxQty) {
+    if (maxQty != null && maxQty > 0 && quantity >= maxQty) {
       return {
         label: 'Sobre-stock',
         badgeClass: 'status-badge-subtle-primary px-2.5 py-1 rounded-pill',

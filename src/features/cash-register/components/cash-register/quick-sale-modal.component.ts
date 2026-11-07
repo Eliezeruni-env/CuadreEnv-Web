@@ -207,7 +207,6 @@ export class QuickSaleModalComponent implements OnInit {
     if (!p) return false;
     if (p.isService === true || p.type === 'service' || p.type === 'Servicio') return true;
     if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
-    if (p.invoiceWithoutStock === true) return true;
 
     const code = String(p.barcode || p.reference || p.code || '').toUpperCase().trim();
     if (code.startsWith('SERV-') || code.startsWith('SERV')) return true;
