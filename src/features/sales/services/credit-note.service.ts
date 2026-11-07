@@ -322,17 +322,18 @@ export class CreditNoteService {
         await this.api.post<any, any>('/Warehouse/entry', entry);
       } catch {
         // Update local product inventory if needed
-      for (const item of entry.details) {
-        try {
-          const p = await this.productService.getProduct(item.productId);
-          if (p?.success && p.data) {
-            await this.productService.updateProduct({
-              ...p.data,
-              stock: (p.data.stock || 0) + item.quantity,
-            });
+        for (const item of entry.details) {
+          try {
+            const p = await this.productService.getProduct(item.productId);
+            if (p?.success && p.data) {
+              await this.productService.updateProduct({
+                ...p.data,
+                stock: (p.data.stock || 0) + item.quantity,
+              });
+            }
+          } catch {
+            // ignore
           }
-        } catch {
-          // ignore
         }
       }
     }
