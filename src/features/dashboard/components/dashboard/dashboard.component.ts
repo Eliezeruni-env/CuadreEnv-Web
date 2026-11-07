@@ -1,5 +1,15 @@
 import { formatPaymentMethodLabel } from '../../../cuadreEnv/utils/payment-method.util';
-import { Component, OnInit, OnDestroy, signal, computed, inject, ViewChild, ElementRef, HostListener } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  signal,
+  computed,
+  inject,
+  ViewChild,
+  ElementRef,
+  HostListener,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../../products/services/product.service';
@@ -23,10 +33,7 @@ import { IconDirective } from '@coreui/icons-angular';
 import { Router, RouterLink } from '@angular/router';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import { StockService } from '../../../inventory/services/stock.service';
-import {
-  SpinnerComponent,
-  AlertComponent,
-} from '@coreui/angular';
+import { SpinnerComponent, AlertComponent } from '@coreui/angular';
 import { HasModuleDirective } from '../../../../app/shared/directives/has-module.directive';
 
 @Component({
@@ -67,7 +74,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  @ViewChild('quickActionsContainer') quickActionsContainer?: ElementRef<HTMLDivElement>;
+  @ViewChild('quickActionsContainer')
+  quickActionsContainer?: ElementRef<HTMLDivElement>;
 
   scrollQuickActions(offset: number) {
     if (this.quickActionsContainer?.nativeElement) {
@@ -167,22 +175,34 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.handleLiveSaleEvent(sale);
       }
     };
-    window.addEventListener('cuadre:sale-completed', this.saleCompletedListener);
+    window.addEventListener(
+      'cuadre:sale-completed',
+      this.saleCompletedListener,
+    );
 
     // 3. Sincronización inmediata al cambiar estado de caja en PC o Móvil
     this.cashRegisterChangedListener = () => {
       void this.loadDashboardData();
     };
-    window.addEventListener('cuadre_cash_register_changed', this.cashRegisterChangedListener);
+    window.addEventListener(
+      'cuadre_cash_register_changed',
+      this.cashRegisterChangedListener,
+    );
   }
 
   private teardownLiveActivityFeed(): void {
     if (typeof window !== 'undefined') {
       if (this.saleCompletedListener) {
-        window.removeEventListener('cuadre:sale-completed', this.saleCompletedListener);
+        window.removeEventListener(
+          'cuadre:sale-completed',
+          this.saleCompletedListener,
+        );
       }
       if (this.cashRegisterChangedListener) {
-        window.removeEventListener('cuadre_cash_register_changed', this.cashRegisterChangedListener);
+        window.removeEventListener(
+          'cuadre_cash_register_changed',
+          this.cashRegisterChangedListener,
+        );
       }
       if (this.liveBroadcastChannel) {
         this.liveBroadcastChannel.close();
@@ -321,11 +341,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
         let salesList: SaleResponseDto[] = [];
         try {
           const salesRes = await this.saleService.getSales();
-          if (salesRes?.success && Array.isArray(salesRes.data) && salesRes.data.length > 0) {
+          if (
+            salesRes?.success &&
+            Array.isArray(salesRes.data) &&
+            salesRes.data.length > 0
+          ) {
             salesList = salesRes.data;
           }
         } catch (e) {
-          console.warn('Dashboard: Error fetching sales from API, using local cache:', e);
+          console.warn(
+            'Dashboard: Error fetching sales from API, using local cache:',
+            e,
+          );
         }
 
         if (salesList.length === 0) {
@@ -361,8 +388,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
                 s.cashierId === curr.id ||
                 s.createdBy === curr.id ||
                 s.createdBy === curr.email ||
-                (s.cashierName && s.cashierName.toLowerCase() === (curr.email || '').toLowerCase()) ||
-                (s.sellerName && s.sellerName.toLowerCase() === (curr.email || '').toLowerCase()),
+                (s.cashierName &&
+                  s.cashierName.toLowerCase() ===
+                    (curr.email || '').toLowerCase()) ||
+                (s.sellerName &&
+                  s.sellerName.toLowerCase() ===
+                    (curr.email || '').toLowerCase()),
             );
             if (userSales.length > 0) {
               filteredSales = userSales;
@@ -373,13 +404,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
         let dateFilteredSales = filteredSales;
         if (from) {
           dateFilteredSales = dateFilteredSales.filter((s: any) => {
-            const sDate = (s.creationDate || s.createdAt || s.date || '').split('T')[0];
+            const sDate = (s.creationDate || s.createdAt || s.date || '').split(
+              'T',
+            )[0];
             return !sDate || sDate >= from;
           });
         }
         if (to) {
           dateFilteredSales = dateFilteredSales.filter((s: any) => {
-            const sDate = (s.creationDate || s.createdAt || s.date || '').split('T')[0];
+            const sDate = (s.creationDate || s.createdAt || s.date || '').split(
+              'T',
+            )[0];
             return !sDate || sDate <= to;
           });
         }
@@ -392,26 +427,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.todaySalesCount.set(dateFilteredSales.length);
 
         // Recent sales table: show dateFilteredSales if any, otherwise all available sales
-        const recent = dateFilteredSales.length > 0 ? dateFilteredSales : filteredSales;
+        const recent =
+          dateFilteredSales.length > 0 ? dateFilteredSales : filteredSales;
         this.todayRecentSales.set(recent.slice(0, 10));
       }
 
       if (canViewCash) {
         try {
           const [cashRes, activeSessionRes] = await Promise.all([
-            this.cashRegisterService.getCashRegisters().catch(() => ({ success: false, data: [] })),
-            this.cashRegisterService.getActiveSession().catch(() => ({ success: false, data: null })),
+            this.cashRegisterService
+              .getCashRegisters()
+              .catch(() => ({ success: false, data: [] })),
+            this.cashRegisterService
+              .getActiveSession()
+              .catch(() => ({ success: false, data: null })),
           ]);
           if (cashRes?.success && cashRes.data) {
             const activeCount = cashRes.data.filter(
-              (c: any) => c.isOpen === true || c.status === 'Open' || c.status === 'Opened',
+              (c: any) =>
+                c.isOpen === true ||
+                c.status === 'Open' ||
+                c.status === 'Opened',
             ).length;
             this.activeCashRegistersCount.set(activeCount);
           }
           if (activeSessionRes?.success && activeSessionRes.data) {
             const s = activeSessionRes.data;
             this.activeCashSession.set(s);
-            this.activeCashEstimatedCash.set(s.currentBalance ?? (s.initialAmount + s.totalIn - s.totalOut));
+            this.activeCashEstimatedCash.set(
+              s.currentBalance ?? s.initialAmount + s.totalIn - s.totalOut,
+            );
           } else {
             this.activeCashSession.set(null);
             this.activeCashEstimatedCash.set(0);
@@ -499,7 +544,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
           if (pAny.active === false || pAny.isDeleted) return false;
 
           // Se considera en nivel crítico si está agotado (<= 0) o si su stock no supera el umbral mínimo (por defecto 5 unds)
-          const min = p.minimumQuantity != null && p.minimumQuantity > 0 ? p.minimumQuantity : 5;
+          const min =
+            p.minimumQuantity != null && p.minimumQuantity > 0
+              ? p.minimumQuantity
+              : 5;
           const currentStock = p.stock != null ? Number(p.stock) : 0;
           return currentStock <= min;
         });
@@ -536,24 +584,44 @@ export class DashboardComponent implements OnInit, OnDestroy {
       if (canViewReceivables) {
         try {
           const [overdueRes, allRecRes] = await Promise.all([
-            this.accountReceivableService.getOverdue().catch(() => ({ success: false, data: [] })),
-            this.receivableService.getReceivables().catch(() => ({ success: false, data: [] })),
+            this.accountReceivableService
+              .getOverdue()
+              .catch(() => ({ success: false, data: [] })),
+            this.receivableService
+              .getReceivables()
+              .catch(() => ({ success: false, data: [] })),
           ]);
 
-          const apiOverdue = (overdueRes?.success && Array.isArray(overdueRes.data)) ? overdueRes.data : [];
-          const allRec = (allRecRes?.success && Array.isArray(allRecRes.data)) ? allRecRes.data : [];
+          const apiOverdue =
+            overdueRes?.success && Array.isArray(overdueRes.data)
+              ? overdueRes.data
+              : [];
+          const allRec =
+            allRecRes?.success && Array.isArray(allRecRes.data)
+              ? allRecRes.data
+              : [];
 
           // Combinar y desduplicar cuentas por cobrar
           const combinedMap = new Map<string, any>();
 
           for (const item of apiOverdue) {
-            if (!item || (item as any).active === false || (item as any).isDeleted) continue;
+            if (
+              !item ||
+              (item as any).active === false ||
+              (item as any).isDeleted
+            )
+              continue;
             const key = String(item.id || item.invoiceNumber || Math.random());
             combinedMap.set(key, item);
           }
 
           for (const item of allRec) {
-            if (!item || (item as any).active === false || (item as any).isDeleted) continue;
+            if (
+              !item ||
+              (item as any).active === false ||
+              (item as any).isDeleted
+            )
+              continue;
             const key = String(item.id || item.invoiceNumber || Math.random());
             if (!combinedMap.has(key)) {
               combinedMap.set(key, item);
@@ -563,31 +631,43 @@ export class DashboardComponent implements OnInit, OnDestroy {
           const now = new Date();
           const todayStr = now.toISOString().split('T')[0];
 
-          const validReceivables = Array.from(combinedMap.values()).filter((item: any) => {
-            const pending = item.pendingAmount !== undefined 
-              ? Number(item.pendingAmount) 
-              : (Number(item.totalAmount || item.total || 0) - Number(item.paidAmount || 0));
-            if (pending <= 0) return false;
-            if (item.status === 'Paid' || item.status === 'Pagado') return false;
+          const validReceivables = Array.from(combinedMap.values()).filter(
+            (item: any) => {
+              const pending =
+                item.pendingAmount !== undefined
+                  ? Number(item.pendingAmount)
+                  : Number(item.totalAmount || item.total || 0) -
+                    Number(item.paidAmount || 0);
+              if (pending <= 0) return false;
+              if (item.status === 'Paid' || item.status === 'Pagado')
+                return false;
 
-            // Facturas vencidas o con cobro pendiente para hoy / activas
-            if (item.status === 'Overdue' || item.status === 'Vencido') return true;
-            if (item.status === 'Pendiente' || item.status === 'Parcial') return true;
-            if (item.dueDate) {
-              const dStr = String(item.dueDate).split('T')[0];
-              return dStr <= todayStr;
-            }
-            return true;
-          });
+              // Facturas vencidas o con cobro pendiente para hoy / activas
+              if (item.status === 'Overdue' || item.status === 'Vencido')
+                return true;
+              if (item.status === 'Pendiente' || item.status === 'Parcial')
+                return true;
+              if (item.dueDate) {
+                const dStr = String(item.dueDate).split('T')[0];
+                return dStr <= todayStr;
+              }
+              return true;
+            },
+          );
 
           this.overdueAccountsList.set(validReceivables);
           this.overdueAccountsCount.set(validReceivables.length);
-          const totalPending = validReceivables.reduce((acc: number, item: any) => {
-            const amt = item.pendingAmount !== undefined 
-              ? Number(item.pendingAmount) 
-              : (Number(item.totalAmount || item.total || 0) - Number(item.paidAmount || 0));
-            return acc + (Number(amt) || 0);
-          }, 0);
+          const totalPending = validReceivables.reduce(
+            (acc: number, item: any) => {
+              const amt =
+                item.pendingAmount !== undefined
+                  ? Number(item.pendingAmount)
+                  : Number(item.totalAmount || item.total || 0) -
+                    Number(item.paidAmount || 0);
+              return acc + (Number(amt) || 0);
+            },
+            0,
+          );
           this.overdueAccountsTotal.set(Math.round(totalPending * 100) / 100);
         } catch (e) {
           console.warn('[Dashboard] Error calculating pending receivables:', e);
@@ -600,29 +680,41 @@ export class DashboardComponent implements OnInit, OnDestroy {
           let filteredAudit = auditRes.data;
           if (from) {
             filteredAudit = filteredAudit.filter((m: any) => {
-              const mDate = m.timestamp || m.createdAt || m.occurredAt || m.creationDate || m.date;
+              const mDate =
+                m.timestamp ||
+                m.createdAt ||
+                m.occurredAt ||
+                m.creationDate ||
+                m.date;
               if (!mDate) return false;
               return mDate.split('T')[0] >= from;
             });
           }
           if (to) {
             filteredAudit = filteredAudit.filter((m: any) => {
-              const mDate = m.timestamp || m.createdAt || m.occurredAt || m.creationDate || m.date;
+              const mDate =
+                m.timestamp ||
+                m.createdAt ||
+                m.occurredAt ||
+                m.creationDate ||
+                m.date;
               if (!mDate) return false;
               return mDate.split('T')[0] <= to;
             });
           }
           this.auditMovements.set(filteredAudit.slice(0, 10));
         }
-
       }
     } catch (e: any) {
       const status = e?.status ?? e?.statusCode ?? e?.response?.status;
       if (status === 403) {
-        console.warn('[Dashboard] API withheld one or more module metrics; keeping dashboard available.', {
-          url: e?.url,
-          code: e?.error?.errorCode ?? e?.error?.code,
-        });
+        console.warn(
+          '[Dashboard] API withheld one or more module metrics; keeping dashboard available.',
+          {
+            url: e?.url,
+            code: e?.error?.errorCode ?? e?.error?.code,
+          },
+        );
         this.errorMessage.set(null);
       } else {
         this.errorMessage.set(
@@ -648,9 +740,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getMovementTypeLabel(type: any): string {
-    const t = String(type ?? '').trim().toLowerCase();
-    if (t === 'inbound' || t === 'in' || t === 'create' || t === '0') return 'Entrada de Stock';
-    if (t === 'outbound' || t === 'out' || t === 'delete' || t === '1') return 'Salida de Stock';
+    const t = String(type ?? '')
+      .trim()
+      .toLowerCase();
+    if (t === 'inbound' || t === 'in' || t === 'create' || t === '0')
+      return 'Entrada de Stock';
+    if (t === 'outbound' || t === 'out' || t === 'delete' || t === '1')
+      return 'Salida de Stock';
     if (t === 'transfer' || t === '2') return 'Transferencia entre Almacenes';
     if (t === 'sale' || t === '3') return 'Salida por Venta';
     if (t === 'adjustment' || t === '4') return 'Ajuste de Stock';
@@ -700,7 +796,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (!rawDate) return 'Hoy';
     const d = new Date(rawDate);
     if (isNaN(d.getTime())) return 'Hoy';
-    return d.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleTimeString('es-DO', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
   formatPaymentMethod(method?: string | null): string {
@@ -709,9 +808,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   getPaymentMethodBadgeClass(method?: string): string {
     const m = (method || '').toLowerCase();
-    if (m.includes('tarjeta') || m.includes('card')) return 'bg-primary-subtle text-primary';
+    if (m.includes('tarjeta') || m.includes('card'))
+      return 'bg-primary-subtle text-primary';
     if (m.includes('transf')) return 'bg-secondary-subtle text-secondary';
-    if (m.includes('cred') || m.includes('créd')) return 'bg-warning-subtle text-warning';
+    if (m.includes('cred') || m.includes('créd'))
+      return 'bg-warning-subtle text-warning';
     return 'bg-success-subtle text-success';
   }
 }
