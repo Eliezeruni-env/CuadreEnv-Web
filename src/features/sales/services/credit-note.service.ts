@@ -316,9 +316,12 @@ export class CreditNoteService {
 
   async processWarehouseEntry(entry: WarehouseEntry): Promise<void> {
     try {
-      await this.api.post<any, any>('/Warehouse/entry', entry);
+      await this.api.post<any, any>('/WarehouseEntry', entry);
     } catch {
-      // Update local product inventory if needed
+      try {
+        await this.api.post<any, any>('/Warehouse/entry', entry);
+      } catch {
+        // Update local product inventory if needed
       for (const item of entry.details) {
         try {
           const p = await this.productService.getProduct(item.productId);

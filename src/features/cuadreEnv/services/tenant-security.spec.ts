@@ -204,7 +204,7 @@ describe('Tenant Multi-Tenancy & Hybrid E-Invoicing Security Specification', () 
     // Petición solicitando 500 registros debe ser limitada a 100
     const res = await purchaseService.getPurchases({ pageNumber: 1, pageSize: 500 });
     expect(res.pageSize).toBe(100);
-    expect(res.data.length).toBe(1);
+    expect(res.data?.length).toBe(1);
 
     // Al cambiar de compañía, purgar compras locales
     purchaseService.purgeLocalPurchases();
