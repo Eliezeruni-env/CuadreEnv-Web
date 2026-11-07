@@ -205,59 +205,65 @@ export class CashRegisterService {
     // 1. Probar ruta canónica GET /v1/cash-sessions/active-session
     try {
       const canonicalRes = await this.api.get<any, any>('/cash-sessions/active-session');
-      const data = canonicalRes?.data || canonicalRes;
-      
-      const isExplicitlyClosed = data && (
-        data.isClosed === true ||
-        data.status === 'Closed' ||
-        data.status === 'CLOSED' ||
-        data.status === 2 ||
-        (data.closedAt && !data.isOpen)
-      );
+      // Si la API responde con éxito y data es null, significa explícitamente que NO hay sesión activa de caja
+      if (canonicalRes && canonicalRes.success && (canonicalRes.data === null || canonicalRes.data === undefined)) {
+        this.removeStoredSessionLocally();
+        return { success: true, data: null };
+      }
 
-      const isOpen = data && !isExplicitlyClosed && (
-        data.isClosed === false ||
-        data.isOpen === true ||
-        data.status === 1 ||
-        data.status === 0 ||
-        data.status === 'Open' ||
-        data.status === 'OPEN' ||
-        data.status === 'Active' ||
-        data.status === 'ACTIVE' ||
-        (!data.closedAt && data.closingAmount == null && data.id)
-      );
+      const data = canonicalRes?.data;
+      if (data && (data.id || data.cashRegisterId)) {
+        const isExplicitlyClosed =
+          data.isClosed === true ||
+          data.status === 'Closed' ||
+          data.status === 'CLOSED' ||
+          data.status === 2 ||
+          (data.closedAt && !data.isOpen);
 
-      if (data && (data.id || data.cashRegisterId) && isOpen) {
-        const regId = Number(data.cashRegisterId || data.id || 1);
-        const sessId = Number(data.sessionId || data.id || regId);
-        unmarkRegisterAsClosed(regId);
-        const session: CashRegisterSessionDto = {
-          id: regId,
-          cashRegisterId: regId,
-          sessionId: sessId,
-          name: data.name || stored?.name || 'Caja Principal',
-          cashierName: data.cashierName || stored?.cashierName || 'Cajero',
-          cashierId: data.cashierUserId || data.cashierId || stored?.cashierId || null,
-          openedAt: data.openedAt || data.creationDate || stored?.openedAt || formatDateTimeInRD(),
-          initialAmount: data.openingAmount ?? data.initialAmount ?? (stored?.initialAmount || 0),
-          currentBalance: data.currentBalance ?? data.declaredCash ?? (data.openingAmount || data.initialAmount || 0),
-          totalIn: data.totalIn || 0,
-          totalOut: data.totalOut || 0,
-          isOpen: true,
-          status: 'OPEN',
-          pauseReason: data.pauseReason || null,
-          pauseNotes: data.pauseNotes || null,
-          pausedAt: data.pausedAt || null,
-        };
+        const isOpen = !isExplicitlyClosed && (
+          data.isOpen === true ||
+          data.status === 1 ||
+          data.status === 'Open' ||
+          data.status === 'OPEN' ||
+          data.status === 'Active' ||
+          data.status === 'ACTIVE'
+        );
 
-        if (typeof window !== 'undefined' && window.localStorage) {
-          this.storeSessionLocally(session);
+        if (isOpen) {
+          const regId = Number(data.cashRegisterId || data.id || 1);
+          const sessId = Number(data.sessionId || data.id || regId);
+          unmarkRegisterAsClosed(regId);
+          const session: CashRegisterSessionDto = {
+            id: regId,
+            cashRegisterId: regId,
+            sessionId: sessId,
+            name: data.name || stored?.name || 'Caja Principal',
+            cashierName: data.cashierName || stored?.cashierName || 'Cajero',
+            cashierId: data.cashierUserId || data.cashierId || stored?.cashierId || null,
+            openedAt: data.openedAt || data.creationDate || stored?.openedAt || formatDateTimeInRD(),
+            initialAmount: data.openingAmount ?? data.initialAmount ?? (stored?.initialAmount || 0),
+            currentBalance: data.currentBalance ?? data.declaredCash ?? (data.openingAmount || data.initialAmount || 0),
+            totalIn: data.totalIn || 0,
+            totalOut: data.totalOut || 0,
+            isOpen: true,
+            status: 'OPEN',
+            pauseReason: data.pauseReason || null,
+            pauseNotes: data.pauseNotes || null,
+            pausedAt: data.pausedAt || null,
+          };
+
+          if (typeof window !== 'undefined' && window.localStorage) {
+            this.storeSessionLocally(session);
+          }
+
+          return { success: true, data: session };
+        } else {
+          this.removeStoredSessionLocally();
+          return { success: true, data: null };
         }
-
-        return { success: true, data: session };
       }
     } catch {
-      // Continuar con fallback /CashRegister
+      // Continuar con fallback /CashRegister solo si /cash-sessions falló o no existe
     }
 
     // 2. Consulta GET /CashRegister para detectar caja abierta en base de datos
@@ -265,7 +271,9 @@ export class CashRegisterService {
       const regRes = await this.api.get<any, any>('/CashRegister');
       const list = extractArray<any>(regRes);
       const openReg = list.find((r) => 
-        (r.isOpen === true || r.status === 0 || r.status === 'OPEN' || r.status === 'Open') &&
+        r.isOpen === true &&
+        r.openedByUserId != null &&
+        (r.status === 0 || r.status === 'OPEN' || r.status === 'Open') &&
         r.status !== 2 &&
         r.status !== 'CLOSED' &&
         r.status !== 'Closed' &&
@@ -658,7 +666,8 @@ export class CashRegisterService {
           });
           const list = extractArray<any>(regRes);
           const openReg = list.find((r) =>
-            (r.isOpen === true || r.status === 0 || r.status === 'OPEN') &&
+            r.isOpen === true &&
+            (r.status === 0 || r.status === 'OPEN' || r.status === 'Open') &&
             r.status !== 2 &&
             r.status !== 'CLOSED' &&
             r.status !== 'Closed' &&
