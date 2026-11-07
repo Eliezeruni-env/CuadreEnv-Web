@@ -1490,15 +1490,14 @@ export class CashRegisterService {
     try {
       const res = await this.api.get<any, any>('/CashRegister', { params: validParams });
       const list = extractArray<CashRegisterDto>(res);
-      if (list.length > 0) return { success: true, data: list };
+      return { success: true, data: list };
     } catch {
-      // Fallback
-    }
-    try {
-      const res2 = await this.api.get<any, any>('/cash-register', { params: validParams });
-      return { success: true, data: extractArray<CashRegisterDto>(res2) };
-    } catch {
-      return { success: true, data: [] };
+      try {
+        const res2 = await this.api.get<any, any>('/cash-register', { params: validParams });
+        return { success: true, data: extractArray<CashRegisterDto>(res2) };
+      } catch {
+        return { success: true, data: [] };
+      }
     }
   }
 
