@@ -112,3 +112,4 @@ Todos los módulos del ecosistema están debidamente probados y alineados a su p
 - ✅ **Productos:** Creación con atributos completos (incluyendo facturación sin stock) sin reclasificación errónea a servicios.
 - ✅ **Autenticación y Login:** Acceso universal por correo electrónico, nombre de usuario o identificación/cédula, con respaldo seguro de recuperación.
 - ✅ **Multi-Tenant:** Aislamiento total en base de datos y memoria. Ningún usuario ve registros de otras empresas.
+

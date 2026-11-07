@@ -126,3 +126,4 @@ CuadreEnv-web/
 - **`npm start`**: Inicia el servidor de desarrollo local en `http://localhost:4200`.
 - **`npm run build`**: Genera el bundle de producción en `dist/coreui-free-angular-admin-template/browser` y copia los archivos a `dist/cloudflare` para despliegue directo en Cloudflare Pages.
 - **`npm test`**: Ejecuta las suites de pruebas unitarias automatizadas con Jasmine/Karma o Vitest.
+

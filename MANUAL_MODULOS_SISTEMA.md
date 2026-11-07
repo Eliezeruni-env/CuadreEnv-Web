@@ -150,3 +150,4 @@ Proporcionar una vista gerencial panorámica del rendimiento comercial en tiempo
 2. **Seguridad y Visibilidad:**
    - Muestra únicamente las métricas autorizadas según los módulos y permisos concedidos al perfil del usuario autenticado.
    - No expone datos financieros si el usuario es un vendedor o cajero básico sin privilegios gerenciales.
+
