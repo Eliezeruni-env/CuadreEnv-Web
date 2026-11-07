@@ -26,6 +26,19 @@ const FORBIDDEN_NOTIFICATION_WINDOW_MS = 1500;
  * - 422: Mostrar los errores de validación.
  * - 500: Mostrar mensaje genérico al usuario y registrar detalle técnico en el logger del frontend.
  */
+function isExternalUrl(url: string): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  if (lower.startsWith('http://') || lower.startsWith('https://')) {
+    const isAppApi =
+      lower.includes('cuadreenv') ||
+      lower.includes('localhost') ||
+      lower.includes('127.0.0.1');
+    return !isAppApi;
+  }
+  return false;
+}
+
 export const appHttpInterceptorFn: HttpInterceptorFn = (req, next) => {
   const notificationService = inject(NotificationService, { optional: true });
   const router = inject(Router, { optional: true });
@@ -35,6 +48,10 @@ export const appHttpInterceptorFn: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
+      if (isExternalUrl(req.url)) {
+        return throwError(() => error);
+      }
+
       const lowerUrl = req.url.toLowerCase();
       const isPublic =
         lowerUrl.includes('/auth/login') ||
@@ -80,6 +97,10 @@ export class AppHttpInterceptor implements HttpInterceptor {
     const moduleSnapshot = getModuleSnapshot();
     return next.handle(req).pipe(
       catchError((error: HttpErrorResponse) => {
+        if (isExternalUrl(req.url)) {
+          return throwError(() => error);
+        }
+
         const lowerUrl = req.url.toLowerCase();
         const isPublic =
           lowerUrl.includes('/auth/login') ||

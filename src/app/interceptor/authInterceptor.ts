@@ -40,11 +40,26 @@ function isValidCompanyId(compId: any): boolean {
   return !isNaN(num) && num > 0;
 }
 
+function isExternalUrl(url: string): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  if (lower.startsWith('http://') || lower.startsWith('https://')) {
+    const isAppApi =
+      lower.includes('cuadreenv') ||
+      lower.includes('localhost') ||
+      lower.includes('127.0.0.1');
+    return !isAppApi;
+  }
+  return false;
+}
+
 export const authInterceptorFn: HttpInterceptorFn = (req, next) => {
-  if (req.headers.has('X-Skip-Interceptor')) {
-    const cleanReq = req.clone({
-      headers: req.headers.delete('X-Skip-Interceptor'),
-    });
+  if (req.headers.has('X-Skip-Interceptor') || isExternalUrl(req.url)) {
+    const cleanReq = req.headers.has('X-Skip-Interceptor')
+      ? req.clone({
+          headers: req.headers.delete('X-Skip-Interceptor'),
+        })
+      : req;
     return next(cleanReq);
   }
 
@@ -103,10 +118,12 @@ export class AuthInterceptor implements HttpInterceptor {
     req: HttpRequest<any>,
     next: HttpHandler,
   ): Observable<HttpEvent<any>> {
-    if (req.headers.has('X-Skip-Interceptor')) {
-      const cleanReq = req.clone({
-        headers: req.headers.delete('X-Skip-Interceptor'),
-      });
+    if (req.headers.has('X-Skip-Interceptor') || isExternalUrl(req.url)) {
+      const cleanReq = req.headers.has('X-Skip-Interceptor')
+        ? req.clone({
+            headers: req.headers.delete('X-Skip-Interceptor'),
+          })
+        : req;
       return next.handle(cleanReq);
     }
 

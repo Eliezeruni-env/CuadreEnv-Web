@@ -4104,7 +4104,7 @@ ${itemsList}
       void (this.barcodeLookupService as any).lookupUniversalProduct(barcode).then((meta: any) => {
         if (meta) {
           this.notificationService.info(
-            `✨ Identificado globalmente (Brocade): "${meta.name}" (${meta.brand || 'General'}). Listo para registrar.`
+            `✨ Identificado globalmente: "${meta.name}" (${meta.brand || 'General'}). Listo para registrar.`
           );
         } else {
           this.notificationService.warning(

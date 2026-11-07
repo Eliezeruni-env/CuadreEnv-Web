@@ -79,7 +79,7 @@
                       class="btn btn-xs btn-outline-info d-inline-flex align-items-center gap-1 py-0 px-2 rounded-pill font-size-xs"
                       (click)="lookupGlobalBarcode()"
                       [disabled]="isLookingUpBarcode() || !productForm.get('barcode')?.value"
-                      title="Buscar información comercial del producto en Base de Datos Global (Go-UPC / Brocade)"
+                      title="Buscar información comercial del producto en Base de Datos Global (OpenFoodFacts / UPC)"
                     >
                       @if (isLookingUpBarcode()) {
                         <span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;"></span>
@@ -111,7 +111,7 @@
                 @if (isLookingUpBarcode()) {
                   <div class="alert alert-info py-1 px-2 d-flex align-items-center gap-2 mt-1 mb-0 font-size-xs rounded">
                     <span class="spinner-border spinner-border-sm" style="width: 12px; height: 12px;"></span>
-                    <span>Consultando base de datos global (Brocade / OpenFoodFacts)...</span>
+                    <span>Consultando bases de datos globales de productos...</span>
                   </div>
                 }
                 @if (detectedGlobalProduct(); as gp) {

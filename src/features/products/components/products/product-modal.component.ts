@@ -1,4 +1,4 @@
-﻿import { Component, Input, Output, EventEmitter, signal, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -343,7 +343,7 @@ export class ProductModalComponent {
         const currentImg = String(this.productForm.get('imageUrl')?.value || '').trim();
 
         const patchPayload: any = {};
-        if (!currentDesc || currentDesc.length < 3) {
+        if (!currentDesc || currentDesc.length < 3 || currentDesc.toLowerCase().startsWith('producto') || (meta.name && !currentDesc.toLowerCase().includes(meta.name.toLowerCase()))) {
           patchPayload.description = meta.description;
         }
         if (!currentRef) {
