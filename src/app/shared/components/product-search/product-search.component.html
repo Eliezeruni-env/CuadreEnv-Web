@@ -4,7 +4,7 @@
     <div class="col-md-5">
       <div class="d-flex align-items-center justify-content-between mb-1">
         <label class="form-label small fw-semibold text-secondary mb-0">
-          Buscar Producto / Escanear Código
+          {{ mode === 'entry' ? 'Entrada por Código de Barra / Global' : 'Buscar Producto / Escanear' }}
         </label>
         <div class="d-flex align-items-center gap-1">
           <!-- Hidden File Input for Barcode Photo Upload -->
@@ -20,7 +20,7 @@
             class="btn btn-xs btn-outline-primary d-inline-flex align-items-center gap-1 py-0 px-2 rounded-pill font-size-xs"
             (click)="barcodeImageInput.click()"
             [disabled]="isDecodingBarcodeImage()"
-            title="Subir foto o captura de código de barras para decodificar"
+            title="Subir foto o captura de código de barras para decodificar y buscar globalmente"
           >
             @if (isDecodingBarcodeImage()) {
               <span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;"></span>
@@ -47,6 +47,7 @@
           </button>
         </div>
       </div>
+
       <div class="input-group input-group-sm">
         <span class="input-group-text bg-light text-secondary">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -58,33 +59,56 @@
           #searchInput
           type="text"
           class="form-control"
-          placeholder="Escriba nombre o pase el lector de código..."
+          placeholder="Escriba nombre, código de barras o pase el lector..."
           [(ngModel)]="searchTerm"
           (input)="onSearchInput()"
           (keydown.enter)="onBarcodeEntered($event)"
         />
         <button
           type="button"
-          class="btn btn-outline-secondary d-flex align-items-center gap-1"
-          (click)="onBarcodeEntered()"
-          [disabled]="isGlobalSearching()"
-          title="Buscar por código de barras escaneado o global"
+          class="btn btn-outline-info d-flex align-items-center gap-1"
+          (click)="onGlobalSearchClicked()"
+          [disabled]="isGlobalSearching() || !searchTerm"
+          title="Buscar código en bases globales (OpenFoodFacts / UPC) y registrar de una vez"
         >
           @if (isGlobalSearching()) {
             <span class="spinner-border spinner-border-sm" style="width: 12px; height: 12px;"></span>
           } @else {
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="3" y1="5" x2="3" y2="19"></line>
-              <line x1="7" y1="5" x2="7" y2="19"></line>
-              <line x1="11" y1="5" x2="11" y2="19"></line>
-              <line x1="15" y1="5" x2="15" y2="19"></line>
-              <line x1="18" y1="5" x2="18" y2="19"></line>
-              <line x1="21" y1="5" x2="21" y2="19"></line>
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
             </svg>
           }
+          <span class="d-none d-sm-inline font-size-xs fw-semibold">Global</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-secondary d-flex align-items-center gap-1"
+          (click)="onBarcodeEntered()"
+          [disabled]="isGlobalSearching()"
+          title="Buscar por código de barras escaneado"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="5" x2="3" y2="19"></line>
+            <line x1="7" y1="5" x2="7" y2="19"></line>
+            <line x1="11" y1="5" x2="11" y2="19"></line>
+            <line x1="15" y1="5" x2="15" y2="19"></line>
+            <line x1="18" y1="5" x2="18" y2="19"></line>
+            <line x1="21" y1="5" x2="21" y2="19"></line>
+          </svg>
           <span class="d-none d-sm-inline font-size-xs fw-semibold">Escanear</span>
         </button>
       </div>
+
+      @if (mode === 'entry') {
+        <div class="d-flex align-items-center gap-1 mt-1 text-secondary font-size-xs">
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+            🏢 {{ getWarehouseName() }}
+          </span>
+          <span>Escanear o subir foto busca en bases globales y registra el producto directamente.</span>
+        </div>
+      }
     </div>
 
     <!-- Packaging Mode Toggle (if product has packaging) -->
@@ -263,7 +287,7 @@
             @if (filteredProducts.length === 0) {
               <tr>
                 <td colspan="5" class="text-center py-3 text-secondary">
-                  No se encontraron productos coincidentes.
+                  No se encontraron productos coincidentes en el inventario local. Puedes hacer clic en <strong>Global</strong> para buscarlo y crearlo automáticamente.
                 </td>
               </tr>
             }
@@ -325,6 +349,7 @@
 @if (isCameraScannerOpen()) {
   <app-camera-barcode-modal
     [warehouseName]="getWarehouseName()"
+    (barcodeDetected)="onCameraBarcodeScanned($event)"
     (codeDetected)="onCameraBarcodeScanned($event)"
     (closed)="isCameraScannerOpen.set(false)"
   ></app-camera-barcode-modal>

@@ -491,6 +491,7 @@
 
 @if (isCameraScannerOpen()) {
   <app-camera-barcode-modal
+    (barcodeDetected)="onCameraBarcodeScanned($event)"
     (codeDetected)="onCameraBarcodeScanned($event)"
     (closed)="isCameraScannerOpen.set(false)"
   ></app-camera-barcode-modal>

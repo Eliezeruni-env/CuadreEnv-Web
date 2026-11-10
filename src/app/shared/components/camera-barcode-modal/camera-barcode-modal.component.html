@@ -12,6 +12,19 @@
         </div>
 
         <div class="d-flex align-items-center gap-2">
+          <!-- Botón de cambiar cámara (frontal/trasera) -->
+          <button
+            type="button"
+            class="btn-torch"
+            (click)="switchCamera()"
+            title="Cambiar Cámara (Frontal / Trasera)"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+            </svg>
+          </button>
+
+          <!-- Botón de linterna si el hardware lo soporta -->
           @if (isTorchAvailable()) {
             <button
               type="button"
@@ -26,6 +39,7 @@
               </svg>
             </button>
           }
+
           <button
             type="button"
             class="btn-close-scanner"
@@ -44,14 +58,33 @@
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
             <polyline points="9 22 9 12 15 12 15 22"></polyline>
           </svg>
-          <span>Buscando en almacén:</span>
+          <span>Almacén de destino:</span>
           <strong>{{ warehouseName }}</strong>
         </div>
       }
 
       <!-- Viewport de Video -->
       <div class="camera-viewport-wrap" [class.flash-success]="scanFlash()">
-        <video #scannerVideo autoplay playsinline muted></video>
+        <video #scannerVideo id="cameraBarcodeModalVideo" autoplay playsinline muted></video>
+
+        <!-- Spinner de carga inicial de cámara -->
+        @if (isLoadingCamera()) {
+          <div class="camera-loading-overlay">
+            <div class="spinner-border text-primary" role="status"></div>
+            <span class="small text-white-50 mt-2">Iniciando cámara...</span>
+          </div>
+        }
+
+        <!-- Error si la cámara no pudo iniciar -->
+        @if (cameraError()) {
+          <div class="camera-error-overlay">
+            <span class="text-danger fw-bold mb-1">⚠️ Error al acceder a la cámara</span>
+            <span class="small text-white-50 text-center px-3 mb-2">{{ cameraError() }}</span>
+            <button type="button" class="btn btn-sm btn-outline-light" (click)="startCamera()">
+              Reintentar
+            </button>
+          </div>
+        }
 
         <!-- Retícula de escaneo con láser animado -->
         <div class="camera-target-reticle">
@@ -74,7 +107,7 @@
       <!-- Footer -->
       <div class="camera-barcode-footer">
         <span class="text-white-50 font-size-xs d-none d-sm-inline">
-          Centra el código en el visor para capturarlo automáticamente
+          Apunta la cámara al código de barras para capturarlo automáticamente
         </span>
         <button
           type="button"
@@ -87,4 +120,3 @@
     </div>
   </div>
 }
-

@@ -278,7 +278,7 @@ export class ProductSearchComponent implements OnInit, OnChanges {
     if (!code) return;
     this.searchTerm = code;
     this.notificationService.success(`¡Código escaneado: ${code}!`);
-    await this.processBarcodeSearch(code);
+    await this.processBarcodeSearch(code, true);
   }
 
   async onBarcodeImageSelected(event: Event): Promise<void> {
@@ -291,8 +291,8 @@ export class ProductSearchComponent implements OnInit, OnChanges {
       const decodedCode = await this.barcodeLookupService.decodeBarcodeFromImage(file);
       if (decodedCode) {
         this.searchTerm = decodedCode;
-        this.notificationService.success(`¡Código decodificado de la foto: ${decodedCode}!`);
-        await this.processBarcodeSearch(decodedCode);
+        this.notificationService.success(`¡Código detectado en la imagen: ${decodedCode}!`);
+        await this.processBarcodeSearch(decodedCode, true);
       }
     } catch (err: any) {
       this.notificationService.error(err?.message || 'No se pudo decodificar el código de barras de la imagen.');
@@ -302,6 +302,15 @@ export class ProductSearchComponent implements OnInit, OnChanges {
     }
   }
 
+  async onGlobalSearchClicked(): Promise<void> {
+    const raw = (this.searchTerm || '').trim();
+    if (!raw) {
+      this.notificationService.warning('Ingresa un código de barra para buscar globalmente.');
+      return;
+    }
+    await this.processBarcodeSearch(raw, true);
+  }
+
   async onBarcodeEntered(event?: Event) {
     if (event) {
       event.preventDefault();
@@ -309,26 +318,27 @@ export class ProductSearchComponent implements OnInit, OnChanges {
     }
     const raw = (this.searchTerm || '').trim();
     if (!raw) return;
-    await this.processBarcodeSearch(raw);
+    await this.processBarcodeSearch(raw, false);
   }
 
-  async processBarcodeSearch(raw: string): Promise<void> {
+  async processBarcodeSearch(raw: string, forceGlobalLookup = false): Promise<void> {
     if (!raw) return;
-    const lower = raw.toLowerCase().trim();
+    const cleanCode = raw.trim();
+    const lower = cleanCode.toLowerCase();
 
-    // 1. Coincidencia exacta en catálogo local
+    // 1. Si ya existe en el catálogo local de la empresa, lo seleccionamos directamente
     const exact = this.allProducts.find(
       (p) =>
         (p.barcode && p.barcode.trim().toLowerCase() === lower) ||
         (p.reference && p.reference.trim().toLowerCase() === lower) ||
         String(p.id) === lower,
     );
-    if (exact) {
+    if (exact && !forceGlobalLookup) {
       await this.handleDirectBarcodeMatch(exact);
       return;
     }
 
-    if (this.filteredProducts.length === 1) {
+    if (this.filteredProducts.length === 1 && !forceGlobalLookup) {
       await this.handleDirectBarcodeMatch(this.filteredProducts[0]);
       return;
     }
@@ -336,28 +346,42 @@ export class ProductSearchComponent implements OnInit, OnChanges {
     const partial = this.allProducts.find(
       (p) => p.barcode && p.barcode.toLowerCase().includes(lower),
     );
-    if (partial) {
+    if (partial && !forceGlobalLookup) {
       await this.handleDirectBarcodeMatch(partial);
       return;
     }
 
-    // 2. Búsqueda Global en OpenFoodFacts / UPC / Base de datos mundial
-    this.isGlobalSearching.set(true);
-    this.notificationService.info(`Buscando código "${raw}" en bases de datos globales...`);
-    try {
-      const meta = await this.barcodeLookupService.lookupUniversalProduct(raw);
-      if (meta && (meta.name || meta.description)) {
-        const prodName = meta.name || meta.description || `Producto ${raw}`;
-        this.notificationService.success(`¡Producto encontrado globalmente: "${prodName}"! Registrando en el sistema...`);
+    // Si ya existe pero se forzó la búsqueda global, confirmamos o reutilizamos
+    if (exact) {
+      await this.handleDirectBarcodeMatch(exact);
+      return;
+    }
 
-        // Registrar producto automáticamente para permitir entrada directa
+    // 2. BÚSQUEDA GLOBAL (OpenFoodFacts / UPC / Bases internacionales)
+    // En Entrada de Almacén esto permite que productos nuevos se descubran y creen al instante
+    this.isGlobalSearching.set(true);
+    const targetWhName = this.getWarehouseName();
+    this.notificationService.info(`Buscando código "${cleanCode}" en bases de datos globales...`);
+
+    try {
+      const meta = await this.barcodeLookupService.lookupUniversalProduct(cleanCode);
+      if (meta && (meta.name || meta.description)) {
+        const prodName = meta.name || meta.description || `Producto ${cleanCode}`;
+        this.notificationService.success(`¡Encontrado globalmente: "${prodName}"! Creando en el sistema para ${targetWhName}...`);
+
+        const suggestedRef = meta.brand
+          ? `${meta.brand.slice(0, 4).toUpperCase()}-${cleanCode.slice(-4)}`
+          : `REF-${cleanCode.slice(-4)}`;
+
+        // Crear producto tangible de una vez en el backend
         const createRes = await this.productService.createProduct({
           description: prodName,
-          barcode: raw,
-          reference: raw,
+          barcode: cleanCode,
+          reference: suggestedRef,
           shortDescription: meta.brand ? `${meta.brand} - ${prodName}` : prodName,
           cost: 0,
           price: 0,
+          stock: 0,
           productTypeId: 1, // Almacenable / Físico
           categoryId: 1,
           unitOfMeasurementId: 1,
@@ -368,16 +392,16 @@ export class ProductSearchComponent implements OnInit, OnChanges {
         } as any);
 
         if (createRes?.success && createRes.data) {
-          const newP: any = createRes.data;
+          const rawItem: any = (createRes.data as any)?.data || createRes.data;
           const mapped: Product = {
-            id: newP.id || 0,
-            description: newP.description || prodName,
-            barcode: newP.barcode || raw,
-            reference: newP.reference || raw,
-            shortDescription: newP.shortDescription || '',
-            cost: newP.cost || 0,
-            priceList: newP.priceList || newP.price || 0,
-            taxRate: newP.taxRate || 18,
+            id: rawItem.id || 0,
+            description: rawItem.description || prodName,
+            barcode: rawItem.barcode || cleanCode,
+            reference: rawItem.reference || suggestedRef,
+            shortDescription: rawItem.shortDescription || '',
+            cost: rawItem.cost || 0,
+            priceList: rawItem.priceList || rawItem.price || 0,
+            taxRate: rawItem.taxRate || 18,
             minimumQuantity: 5,
             maximumQuantity: 100,
             packingId: 1,
@@ -388,24 +412,27 @@ export class ProductSearchComponent implements OnInit, OnChanges {
             invoiceWithoutStock: false,
             stock: 0,
           };
+
           this.allProducts.unshift(mapped);
           await this.handleDirectBarcodeMatch(mapped);
-          this.notificationService.success(`✓ "${prodName}" registrado en catálogo y seleccionado para dar entrada.`);
+          this.notificationService.success(`✨ "${prodName}" creado de una vez y seleccionado para ingresar a ${targetWhName}.`);
           return;
         }
       }
 
-      // 3. Fallback: Permitir ingresar el nombre para crear al instante sin abandonar la entrada de almacén
+      // 3. Si no existe globalmente, permitir crear al instante con un nombre rápido sin abandonar la pantalla
       const manualName = window.prompt(
-        `El código "${raw}" no existe en el catálogo local ni global.\n\nEscriba el nombre del nuevo producto para crearlo e ingresarlo a este almacén:`
+        `El código "${cleanCode}" no fue encontrado en la base de datos local ni global.\n\nEscriba el nombre del nuevo producto para crearlo de una vez en el catálogo y darle entrada a "${targetWhName}":`
       );
       if (manualName && manualName.trim()) {
+        const prodName = manualName.trim();
         const createRes = await this.productService.createProduct({
-          description: manualName.trim(),
-          barcode: raw,
-          reference: raw,
+          description: prodName,
+          barcode: cleanCode,
+          reference: `REF-${cleanCode.slice(-4)}`,
           cost: 0,
           price: 0,
+          stock: 0,
           productTypeId: 1,
           categoryId: 1,
           unitOfMeasurementId: 1,
@@ -415,12 +442,12 @@ export class ProductSearchComponent implements OnInit, OnChanges {
         } as any);
 
         if (createRes?.success && createRes.data) {
-          const newP: any = createRes.data;
+          const rawItem: any = (createRes.data as any)?.data || createRes.data;
           const mapped: Product = {
-            id: newP.id || 0,
-            description: newP.description || manualName.trim(),
-            barcode: newP.barcode || raw,
-            reference: newP.reference || raw,
+            id: rawItem.id || 0,
+            description: rawItem.description || prodName,
+            barcode: rawItem.barcode || cleanCode,
+            reference: rawItem.reference || `REF-${cleanCode.slice(-4)}`,
             shortDescription: '',
             cost: 0,
             priceList: 0,
@@ -435,17 +462,18 @@ export class ProductSearchComponent implements OnInit, OnChanges {
             invoiceWithoutStock: false,
             stock: 0,
           };
+
           this.allProducts.unshift(mapped);
           await this.handleDirectBarcodeMatch(mapped);
-          this.notificationService.success(`✓ "${mapped.description}" creado y seleccionado para entrada.`);
+          this.notificationService.success(`✓ "${prodName}" creado y seleccionado para entrada en ${targetWhName}.`);
           return;
         }
       }
 
-      this.notificationService.warning(`No se encontró ningún producto con el código de barras "${raw}".`);
+      this.notificationService.warning(`No se agregó ningún producto para el código "${cleanCode}".`);
     } catch (err: any) {
       console.warn('Error en búsqueda global / creación rápida:', err);
-      this.notificationService.warning(`No se pudo procesar el código "${raw}". Intente nuevamente.`);
+      this.notificationService.warning(`No se pudo procesar el código "${cleanCode}". Intente nuevamente.`);
     } finally {
       this.isGlobalSearching.set(false);
     }
