@@ -4,10 +4,10 @@
     <div class="col-md-5">
       <div class="d-flex align-items-center justify-content-between mb-1">
         <label class="form-label small fw-semibold text-secondary mb-0">
-          {{ mode === 'entry' ? 'Entrada por Código de Barra / Global' : 'Buscar Producto / Escanear' }}
+          {{ mode === 'entry' ? 'Búsqueda General / Escanear Código' : 'Buscar Producto / Escanear' }}
         </label>
         <div class="d-flex align-items-center gap-1">
-          <!-- Hidden File Input for Barcode Photo Upload -->
+          <!-- Hidden File Input for Barcode Photo/File Upload -->
           <input
             #barcodeImageInput
             type="file"
@@ -20,7 +20,7 @@
             class="btn btn-xs btn-outline-primary d-inline-flex align-items-center gap-1 py-0 px-2 rounded-pill font-size-xs"
             (click)="barcodeImageInput.click()"
             [disabled]="isDecodingBarcodeImage()"
-            title="Subir foto o captura de código de barras para decodificar y buscar globalmente"
+            title="Subir foto o archivo de código de barras para decodificar y buscar en el catálogo general o global"
           >
             @if (isDecodingBarcodeImage()) {
               <span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;"></span>
@@ -31,7 +31,7 @@
                 <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
               </svg>
             }
-            <span>Subir Foto</span>
+            <span>{{ mode === 'entry' ? 'Cargar Archivo / Foto' : 'Subir Foto' }}</span>
           </button>
           <button
             type="button"
@@ -104,9 +104,9 @@
       @if (mode === 'entry') {
         <div class="d-flex align-items-center gap-1 mt-1 text-secondary font-size-xs">
           <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
-            🏢 {{ getWarehouseName() }}
+            🌐 Búsqueda General
           </span>
-          <span>Escanear o subir foto busca en bases globales y registra el producto directamente.</span>
+          <span>Búsqueda en todo el catálogo y bases globales (sin filtrar por almacén).</span>
         </div>
       }
     </div>
@@ -348,7 +348,9 @@
 
 @if (isCameraScannerOpen()) {
   <app-camera-barcode-modal
-    [warehouseName]="getWarehouseName()"
+    [title]="mode === 'entry' ? 'Escaneo General de Productos' : 'Lector de Códigos de Barra'"
+    [subtitle]="mode === 'entry' ? 'Escanea cualquier código de producto para entrada general' : 'Apunta la cámara hacia el código de barras'"
+    [warehouseName]="mode === 'entry' ? '' : getWarehouseName()"
     (barcodeDetected)="onCameraBarcodeScanned($event)"
     (codeDetected)="onCameraBarcodeScanned($event)"
     (closed)="isCameraScannerOpen.set(false)"

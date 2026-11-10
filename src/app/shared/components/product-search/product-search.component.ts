@@ -161,6 +161,12 @@ export class ProductSearchComponent implements OnInit, OnChanges {
         )
       : this.allProducts.slice(0, 15);
 
+    if (this.mode === 'entry') {
+      // En entrada de almacén la búsqueda es general en todo el catálogo (no se filtra por almacén)
+      this.filteredProducts = baseList.map((p) => ({ ...p, stockInWarehouse: p.stock || 0 }));
+      return;
+    }
+
     const withStock = await Promise.all(
       baseList.map(async (p) => {
         const stock = await this.stockService.getProductStockInWarehouse(
@@ -328,14 +334,55 @@ export class ProductSearchComponent implements OnInit, OnChanges {
     const cleanCode = raw.trim();
     const lower = cleanCode.toLowerCase();
 
-    // 1. Si ya existe en el catálogo local de la empresa, lo seleccionamos directamente
-    const exact = this.allProducts.find(
+    // 1. Búsqueda en el catálogo general de productos cargados en memoria
+    let exact = this.allProducts.find(
       (p) =>
         (p.barcode && p.barcode.trim().toLowerCase() === lower) ||
         (p.reference && p.reference.trim().toLowerCase() === lower) ||
         String(p.id) === lower,
     );
 
+    // 2. Si no está en memoria, buscar en el catálogo general del backend (por si no estaba en la primera página)
+    if (!exact) {
+      try {
+        const searchRes = await this.productService.searchProducts(cleanCode);
+        if (searchRes?.success && Array.isArray(searchRes.data) && searchRes.data.length > 0) {
+          const matchedDto: any = searchRes.data.find(
+            (item: any) =>
+              (item.barcode && item.barcode.trim().toLowerCase() === lower) ||
+              (item.reference && item.reference.trim().toLowerCase() === lower) ||
+              String(item.id) === lower,
+          ) || searchRes.data[0];
+
+          if (matchedDto) {
+            exact = {
+              id: matchedDto.id || 0,
+              description: matchedDto.description || '',
+              barcode: matchedDto.barcode || '',
+              reference: matchedDto.reference || '',
+              shortDescription: matchedDto.shortDescription || '',
+              cost: matchedDto.cost || 0,
+              priceList: matchedDto.priceList || matchedDto.price || (matchedDto.cost ? matchedDto.cost * 1.3 : 0),
+              taxRate: matchedDto.taxRate || 18,
+              minimumQuantity: matchedDto.minimumQuantity || 5,
+              maximumQuantity: matchedDto.maximumQuantity || 100,
+              packingId: matchedDto.packingId || 1,
+              productTypeId: matchedDto.productTypeId || 1,
+              categoryId: matchedDto.categoryId || 1,
+              unitOfMeasurementId: matchedDto.unitOfMeasurementId || 1,
+              expires: matchedDto.expires || false,
+              invoiceWithoutStock: matchedDto.invoiceWithoutStock || false,
+              stock: matchedDto.stock || 0,
+            };
+            this.allProducts.unshift(exact);
+          }
+        }
+      } catch {
+        // Continuar
+      }
+    }
+
+    // Si el producto existe en el catálogo general de la empresa, lo seleccionamos de inmediato
     if (exact && !forceGlobalLookup) {
       await this.handleDirectBarcodeMatch(exact);
       return;
@@ -359,16 +406,22 @@ export class ProductSearchComponent implements OnInit, OnChanges {
       return;
     }
 
-    // 2. BÚSQUEDA GLOBAL (OpenFoodFacts / UPC / Bases internacionales)
+    // 3. Si NO existe en el catálogo general de la empresa:
+    // SOLO EN ENTRADA DE ALMACÉN (`mode === 'entry'`), procedemos a la búsqueda global y creación directa
+    if (this.mode !== 'entry') {
+      this.notificationService.warning(`No se encontró ningún producto con el código "${cleanCode}" en el almacén.`);
+      return;
+    }
+
+    // 4. BÚSQUEDA GLOBAL (OpenFoodFacts / UPC / Bases internacionales)
     this.isGlobalSearching.set(true);
-    const targetWhName = this.getWarehouseName();
     this.notificationService.info(`Buscando código "${cleanCode}" en bases de datos globales...`);
 
     try {
       const meta = await this.barcodeLookupService.lookupUniversalProduct(cleanCode);
       if (meta && (meta.name || meta.description)) {
         const prodName = meta.name || meta.description || `Producto ${cleanCode}`;
-        this.notificationService.success(`¡Encontrado globalmente: "${prodName}"! Creando en el sistema para ${targetWhName}...`);
+        this.notificationService.success(`¡Encontrado globalmente: "${prodName}"! Creando en el catálogo general...`);
 
         const suggestedRef = meta.brand
           ? `${meta.brand.slice(0, 4).toUpperCase()}-${cleanCode.slice(-4)}`
@@ -416,14 +469,14 @@ export class ProductSearchComponent implements OnInit, OnChanges {
 
           this.allProducts.unshift(mapped);
           await this.handleDirectBarcodeMatch(mapped);
-          this.notificationService.success(`✨ "${prodName}" creado de una vez y seleccionado para ingresar a ${targetWhName}.`);
+          this.notificationService.success(`✨ "${prodName}" registrado en el catálogo y agregado a la entrada.`);
           return;
         }
       }
 
       // 3. Si no existe globalmente, permitir crear al instante con un nombre rápido sin abandonar la pantalla
       const manualName = window.prompt(
-        `El código "${cleanCode}" no fue encontrado en la base de datos local ni global.\n\nEscriba el nombre del nuevo producto para crearlo de una vez en el catálogo y darle entrada a "${targetWhName}":`
+        `El código "${cleanCode}" no fue encontrado en el catálogo general ni en bases globales.\n\nEscriba el nombre del nuevo producto para crearlo en el catálogo general y agregarlo a esta entrada:`
       );
       if (manualName && manualName.trim()) {
         const prodName = manualName.trim();
@@ -466,7 +519,7 @@ export class ProductSearchComponent implements OnInit, OnChanges {
 
           this.allProducts.unshift(mapped);
           await this.handleDirectBarcodeMatch(mapped);
-          this.notificationService.success(`✓ "${prodName}" creado y seleccionado para entrada en ${targetWhName}.`);
+          this.notificationService.success(`✓ "${prodName}" creado y agregado a esta entrada.`);
           return;
         }
       }
