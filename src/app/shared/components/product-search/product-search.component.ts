@@ -91,7 +91,7 @@ export class ProductSearchComponent implements OnInit, OnChanges {
   }
 
   getWarehouseName(): string {
-    const found = this.warehouses().find(w => w.id === this.warehouseId);
+    const found = this.warehouses().find((w) => w.id === this.warehouseId);
     return found?.name || `Almacén #${this.warehouseId}`;
   }
 
@@ -177,7 +177,9 @@ export class ProductSearchComponent implements OnInit, OnChanges {
   async onSearchInput() {
     const raw = (this.searchTerm || '').trim();
     if (raw.length >= 6) {
-      const direct = this.allProducts.find(p => p.barcode && p.barcode.trim().toLowerCase() === raw.toLowerCase());
+      const direct = this.allProducts.find(
+        (p) => p.barcode && p.barcode.trim().toLowerCase() === raw.toLowerCase()
+      );
       if (direct) {
         await this.handleDirectBarcodeMatch(direct);
         return;
@@ -333,6 +335,7 @@ export class ProductSearchComponent implements OnInit, OnChanges {
         (p.reference && p.reference.trim().toLowerCase() === lower) ||
         String(p.id) === lower,
     );
+
     if (exact && !forceGlobalLookup) {
       await this.handleDirectBarcodeMatch(exact);
       return;
@@ -351,14 +354,12 @@ export class ProductSearchComponent implements OnInit, OnChanges {
       return;
     }
 
-    // Si ya existe pero se forzó la búsqueda global, confirmamos o reutilizamos
     if (exact) {
       await this.handleDirectBarcodeMatch(exact);
       return;
     }
 
     // 2. BÚSQUEDA GLOBAL (OpenFoodFacts / UPC / Bases internacionales)
-    // En Entrada de Almacén esto permite que productos nuevos se descubran y creen al instante
     this.isGlobalSearching.set(true);
     const targetWhName = this.getWarehouseName();
     this.notificationService.info(`Buscando código "${cleanCode}" en bases de datos globales...`);
