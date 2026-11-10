@@ -1,0 +1,90 @@
+@if (visible) {
+  <div class="camera-barcode-backdrop" (click)="close()">
+    <div class="camera-barcode-card" (click)="$event.stopPropagation()">
+      <!-- Header -->
+      <div class="camera-barcode-header">
+        <div class="d-flex align-items-center gap-2">
+          <span class="scanner-live-pulse"></span>
+          <div>
+            <h4 class="mb-0 text-white fw-bold fs-6">{{ title }}</h4>
+            <span class="text-white-50 font-size-xs">{{ subtitle }}</span>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          @if (isTorchAvailable()) {
+            <button
+              type="button"
+              class="btn-torch"
+              [class.active]="isTorchOn()"
+              (click)="toggleTorch()"
+              title="Encender Linterna"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6c0 2-2 4-2 7v5a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-5c0-3-2-5-2-7 0-4 3-7 6-7s6 3 6 7z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+              </svg>
+            </button>
+          }
+          <button
+            type="button"
+            class="btn-close-scanner"
+            (click)="close()"
+            aria-label="Cerrar escáner"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Warehouse Badge (Si se especifica almacén) -->
+      @if (warehouseName) {
+        <div class="camera-warehouse-banner">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          <span>Buscando en almacén:</span>
+          <strong>{{ warehouseName }}</strong>
+        </div>
+      }
+
+      <!-- Viewport de Video -->
+      <div class="camera-viewport-wrap" [class.flash-success]="scanFlash()">
+        <video #scannerVideo autoplay playsinline muted></video>
+
+        <!-- Retícula de escaneo con láser animado -->
+        <div class="camera-target-reticle">
+          <div class="laser-scanner-line"></div>
+          <div class="corner corner-tl"></div>
+          <div class="corner corner-tr"></div>
+          <div class="corner corner-bl"></div>
+          <div class="corner corner-br"></div>
+        </div>
+
+        <!-- Indicador de último código detectado -->
+        @if (lastDetectedCode()) {
+          <div class="scanner-toast-chip">
+            <span class="badge bg-success">✓ Escaneado</span>
+            <span class="font-monospace fw-bold text-white">{{ lastDetectedCode() }}</span>
+          </div>
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="camera-barcode-footer">
+        <span class="text-white-50 font-size-xs d-none d-sm-inline">
+          Centra el código en el visor para capturarlo automáticamente
+        </span>
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-light rounded-pill px-3 py-1 ms-auto"
+          (click)="close()"
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+

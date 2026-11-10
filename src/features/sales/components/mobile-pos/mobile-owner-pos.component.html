@@ -3427,6 +3427,23 @@
             📦 Entrada de Almacén
           </button>
         </div>
+      
+        <!-- Indicador y Selector de Almacén Activo -->
+        <div class="d-flex align-items-center justify-content-between w-100 px-2 py-1.5 rounded-2 bg-black bg-opacity-40 border border-secondary border-opacity-25">
+          <span class="text-white-50 font-size-xs d-flex align-items-center gap-1">
+            🏢 <strong>Almacén:</strong> {{ getSelectedWarehouseName() }}
+          </span>
+          <select
+            class="form-select form-select-sm bg-dark text-white border-secondary font-size-xs py-0.5 px-2 w-auto"
+            [ngModel]="selectedWarehouseId()"
+            (ngModelChange)="onWarehouseChange($event)"
+            title="Seleccionar almacén para búsqueda y despacho"
+          >
+            @for (wh of warehouses(); track wh.id) {
+              <option [ngValue]="wh.id">{{ wh.name }}{{ wh.isMain ? ' (Principal)' : '' }}</option>
+            }
+          </select>
+        </div>
       </div>
 
       <div class="scanner-viewport-wrap" [class.flash-success]="cameraScanFlash()">

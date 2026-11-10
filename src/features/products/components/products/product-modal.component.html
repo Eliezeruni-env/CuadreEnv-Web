@@ -76,6 +76,18 @@
                     </button>
                     <button
                       type="button"
+                      class="btn btn-xs btn-outline-success d-inline-flex align-items-center gap-1 py-0 px-2 rounded-pill font-size-xs"
+                      (click)="openCameraScanner()"
+                      title="Abrir cámara para escanear código de barras"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                      </svg>
+                      <span>Cámara</span>
+                    </button>
+                    <button
+                      type="button"
                       class="btn btn-xs btn-outline-info d-inline-flex align-items-center gap-1 py-0 px-2 rounded-pill font-size-xs"
                       (click)="lookupGlobalBarcode()"
                       [disabled]="isLookingUpBarcode() || !productForm.get('barcode')?.value"
@@ -475,4 +487,11 @@
       }
     </div>
   </div>
+}
+
+@if (isCameraScannerOpen()) {
+  <app-camera-barcode-modal
+    (codeDetected)="onCameraBarcodeScanned($event)"
+    (closed)="isCameraScannerOpen.set(false)"
+  ></app-camera-barcode-modal>
 }

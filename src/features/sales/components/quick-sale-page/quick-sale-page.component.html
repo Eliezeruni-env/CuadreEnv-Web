@@ -1983,6 +1983,21 @@
           <div>
             <h3 class="scanner-title mb-0">Lector de Códigos por Cámara (PC)</h3>
             <span class="scanner-subtitle">Apunta el código de barras o QR hacia la cámara web</span>
+            <div class="d-flex align-items-center gap-2 mt-1">
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 font-monospace small">
+                🏢 Buscando en: <strong>{{ getSelectedWarehouseName() }}</strong>
+              </span>
+              <select
+                class="form-select form-select-sm d-inline-block w-auto py-0 px-2 font-size-xs"
+                [ngModel]="selectedWarehouseId()"
+                (ngModelChange)="onWarehouseChange($event)"
+                title="Cambiar almacén de despacho para el escaneo"
+              >
+                @for (wh of warehouses(); track wh.id) {
+                  <option [ngValue]="wh.id">{{ wh.name }}{{ wh.isMain ? ' (Principal)' : '' }}</option>
+                }
+              </select>
+            </div>
           </div>
         </div>
         <button type="button" class="btn-scanner-close" (click)="closeCameraScanner()" aria-label="Cerrar escáner">

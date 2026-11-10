@@ -9,30 +9,36 @@ import {
   ViewChild,
   ElementRef,
   inject,
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../../../features/products/services/product.service';
 import { StockService } from '../../../../features/inventory/services/stock.service';
+import { WarehouseService } from '../../../../features/inventory/services/warehouse.service';
 import { NotificationService } from '../../../../features/cuadreEnv/services/notification.service';
 import { ProductPackagingService, ProductPackaging } from '../../../../features/products/services/product-packaging.service';
 import { UnitOfMeasurementService } from '../../../../features/products/services/unit-of-measurement.service';
+import { BarcodeLookupService } from '../../../../features/products/services/barcode-lookup.service';
+import { CameraBarcodeModalComponent } from '../camera-barcode-modal/camera-barcode-modal.component';
 import type { ProductMovementDetail } from '../../../models/movement';
 import type { Product } from '../../../models/product';
 
 @Component({
   selector: 'app-product-search',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CameraBarcodeModalComponent],
   templateUrl: './product-search.component.html',
   styleUrls: ['./product-search.component.scss'],
 })
 export class ProductSearchComponent implements OnInit, OnChanges {
   private productService = inject(ProductService);
   private stockService = inject(StockService);
+  private warehouseService = inject(WarehouseService);
   private notificationService = inject(NotificationService);
   private packagingService = inject(ProductPackagingService);
   private unitService = inject(UnitOfMeasurementService);
+  private barcodeLookupService = inject(BarcodeLookupService);
 
   @Input() warehouseId = 1;
   @Input() mode: 'entry' | 'outlet' | 'transfer' = 'entry';
@@ -43,12 +49,18 @@ export class ProductSearchComponent implements OnInit, OnChanges {
 
   allProducts: Product[] = [];
   filteredProducts: (Product & { stockInWarehouse: number })[] = [];
+  warehouses = signal<any[]>([]);
 
   searchTerm = '';
   selectedProduct: (Product & { stockInWarehouse: number }) | null = null;
   quantity = 1;
   cost = 0;
   isSearching = false;
+
+  // Barcode & Camera features
+  isCameraScannerOpen = signal<boolean>(false);
+  isDecodingBarcodeImage = signal<boolean>(false);
+  isGlobalSearching = signal<boolean>(false);
 
   // Packaging and base unit variables
   currentPackaging: ProductPackaging | undefined;
@@ -61,7 +73,26 @@ export class ProductSearchComponent implements OnInit, OnChanges {
   @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
 
   async ngOnInit() {
-    await this.loadProducts();
+    await Promise.all([
+      this.loadProducts(),
+      this.loadWarehouses(),
+    ]);
+  }
+
+  async loadWarehouses() {
+    try {
+      const res = await this.warehouseService.getWarehouses();
+      if (res?.success && res.data) {
+        this.warehouses.set(res.data);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  getWarehouseName(): string {
+    const found = this.warehouses().find(w => w.id === this.warehouseId);
+    return found?.name || `Almacén #${this.warehouseId}`;
   }
 
   async ngOnChanges(changes: SimpleChanges) {
@@ -222,7 +253,6 @@ export class ProductSearchComponent implements OnInit, OnChanges {
     this.currentPackaging = this.packagingService.getPackaging(detail.productId);
   }
 
-  
   async handleDirectBarcodeMatch(found: Product) {
     const stock = await this.stockService.getProductStockInWarehouse(
       this.warehouseId,
@@ -232,11 +262,44 @@ export class ProductSearchComponent implements OnInit, OnChanges {
     this.selectProduct({ ...found, stockInWarehouse: stock });
     this.searchTerm = '';
     this.scannedBarcode = '';
-    this.notificationService.success('¡Código escaneado! ' + found.description);
+    this.notificationService.success('¡Producto seleccionado! ' + found.description);
     setTimeout(() => {
       this.quantityInput?.nativeElement?.focus();
       this.quantityInput?.nativeElement?.select();
     }, 100);
+  }
+
+  openCameraScanner(): void {
+    this.isCameraScannerOpen.set(true);
+  }
+
+  async onCameraBarcodeScanned(code: string): Promise<void> {
+    this.isCameraScannerOpen.set(false);
+    if (!code) return;
+    this.searchTerm = code;
+    this.notificationService.success(`¡Código escaneado: ${code}!`);
+    await this.processBarcodeSearch(code);
+  }
+
+  async onBarcodeImageSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    this.isDecodingBarcodeImage.set(true);
+    try {
+      this.notificationService.info('Analizando imagen para decodificar código de barras...');
+      const decodedCode = await this.barcodeLookupService.decodeBarcodeFromImage(file);
+      if (decodedCode) {
+        this.searchTerm = decodedCode;
+        this.notificationService.success(`¡Código decodificado de la foto: ${decodedCode}!`);
+        await this.processBarcodeSearch(decodedCode);
+      }
+    } catch (err: any) {
+      this.notificationService.error(err?.message || 'No se pudo decodificar el código de barras de la imagen.');
+    } finally {
+      this.isDecodingBarcodeImage.set(false);
+      input.value = '';
+    }
   }
 
   async onBarcodeEntered(event?: Event) {
@@ -246,35 +309,146 @@ export class ProductSearchComponent implements OnInit, OnChanges {
     }
     const raw = (this.searchTerm || '').trim();
     if (!raw) return;
+    await this.processBarcodeSearch(raw);
+  }
 
-    const lower = raw.toLowerCase();
+  async processBarcodeSearch(raw: string): Promise<void> {
+    if (!raw) return;
+    const lower = raw.toLowerCase().trim();
+
+    // 1. Coincidencia exacta en catálogo local
     const exact = this.allProducts.find(
       (p) =>
         (p.barcode && p.barcode.trim().toLowerCase() === lower) ||
         (p.reference && p.reference.trim().toLowerCase() === lower) ||
         String(p.id) === lower,
     );
-
     if (exact) {
       await this.handleDirectBarcodeMatch(exact);
       return;
     }
 
     if (this.filteredProducts.length === 1) {
-      const single = this.filteredProducts[0];
-      await this.handleDirectBarcodeMatch(single);
+      await this.handleDirectBarcodeMatch(this.filteredProducts[0]);
       return;
     }
 
-    const partialBarcode = this.allProducts.find(
+    const partial = this.allProducts.find(
       (p) => p.barcode && p.barcode.toLowerCase().includes(lower),
     );
-    if (partialBarcode) {
-      await this.handleDirectBarcodeMatch(partialBarcode);
+    if (partial) {
+      await this.handleDirectBarcodeMatch(partial);
       return;
     }
 
-    this.notificationService.warning('No se encontró ningún producto con el código de barras "' + raw + '".');
+    // 2. Búsqueda Global en OpenFoodFacts / UPC / Base de datos mundial
+    this.isGlobalSearching.set(true);
+    this.notificationService.info(`Buscando código "${raw}" en bases de datos globales...`);
+    try {
+      const meta = await this.barcodeLookupService.lookupUniversalProduct(raw);
+      if (meta && (meta.name || meta.description)) {
+        const prodName = meta.name || meta.description || `Producto ${raw}`;
+        this.notificationService.success(`¡Producto encontrado globalmente: "${prodName}"! Registrando en el sistema...`);
+
+        // Registrar producto automáticamente para permitir entrada directa
+        const createRes = await this.productService.createProduct({
+          description: prodName,
+          barcode: raw,
+          reference: raw,
+          shortDescription: meta.brand ? `${meta.brand} - ${prodName}` : prodName,
+          cost: 0,
+          price: 0,
+          productTypeId: 1, // Almacenable / Físico
+          categoryId: 1,
+          unitOfMeasurementId: 1,
+          packingId: 1,
+          minimumQuantity: 5,
+          maximumQuantity: 100,
+          imageUrl: meta.imageUrl || '',
+        } as any);
+
+        if (createRes?.success && createRes.data) {
+          const newP: any = createRes.data;
+          const mapped: Product = {
+            id: newP.id || 0,
+            description: newP.description || prodName,
+            barcode: newP.barcode || raw,
+            reference: newP.reference || raw,
+            shortDescription: newP.shortDescription || '',
+            cost: newP.cost || 0,
+            priceList: newP.priceList || newP.price || 0,
+            taxRate: newP.taxRate || 18,
+            minimumQuantity: 5,
+            maximumQuantity: 100,
+            packingId: 1,
+            productTypeId: 1,
+            categoryId: 1,
+            unitOfMeasurementId: 1,
+            expires: false,
+            invoiceWithoutStock: false,
+            stock: 0,
+          };
+          this.allProducts.unshift(mapped);
+          await this.handleDirectBarcodeMatch(mapped);
+          this.notificationService.success(`✓ "${prodName}" registrado en catálogo y seleccionado para dar entrada.`);
+          return;
+        }
+      }
+
+      // 3. Fallback: Permitir ingresar el nombre para crear al instante sin abandonar la entrada de almacén
+      const manualName = window.prompt(
+        `El código "${raw}" no existe en el catálogo local ni global.\n\nEscriba el nombre del nuevo producto para crearlo e ingresarlo a este almacén:`
+      );
+      if (manualName && manualName.trim()) {
+        const createRes = await this.productService.createProduct({
+          description: manualName.trim(),
+          barcode: raw,
+          reference: raw,
+          cost: 0,
+          price: 0,
+          productTypeId: 1,
+          categoryId: 1,
+          unitOfMeasurementId: 1,
+          packingId: 1,
+          minimumQuantity: 5,
+          maximumQuantity: 100,
+        } as any);
+
+        if (createRes?.success && createRes.data) {
+          const newP: any = createRes.data;
+          const mapped: Product = {
+            id: newP.id || 0,
+            description: newP.description || manualName.trim(),
+            barcode: newP.barcode || raw,
+            reference: newP.reference || raw,
+            shortDescription: '',
+            cost: 0,
+            priceList: 0,
+            taxRate: 18,
+            minimumQuantity: 5,
+            maximumQuantity: 100,
+            packingId: 1,
+            productTypeId: 1,
+            categoryId: 1,
+            unitOfMeasurementId: 1,
+            expires: false,
+            invoiceWithoutStock: false,
+            stock: 0,
+          };
+          this.allProducts.unshift(mapped);
+          await this.handleDirectBarcodeMatch(mapped);
+          this.notificationService.success(`✓ "${mapped.description}" creado y seleccionado para entrada.`);
+          return;
+        }
+      }
+
+      this.notificationService.warning(`No se encontró ningún producto con el código de barras "${raw}".`);
+    } catch (err: any) {
+      console.warn('Error en búsqueda global / creación rápida:', err);
+      this.notificationService.warning(`No se pudo procesar el código "${raw}". Intente nuevamente.`);
+    } finally {
+      this.isGlobalSearching.set(false);
+    }
   }
 
   submitProduct() {

@@ -18,6 +18,7 @@ import {
 } from '../../../cuadreEnv/types/api';
 import { generateDominicanEan13 } from '../../../cuadreEnv/utils/barcode.util';
 import { BarcodeLookupService, type UniversalProductMetadata } from '../../services/barcode-lookup.service';
+import { CameraBarcodeModalComponent } from '../../../../app/shared/components/camera-barcode-modal/camera-barcode-modal.component';
 import {
   ButtonDirective,
   ColComponent,
@@ -40,7 +41,8 @@ import { IconDirective } from '@coreui/icons-angular';
     RowComponent,
     ColComponent,
     SpinnerComponent,
-    IconDirective
+    IconDirective,
+    CameraBarcodeModalComponent
   ],
   templateUrl: './product-modal.component.html',
   styleUrls: ['./product-modal.component.scss']
@@ -62,6 +64,7 @@ export class ProductModalComponent {
 
   isLookingUpBarcode = signal<boolean>(false);
   isDecodingBarcodeImage = signal<boolean>(false);
+  isCameraScannerOpen = signal<boolean>(false);
   detectedGlobalProduct = signal<UniversalProductMetadata | null>(null);
 
   @Input() visible = false;
@@ -306,6 +309,17 @@ export class ProductModalComponent {
     const generated = generateDominicanEan13(catId, name || ref);
     this.productForm.patchValue({ barcode: generated });
     this.notificationService.info(`Código de barra EAN-13 generado: ${generated}`);
+  }
+
+  openCameraScanner(): void {
+    this.isCameraScannerOpen.set(true);
+  }
+
+  onCameraBarcodeScanned(code: string): void {
+    this.isCameraScannerOpen.set(false);
+    this.productForm.patchValue({ barcode: code });
+    this.notificationService.success(`¡Código escaneado con la cámara: ${code}!`);
+    void this.lookupGlobalBarcode(code);
   }
 
   async onBarcodeImageSelected(event: Event): Promise<void> {

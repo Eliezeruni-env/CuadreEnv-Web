@@ -2505,6 +2505,11 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     this.draftStorageService.clearActiveDraft();
   }
 
+  getSelectedWarehouseName(): string {
+    const found = this.warehouses().find(w => w.id === this.selectedWarehouseId());
+    return found?.name || 'Almacén Principal';
+  }
+
   // =========================================================================
   // Barcode Scanner: PC Camera (Webcam) & External Hardware Scanner Gun
   // =========================================================================

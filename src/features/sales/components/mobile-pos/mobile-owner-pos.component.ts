@@ -42,6 +42,7 @@ import { SaleService } from '../../services/sale.service';
 import { CustomerService } from '../../../customers/services/customer.service';
 import { FraudGuardianService } from '../../../cash-register/services/fraud-guardian.service';
 import { PosOfflineSyncService } from '../../services/pos-offline-sync.service';
+import { WarehouseService } from '../../../inventory/services/warehouse.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
 import {
@@ -191,7 +192,37 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   readonly isDarkMode = computed(() => this.themeService.isDark);
   readonly draftStorageService = inject(PosDraftStorageService);
   private readonly barcodeLookupService: BarcodeLookupService = inject(BarcodeLookupService);
+  private readonly warehouseService = inject(WarehouseService);
   isHeldSalesModalOpen = signal<boolean>(false);
+
+  // Almacenes
+  warehouses = signal<any[]>([]);
+  selectedWarehouseId = signal<number>(1);
+
+  getSelectedWarehouseName(): string {
+    const found = this.warehouses().find((w) => w.id === this.selectedWarehouseId());
+    return found?.name || 'Almacén Principal';
+  }
+
+  onWarehouseChange(id: number): void {
+    this.selectedWarehouseId.set(Number(id) || 1);
+    this.notificationService.info(`Almacén activo: ${this.getSelectedWarehouseName()}`);
+  }
+
+  async loadWarehouses(): Promise<void> {
+    try {
+      const res = await this.warehouseService.getWarehouses();
+      if (res?.success && res.data && res.data.length > 0) {
+        this.warehouses.set(res.data);
+        const main = res.data.find((w: any) => w.isMain) || res.data[0];
+        if (main?.id) {
+          this.selectedWarehouseId.set(main.id);
+        }
+      }
+    } catch (e) {
+      console.warn('Error loading warehouses in mobile pos:', e);
+    }
+  }
 
   // =========================================================================
   // Mobile Session Authentication (Reconoce sesión existente sin doble login)
@@ -983,6 +1014,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
         this.loadCatalog(),
         this.loadServicesCatalog(),
         this.loadFiaoList(),
+        this.loadWarehouses(),
       ]);
       this.restoreActiveDraftIfAny();
     } finally {
@@ -2557,7 +2589,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
           clientName: customer,
           billingTypeId: 1,
           voucherTypeId: this.ncfType() === 'B01' ? 1 : 2,
-          warehouseId: 1,
+          warehouseId: this.selectedWarehouseId() || 1,
           rncOrCedula: '',
         };
         const items: ProductDetails[] = this.cart().map((item) => {
