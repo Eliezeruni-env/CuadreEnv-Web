@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import {
   ApiClientService,
   extractArray,
+  getCompanyId,
 } from '../../cuadreEnv/services/apiClient';
 import type { ApiResponse } from '../../cuadreEnv/types/api';
 import type {
@@ -144,9 +145,14 @@ export class WarehouseService {
   private cachedWarehousesRes: ApiResponse<Warehouse[]> | null = null;
   private readonly WAREHOUSES_CACHE_TTL = 15000; // 15s cache to avoid rapid refetch storms
 
+  private getWarehousesKey(): string {
+    const compId = getCompanyId();
+    return compId ? `${WAREHOUSES_STORAGE_KEY}_${compId}` : WAREHOUSES_STORAGE_KEY;
+  }
+
   public getLocalWarehouses(): Warehouse[] {
     try {
-      const raw = localStorage.getItem(WAREHOUSES_STORAGE_KEY);
+      const raw = localStorage.getItem(this.getWarehousesKey());
       if (!raw) {
         return [];
       }
@@ -158,7 +164,7 @@ export class WarehouseService {
 
   public saveLocalWarehouses(list: Warehouse[]): void {
     try {
-      localStorage.setItem(WAREHOUSES_STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(this.getWarehousesKey(), JSON.stringify(list));
     } catch (e) {
       console.error('Error saving local warehouses:', e);
     }
@@ -237,18 +243,21 @@ export class WarehouseService {
             };
           });
 
-          // Combinar con almacenes locales para que nunca se pierda un almacén creado por el usuario
+          // Deduplicación estricta y sincronización: El servidor es la fuente de verdad.
+          const serverNames = new Set(normalized.map((w) => w.name.trim().toLowerCase()));
+          const serverIds = new Set(normalized.map((w) => w.id));
+
+          // Solo conservamos almacenes locales que no colisionen por ID ni por nombre con el backend
           const local = this.getLocalWarehouses();
-          const map = new Map<string | number, Warehouse>();
-          normalized.forEach((w) => map.set(w.id, w));
+          const cleanList = [...normalized];
           local.forEach((w) => {
-            if (!map.has(w.id)) {
-              map.set(w.id, w);
+            const nameKey = (w.name || '').trim().toLowerCase();
+            if (!serverIds.has(w.id) && !serverNames.has(nameKey)) {
+              cleanList.push(w);
             }
           });
-          const combined = this.enforceSingleMainWarehouse(
-            Array.from(map.values()),
-          );
+
+          const combined = this.enforceSingleMainWarehouse(cleanList);
           this.saveLocalWarehouses(combined);
           const response: ApiResponse<Warehouse[]> = {
             success: true,
@@ -302,35 +311,76 @@ export class WarehouseService {
     wh: Partial<Warehouse>,
   ): Promise<ApiResponse<Warehouse>> {
     const list = this.getLocalWarehouses();
-    const newId = list.length > 0 ? Math.max(...list.map((w) => w.id)) + 1 : 1;
-    const newWarehouse: Warehouse = {
-      id: newId,
-      name: wh.name || `Almacén #${newId}`,
-      code: wh.code || `ALM-${String(newId).padStart(2, '0')}`,
-      address: wh.address || '',
-      phone: wh.phone || '',
-      managerName: wh.managerName || '',
-      isMain: wh.isMain || false,
-      isActive: wh.isActive ?? true,
-      createdAt: new Date().toISOString(),
-    };
+    const fallbackId = list.length > 0 ? Math.max(...list.map((w) => w.id)) + 1 : 1;
 
-    if (newWarehouse.isMain) {
-      list.forEach((w) => (w.isMain = false));
-    }
-
-    list.push(newWarehouse);
-    this.saveLocalWarehouses(list);
-
+    let serverData: any = null;
     try {
-      await this.api.post<any, any>('/warehouse', newWarehouse);
+      const res = await this.api.post<any, any>('/warehouse', {
+        name: wh.name,
+        code: wh.code,
+        address: wh.address || '',
+        phone: wh.phone || '',
+        managerName: wh.managerName || '',
+        isMain: wh.isMain || false,
+        isActive: wh.isActive ?? true,
+      });
+      if (res?.data) {
+        serverData = res.data;
+      }
     } catch {
       try {
-        await this.api.post<any, any>('/Warehouse', newWarehouse);
+        const res = await this.api.post<any, any>('/Warehouse', {
+          name: wh.name,
+          code: wh.code,
+          address: wh.address || '',
+          phone: wh.phone || '',
+          managerName: wh.managerName || '',
+          isMain: wh.isMain || false,
+          isActive: wh.isActive ?? true,
+        });
+        if (res?.data) {
+          serverData = res.data;
+        }
       } catch {
-        // offline fallback
+        // Fallback offline
       }
     }
+
+    const realId = serverData?.id ? Number(serverData.id) : fallbackId;
+    const realCode =
+      serverData?.code ||
+      wh.code ||
+      `ALM-${String(realId).padStart(2, '0')}`;
+
+    const newWarehouse: Warehouse = {
+      id: realId,
+      name: serverData?.name || wh.name || `Almacén #${realId}`,
+      code: realCode,
+      address: serverData?.address || wh.address || '',
+      phone: serverData?.phone || wh.phone || '',
+      managerName: serverData?.managerName || wh.managerName || '',
+      isMain: wh.isMain ?? (serverData?.isMain || false),
+      isActive: wh.isActive ?? (serverData?.isActive ?? true),
+      createdAt: serverData?.createdAt || new Date().toISOString(),
+    };
+
+    // Eliminar cualquier duplicado previo por ID o por nombre
+    const targetName = (newWarehouse.name || '').trim().toLowerCase();
+    const cleanList = list.filter(
+      (w) => w.id !== newWarehouse.id && (w.name || '').trim().toLowerCase() !== targetName
+    );
+
+    if (newWarehouse.isMain) {
+      cleanList.forEach((w) => (w.isMain = false));
+    }
+
+    cleanList.push(newWarehouse);
+    const combined = this.enforceSingleMainWarehouse(cleanList);
+    this.saveLocalWarehouses(combined);
+
+    // Invalidar caché
+    this.cachedWarehousesRes = null;
+    this.lastWarehousesFetch = 0;
 
     return {
       success: true,

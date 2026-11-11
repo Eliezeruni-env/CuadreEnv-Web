@@ -92,18 +92,18 @@
                   cDropdownItem
                   (click)="onSelectCompany(company.id)"
                   class="d-flex align-items-center justify-content-between rounded-2 px-2 py-2 w-100 border-0"
-                  [class.bg-primary-subtle]="company.id === authService.companyId()"
-                  [class.text-primary]="company.id === authService.companyId()"
+                  [class.bg-primary-subtle]="isCurrentCompany(company.id)"
+                  [class.text-primary]="isCurrentCompany(company.id)"
                 >
                   <div class="d-flex flex-column text-start me-2 overflow-hidden">
-                    <span class="fw-semibold text-truncate small" [class.text-primary]="company.id === authService.companyId()">
+                    <span class="fw-semibold text-truncate small" [class.text-primary]="isCurrentCompany(company.id)">
                       {{ company.commercialName || company.name }}
                     </span>
                     <span class="text-secondary small font-size-xs text-truncate">
                       @if (company.rnc) { RNC: {{ company.rnc }} • } {{ company.role || 'Miembro' }}
                     </span>
                   </div>
-                  @if (company.id === authService.companyId()) {
+                  @if (isCurrentCompany(company.id)) {
                     <svg cIcon name="cilCheck" style="width: 16px; height: 16px;" class="text-primary flex-shrink-0"></svg>
                   }
                 </button>

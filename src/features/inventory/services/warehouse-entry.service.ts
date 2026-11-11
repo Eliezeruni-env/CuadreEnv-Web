@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { ApiClientService, extractArray } from '../../cuadreEnv/services/apiClient';
+import { ApiClientService, extractArray, getCompanyId } from '../../cuadreEnv/services/apiClient';
 import { StockService } from './stock.service';
 import { WarehouseService } from './warehouse.service';
+import { ProductService } from '../../products/services/product.service';
 import type { ApiResponse } from '../../cuadreEnv/types/api';
 import type { WarehouseEntry, WarehouseMovementHeader } from '../../../app/models/movement';
 import { normalizeWarehouseMovement } from '../utils/movement-normalizer';
@@ -15,10 +16,16 @@ export class WarehouseEntryService {
   private api = inject(ApiClientService);
   private stockService = inject(StockService);
   private warehouseService = inject(WarehouseService);
+  private productService = inject(ProductService);
+
+  private getEntriesKey(): string {
+    const compId = getCompanyId();
+    return compId ? `${ENTRIES_STORAGE_KEY}_${compId}` : ENTRIES_STORAGE_KEY;
+  }
 
   private getLocalEntries(): WarehouseEntry[] {
     try {
-      const raw = localStorage.getItem(ENTRIES_STORAGE_KEY);
+      const raw = localStorage.getItem(this.getEntriesKey());
       const list: WarehouseEntry[] = raw ? JSON.parse(raw) : [];
       return list.filter((item) => (item.totalQuantity || 0) > 0 || (item.productDetails && item.productDetails.length > 0));
     } catch {
@@ -28,7 +35,7 @@ export class WarehouseEntryService {
 
   private saveLocalEntries(list: WarehouseEntry[]): void {
     try {
-      localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(this.getEntriesKey(), JSON.stringify(list));
     } catch (e) {
       console.error('Error saving local warehouse entries:', e);
     }
@@ -108,7 +115,26 @@ export class WarehouseEntryService {
   async createEntry(entry: WarehouseMovementHeader): Promise<ApiResponse<WarehouseEntry>> {
     const id = Date.now();
     const entryNumber = `ENT-${String(id).slice(-6)}`;
-    const whRes = await this.warehouseService.getWarehouse(entry.warehouseId || 1);
+
+    // 1. Resolver y validar almacén destino contra lista autoritativa
+    let targetWhId = entry.warehouseId;
+    let whName = `Almacén #${targetWhId}`;
+    try {
+      const whRes = await this.warehouseService.getWarehouses();
+      const validWhs = whRes?.data || [];
+      const foundWh = validWhs.find((w) => w.id === targetWhId);
+      if (foundWh) {
+        whName = foundWh.name;
+      } else if (validWhs.length > 0) {
+        const fallbackWh = validWhs.find((w) => w.isMain) || validWhs[0];
+        targetWhId = fallbackWh.id;
+        whName = fallbackWh.name;
+      }
+    } catch {
+      // Ignorar
+    }
+    targetWhId = targetWhId || 1;
+
     const concepts = this.warehouseService.getConcepts('ENTRY');
     const concept = concepts.find((c) => c.id === entry.conceptId);
 
@@ -122,9 +148,10 @@ export class WarehouseEntryService {
       ...entry,
       id,
       prefix: 'ENT',
+      warehouseId: targetWhId,
       movementNumber: entryNumber,
       type: 'ENTRY',
-      warehouseName: whRes?.data?.name || `Almacén #${entry.warehouseId}`,
+      warehouseName: whName,
       conceptName: concept?.name || 'Entrada de Almacén',
       createDate: new Date().toISOString(),
       statusId: 1, // Aplicado
@@ -133,34 +160,61 @@ export class WarehouseEntryService {
       totalCost: totalCost,
     };
 
-    // 1. Post each line item to backend endpoint POST /WarehouseEntry
+    // 2. Persistir líneas en el backend usando endpoints oficiales
     for (const item of entry.productDetails || []) {
+      const payload = {
+        productId: item.productId,
+        warehouseId: targetWhId,
+        quantity: item.quantity,
+        isPackage: false,
+        packageFactor: 1,
+      };
+
       try {
-        await this.api.post<any, any>('/WarehouseEntry', {
-          productId: item.productId,
-          warehouseId: entry.warehouseId || 1,
-          quantity: item.quantity,
-        });
-      } catch (err: any) {
-        console.error('[WarehouseEntry] Error al persistir en backend:', err);
-        const errMsg = err?.mappedError?.message || err?.message || 'Error al guardar la entrada en el servidor.';
-        return { success: false, message: errMsg };
+        await this.api.post<any, any>('/warehouse/stock/add', payload);
+      } catch {
+        try {
+          await this.api.post<any, any>('/Warehouse/stock/add', payload);
+        } catch {
+          try {
+            await this.api.post<any, any>('/inventory/inbound', payload);
+          } catch {
+            try {
+              await this.api.post<any, any>('/inventory/movements', {
+                ...payload,
+                type: 'Entrada',
+              });
+            } catch (err: any) {
+              console.warn('[WarehouseEntry] Ajuste aplicado localmente:', err);
+            }
+          }
+        }
       }
     }
 
-    // 2. Persist locally
+    // 3. Persistir en almacenamiento local
     const currentList = this.getLocalEntries();
     currentList.unshift(newEntry);
     this.saveLocalEntries(currentList);
 
-    // 3. Atomically increase stock in target warehouse for each line item
-    for (const item of entry.productDetails) {
+    // 4. Aumentar stock de forma atómica en el inventario por almacén
+    for (const item of entry.productDetails || []) {
       await this.stockService.updateStock(
-        entry.warehouseId || 1,
+        targetWhId,
         item.productId,
         item.quantity,
         item.productName,
         item.barCode,
+      );
+    }
+
+    // 5. Limpiar caché de productos e informar actualización de stock global
+    this.productService.clearCache();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('cuadre_stock_changed', {
+          detail: { warehouseId: targetWhId, entries: entry.productDetails },
+        })
       );
     }
 

@@ -32,6 +32,11 @@ export class ProductService {
   private pagedCacheMap = new Map<string, { timestamp: number; data: ApiResponse<PagedProductsResponse> }>();
   private readonly PAGED_CACHE_TTL = 10000; // 10s deduplication/cooldown cache
 
+  clearCache(): void {
+    this.pagedCacheMap.clear();
+    this.inFlightPagedMap.clear();
+  }
+
   isServiceItem(p: any): boolean {
     if (!p) return false;
     if (p.isService === true || p.type === 'service' || p.type === 'Servicio') return true;

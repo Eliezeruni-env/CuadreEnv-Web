@@ -162,11 +162,10 @@ export class AuthService {
         window.sessionStorage?.getItem('currentCompanyId') ||
         window.sessionStorage?.getItem('auth_company_id') ||
         window.sessionStorage?.getItem('companyId') ||
-        (isRememberMe()
-          ? window.localStorage?.getItem('currentCompanyId') ||
-            window.localStorage?.getItem('auth_company_id') ||
-            window.localStorage?.getItem('companyId')
-          : null);
+        window.localStorage?.getItem('currentCompanyId') ||
+        window.localStorage?.getItem('auth_company_id') ||
+        window.localStorage?.getItem('companyId') ||
+        window.localStorage?.getItem(API_CONSTANTS.COMPANY_ID_KEY);
       if (
         stored &&
         stored !== 'null' &&
@@ -437,17 +436,14 @@ export class AuthService {
       decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/sid'];
 
     let compId: number | null = null;
-    if (rawCompanyId !== undefined && rawCompanyId !== null) {
+
+    // Prioridad 1: Si hay una empresa explícitamente seleccionada y almacenada en la sesión activa
+    const storedCompId = this.getInitialCompanyId();
+    if (storedCompId && storedCompId > 0) {
+      compId = storedCompId;
+    } else if (rawCompanyId !== undefined && rawCompanyId !== null) {
       const parsed = parseInt(rawCompanyId.toString(), 10);
       compId = !isNaN(parsed) && parsed > 0 ? parsed : null;
-    }
-
-    // Si no vino claim válido en token, consultar almacenamiento local o sesión previa activa
-    if (compId === null || compId <= 0) {
-      const storedCompId = this.getInitialCompanyId();
-      if (storedCompId && storedCompId > 0) {
-        compId = storedCompId;
-      }
     }
 
     // Si sigue sin definirse pero hay empresas vinculadas, asignar la empresa por defecto o la primera
@@ -1538,16 +1534,19 @@ export class AuthService {
   }
 
   async switchCompany(newCompanyId: number): Promise<boolean> {
-    if (!newCompanyId || newCompanyId <= 0) {
+    const targetId = Number(newCompanyId);
+    if (!targetId || targetId <= 0) {
       this.notificationService.error('Empresa inválida');
       return false;
     }
-    if (newCompanyId === this.companyId()) {
+    if (targetId === this.companyId()) {
       return true;
     }
 
     try {
-      // 1. Purgar datos de caja y temporales del tenant anterior para evitar contaminación
+      this.notificationService.info('Cambiando a empresa seleccionada...');
+
+      // 1. Purgar datos de caja y cachés no particionados del tenant anterior para evitar contaminación
       if (typeof window !== 'undefined') {
         window.localStorage?.removeItem('app_active_cash_register_session');
         window.localStorage?.removeItem(
@@ -1555,38 +1554,58 @@ export class AuthService {
         );
         window.localStorage?.removeItem('cuadre_active_cash_register_session');
         window.localStorage?.removeItem('cuadre_company_settings');
+        window.localStorage?.removeItem('cuadreenv_warehouses_db');
+        window.localStorage?.removeItem('cuadreenv_stock_db');
+        window.localStorage?.removeItem('cuadreenv_warehouse_entries_db');
+        window.localStorage?.removeItem('cuadreEnv_inventory_movements');
         window.sessionStorage?.removeItem('cuadre_company_settings');
         window.sessionStorage?.removeItem('active_company_id');
+        window.sessionStorage?.removeItem('allowedModules');
+        window.sessionStorage?.removeItem('hasAllModules');
       }
 
-      // 2. Establecer el nuevo tenant en el servicio y en el cliente HTTP
-      this.companyId.set(newCompanyId);
-      setCompanyId(newCompanyId);
+      // 2. Establecer el nuevo tenant en el servicio y en el cliente HTTP de inmediato
+      this.companyId.set(targetId);
+      setCompanyId(targetId);
 
       if (typeof window !== 'undefined') {
         window.localStorage?.setItem(
           API_CONSTANTS.COMPANY_ID_KEY,
-          String(newCompanyId),
+          String(targetId),
         );
-        window.localStorage?.setItem('companyId', String(newCompanyId));
-        window.localStorage?.setItem('currentCompanyId', String(newCompanyId));
-        window.localStorage?.setItem('auth_company_id', String(newCompanyId));
-        window.sessionStorage?.setItem('companyId', String(newCompanyId));
+        window.localStorage?.setItem('companyId', String(targetId));
+        window.localStorage?.setItem('currentCompanyId', String(targetId));
+        window.localStorage?.setItem('auth_company_id', String(targetId));
+        window.sessionStorage?.setItem('companyId', String(targetId));
         window.sessionStorage?.setItem(
           'currentCompanyId',
-          String(newCompanyId),
+          String(targetId),
         );
-        window.sessionStorage?.setItem('auth_company_id', String(newCompanyId));
+        window.sessionStorage?.setItem('auth_company_id', String(targetId));
       }
 
-      // 3. Informar al backend si el endpoint de selección de empresa existe
+      // 3. Invocar al backend para cambiar el contexto en BD y obtener los tokens renovados firmados
       try {
-        await this.api
-          .post('/auth/switch-company', { companyId: newCompanyId })
-          .catch(() => {});
-      } catch {}
+        const res: any = await this.api.post('/auth/switch-company', { companyId: targetId });
+        const switchedTokens = res?.data || res;
+        if (switchedTokens) {
+          const rawAccess =
+            switchedTokens.accessToken ||
+            switchedTokens.AccessToken ||
+            switchedTokens.token ||
+            switchedTokens.Token;
+          const rawRefresh =
+            switchedTokens.refreshToken ||
+            switchedTokens.RefreshToken;
+          if (rawAccess) setAccessToken(rawAccess);
+          if (rawRefresh) setRefreshToken(rawRefresh);
+          this.handleTokenResponse(switchedTokens, false);
+        }
+      } catch (err) {
+        console.warn('[AuthService] switch-company API call fallback:', err);
+      }
 
-      // 4. Refrescar módulos y licencias
+      // 4. Refrescar módulos y licencias de la nueva empresa
       await this.refreshModuleEntitlements(true).catch(() => {});
 
       // 5. Recargar la interfaz para limpiar cachés de componentes y estado en memoria

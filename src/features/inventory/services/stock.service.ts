@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { ApiClientService, extractArray } from '../../cuadreEnv/services/apiClient';
+import { ApiClientService, extractArray, getCompanyId } from '../../cuadreEnv/services/apiClient';
 import { WarehouseService } from './warehouse.service';
 import { ProductService } from '../../products/services/product.service';
 import type { ApiResponse } from '../../cuadreEnv/types/api';
@@ -19,9 +19,14 @@ export class StockService {
   private lastInitAttempt = 0;
   private readonly INIT_COOLDOWN_MS = 15000;
 
+  private getStockKey(): string {
+    const compId = getCompanyId();
+    return compId ? `${STOCK_STORAGE_KEY}_${compId}` : STOCK_STORAGE_KEY;
+  }
+
   private getLocalStock(): Stock[] {
     try {
-      const raw = localStorage.getItem(STOCK_STORAGE_KEY);
+      const raw = localStorage.getItem(this.getStockKey());
       if (raw) return JSON.parse(raw);
     } catch {
       // fallback
@@ -31,7 +36,7 @@ export class StockService {
 
   private saveLocalStock(list: Stock[]): void {
     try {
-      localStorage.setItem(STOCK_STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(this.getStockKey(), JSON.stringify(list));
     } catch (e) {
       console.error('Error saving local stock:', e);
     }

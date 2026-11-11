@@ -156,6 +156,12 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
     }
   }
 
+  isCurrentCompany(id: number | string | null | undefined): boolean {
+    if (!id) return false;
+    const current = this.authService.companyId();
+    return Number(id) === Number(current);
+  }
+
   async onSelectCompany(companyId: number): Promise<void> {
     await this.authService.switchCompany(companyId);
   }
