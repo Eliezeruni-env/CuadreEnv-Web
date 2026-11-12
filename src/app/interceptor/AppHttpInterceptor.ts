@@ -345,13 +345,12 @@ function handleGlobalHttpError(
       apiCode === 'MODULE_ACCESS_DENIED' || apiCode === 'MODULE_NOT_ASSIGNED';
     const isDashboardRead = req.method === 'GET' && router?.url.split(/[?#]/, 1)[0] === '/dashboard';
     if (isModuleAccessDenied || isDashboardRead) return;
-    if (notificationService && !permissionsChanged && !isDuplicate) {
-      recentForbiddenNotifications.set(notificationKey, now);
-      notificationService.warning(
-        apiMessage || 'No tienes permisos para realizar esta operación.',
-        title
-      );
-    }
+    // En esta fase de desarrollo y pruebas operativas, no se restringen acciones al usuario con popups 403
+    console.warn('[API 403 Forbidden - Restricción ignorada]', {
+      url: req.urlWithParams || req.url,
+      method: req.method,
+      error: error.error,
+    });
     return;
   }
 
