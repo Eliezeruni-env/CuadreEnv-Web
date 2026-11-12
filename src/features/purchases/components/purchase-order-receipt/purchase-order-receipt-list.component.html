@@ -142,54 +142,82 @@
                 <!-- Detail Row Expandible (Subtabla de Productos Recibidos) -->
                 @if (isReceiptExpanded(r.id)) {
                   <tr class="detail-row">
-                    <td colspan="9">
-                      <div class="card border border-secondary-subtle shadow-xs rounded-3 overflow-hidden">
-                        <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                          <span class="fw-bold small text-secondary text-uppercase d-flex align-items-center gap-2">
-                            Detalle de Artículos Físicos Recibidos ({{ (r.productDetails || []).length }} ítems)
-                          </span>
-                          <div class="small font-monospace text-muted">
-                            Suplidor: <strong>{{ r.supplierName }}</strong> | Almacén: <strong>{{ r.warehouseName }}</strong>
+                    <td colspan="9" class="p-3 bg-slate-50">
+                      <div class="billing-detail-card" style="border-top-color: #10B981;">
+                        <div class="billing-detail-header">
+                          <div class="d-flex align-items-center gap-2">
+                            <div class="detail-header-icon" style="background: #ECFDF5; color: #059669;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m7.5 4.27 9 5.15"></path>
+                                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+                                <path d="m3.3 7 8.7 5 8.7-5"></path>
+                                <path d="M12 22V12"></path>
+                              </svg>
+                            </div>
+                            <span class="detail-header-title">Detalle de Artículos Físicos Recibidos</span>
+                            <span class="detail-items-count-badge">
+                              {{ (r.productDetails || []).length }} {{ (r.productDetails || []).length === 1 ? 'ítem' : 'ítems' }}
+                            </span>
+                          </div>
+
+                          <div class="detail-summary-pills">
+                            <span class="summary-pill">
+                              <span class="pill-label">Suplidor</span>
+                              <strong class="pill-value">{{ r.supplierName }}</strong>
+                            </span>
+                            <span class="summary-pill">
+                              <span class="pill-label">Almacén</span>
+                              <strong class="pill-value">{{ r.warehouseName }}</strong>
+                            </span>
                           </div>
                         </div>
-                        <div class="card-body p-0">
-                          <table class="table table-sm table-bordered mb-0 align-middle">
-                            <thead class="table-light text-muted font-size-xs">
-                              <tr>
-                                <th class="ps-3">Código</th>
-                                <th>Descripción del Artículo</th>
-                                <th class="text-center">Cant. Esperada</th>
-                                <th class="text-center">Cant. Recibida</th>
-                                <th class="text-center pe-3">Variación</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              @for (item of (r.productDetails || []); track $index) {
+
+                        <div class="billing-detail-body">
+                          <div class="table-responsive">
+                            <table class="table billing-subtable mb-0 align-middle">
+                              <thead>
                                 <tr>
-                                  <td class="ps-3 font-monospace small text-secondary">{{ item.barCode || 'PROD-' + item.productId }}</td>
-                                  <td class="fw-semibold text-dark">{{ item.productName }}</td>
-                                  <td class="text-center font-monospace">{{ item.quantityOrdered }} uds</td>
-                                  <td class="text-center font-monospace fw-bold text-success">{{ item.quantityReceived }} uds</td>
-                                  <td class="text-center pe-3 font-monospace">
-                                    @if (item.quantityReceived === item.quantityOrdered) {
-                                      <span class="text-success font-monospace">0</span>
-                                    } @else if (item.quantityReceived < item.quantityOrdered) {
-                                      <span class="text-danger font-monospace">-{{ item.quantityOrdered - item.quantityReceived }}</span>
-                                    } @else {
-                                      <span class="text-primary font-monospace">+{{ item.quantityReceived - item.quantityOrdered }}</span>
-                                    }
-                                  </td>
+                                  <th class="ps-3" style="width: 140px;">Código</th>
+                                  <th>Descripción</th>
+                                  <th class="text-center" style="width: 130px;">Cant. Esperada</th>
+                                  <th class="text-center" style="width: 130px;">Cant. Recibida</th>
+                                  <th class="text-center pe-3" style="width: 120px;">Variación</th>
                                 </tr>
-                              }
-                              @if (!r.productDetails || r.productDetails.length === 0) {
-                                <tr>
-                                  <td colspan="5" class="text-center py-3 text-muted small">
-                                    Recepción general conforme (sin discrepancias registradas).
-                                  </td>
-                                </tr>
-                              }
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                @for (item of (r.productDetails || []); track $index) {
+                                  <tr>
+                                    <td class="ps-3">
+                                      <span class="product-code-pill font-monospace">{{ item.barCode || 'PROD-' + item.productId }}</span>
+                                    </td>
+                                    <td>
+                                      <span class="product-name-text">{{ item.productName }}</span>
+                                    </td>
+                                    <td class="text-center font-monospace text-muted">{{ item.quantityOrdered }} uds</td>
+                                    <td class="text-center">
+                                      <span class="quantity-badge font-monospace">{{ item.quantityReceived }} uds</span>
+                                    </td>
+                                    <td class="text-center pe-3 font-monospace">
+                                      @if (item.quantityReceived === item.quantityOrdered) {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 font-monospace">0</span>
+                                      } @else if (item.quantityReceived < item.quantityOrdered) {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 font-monospace">-{{ item.quantityOrdered - item.quantityReceived }}</span>
+                                      } @else {
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 font-monospace">+{{ item.quantityReceived - item.quantityOrdered }}</span>
+                                      }
+                                    </td>
+                                  </tr>
+                                }
+                                @if (!r.productDetails || r.productDetails.length === 0) {
+                                  <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted small">
+                                      Recepción general conforme (sin discrepancias registradas).
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     </td>

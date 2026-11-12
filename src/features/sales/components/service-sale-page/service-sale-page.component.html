@@ -1,249 +1,346 @@
 <div class="container-fluid py-3 service-sale-page-container">
   <!-- Top Bar Navigation -->
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
+  <div class="service-top-bar mb-3">
     <div class="d-flex align-items-center gap-3">
-      <a [routerLink]="['/sales']" class="btn btn-outline-secondary d-flex align-items-center gap-1 px-3 shadow-xs">
-        <svg cIcon name="cilArrowLeft" style="width: 16px; height: 16px;"></svg>
+      <a [routerLink]="['/sales']" class="btn btn-back-sales">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
         <span>Volver a Ventas</span>
       </a>
       <div>
-        <h4 class="fw-bold mb-0 text-dark">Venta de Servicios & Mano de Obra</h4>
-        <small class="text-secondary">Facturación de servicios profesionales, asesorías, reparaciones y mano de obra (sin control de stock físico)</small>
+        <div class="d-flex align-items-center gap-2">
+          <h4 class="fw-bold mb-0 text-slate-900">Venta de Servicios & Mano de Obra</h4>
+          <span class="service-badge-pill">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+            <span>Módulo de Servicios</span>
+          </span>
+        </div>
+        <p class="service-top-subtitle mb-0">Facturación ágil de servicios profesionales, asesorías, reparaciones y mano de obra (sin afectación de stock físico)</p>
       </div>
-    </div>
-
-    <div class="d-flex align-items-center gap-2">
-      <span class="badge bg-info-subtle text-info border px-3 py-2 fs-6 rounded-pill d-flex align-items-center gap-2">
-        <svg cIcon name="cilWrench" style="width: 16px; height: 16px;"></svg>
-        <span>Módulo de Servicios</span>
-      </span>
     </div>
   </div>
 
   <div class="row g-3">
     <div class="col-lg-8 col-xl-8 d-flex flex-column gap-3">
-      <div class="card border rounded-4 shadow-sm bg-white p-3">
-        <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
-          <span class="badge bg-info rounded-circle px-2">1</span>
-          <span>Cliente y Condiciones de Cobro</span>
-        </h6>
+      <!-- Step 1: Cliente y Condiciones de Cobro -->
+      <div class="service-card p-3 p-md-4">
+        <div class="service-card-header mb-3">
+          <div class="d-flex align-items-center gap-2">
+            <span class="step-num-badge">1</span>
+            <h6 class="service-step-title mb-0">Cliente y Condiciones de Cobro</h6>
+          </div>
+        </div>
 
         <div class="row g-3">
           <div class="col-md-6">
-            <label class="form-label small fw-semibold text-secondary mb-1">Cliente *</label>
-            <select class="form-select form-select-lg border" [value]="selectedCustomerId ?? ''" (change)="onCustomerChange($event)">
-              <option value="">Consumidor Final (General / Sin RNC)</option>
-              @for (c of customers(); track c.id) {
-                <option [value]="c.id">{{ c.name }} {{ c.identification ? '(' + c.identification + ')' : '' }}</option>
-              }
-            </select>
+            <label class="service-field-label mb-1">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1 text-muted">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              Cliente *
+            </label>
+            <div class="custom-select-wrap">
+              <select class="form-select service-select" [value]="selectedCustomerId ?? ''" (change)="onCustomerChange($event)">
+                <option value="">Consumidor Final (General / Sin RNC)</option>
+                @for (c of customers(); track c.id) {
+                  <option [value]="c.id">{{ c.name }} {{ c.identification ? '(' + c.identification + ')' : '' }}</option>
+                }
+              </select>
+            </div>
           </div>
 
           <div class="col-md-6">
-            <label class="form-label small fw-semibold text-secondary mb-1">Modalidad de Cobro *</label>
-            <div class="btn-group w-100" role="group" style="height: 48px;">
-              <button
-                type="button"
-                class="btn fw-semibold"
-                [class.btn-success]="paymentMode === 'CASH'"
-                [class.btn-outline-secondary]="paymentMode !== 'CASH'"
+            <label class="service-field-label mb-1">Modalidad de Cobro *</label>
+            <div class="payment-mode-cards">
+              <!-- Opción Contado -->
+              <div
+                class="mode-card"
+                [class.active]="paymentMode === 'CASH'"
                 (click)="setPaymentMode('CASH')"
+                role="button"
+                tabindex="0"
               >
-                Contado (Caja)
-              </button>
-              <button
-                type="button"
-                class="btn fw-semibold"
-                [class.btn-primary]="paymentMode === 'CREDIT'"
-                [class.btn-outline-secondary]="paymentMode !== 'CREDIT'"
+                <div class="mode-icon cash-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                    <circle cx="12" cy="12" r="2"></circle>
+                    <path d="M6 12h.01M18 12h.01"></path>
+                  </svg>
+                </div>
+                <div class="mode-info">
+                  <span class="mode-title">Contado</span>
+                  <span class="mode-sub">Ingreso a Caja</span>
+                </div>
+                <span class="mode-check" [class.visible]="paymentMode === 'CASH'">✓</span>
+              </div>
+
+              <!-- Opción Crédito -->
+              <div
+                class="mode-card credit"
+                [class.active]="paymentMode === 'CREDIT'"
                 (click)="setPaymentMode('CREDIT')"
+                role="button"
+                tabindex="0"
               >
-                A Crédito (Cobros)
-              </button>
+                <div class="mode-icon credit-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </div>
+                <div class="mode-info">
+                  <span class="mode-title">A Crédito</span>
+                  <span class="mode-sub">Cuentas x Cobrar</span>
+                </div>
+                <span class="mode-check" [class.visible]="paymentMode === 'CREDIT'">✓</span>
+              </div>
             </div>
           </div>
         </div>
 
         @if (paymentMode === 'CREDIT') {
-          <div class="alert alert-primary p-3 mt-3 mb-0 rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <div>
-              <span class="fw-semibold d-block">Facturación a Crédito:</span>
-              <small class="text-secondary">Se generará automáticamente una cuenta por cobrar en el módulo de Cobros.</small>
+          <div class="service-credit-banner mt-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="banner-info-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+              </div>
+              <div class="flex-grow-1">
+                <span class="fw-bold d-block text-slate-800">Facturación a Crédito</span>
+                <small class="text-slate-600">Se registrará una Cuenta por Cobrar en el módulo de Cobros vinculada a este cliente.</small>
+              </div>
             </div>
-            <div style="max-width: 200px;">
-              <label class="small text-secondary fw-semibold mb-1">Fecha límite de pago</label>
-              <input type="date" class="form-control" [(ngModel)]="dueDate" />
+            <div class="credit-date-wrap">
+              <label class="credit-date-label">Vencimiento del Crédito</label>
+              <input type="date" class="form-control form-control-sm credit-date-input" [(ngModel)]="dueDate" />
             </div>
           </div>
         }
       </div>
 
       <!-- Step 2: Servicios a Facturar -->
-      <div class="card border rounded-4 shadow-sm bg-white p-3">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-            <span class="badge bg-info rounded-circle px-2">2</span>
-            <span>Servicios a Facturar</span>
-          </h6>
+      <div class="service-card p-3 p-md-4">
+        <div class="service-card-header d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="step-num-badge">2</span>
+            <h6 class="service-step-title mb-0">Servicios a Facturar</h6>
+            <span class="detail-items-count-badge">
+              {{ cart.length }} {{ cart.length === 1 ? 'servicio' : 'servicios' }}
+            </span>
+          </div>
+
           <a
             routerLink="/services"
-            class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 shadow-xs px-3"
+            class="btn btn-catalog-link"
             title="Ir al Catálogo de Servicios"
           >
-            <svg cIcon name="cilBriefcase" style="width: 14px; height: 14px;"></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
             <span>Catálogo de Servicios</span>
           </a>
         </div>
 
         <!-- Add existing service from catalog -->
-        <div class="row g-2 align-items-end mb-3">
-          <div class="col-md-8">
-            <label class="form-label small fw-semibold text-secondary mb-1">Seleccionar servicio del catálogo</label>
-            <select class="form-select" [(ngModel)]="selectedServiceId">
-              <option [ngValue]="null">-- Elige un servicio del catálogo --</option>
-              @for (s of servicesList(); track s.id) {
-                <option [ngValue]="s.id">
-                  {{ s.code }} — {{ s.description }} (RD$ {{ s.price | number:'1.2-2' }})
-                </option>
-              }
-            </select>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label small fw-semibold text-secondary mb-1">Cant.</label>
-            <input type="number" min="1" class="form-control text-center font-monospace" [(ngModel)]="serviceQuantity" />
-          </div>
-          <div class="col-md-2">
-            <button
-              type="button"
-              class="btn btn-secondary w-100 fw-semibold"
-              [disabled]="!selectedServiceId"
-              (click)="addSelectedService()"
-            >
-              + Agregar
-            </button>
+        <div class="add-service-bar mb-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-7 col-lg-8">
+              <label class="service-field-label mb-1">Seleccionar servicio del catálogo</label>
+              <select class="form-select service-select" [(ngModel)]="selectedServiceId">
+                <option [ngValue]="null">-- Elige un servicio del catálogo --</option>
+                @for (s of servicesList(); track s.id) {
+                  <option [ngValue]="s.id">
+                    {{ s.code }} — {{ s.description }} (RD$ {{ s.price | number:'1.2-2' }})
+                  </option>
+                }
+              </select>
+            </div>
+            <div class="col-sm-5 col-md-2 col-lg-2">
+              <label class="service-field-label mb-1">Cant.</label>
+              <input type="number" min="1" class="form-control text-center font-monospace service-qty-input" [(ngModel)]="serviceQuantity" />
+            </div>
+            <div class="col-sm-7 col-md-3 col-lg-2">
+              <button
+                type="button"
+                class="btn btn-add-service w-100"
+                [disabled]="!selectedServiceId"
+                (click)="addSelectedService()"
+              >
+                <span>+ Agregar</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Table of Added Services -->
-        <div class="table-responsive border rounded-3 mb-0">
-          <table class="table table-hover align-middle mb-0">
-            <thead class="table-light font-size-xs text-uppercase text-secondary">
-              <tr>
-                <th class="ps-3">Código</th>
-                <th>Servicio</th>
-                <th class="text-end" style="width: 140px;">Precio Unit. (RD$)</th>
-                <th class="text-center" style="width: 120px;">Cantidad</th>
-                <th class="text-end" style="width: 130px;">Subtotal (RD$)</th>
-                <th style="width: 44px;"></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of cart; track item.serviceId; let i = $index) {
-                <tr>
-                  <td class="ps-3">
-                    <span class="badge bg-primary-subtle text-primary font-monospace">{{ item.serviceCode }}</span>
-                  </td>
-                  <td class="fw-semibold text-dark">{{ item.serviceName }}</td>
-                  <td class="text-end font-monospace">
-                    <input
-                      type="number"
-                      min="0"
-                      step="50"
-                      class="form-control form-control-sm text-end font-monospace d-inline-block"
-                      style="width: 110px;"
-                      [ngModel]="item.unitPrice"
-                      (ngModelChange)="updateItemPrice(i, $event)"
-                    />
-                  </td>
-                  <td class="text-center">
-                    <div class="d-inline-flex align-items-center border rounded-2 bg-light">
-                      <button type="button" class="btn btn-sm btn-link text-secondary px-2 py-0" (click)="updateQuantity(i, -1)">-</button>
-                      <span class="px-2 font-monospace fw-bold">{{ item.quantity }}</span>
-                      <button type="button" class="btn btn-sm btn-link text-secondary px-2 py-0" (click)="updateQuantity(i, 1)">+</button>
-                    </div>
-                  </td>
-                  <td class="text-end font-monospace fw-bold text-dark">
-                    RD$ {{ (item.quantity * item.unitPrice) | number:'1.2-2' }}
-                  </td>
-                  <td class="text-center pe-2">
-                    <button type="button" class="btn btn-sm text-danger border-0 p-0" (click)="removeCartItem(i)" title="Eliminar servicio">
-                      <svg cIcon name="cilTrash" style="width: 16px; height: 16px;"></svg>
-                    </button>
-                  </td>
-                </tr>
-              }
-              @if (cart.length === 0) {
-                <tr>
-                  <td colspan="6" class="text-center py-5 text-secondary">
-                    <svg cIcon name="cilBriefcase" style="width: 36px; height: 36px;" class="mb-2 opacity-50"></svg>
-                    <p class="mb-0 fw-semibold text-dark">No hay servicios agregados</p>
-                    <small class="text-muted">Selecciona un servicio arriba o agrégalo desde el Catálogo de Servicios para facturarlo.</small>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+        <!-- Table of Added Services con diseño coincidente con billing-detail-card -->
+        <div class="billing-detail-card m-0" style="border-top-color: #6366F1;">
+          <div class="billing-detail-body">
+            <div class="table-responsive">
+              <table class="table billing-subtable mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th class="ps-3" style="width: 130px;">Código</th>
+                    <th>Servicio / Mano de Obra</th>
+                    <th class="text-end" style="width: 150px;">Precio Unit. (RD$)</th>
+                    <th class="text-center" style="width: 130px;">Cantidad</th>
+                    <th class="text-end" style="width: 140px;">Subtotal (RD$)</th>
+                    <th style="width: 50px;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of cart; track item.serviceId; let i = $index) {
+                    <tr>
+                      <td class="ps-3">
+                        <span class="product-code-pill font-monospace">{{ item.serviceCode }}</span>
+                      </td>
+                      <td>
+                        <span class="product-name-text">{{ item.serviceName }}</span>
+                      </td>
+                      <td class="text-end">
+                        <div class="d-inline-flex align-items-center">
+                          <span class="text-muted small me-1">RD$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="50"
+                            class="form-control form-control-sm text-end font-monospace service-price-inline-input"
+                            style="width: 100px;"
+                            [ngModel]="item.unitPrice"
+                            (ngModelChange)="updateItemPrice(i, $event)"
+                          />
+                        </div>
+                      </td>
+                      <td class="text-center">
+                        <div class="service-stepper">
+                          <button type="button" class="stepper-btn" (click)="updateQuantity(i, -1)" title="Disminuir">-</button>
+                          <span class="stepper-val font-monospace">{{ item.quantity }}</span>
+                          <button type="button" class="stepper-btn" (click)="updateQuantity(i, 1)" title="Aumentar">+</button>
+                        </div>
+                      </td>
+                      <td class="text-end font-monospace fw-bold text-success">
+                        RD$ {{ (item.quantity * item.unitPrice) | number:'1.2-2' }}
+                      </td>
+                      <td class="text-center pe-2">
+                        <button type="button" class="btn-remove-item" (click)="removeCartItem(i)" title="Quitar servicio">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                  @if (cart.length === 0) {
+                    <tr>
+                      <td colspan="6" class="text-center py-5">
+                        <div class="service-empty-state">
+                          <div class="empty-icon-circle">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                            </svg>
+                          </div>
+                          <p class="empty-title mb-1">No hay servicios agregados</p>
+                          <p class="empty-sub mb-0">Selecciona un servicio arriba o agrégalo desde el Catálogo de Servicios para comenzar a facturar.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- RIGHT SIDE: Notes & Summary (Col-lg-4) -->
     <div class="col-lg-4 col-xl-4">
-      <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 d-flex flex-column justify-content-between">
+      <div class="service-card p-3 p-md-4 h-100 d-flex flex-column justify-content-between summary-card-accent">
         <div>
           <!-- Notas / Alcance del Servicio -->
-          <h6 class="fw-bold text-dark mb-2">Notas del Servicio</h6>
-          <p class="text-secondary small mb-2">Detalles, garantía o especificaciones que saldrán en la factura:</p>
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <h6 class="service-step-title mb-0">Notas del Servicio</h6>
+          </div>
+          <p class="service-top-subtitle mb-2">Detalles, garantía o especificaciones que saldrán en la factura:</p>
           <textarea
-            class="form-control mb-3"
-            rows="4"
+            class="form-control service-textarea mb-3"
+            rows="3"
             placeholder="Ej. Servicio realizado en el local del cliente. Incluye 30 días de garantía sobre la mano de obra instalada."
             [(ngModel)]="serviceNotes"
           ></textarea>
 
-          <hr class="my-3" />
+          <hr class="service-divider my-3" />
 
           <!-- Resumen Numérico -->
-          <h6 class="fw-bold text-dark mb-3">Liquidación de la Factura</h6>
-
-          <div class="d-flex justify-content-between align-items-center mb-2 small text-secondary">
-            <span>Subtotal Servicios:</span>
-            <span class="font-monospace text-dark fw-semibold">RD$ {{ subtotal | number:'1.2-2' }}</span>
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h6 class="service-step-title mb-0">Liquidación de la Factura</h6>
+            <span class="badge bg-slate-100 text-slate-700 font-monospace">{{ cart.length }} ítems</span>
           </div>
 
-          <div class="d-flex justify-content-between align-items-center mb-3 small text-secondary">
-            <div class="form-check form-switch m-0">
-              <input class="form-check-input" type="checkbox" id="itbisSwitch" [(ngModel)]="applyItbis" />
-              <label class="form-check-label" for="itbisSwitch">Aplicar ITBIS (18%)</label>
+          <div class="summary-breakdown mb-3">
+            <div class="breakdown-row">
+              <span class="breakdown-label">Subtotal Servicios:</span>
+              <span class="breakdown-value">RD$ {{ subtotal | number:'1.2-2' }}</span>
             </div>
-            <span class="font-monospace text-dark">RD$ {{ itbisAmount | number:'1.2-2' }}</span>
+
+            <div class="breakdown-row align-items-center py-2">
+              <div class="form-check form-switch m-0 d-flex align-items-center gap-2">
+                <input class="form-check-input service-switch" type="checkbox" id="itbisSwitch" [(ngModel)]="applyItbis" />
+                <label class="form-check-label service-field-label m-0" for="itbisSwitch">Aplicar ITBIS (18%)</label>
+              </div>
+              <span class="breakdown-value text-slate-700">RD$ {{ itbisAmount | number:'1.2-2' }}</span>
+            </div>
           </div>
 
-          <div class="p-3 bg-light rounded-3 border mb-3">
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="fw-bold fs-5 text-dark">Total a Cobrar:</span>
-              <span class="font-monospace fw-bold fs-3 text-primary">
+          <!-- Tarjeta de Total Destacada -->
+          <div class="total-highlight-card mb-4">
+            <div class="d-flex justify-content-between align-items-baseline mb-1">
+              <span class="total-label">Total a Cobrar:</span>
+              <span class="total-amount font-monospace">
                 RD$ {{ totalAmount | number:'1.2-2' }}
               </span>
             </div>
-            <small class="text-secondary d-block mt-1">
-              Modalidad: <strong>{{ paymentMode === 'CASH' ? 'Contado (Caja)' : 'A Crédito (' + dueDate + ')' }}</strong>
-            </small>
+            <div class="d-flex align-items-center gap-1 mt-2">
+              <span class="total-mode-pill" [class.credit]="paymentMode === 'CREDIT'">
+                {{ paymentMode === 'CASH' ? '💵 Contado (Caja)' : '📑 A Crédito (' + dueDate + ')' }}
+              </span>
+            </div>
           </div>
         </div>
 
         <!-- Action Button -->
         <button
           type="button"
-          class="btn btn-primary btn-lg w-100 py-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
+          class="btn btn-submit-service w-100"
           [disabled]="isSubmitting || cart.length === 0"
           (click)="submitServiceSale()"
         >
           @if (isSubmitting) {
-            <c-spinner size="sm" class="me-1"></c-spinner>
+            <c-spinner size="sm" class="me-2"></c-spinner>
             <span>Generando factura...</span>
           } @else {
-            <svg cIcon name="cilCheck" style="width: 20px; height: 20px;"></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
             <span>Facturar Servicio RD$ {{ totalAmount | number:'1.2-2' }}</span>
           }
         </button>
@@ -251,6 +348,14 @@
     </div>
   </div>
 </div>
+
+<!-- Receipt Modal Upon Completion -->
+<app-sale-completed-modal
+  [(visible)]="isSaleCompletedModalOpen"
+  [saleData]="lastCompletedSale"
+  (newSaleRequested)="isSaleCompletedModalOpen = false; cart = []; serviceNotes = ''"
+  (closed)="onReceiptClosed()"
+></app-sale-completed-modal>
 
 <!-- Receipt Modal Upon Completion -->
 <app-sale-completed-modal

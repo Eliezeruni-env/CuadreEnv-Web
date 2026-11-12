@@ -120,39 +120,62 @@
                 <!-- Detail Row Expandible (Subtabla de Artículos Comprados) -->
                 @if (isPurchaseExpanded(p.id)) {
                   <tr class="detail-row">
-                    <td colspan="6">
-                      <div class="card border border-secondary-subtle shadow-xs rounded-3 overflow-hidden">
-                        <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                          <span class="fw-bold small text-secondary text-uppercase d-flex align-items-center gap-2">
-                            Detalle de Artículos Comprados ({{ getPurchaseItems(p).length }} ítems)
-                          </span>
-                          <div class="small font-monospace">
-                            <span class="text-primary fw-bold">Total Compra: RD$ {{ getPurchaseTotal(p) | number:'1.2-2' }}</span>
+                    <td colspan="6" class="p-3 bg-slate-50">
+                      <div class="billing-detail-card" style="border-top-color: #3B82F6;">
+                        <div class="billing-detail-header">
+                          <div class="d-flex align-items-center gap-2">
+                            <div class="detail-header-icon" style="background: #EFF6FF; color: #2563EB;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="9" cy="21" r="1"></circle>
+                                <circle cx="20" cy="21" r="1"></circle>
+                                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                              </svg>
+                            </div>
+                            <span class="detail-header-title">Detalle de Artículos Comprados</span>
+                            <span class="detail-items-count-badge">
+                              {{ getPurchaseItems(p).length }} {{ getPurchaseItems(p).length === 1 ? 'ítem' : 'ítems' }}
+                            </span>
+                          </div>
+
+                          <div class="detail-summary-pills">
+                            <span class="summary-pill total-pill">
+                              <span class="pill-label">Total Compra</span>
+                              <strong class="pill-value">RD$ {{ getPurchaseTotal(p) | number:'1.2-2' }}</strong>
+                            </span>
                           </div>
                         </div>
-                        <div class="card-body p-0">
-                          <table class="table table-sm table-bordered mb-0 align-middle">
-                            <thead class="table-light text-muted font-size-xs">
-                              <tr>
-                                <th class="ps-3">Código</th>
-                                <th>Descripción del Artículo</th>
-                                <th class="text-center">Cant. Comprada</th>
-                                <th class="text-end">Costo Unit.</th>
-                                <th class="text-end pe-3">Total Costo</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              @for (item of getPurchaseItems(p); track $index) {
+
+                        <div class="billing-detail-body">
+                          <div class="table-responsive">
+                            <table class="table billing-subtable mb-0 align-middle">
+                              <thead>
                                 <tr>
-                                  <td class="ps-3 font-monospace small text-secondary">{{ item.productCode }}</td>
-                                  <td class="fw-semibold text-dark">{{ item.productName }}</td>
-                                  <td class="text-center font-monospace fw-bold text-dark">{{ item.quantity }}</td>
-                                  <td class="text-end font-monospace">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
-                                  <td class="text-end pe-3 font-monospace fw-bold text-primary">RD$ {{ item.total | number:'1.2-2' }}</td>
+                                  <th class="ps-3" style="width: 140px;">Código</th>
+                                  <th>Descripción</th>
+                                  <th class="text-center" style="width: 120px;">Cant. Comprada</th>
+                                  <th class="text-end" style="width: 130px;">Costo Unit.</th>
+                                  <th class="text-end pe-3" style="width: 140px;">Total Costo</th>
                                 </tr>
-                              }
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                @for (item of getPurchaseItems(p); track $index) {
+                                  <tr>
+                                    <td class="ps-3">
+                                      <span class="product-code-pill font-monospace">{{ item.productCode }}</span>
+                                    </td>
+                                    <td>
+                                      <span class="product-name-text">{{ item.productName }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                      <span class="quantity-badge font-monospace">{{ item.quantity }}</span>
+                                    </td>
+                                    <td class="text-end font-monospace text-muted">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
+                                    <td class="text-end pe-3 font-monospace fw-bold text-primary">RD$ {{ item.total | number:'1.2-2' }}</td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     </td>

@@ -203,52 +203,82 @@
                 <!-- Detail Row Expandible (Subtabla de Artículos Devueltos) -->
                 @if (isNoteExpanded(note.id)) {
                   <tr class="detail-row">
-                    <td colspan="10">
-                      <div class="card border border-secondary-subtle shadow-xs rounded-3 overflow-hidden">
-                        <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                          <span class="fw-bold small text-secondary text-uppercase d-flex align-items-center gap-2">
-                            Detalle de Artículos Reintegrados / Afectados ({{ (note.creditNoteDetails || []).length }} ítems)
-                          </span>
-                          <div class="small font-monospace">
-                            <span class="text-muted me-3">Subtotal: <strong>RD$ {{ note.amountSubTotal | number:'1.2-2' }}</strong></span>
-                            <span class="text-muted me-3">ITBIS: <strong>RD$ {{ note.amountItbis | number:'1.2-2' }}</strong></span>
-                            <span class="text-danger fw-bold">Total Reembolso: RD$ {{ note.amountTotal | number:'1.2-2' }}</span>
+                    <td colspan="10" class="p-3 bg-slate-50">
+                      <div class="billing-detail-card" style="border-top-color: #EF4444;">
+                        <div class="billing-detail-header">
+                          <div class="d-flex align-items-center gap-2">
+                            <div class="detail-header-icon" style="background: #FEE2E2; color: #DC2626;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 14 4 9 9 4"></polyline>
+                                <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+                              </svg>
+                            </div>
+                            <span class="detail-header-title">Detalle de Artículos Reintegrados</span>
+                            <span class="detail-items-count-badge">
+                              {{ (note.creditNoteDetails || []).length }} {{ (note.creditNoteDetails || []).length === 1 ? 'ítem' : 'ítems' }}
+                            </span>
+                          </div>
+
+                          <div class="detail-summary-pills">
+                            <span class="summary-pill">
+                              <span class="pill-label">Subtotal</span>
+                              <strong class="pill-value">RD$ {{ note.amountSubTotal | number:'1.2-2' }}</strong>
+                            </span>
+                            <span class="summary-pill">
+                              <span class="pill-label">ITBIS</span>
+                              <strong class="pill-value">RD$ {{ note.amountItbis | number:'1.2-2' }}</strong>
+                            </span>
+                            <span class="summary-pill danger-pill">
+                              <span class="pill-label">Total Reembolso</span>
+                              <strong class="pill-value">RD$ {{ note.amountTotal | number:'1.2-2' }}</strong>
+                            </span>
                           </div>
                         </div>
-                        <div class="card-body p-0">
-                          <table class="table table-sm table-bordered mb-0 align-middle">
-                            <thead class="table-light text-muted font-size-xs">
-                              <tr>
-                                <th class="ps-3">Código</th>
-                                <th>Descripción del Producto</th>
-                                <th class="text-center">Cant. Devuelta</th>
-                                <th class="text-end">Precio Unit.</th>
-                                <th class="text-end">Subtotal</th>
-                                <th class="text-end">ITBIS</th>
-                                <th class="text-end pe-3">Total Reembolso</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              @for (item of (note.creditNoteDetails || []); track $index) {
+
+                        <div class="billing-detail-body">
+                          <div class="table-responsive">
+                            <table class="table billing-subtable mb-0 align-middle">
+                              <thead>
                                 <tr>
-                                  <td class="ps-3 font-monospace small text-secondary">{{ item.barCode || 'PROD-' + item.productId }}</td>
-                                  <td class="fw-semibold text-dark">{{ item.productName }}</td>
-                                  <td class="text-center font-monospace fw-bold text-danger">-{{ item.quantity }}</td>
-                                  <td class="text-end font-monospace">RD$ {{ item.price | number:'1.2-2' }}</td>
-                                  <td class="text-end font-monospace">RD$ {{ (item.subTotal || (item.quantity * item.price)) | number:'1.2-2' }}</td>
-                                  <td class="text-end font-monospace">RD$ {{ (item.itbisAmount || 0) | number:'1.2-2' }}</td>
-                                  <td class="text-end pe-3 font-monospace fw-bold text-danger">RD$ {{ (item.totalAmount || (item.subTotal + (item.itbisAmount || 0))) | number:'1.2-2' }}</td>
+                                  <th class="ps-3" style="width: 140px;">Código</th>
+                                  <th>Descripción</th>
+                                  <th class="text-center" style="width: 110px;">Cant. Devuelta</th>
+                                  <th class="text-end" style="width: 120px;">Precio Unit.</th>
+                                  <th class="text-end" style="width: 120px;">Subtotal</th>
+                                  <th class="text-end" style="width: 110px;">ITBIS</th>
+                                  <th class="text-end pe-3" style="width: 140px;">Total Reembolso</th>
                                 </tr>
-                              }
-                              @if (!note.creditNoteDetails || note.creditNoteDetails.length === 0) {
-                                <tr>
-                                  <td colspan="7" class="text-center py-3 text-muted small">
-                                    Devolución total por valor de factura (sin desglose granular de ítems).
-                                  </td>
-                                </tr>
-                              }
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                @for (item of (note.creditNoteDetails || []); track $index) {
+                                  <tr>
+                                    <td class="ps-3">
+                                      <span class="product-code-pill font-monospace">{{ item.barCode || 'PROD-' + item.productId }}</span>
+                                    </td>
+                                    <td>
+                                      <span class="product-name-text">{{ item.productName }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-monospace fw-bold px-2 py-1">
+                                        -{{ item.quantity }}
+                                      </span>
+                                    </td>
+                                    <td class="text-end font-monospace text-muted">RD$ {{ item.price | number:'1.2-2' }}</td>
+                                    <td class="text-end font-monospace">RD$ {{ (item.subTotal || (item.quantity * item.price)) | number:'1.2-2' }}</td>
+                                    <td class="text-end font-monospace text-muted">RD$ {{ (item.itbisAmount || 0) | number:'1.2-2' }}</td>
+                                    <td class="text-end pe-3 font-monospace fw-bold text-danger">RD$ {{ (item.totalAmount || (item.subTotal + (item.itbisAmount || 0))) | number:'1.2-2' }}</td>
+                                  </tr>
+                                }
+                                @if (!note.creditNoteDetails || note.creditNoteDetails.length === 0) {
+                                  <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted small">
+                                      Devolución total por valor de factura (sin desglose granular de ítems).
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     </td>
