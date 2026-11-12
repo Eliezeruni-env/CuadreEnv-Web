@@ -34,6 +34,163 @@
 
 .detail-row {
   animation: fadeIn 0.2s ease-in-out;
+
+  .bg-slate-50 {
+    background-color: #F8FAFC !important;
+  }
+}
+
+.billing-detail-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+
+  .billing-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: #FFFFFF;
+    border-bottom: 1px solid #EDF2F7;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    .detail-header-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: #EEF2FF;
+      color: #4F46E5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .detail-header-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
+      letter-spacing: 0.02em;
+    }
+
+    .detail-items-count-badge {
+      background: #F1F5F9;
+      color: #64748B;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+
+    .detail-summary-pills {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .summary-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        background: #F8FAFC;
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid #E2E8F0;
+
+        .pill-label {
+          color: #64748B;
+          font-weight: 500;
+        }
+
+        .pill-value {
+          color: #1E293B;
+          font-family: inherit;
+        }
+
+        &.total-pill {
+          background: #ECFDF5;
+          border-color: #A7F3D0;
+
+          .pill-label {
+            color: #065F46;
+            font-weight: 600;
+          }
+
+          .pill-value {
+            color: #059669;
+            font-size: 13px;
+          }
+        }
+      }
+    }
+  }
+
+  .billing-detail-body {
+    .billing-subtable {
+      thead {
+        background-color: #F8FAFC;
+        border-bottom: 1px solid #E2E8F0;
+
+        th {
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #64748B;
+          padding: 10px 12px;
+          border-bottom: 1px solid #E2E8F0;
+        }
+      }
+
+      tbody {
+        tr {
+          transition: background-color 0.15s ease;
+
+          &:hover {
+            background-color: #F8FAFC;
+          }
+
+          td {
+            padding: 10px 12px;
+            font-size: 13px;
+            border-bottom: 1px solid #F1F5F9;
+          }
+
+          &:last-child td {
+            border-bottom: none;
+          }
+        }
+
+        .product-code-pill {
+          background: #F1F5F9;
+          color: #475569;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 600;
+          border: 1px solid #E2E8F0;
+        }
+
+        .product-name-text {
+          font-weight: 600;
+          color: #1E293B;
+        }
+
+        .quantity-badge {
+          display: inline-block;
+          min-width: 28px;
+          padding: 2px 6px;
+          background: #EFF6FF;
+          color: #1D4ED8;
+          border-radius: 4px;
+          font-weight: 700;
+          font-size: 12px;
+        }
+      }
+    }
+  }
 }
 
 @keyframes fadeIn {

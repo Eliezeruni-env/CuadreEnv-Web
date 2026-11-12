@@ -1978,26 +1978,33 @@
   <div class="pc-camera-modal-backdrop" (click)="closeCameraScanner()">
     <div class="pc-camera-modal-card" (click)="$event.stopPropagation()">
       <div class="pc-camera-modal-header">
-        <div class="d-flex align-items-center gap-2">
-          <span class="scanner-live-dot"></span>
-          <div>
+        <div class="scanner-header-info">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="scanner-live-badge">
+              <span class="scanner-live-dot"></span>
+              EN VIVO
+            </span>
             <h3 class="scanner-title mb-0">Lector de Códigos por Cámara (PC)</h3>
-            <span class="scanner-subtitle">Apunta el código de barras o QR hacia la cámara web</span>
-            <div class="d-flex align-items-center gap-2 mt-1">
-              <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 font-monospace small">
-                🏢 Buscando en: <strong>{{ getSelectedWarehouseName() }}</strong>
-              </span>
-              <select
-                class="form-select form-select-sm d-inline-block w-auto py-0 px-2 font-size-xs"
-                [ngModel]="selectedWarehouseId()"
-                (ngModelChange)="onWarehouseChange($event)"
-                title="Cambiar almacén de despacho para el escaneo"
-              >
-                @for (wh of warehouses(); track wh.id) {
-                  <option [ngValue]="wh.id">{{ wh.name }}{{ wh.isMain ? ' (Principal)' : '' }}</option>
-                }
-              </select>
-            </div>
+          </div>
+          <div class="scanner-subtitle mb-2">Apunta el código de barras o QR hacia el centro del visor</div>
+          <div class="scanner-wh-pill">
+            <span class="scanner-wh-label">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+              Almacén de despacho:
+            </span>
+            <select
+              class="scanner-wh-select"
+              [ngModel]="selectedWarehouseId()"
+              (ngModelChange)="onWarehouseChange($event)"
+              title="Cambiar almacén de despacho para el escaneo"
+            >
+              @for (wh of warehouses(); track wh.id) {
+                <option [ngValue]="wh.id">{{ wh.name }}{{ wh.isMain ? ' (Principal)' : '' }}</option>
+              }
+            </select>
           </div>
         </div>
         <button type="button" class="btn-scanner-close" (click)="closeCameraScanner()" aria-label="Cerrar escáner">
@@ -2010,15 +2017,36 @@
 
       <div class="pc-scanner-viewport-wrap" [class.flash-success]="cameraScanFlash()">
         <video id="pcCameraScannerVideo" autoplay playsinline muted></video>
+        
+        <!-- Alerta de éxito prominente cuando se realiza una lectura -->
+        @if (cameraLastScanAlert(); as alert) {
+          <div class="scanner-detection-banner">
+            <div class="banner-icon-badge">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div class="banner-text-body">
+              <div class="banner-status-tag">¡CÓDIGO LEÍDO CON ÉXITO!</div>
+              <div class="banner-prod-title">{{ alert.name }}</div>
+              <div class="banner-prod-meta">
+                <span class="badge bg-dark-subtle text-white me-2 font-monospace">{{ alert.code }}</span>
+                <span class="banner-prod-price">RD$ {{ alert.price | number:'1.2-2' }}</span>
+              </div>
+            </div>
+          </div>
+        }
+
         <div class="pc-scanner-target-reticle">
           <div class="laser-scanner-line"></div>
           <div class="corner-top-left"></div>
           <div class="corner-top-right"></div>
           <div class="corner-bottom-left"></div>
           <div class="corner-bottom-right"></div>
+          <div class="reticle-hint">Coloca aquí el código de barras</div>
         </div>
 
-        <!-- Toast de último producto escaneado dentro del viewport -->
+        <!-- Indicador flotante inferior -->
         @if (cameraLastScannedItem(); as item) {
           <div class="pc-scanner-last-item-toast">
             <span class="badge-icon">✓</span>
@@ -2032,7 +2060,9 @@
 
       <div class="pc-camera-modal-footer">
         <div class="scanner-stats">
-          <span class="stats-badge">{{ cameraBurstScannedCount() }} artículos escaneados</span>
+          <span class="stats-badge" [class.active]="cameraBurstScannedCount() > 0">
+            <strong>{{ cameraBurstScannedCount() }}</strong> {{ cameraBurstScannedCount() === 1 ? 'artículo escaneado' : 'artículos escaneados' }}
+          </span>
         </div>
         <div class="d-flex gap-2">
           <button type="button" class="btn btn-outline-secondary px-3" (click)="closeCameraScanner()">

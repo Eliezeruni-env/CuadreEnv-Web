@@ -147,7 +147,9 @@ export class WarehouseService {
 
   private getWarehousesKey(): string {
     const compId = getCompanyId();
-    return compId ? `${WAREHOUSES_STORAGE_KEY}_${compId}` : WAREHOUSES_STORAGE_KEY;
+    return compId
+      ? `${WAREHOUSES_STORAGE_KEY}_${compId}`
+      : WAREHOUSES_STORAGE_KEY;
   }
 
   public getLocalWarehouses(): Warehouse[] {
@@ -244,7 +246,9 @@ export class WarehouseService {
           });
 
           // Deduplicación estricta y sincronización: El servidor es la fuente de verdad.
-          const serverNames = new Set(normalized.map((w) => w.name.trim().toLowerCase()));
+          const serverNames = new Set(
+            normalized.map((w) => w.name.trim().toLowerCase()),
+          );
           const serverIds = new Set(normalized.map((w) => w.id));
 
           // Solo conservamos almacenes locales que no colisionen por ID ni por nombre con el backend
@@ -311,7 +315,8 @@ export class WarehouseService {
     wh: Partial<Warehouse>,
   ): Promise<ApiResponse<Warehouse>> {
     const list = this.getLocalWarehouses();
-    const fallbackId = list.length > 0 ? Math.max(...list.map((w) => w.id)) + 1 : 1;
+    const fallbackId =
+      list.length > 0 ? Math.max(...list.map((w) => w.id)) + 1 : 1;
 
     let serverData: any = null;
     try {
@@ -348,9 +353,7 @@ export class WarehouseService {
 
     const realId = serverData?.id ? Number(serverData.id) : fallbackId;
     const realCode =
-      serverData?.code ||
-      wh.code ||
-      `ALM-${String(realId).padStart(2, '0')}`;
+      serverData?.code || wh.code || `ALM-${String(realId).padStart(2, '0')}`;
 
     const newWarehouse: Warehouse = {
       id: realId,
@@ -360,14 +363,16 @@ export class WarehouseService {
       phone: serverData?.phone || wh.phone || '',
       managerName: serverData?.managerName || wh.managerName || '',
       isMain: wh.isMain ?? (serverData?.isMain || false),
-      isActive: wh.isActive ?? (serverData?.isActive ?? true),
+      isActive: wh.isActive ?? serverData?.isActive ?? true,
       createdAt: serverData?.createdAt || new Date().toISOString(),
     };
 
     // Eliminar cualquier duplicado previo por ID o por nombre
     const targetName = (newWarehouse.name || '').trim().toLowerCase();
     const cleanList = list.filter(
-      (w) => w.id !== newWarehouse.id && (w.name || '').trim().toLowerCase() !== targetName
+      (w) =>
+        w.id !== newWarehouse.id &&
+        (w.name || '').trim().toLowerCase() !== targetName,
     );
 
     if (newWarehouse.isMain) {

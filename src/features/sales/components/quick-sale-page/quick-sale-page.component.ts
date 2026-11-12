@@ -276,6 +276,8 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   cameraScanFlash = signal<boolean>(false);
   cameraLastScannedItem = signal<{ name: string; price: number; time: string } | null>(null);
   cameraBurstScannedCount = signal<number>(0);
+  cameraLastScanAlert = signal<{ code: string; name: string; price: number; time: string } | null>(null);
+  private cameraAlertTimeoutId: any = null;
   private lastCameraScanCode = '';
   private lastCameraScanTime = 0;
   private cameraAnimFrameId: number | null = null;
@@ -2527,6 +2529,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     this.isCameraScannerOpen.set(true);
     this.cameraBurstScannedCount.set(0);
     this.cameraLastScannedItem.set(null);
+    this.cameraLastScanAlert.set(null);
 
     try {
       if (!this.zxingReader) {
@@ -2646,6 +2649,11 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       this.cameraStream.getTracks().forEach((t) => t.stop());
       this.cameraStream = null;
     }
+    if (this.cameraAlertTimeoutId) {
+      clearTimeout(this.cameraAlertTimeoutId);
+      this.cameraAlertTimeoutId = null;
+    }
+    this.cameraLastScanAlert.set(null);
     this.cameraScanFlash.set(false);
     this.isCameraScannerOpen.set(false);
   }
@@ -2712,6 +2720,8 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     const cleanDigits = raw.replace(/\D/g, '');
     const activeCid = this.authService.companyId() || Number(getCompanyId()) || 0;
 
+    let product: any = null;
+
     // 0. Búsqueda instantánea sub-2ms en Catálogo Local RAM / IndexedDB
     let cachedProduct = this.catalogCache.findByBarcode(clean);
     if (!cachedProduct && cleanDigits.length >= 4) {
@@ -2724,44 +2734,42 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       }
     }
     if (cachedProduct && (!activeCid || cachedProduct.companyId == null || Number(cachedProduct.companyId) === 0 || Number(cachedProduct.companyId) === activeCid)) {
-      this.posAudio.playScanSuccess();
-      this.addProductToCart(cachedProduct);
-      this.notificationService.success(`+1 "${cachedProduct.description || 'Producto'}" agregado (Memoria Local).`);
-      this.focusCatalogSearch();
-      return;
+      product = cachedProduct;
     }
 
     // 1. Check in local products list with multi-property and digits matching respecting tenant
-    let product = this.products().find((p) => {
-      if (this.isServiceItem(p)) return false;
+    if (!product) {
+      product = this.products().find((p) => {
+        if (this.isServiceItem(p)) return false;
 
-      // Tenant isolation: un tenant jamás puede ver ni cobrar productos de otro
-      const pCid = p.companyId ?? (p as any).CompanyId;
-      if (activeCid > 0 && pCid != null && Number(pCid) > 0 && Number(pCid) !== activeCid) {
+        // Tenant isolation: un tenant jamás puede ver ni cobrar productos de otro
+        const pCid = p.companyId ?? (p as any).CompanyId;
+        if (activeCid > 0 && pCid != null && Number(pCid) > 0 && Number(pCid) !== activeCid) {
+          return false;
+        }
+
+        const b = (p.barcode || '').trim().toLowerCase();
+        const r = (p.reference || '').trim().toLowerCase();
+        const sDesc = (p.shortDescription || '').trim().toLowerCase();
+        const idStr = p.id ? String(p.id) : '';
+        const sku = `sku-${p.id}`.toLowerCase();
+
+        if (b === clean || r === clean || sDesc === clean || idStr === clean || sku === clean) {
+          return true;
+        }
+        if (cleanDigits.length >= 4) {
+          const pDigits = (p.barcode || '').replace(/\D/g, '');
+          const rDigits = (p.reference || '').replace(/\D/g, '');
+          if (pDigits && (pDigits === cleanDigits || pDigits.padStart(13, '0') === cleanDigits.padStart(13, '0') || pDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, ''))) {
+            return true;
+          }
+          if (rDigits && (rDigits === cleanDigits || rDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, ''))) {
+            return true;
+          }
+        }
         return false;
-      }
-
-      const b = (p.barcode || '').trim().toLowerCase();
-      const r = (p.reference || '').trim().toLowerCase();
-      const sDesc = (p.shortDescription || '').trim().toLowerCase();
-      const idStr = p.id ? String(p.id) : '';
-      const sku = `sku-${p.id}`.toLowerCase();
-
-      if (b === clean || r === clean || sDesc === clean || idStr === clean || sku === clean) {
-        return true;
-      }
-      if (cleanDigits.length >= 4) {
-        const pDigits = (p.barcode || '').replace(/\D/g, '');
-        const rDigits = (p.reference || '').replace(/\D/g, '');
-        if (pDigits && (pDigits === cleanDigits || pDigits.padStart(13, '0') === cleanDigits.padStart(13, '0') || pDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, ''))) {
-          return true;
-        }
-        if (rDigits && (rDigits === cleanDigits || rDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, ''))) {
-          return true;
-        }
-      }
-      return false;
-    });
+      });
+    }
 
     // 2. If not found in loaded products, query backend API with tenant isolation
     if (!product) {
@@ -2805,23 +2813,46 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     if (product) {
-      this.posAudio.playScanSuccess(); soundEffects.playScannerBeep();
+      this.posAudio.playScanSuccess();
+      soundEffects.playScannerBeep();
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { (navigator as any).vibrate([60, 40, 60]); } catch {}
+      }
+
       this.addProductToCart(product);
+
+      const prodName = product.description || 'Producto';
+      const prodPrice = Number(product.price || product.priceList || 0);
+      const scanTimeStr = formatTimeInRD(new Date());
 
       this.cameraBurstScannedCount.update((c) => c + 1);
       this.cameraLastScannedItem.set({
-        name: product.description || 'Producto',
-        price: Number(product.price || product.priceList || 0),
-        time: formatTimeInRD(new Date()),
+        name: prodName,
+        price: prodPrice,
+        time: scanTimeStr,
       });
 
-      this.cameraScanFlash.set(true);
-      setTimeout(() => this.cameraScanFlash.set(false), 250);
+      this.cameraLastScanAlert.set({
+        code: raw,
+        name: prodName,
+        price: prodPrice,
+        time: scanTimeStr,
+      });
+      if (this.cameraAlertTimeoutId) {
+        clearTimeout(this.cameraAlertTimeoutId);
+      }
+      this.cameraAlertTimeoutId = setTimeout(() => {
+        this.cameraLastScanAlert.set(null);
+      }, 3200);
 
-      this.notificationService.success(`+1 "${product.description || 'Producto'}" agregado.`);
+      this.cameraScanFlash.set(true);
+      setTimeout(() => this.cameraScanFlash.set(false), 280);
+
+      this.notificationService.success(`+1 "${prodName}" agregado.`);
       this.focusCatalogSearch();
     } else {
-      this.posAudio.playScanError(); soundEffects.playErrorBeep();
+      this.posAudio.playScanError();
+      soundEffects.playErrorBeep();
       this.notificationService.warning(`Código "${raw}" no encontrado en el catálogo de esta empresa.`);
       this.focusCatalogSearch();
     }

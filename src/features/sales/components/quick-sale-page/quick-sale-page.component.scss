@@ -2803,11 +2803,31 @@ select.pos-category-select {
 
 .pc-camera-modal-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 16px 20px;
-  background-color: #0F172A;
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
   color: #FFFFFF;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+  .scanner-header-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .scanner-live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #34D399;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
 
   .scanner-title {
     font-size: 16px;
@@ -2820,12 +2840,46 @@ select.pos-category-select {
     color: #94A3B8;
   }
 
+  .scanner-wh-pill {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 3px 10px;
+    gap: 8px;
+
+    .scanner-wh-label {
+      font-size: 11.5px;
+      color: #CBD5E1;
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+    }
+
+    .scanner-wh-select {
+      background: transparent;
+      border: none;
+      color: #60A5FA;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 4px;
+      cursor: pointer;
+      outline: none;
+
+      option {
+        background-color: #0F172A;
+        color: #FFFFFF;
+      }
+    }
+  }
+
   .scanner-live-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background-color: #10B981;
-    box-shadow: 0 0 8px #10B981;
+    box-shadow: 0 0 6px #10B981;
     animation: pulse 1.5s infinite;
   }
 
@@ -2860,7 +2914,7 @@ select.pos-category-select {
   transition: box-shadow 0.2s ease;
 
   &.flash-success {
-    box-shadow: inset 0 0 0 6px #10B981;
+    box-shadow: inset 0 0 0 8px #10B981, inset 0 0 25px rgba(16, 185, 129, 0.8);
   }
 
   video {
@@ -2870,45 +2924,135 @@ select.pos-category-select {
   }
 }
 
+// Banner flotante prominente de éxito
+.scanner-detection-banner {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.94);
+  border: 1.5px solid #10B981;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(16, 185, 129, 0.35);
+  border-radius: 12px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 25;
+  width: 90%;
+  max-width: 440px;
+  animation: bannerSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  .banner-icon-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+  }
+
+  .banner-text-body {
+    flex: 1;
+    min-width: 0;
+
+    .banner-status-tag {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #34D399;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .banner-prod-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #FFFFFF;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .banner-prod-meta {
+      display: flex;
+      align-items: center;
+      margin-top: 2px;
+
+      .banner-prod-price {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #FBBF24;
+      }
+    }
+  }
+}
+
+@keyframes bannerSlideDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -15px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
 .pc-scanner-target-reticle {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 260px;
+  width: 270px;
   height: 200px;
-  border: 1.5px dashed rgba(255, 255, 255, 0.4);
-  border-radius: 12px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+  border: 1.5px dashed rgba(255, 255, 255, 0.35);
+  border-radius: 14px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
   pointer-events: none;
   overflow: hidden;
+
+  .reticle-hint {
+    position: absolute;
+    bottom: 8px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.65);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  }
 
   .laser-scanner-line {
     position: absolute;
     width: 100%;
-    height: 2.5px;
+    height: 3px;
     background: linear-gradient(90deg, rgba(239, 68, 68, 0) 0%, rgba(239, 68, 68, 1) 50%, rgba(239, 68, 68, 0) 100%);
-    box-shadow: 0 0 10px #EF4444;
+    box-shadow: 0 0 12px #EF4444, 0 0 4px #F87171;
     top: 0;
-    animation: pcLaserScan 2s infinite alternate ease-in-out;
+    animation: pcLaserScan 1.8s infinite alternate ease-in-out;
   }
 
   .corner-top-left, .corner-top-right, .corner-bottom-left, .corner-bottom-right {
     position: absolute;
-    width: 20px;
-    height: 20px;
-    border-color: #3B82F6;
+    width: 22px;
+    height: 22px;
+    border-color: #60A5FA;
     border-style: solid;
   }
-  .corner-top-left { top: 0; left: 0; border-width: 3px 0 0 3px; }
-  .corner-top-right { top: 0; right: 0; border-width: 3px 3px 0 0; }
-  .corner-bottom-left { bottom: 0; left: 0; border-width: 0 0 3px 3px; }
-  .corner-bottom-right { bottom: 0; right: 0; border-width: 0 3px 3px 0; }
+  .corner-top-left { top: 0; left: 0; border-width: 3.5px 0 0 3.5px; border-top-left-radius: 4px; }
+  .corner-top-right { top: 0; right: 0; border-width: 3.5px 3.5px 0 0; border-top-right-radius: 4px; }
+  .corner-bottom-left { bottom: 0; left: 0; border-width: 0 0 3.5px 3.5px; border-bottom-left-radius: 4px; }
+  .corner-bottom-right { bottom: 0; right: 0; border-width: 0 3.5px 3.5px 0; border-bottom-right-radius: 4px; }
 }
 
 @keyframes pcLaserScan {
-  0% { top: 10%; }
-  100% { top: 90%; }
+  0% { top: 8%; }
+  100% { top: 92%; }
 }
 
 .pc-scanner-last-item-toast {
@@ -2967,10 +3111,17 @@ select.pos-category-select {
   .stats-badge {
     background-color: #E2E8F0;
     color: #334155;
-    padding: 6px 12px;
+    padding: 6px 14px;
     border-radius: 20px;
     font-size: 12px;
     font-weight: 600;
+    transition: all 0.2s ease;
+
+    &.active {
+      background-color: rgba(16, 185, 129, 0.15);
+      color: #065F46;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
   }
 }
 
