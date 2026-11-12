@@ -302,6 +302,17 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
     typeof window !== 'undefined' && localStorage.getItem('cuadre_pos_compact_mode') === 'true'
   );
 
+  // Menú desplegable de Opciones / Configuración POS en cabecera
+  isOptionsMenuOpen = signal<boolean>(false);
+
+  toggleOptionsMenu(): void {
+    this.isOptionsMenuOpen.update(v => !v);
+  }
+
+  closeOptionsMenu(): void {
+    this.isOptionsMenuOpen.set(false);
+  }
+
   toggleCompactMode(): void {
     const next = !this.isCompactMode();
     this.isCompactMode.set(next);
@@ -1046,6 +1057,11 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
     // Escape: Cerrar modales o limpiar carrito / cancelar venta
     if (event.key === 'Escape') {
+      if (this.isOptionsMenuOpen()) {
+        event.preventDefault();
+        this.isOptionsMenuOpen.set(false);
+        return;
+      }
       if (this.isCalculatorOpen()) {
         event.preventDefault();
         this.isCalculatorOpen.set(false);

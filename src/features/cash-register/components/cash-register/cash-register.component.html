@@ -499,7 +499,7 @@
             </svg>
           </div>
           <div class="stat-info">
-            <span class="stat-label">Entradas</span>
+            <span class="stat-label">Entradas del turno</span>
             <span class="stat-value"
               >RD$ {{ totalEntradas() | number: '1.2-2' }}</span
             >
@@ -721,10 +721,10 @@
           <tbody>
             @for (m of pagedMovements(); track m.id) {
               <tr>
-                <td class="small text-muted">{{ m.date }}</td>
+                <td class="small text-muted">{{ formatMovementDate(m.date) }}</td>
                 <td>
-                  @if (m.type === 'Saldo inicial') {
-                    <span class="badge-saldo-inicial">Saldo inicial</span>
+                  @if (m.type === 'Saldo inicial' || m.category === 'Apertura') {
+                    <span class="badge-saldo-inicial" style="background-color: #EEF2FF; color: #4338CA; border: 1px solid #C7D2FE; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px;">Fondo de apertura</span>
                   } @else if (m.type === 'Entrada') {
                     <span class="badge-entrada">Entrada</span>
                   } @else {
@@ -760,12 +760,21 @@
                     }
                   </span>
                 </td>
-                <td class="text-end fw-semibold text-success">
-                  {{
-                    m.inAmount
-                      ? 'RD$ ' + (m.inAmount | number: '1.2-2')
-                      : '-'
-                  }}
+                <td class="text-end fw-semibold">
+                  @if (m.type === 'Saldo inicial' || m.category === 'Apertura') {
+                    <span class="text-secondary small font-monospace" title="Fondo inicial de apertura (no suma a entradas del turno)">
+                      RD$ {{ m.inAmount | number: '1.2-2' }}
+                      <span class="badge bg-light text-muted border ms-1" style="font-size: 10px;">Fondo</span>
+                    </span>
+                  } @else {
+                    <span class="text-success">
+                      {{
+                        m.inAmount
+                          ? 'RD$ ' + (m.inAmount | number: '1.2-2')
+                          : '-'
+                      }}
+                    </span>
+                  }
                 </td>
                 <td class="text-end fw-semibold text-danger">
                   {{
@@ -803,7 +812,7 @@
       <div class="row align-items-center text-center text-md-start g-3">
         <!-- Total Entradas -->
         <div class="col-sm-6 col-lg-3 border-divider summary-col">
-          <div class="summary-title">Total entradas</div>
+          <div class="summary-title">Entradas del turno</div>
           <h4 class="summary-val text-green">
             RD$ {{ totalEntradas() | number: '1.2-2' }}
           </h4>

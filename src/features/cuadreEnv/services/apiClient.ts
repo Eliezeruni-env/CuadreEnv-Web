@@ -308,7 +308,7 @@ export function getCompanyId(): string | null {
         window.localStorage?.getItem('currentCompanyId') ||
         window.localStorage?.getItem('auth_company_id') ||
         window.localStorage?.getItem('companyId') ||
-        window.localStorage?.getItem(API_CONSTANTS.COMPANY_ID_KEY);
+        window.localStorage?.getItem('cuadre_company_id');
       if (explicit && explicit !== 'null' && explicit !== 'undefined' && explicit !== '0') {
         activeCompanyId = explicit;
         return activeCompanyId;

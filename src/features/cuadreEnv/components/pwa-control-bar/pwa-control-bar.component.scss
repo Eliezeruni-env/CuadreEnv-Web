@@ -50,17 +50,19 @@
   z-index: 1070;
 }
 
-/* 3. Floating Install Button */
+/* 3. Floating Install Button (Movido a la derecha para no obstruir el catálogo en POS) */
 .pwa-install-floating {
   position: fixed;
   bottom: 24px;
-  left: 24px;
+  right: 24px;
+  left: auto;
   z-index: 1045;
   transition: all 0.25s ease;
 
   @media (max-width: 768px) {
     bottom: calc(76px + env(safe-area-inset-bottom, 12px));
-    left: 16px;
+    right: 16px;
+    left: auto;
   }
 }
 

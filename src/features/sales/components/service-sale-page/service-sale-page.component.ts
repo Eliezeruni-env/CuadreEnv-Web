@@ -40,7 +40,6 @@ export interface ServiceCartItem {
     RouterLink,
     FormsModule,
     ReactiveFormsModule,
-    IconDirective,
     SpinnerComponent,
     SaleCompletedModalComponent,
   ],

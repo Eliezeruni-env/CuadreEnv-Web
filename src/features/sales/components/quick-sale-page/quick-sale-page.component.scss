@@ -249,6 +249,125 @@ select.pos-category-select {
   }
 }
 
+.pos-options-dropdown-wrapper {
+  position: relative;
+
+  .pos-dropdown-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1040;
+    background: transparent;
+  }
+
+  .pos-options-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 320px;
+    background: #FFFFFF;
+    border: 1px solid var(--cuadre-border-color, #E2E8F0);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+    z-index: 1050;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .dropdown-menu-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px 6px 12px;
+      border-bottom: 1px solid var(--cuadre-border-color, #F1F5F9);
+
+      .dropdown-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--cuadre-text-main, #0F172A);
+      }
+
+      .btn-close-sm {
+        background: transparent;
+        border: none;
+        color: #94A3B8;
+        font-size: 14px;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+        &:hover { color: #0F172A; }
+      }
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background-color: var(--cuadre-border-color, #F1F5F9);
+      margin: 4px 0;
+    }
+
+    .pos-dropdown-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: var(--cuadre-bg-subtle, #F8FAFC);
+      }
+
+      .dropdown-item-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .dropdown-item-icon {
+        font-size: 16px;
+        flex-shrink: 0;
+      }
+
+      .dropdown-item-texts {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+
+        .dropdown-item-title {
+          font-size: 12.5px;
+          font-weight: 600;
+          color: var(--cuadre-text-main, #0F172A);
+          line-height: 1.25;
+        }
+
+        .dropdown-item-desc {
+          font-size: 11px;
+          color: var(--cuadre-text-muted, #64748B);
+          line-height: 1.2;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+
+      .dropdown-arrow {
+        font-size: 16px;
+        color: #94A3B8;
+      }
+    }
+  }
+}
+
 .btn-pos-danger-outline {
   height: 40px;
   background-color: #FFFFFF;
@@ -384,7 +503,7 @@ select.pos-category-select {
 .pos-main-layout {
   display: flex;
   gap: 16px;
-  align-items: stretch;
+  align-items: flex-start;
   min-height: calc(100vh - 140px);
 
   .pos-left-column {
@@ -396,17 +515,51 @@ select.pos-category-select {
   }
 
   .pos-right-column {
-    width: 420px;
+    width: 480px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
+    gap: 14px;
+    position: sticky;
+    top: 12px;
+
+    .pos-cart-card {
+      margin-bottom: 0;
+      display: flex;
+      flex-direction: column;
+
+      .cart-table-wrapper {
+        border: 1px solid var(--cuadre-border-color, #E2E8F0);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+
+        .cart-table-scroll {
+          overflow-y: auto;
+          max-height: 260px;
+          min-height: 140px;
+        }
+      }
+    }
+
+    .pos-checkout-card {
+      margin-top: 0;
+    }
   }
 
-  @media (max-width: 1100px) {
+  @media (max-width: 1240px) {
+    .pos-right-column {
+      width: 440px;
+    }
+  }
+
+  @media (max-width: 1024px) {
     flex-direction: column;
 
     .pos-right-column {
       width: 100%;
+      position: static;
     }
   }
 }
@@ -1483,12 +1636,10 @@ select.pos-category-select {
     }
   }
 
-  // 8. TARJETA CAMBIO (64px, fondo #ECFDF5, borde #A7F3D0, radio 12)
+  // 8. TARJETA CAMBIO & ESTADOS DE PAGO (Pendiente, Faltan en Ámbar, Cambio en Verde)
   .pos-cambio-card {
     min-height: 64px;
     height: auto;
-    background-color: var(--cuadre-color-success-light, #ECFDF5);
-    border: 1.5px solid var(--cuadre-color-success-border, #A7F3D0);
     border-radius: 12px;
     padding: 10px 16px;
     display: flex;
@@ -1497,6 +1648,7 @@ select.pos-category-select {
     gap: 16px;
     box-sizing: border-box;
     width: 100%;
+    transition: all 0.2s ease;
 
     .cambio-left {
       display: flex;
@@ -1504,7 +1656,6 @@ select.pos-category-select {
       gap: 12px;
       min-width: 0;
       flex: 1 1 auto;
-      color: var(--cuadre-color-success-text, #047857);
 
       .cambio-icon-badge {
         flex-shrink: 0;
@@ -1514,7 +1665,6 @@ select.pos-category-select {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #10B981;
         color: #ffffff;
       }
 
@@ -1530,7 +1680,6 @@ select.pos-category-select {
         font-weight: 800;
         letter-spacing: 0.04em;
         line-height: 1.25;
-        color: #065F46;
         display: block;
         white-space: nowrap;
       }
@@ -1538,8 +1687,7 @@ select.pos-category-select {
       .cambio-sub-desc {
         font-size: 11px;
         line-height: 1.25;
-        color: #047857;
-        opacity: 0.85;
+        opacity: 0.9;
         display: block;
         white-space: nowrap;
       }
@@ -1551,31 +1699,91 @@ select.pos-category-select {
     }
 
     .cambio-amount {
-      font-size: 1.4rem;
+      font-size: 1.35rem;
       font-weight: 800;
-      color: #065F46;
       font-variant-numeric: tabular-nums;
       white-space: nowrap !important;
       display: inline-block;
       letter-spacing: -0.02em;
     }
 
-    // Variante de Error si falta efectivo
-    &.shortage {
-      background-color: var(--cuadre-color-danger-light, #FEF2F2);
-      border-color: var(--cuadre-color-danger-border, #FECACA);
+    // ESTADO 1: PENDIENTE DE PAGO (Neutro al iniciar con importe 0)
+    &.status-pending {
+      background-color: #F8FAFC;
+      border: 1.5px solid #CBD5E1;
 
       .cambio-left {
-        color: var(--cuadre-color-danger-text, #B91C1C);
+        color: #334155;
 
-        .cambio-label,
+        .cambio-icon-badge {
+          background-color: #64748B;
+        }
+
+        .cambio-label {
+          color: #1E293B;
+        }
+
         .cambio-sub-desc {
-          color: var(--cuadre-color-danger-text, #B91C1C);
+          color: #64748B;
         }
       }
 
       .cambio-amount {
-        color: var(--cuadre-color-danger-text, #B91C1C);
+        color: #1E293B;
+      }
+    }
+
+    // ESTADO 2: FALTANTE POR COBRAR (Ámbar suave cuando digitó insuficiente)
+    &.status-shortage,
+    &.shortage {
+      background-color: #FFFBEB;
+      border: 1.5px solid #FCD34D;
+
+      .cambio-left {
+        color: #B45309;
+
+        .cambio-icon-badge {
+          background-color: #F59E0B;
+        }
+
+        .cambio-label {
+          color: #B45309;
+        }
+
+        .cambio-sub-desc {
+          color: #92400E;
+        }
+      }
+
+      .cambio-amount {
+        color: #B45309;
+      }
+    }
+
+    // ESTADO 3: CAMBIO / DEVUELTA AL CLIENTE (Verde esmeralda cuando cubre o sobra)
+    &.status-ready,
+    &.change-ready {
+      background-color: var(--cuadre-color-success-light, #ECFDF5);
+      border: 1.5px solid var(--cuadre-color-success-border, #A7F3D0);
+
+      .cambio-left {
+        color: var(--cuadre-color-success-text, #047857);
+
+        .cambio-icon-badge {
+          background-color: #10B981;
+        }
+
+        .cambio-label {
+          color: #065F46;
+        }
+
+        .cambio-sub-desc {
+          color: #047857;
+        }
+      }
+
+      .cambio-amount {
+        color: #059669;
       }
     }
   }

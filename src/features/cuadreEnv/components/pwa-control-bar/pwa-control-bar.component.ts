@@ -13,7 +13,14 @@ export class PwaControlBarComponent {
   public pwaService = inject(PwaService);
 
   dismissOfflineBanner = false;
-  dismissInstallFloating = false;
+  dismissInstallFloating = typeof window !== 'undefined' && localStorage.getItem('cuadre_pwa_dismissed') === 'true';
+
+  dismissFloating(): void {
+    this.dismissInstallFloating = true;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cuadre_pwa_dismissed', 'true');
+    }
+  }
 
   onInstallClick(): void {
     this.pwaService.promptInstall();
