@@ -1,0 +1,509 @@
+<div class="financial-reports-container p-3 p-md-4">
+  <!-- 1. ENCABEZADO Y CONTEXTO EMPRESARIAL -->
+  <header class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+        <span class="badge bg-primary text-white fw-bold px-2.5 py-1" style="font-size: 11px; letter-spacing: 0.05em;">
+          CONTROL FINANCIERO & CONTABILIDAD
+        </span>
+        <span class="badge bg-light text-dark border px-2 py-0.5" style="font-size: 11px;">
+          🏢 {{ companyName() }}
+        </span>
+        <span class="badge bg-light text-secondary border px-2 py-0.5" style="font-size: 11px;">
+          RNC: {{ companyRnc() }}
+        </span>
+      </div>
+      <h1 class="fw-bold text-dark mb-0 tracking-tight" style="font-size: 1.65rem;">
+        Reportes Financieros & Libros de Venta
+      </h1>
+      <p class="text-secondary small mb-0 mt-1">
+        Auditoría de ingresos brutos, cálculo de base imponible, desglose fiscal de ITBIS (18%) y control de medios de pago.
+      </p>
+    </div>
+
+    <!-- Botones de Acción Global -->
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1.5 shadow-sm"
+        (click)="loadFinancialData()"
+        [disabled]="isLoading()"
+        title="Actualizar datos"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
+          <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
+        </svg>
+        <span>Refrescar</span>
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1.5 shadow-sm"
+        (click)="exportToCsv()"
+        [disabled]="isLoading() || filteredSales().length === 0"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+          <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+        </svg>
+        <span>Exportar CSV</span>
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-outline-dark btn-sm d-flex align-items-center gap-1.5 shadow-sm"
+        (click)="printReport()"
+        [disabled]="isLoading() || filteredSales().length === 0"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1"/>
+          <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1"/>
+        </svg>
+        <span>Imprimir</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. BARRA DE FILTROS TEMPORALES -->
+  <div class="card border-0 shadow-sm mb-4 bg-light-subtle">
+    <div class="card-body p-3">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <!-- Selector de Período -->
+        <div class="period-segmented-control">
+          <button
+            type="button"
+            class="period-segment-btn"
+            [class.active]="selectedPeriod() === 'today'"
+            (click)="setPeriod('today')"
+          >
+            Hoy
+          </button>
+          <button
+            type="button"
+            class="period-segment-btn"
+            [class.active]="selectedPeriod() === 'week'"
+            (click)="setPeriod('week')"
+          >
+            7 Días
+          </button>
+          <button
+            type="button"
+            class="period-segment-btn"
+            [class.active]="selectedPeriod() === 'month'"
+            (click)="setPeriod('month')"
+          >
+            Este Mes
+          </button>
+          <button
+            type="button"
+            class="period-segment-btn"
+            [class.active]="selectedPeriod() === 'year'"
+            (click)="setPeriod('year')"
+          >
+            Este Año
+          </button>
+          <button
+            type="button"
+            class="period-segment-btn"
+            [class.active]="selectedPeriod() === 'custom'"
+            (click)="setPeriod('custom')"
+          >
+            Personalizado
+          </button>
+        </div>
+
+        <!-- Rango de Fechas Personalizado -->
+        @if (selectedPeriod() === 'custom') {
+          <div class="d-flex align-items-center gap-2">
+            <input
+              type="date"
+              class="form-control form-control-sm"
+              [ngModel]="customFromDate()"
+              (ngModelChange)="customFromDate.set($event)"
+              placeholder="Desde"
+            />
+            <span class="text-muted small">a</span>
+            <input
+              type="date"
+              class="form-control form-control-sm"
+              [ngModel]="customToDate()"
+              (ngModelChange)="customToDate.set($event)"
+              placeholder="Hasta"
+            />
+          </div>
+        }
+
+        <!-- Buscador Rápido -->
+        <div class="search-input-wrapper">
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            placeholder="Buscar por Factura, NCF o Cliente..."
+            [ngModel]="searchTerm()"
+            (ngModelChange)="searchTerm.set($event)"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="text-center py-5">
+      <c-spinner color="primary" class="mb-3"></c-spinner>
+      <h5 class="fw-bold text-dark">Generando Balance Financiero...</h5>
+      <p class="text-secondary small">Calculando bases imponibles, retenciones de ITBIS y flujo neto</p>
+    </div>
+  } @else {
+    <!-- 3. CARDS DE RESUMEN FINANCIERO -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100 border-0 shadow-sm kpi-financial-card border-start border-4 border-primary">
+          <div class="card-body p-3">
+            <span class="text-uppercase text-secondary fw-bold" style="font-size: 11px;">Facturación Bruta Total</span>
+            <h3 class="fw-bold text-dark mt-1 mb-0">
+              RD$ {{ totalGrossRevenue() | number:'1.2-2' }}
+            </h3>
+            <p class="text-muted small mb-0 mt-1">
+              {{ totalInvoicesCount() }} transacciones registradas
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100 border-0 shadow-sm kpi-financial-card border-start border-4 border-info">
+          <div class="card-body p-3">
+            <span class="text-uppercase text-secondary fw-bold" style="font-size: 11px;">Base Imponible (Ventas Netas)</span>
+            <h3 class="fw-bold text-info mt-1 mb-0">
+              RD$ {{ totalNetTaxable() | number:'1.2-2' }}
+            </h3>
+            <p class="text-muted small mb-0 mt-1">
+              Ingreso comercial antes de impuestos
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100 border-0 shadow-sm kpi-financial-card border-start border-4 border-warning">
+          <div class="card-body p-3">
+            <span class="text-uppercase text-secondary fw-bold" style="font-size: 11px;">ITBIS Fiscal Recaudado (18%)</span>
+            <h3 class="fw-bold text-warning mt-1 mb-0">
+              RD$ {{ totalItbisFiscal() | number:'1.2-2' }}
+            </h3>
+            <p class="text-muted small mb-0 mt-1">
+              Pasivo tributario para declaración DGII
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100 border-0 shadow-sm kpi-financial-card border-start border-4 border-success">
+          <div class="card-body p-3">
+            <span class="text-uppercase text-secondary fw-bold" style="font-size: 11px;">Cobrado Inmediato vs Crédito</span>
+            <div class="d-flex align-items-baseline gap-2 mt-1">
+              <h4 class="fw-bold text-success mb-0">
+                RD$ {{ (totalCashSales() + totalDigitalSales()) | number:'1.2-2' }}
+              </h4>
+              <span class="text-muted small">/ RD$ {{ totalCreditSales() | number:'1.2-2' }}</span>
+            </div>
+            <p class="text-muted small mb-0 mt-1">
+              Contado / Crédito por cobrar
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. PESTAÑAS DE REPORTES ESPECIALIZADOS -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white border-bottom p-0">
+        <ul class="nav nav-tabs card-header-tabs m-0 px-3">
+          <li class="nav-item">
+            <button
+              type="button"
+              class="nav-link fw-semibold"
+              [class.active]="activeTab() === 'sales'"
+              (click)="setTab('sales')"
+            >
+              📊 Libro de Ventas Detallado
+            </button>
+          </li>
+          <li class="nav-item">
+            <button
+              type="button"
+              class="nav-link fw-semibold"
+              [class.active]="activeTab() === 'receivables'"
+              (click)="setTab('receivables')"
+            >
+              📑 Cuentas por Cobrar & Deudas
+            </button>
+          </li>
+          <li class="nav-item">
+            <button
+              type="button"
+              class="nav-link fw-semibold"
+              [class.active]="activeTab() === 'cash'"
+              (click)="setTab('cash')"
+            >
+              💵 Arqueos & Flujo de Caja
+            </button>
+          </li>
+          <li class="nav-item">
+            <button
+              type="button"
+              class="nav-link fw-semibold"
+              [class.active]="activeTab() === 'dgii'"
+              (click)="setTab('dgii')"
+            >
+              🏛️ Reportes Fiscales DGII (606 / 607)
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card-body p-0">
+        <!-- TAB 1: LIBRO DE VENTAS DETALLADO -->
+        @if (activeTab() === 'sales') {
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light text-uppercase small text-secondary">
+                <tr>
+                  <th class="ps-4">No. Factura</th>
+                  <th>NCF</th>
+                  <th>Fecha</th>
+                  <th>Cliente</th>
+                  <th>Canal</th>
+                  <th>Método Pago</th>
+                  <th class="text-end">Subtotal</th>
+                  <th class="text-end">ITBIS (18%)</th>
+                  <th class="text-end pe-4">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (filteredSales().length === 0) {
+                  <tr>
+                    <td colspan="9" class="text-center py-5 text-muted">
+                      <div class="empty-state">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" class="text-secondary mb-2" viewBox="0 0 16 16">
+                          <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+                        </svg>
+                        <p class="mb-1 fw-semibold">No se encontraron ventas registradas para este período</p>
+                        <span class="small">Cambia el filtro de fechas o selecciona otra empresa activa.</span>
+                      </div>
+                    </td>
+                  </tr>
+                } @else {
+                  @for (s of filteredSales(); track s.id) {
+                    <tr>
+                      <td class="ps-4 fw-bold text-dark">{{ s.invoiceNumber }}</td>
+                      <td>
+                        <span class="badge bg-light text-secondary border font-monospace" style="font-size: 11px;">
+                          {{ s.ncf }}
+                        </span>
+                      </td>
+                      <td class="small text-secondary">{{ s.date }}</td>
+                      <td>
+                        <div class="fw-semibold text-dark">{{ s.customerName }}</div>
+                        @if (s.customerRnc) {
+                          <div class="text-muted small" style="font-size: 11px;">RNC: {{ s.customerRnc }}</div>
+                        }
+                      </td>
+                      <td>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 11px;">
+                          {{ s.channel }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="badge" [class.bg-success-subtle]="!s.isCredit" [class.text-success]="!s.isCredit" [class.bg-warning-subtle]="s.isCredit" [class.text-warning]="s.isCredit" style="font-size: 11px;">
+                          {{ s.paymentMethod }}
+                        </span>
+                      </td>
+                      <td class="text-end text-secondary">RD$ {{ s.subtotal | number:'1.2-2' }}</td>
+                      <td class="text-end text-warning">RD$ {{ s.itbis | number:'1.2-2' }}</td>
+                      <td class="text-end pe-4 fw-bold text-dark">RD$ {{ s.total | number:'1.2-2' }}</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+              @if (filteredSales().length > 0) {
+                <tfoot class="table-light fw-bold border-top-2">
+                  <tr>
+                    <td colspan="6" class="ps-4 text-uppercase small text-secondary">
+                      Totales del Período ({{ filteredSales().length }} Facturas)
+                    </td>
+                    <td class="text-end text-secondary">RD$ {{ totalNetTaxable() | number:'1.2-2' }}</td>
+                    <td class="text-end text-warning">RD$ {{ totalItbisFiscal() | number:'1.2-2' }}</td>
+                    <td class="text-end pe-4 text-primary fs-6">RD$ {{ totalGrossRevenue() | number:'1.2-2' }}</td>
+                  </tr>
+                </tfoot>
+              }
+            </table>
+          </div>
+        }
+
+        <!-- TAB 2: CUENTAS POR COBRAR & DEUDAS -->
+        @if (activeTab() === 'receivables') {
+          <div class="p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h5 class="fw-bold text-dark mb-1">Estado de Cartera de Clientes</h5>
+                <p class="text-secondary small mb-0">Total pendiente de cobro para la empresa activa</p>
+              </div>
+              <a routerLink="/receivables" class="btn btn-primary btn-sm">
+                Ir a Gestión de Cuentas por Cobrar →
+              </a>
+            </div>
+
+            <div class="alert alert-info d-flex align-items-center gap-3 mb-4">
+              <div class="fs-4">💳</div>
+              <div>
+                <strong>Monto Total Pendiente por Cobrar:</strong>
+                <span class="fs-5 fw-bold ms-2">RD$ {{ totalPendingReceivables() | number:'1.2-2' }}</span>
+                <div class="small text-muted">Corresponde a créditos y ventas financiadas pendientes de liquidación.</div>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-uppercase small text-secondary">
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Factura</th>
+                    <th>Fecha de Emisión</th>
+                    <th class="text-end">Monto Total</th>
+                    <th class="text-end">Pendiente</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @if (rawReceivables().length === 0) {
+                    <tr>
+                      <td colspan="6" class="text-center py-4 text-muted">
+                        No hay cuentas por cobrar pendientes en esta empresa.
+                      </td>
+                    </tr>
+                  } @else {
+                    @for (r of rawReceivables(); track r.id) {
+                      <tr>
+                        <td class="fw-bold">{{ r.customerName || r.clientName || 'Cliente' }}</td>
+                        <td>{{ r.invoiceNumber || ('FAC-' + r.saleId) }}</td>
+                        <td>{{ r.issueDate || r.createdAt | date:'shortDate' }}</td>
+                        <td class="text-end">RD$ {{ (r.totalAmount || 0) | number:'1.2-2' }}</td>
+                        <td class="text-end fw-bold text-danger">RD$ {{ (r.pendingAmount || r.balance || 0) | number:'1.2-2' }}</td>
+                        <td>
+                          <span class="badge bg-danger-subtle text-danger">Pendiente</span>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+
+        <!-- TAB 3: ARQUEOS & FLUJO DE CAJA -->
+        @if (activeTab() === 'cash') {
+          <div class="p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h5 class="fw-bold text-dark mb-1">Sesiones de Caja & Cuadres Registrados</h5>
+                <p class="text-secondary small mb-0">Auditoría de apertura, cierre y balance de terminales POS</p>
+              </div>
+              <a routerLink="/cash-register" class="btn btn-outline-primary btn-sm">
+                Control de Caja & Sesiones →
+              </a>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-uppercase small text-secondary">
+                  <tr>
+                    <th>Terminal / Caja</th>
+                    <th>Cajero / Usuario</th>
+                    <th>Apertura</th>
+                    <th>Cierre</th>
+                    <th class="text-end">Monto Inicial</th>
+                    <th class="text-end">Total Ventas</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @if (rawCashSessions().length === 0) {
+                    <tr>
+                      <td colspan="7" class="text-center py-4 text-muted">
+                        No hay registros de sesiones de caja en esta empresa.
+                      </td>
+                    </tr>
+                  } @else {
+                    @for (c of rawCashSessions(); track c.id) {
+                      <tr>
+                        <td class="fw-bold">{{ c.name || ('Caja #' + c.id) }}</td>
+                        <td>{{ c.cashierName || c.userName || 'Asignado' }}</td>
+                        <td class="small text-secondary">{{ c.openedAt || c.creationDate | date:'short' }}</td>
+                        <td class="small text-secondary">{{ c.closedAt ? (c.closedAt | date:'short') : 'Sesión Abierta' }}</td>
+                        <td class="text-end">RD$ {{ (c.initialBalance || c.openingAmount || 0) | number:'1.2-2' }}</td>
+                        <td class="text-end fw-bold text-success">RD$ {{ (c.totalSales || c.currentBalance || 0) | number:'1.2-2' }}</td>
+                        <td>
+                          <span class="badge" [class.bg-success]="!c.closedAt" [class.bg-secondary]="c.closedAt">
+                            {{ c.closedAt ? 'Cerrada' : 'Abierta' }}
+                          </span>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+
+        <!-- TAB 4: FORMATOS FISCALES DGII -->
+        @if (activeTab() === 'dgii') {
+          <div class="p-4 text-center py-5">
+            <div class="mx-auto" style="max-width: 650px;">
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 fs-6 mb-3">
+                REPÚBLICA DOMINICANA • DGII
+              </span>
+              <h3 class="fw-bold text-dark mb-2">Generación Oficial de Formatos 606, 607 y 608</h3>
+              <p class="text-secondary mb-4">
+                Genera los archivos de texto delimitados por barras (|) listos para subir a la Oficina Virtual de la DGII, con validación de RNC, NCF de tipo fiscal y comprobantes anulados.
+              </p>
+
+              <div class="row g-3 mb-4 text-start">
+                <div class="col-12 col-md-4">
+                  <div class="p-3 border rounded bg-white shadow-sm h-100">
+                    <span class="badge bg-primary mb-2">Formato 607</span>
+                    <h6 class="fw-bold mb-1">Ventas e Ingresos</h6>
+                    <p class="small text-muted mb-0">Detalle de facturas emitidas con NCF crédito fiscal y consumo.</p>
+                  </div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <div class="p-3 border rounded bg-white shadow-sm h-100">
+                    <span class="badge bg-info text-white mb-2">Formato 606</span>
+                    <h6 class="fw-bold mb-1">Compras y Gastos</h6>
+                    <p class="small text-muted mb-0">Costos de mercancía y facturas de proveedores deducibles.</p>
+                  </div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <div class="p-3 border rounded bg-white shadow-sm h-100">
+                    <span class="badge bg-danger mb-2">Formato 608</span>
+                    <h6 class="fw-bold mb-1">NCF Anulados</h6>
+                    <p class="small text-muted mb-0">Comprobantes cancelados, deteriorados o duplicados.</p>
+                  </div>
+                </div>
+              </div>
+
+              <a routerLink="/billing/reports" class="btn btn-primary px-4 py-2 fw-bold shadow">
+                Abrir Generador de Formatos Fiscales DGII →
+              </a>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

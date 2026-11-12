@@ -1,0 +1,74 @@
+.financial-reports-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.period-segmented-control {
+  display: inline-flex;
+  background-color: #f1f5f9;
+  border-radius: 8px;
+  padding: 3px;
+  border: 1px solid #e2e8f0;
+
+  .period-segment-btn {
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+
+    &:hover {
+      color: #0f172a;
+    }
+
+    &.active {
+      background-color: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+  }
+}
+
+.search-input-wrapper {
+  min-width: 260px;
+}
+
+.kpi-financial-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+  }
+}
+
+.nav-tabs .nav-link {
+  color: #64748b;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 12px 18px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: #0f172a;
+  }
+
+  &.active {
+    color: var(--bs-primary, #4f46e5);
+    border-bottom: 2px solid var(--bs-primary, #4f46e5);
+    background: transparent;
+  }
+}
+
+@media print {
+  header button,
+  .period-segmented-control,
+  .search-input-wrapper,
+  .nav-tabs,
+  .btn {
+    display: none !important;
+  }
+}

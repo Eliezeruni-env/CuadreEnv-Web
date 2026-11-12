@@ -433,11 +433,20 @@ export const routes: Routes = [
       {
         path: 'reports',
         loadComponent: () =>
-          import('../features/dashboard/components/metrics/metrics.component').then(
-            (m) => m.MetricsComponent,
+          import('../features/dashboard/components/financial-reports/financial-reports.component').then(
+            (m) => m.FinancialReportsComponent,
           ),
-        canActivate: [moduleGuard('billing-reports-dgii')],
-        data: { module: 'billing-reports-dgii', title: 'Reportes' },
+        canActivate: [moduleGuard('reports')],
+        data: { module: 'reports', title: 'Reportes Financieros' },
+      },
+      {
+        path: 'financial-reports',
+        loadComponent: () =>
+          import('../features/dashboard/components/financial-reports/financial-reports.component').then(
+            (m) => m.FinancialReportsComponent,
+          ),
+        canActivate: [moduleGuard('reports')],
+        data: { module: 'reports', title: 'Reportes Financieros' },
       },
       {
         path: 'services',

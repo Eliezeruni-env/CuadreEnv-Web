@@ -100,7 +100,7 @@ export const navItems: ModuleNavItem[] = [
   },
   {
     name: 'Reportes Financieros',
-    url: '/metrics',
+    url: '/reports',
     moduleCode: 'reports',
     iconComponent: { name: 'cil-chart' },
     linkProps: { routerLinkActiveOptions: { exact: true } },

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -299,6 +299,15 @@ export class MetricsComponent implements OnInit {
     );
   });
 
+  constructor() {
+    effect(() => {
+      const cid = this.authService.companyId();
+      if (cid && this.isAuthorized()) {
+        this.loadMetricsData();
+      }
+    });
+  }
+
   ngOnInit() {
     if (this.isAuthorized()) {
       this.loadMetricsData();
@@ -317,6 +326,7 @@ export class MetricsComponent implements OnInit {
 
   async loadMetricsData() {
     this.isLoading.set(true);
+    const activeCid = this.authService.companyId();
 
     try {
       const [salesRes, cashRes, custRes, overdueRes] = await Promise.all([
@@ -326,13 +336,14 @@ export class MetricsComponent implements OnInit {
         this.receivableService.getOverdue().catch(() => ({ success: false, data: [] })),
       ]);
 
-      const sales = (salesRes?.success && salesRes.data)
-        ? salesRes.data.filter((s: any) => !s.isCancelled)
-        : [];
+      const rawSales = (salesRes?.success && salesRes.data) ? salesRes.data : [];
+      const sales = rawSales.filter((s: any) => !s.isCancelled && (!activeCid || !s.companyId || s.companyId === activeCid));
       this.cachedSales = sales;
 
-      this.cachedCashRegisters = (cashRes?.success && cashRes.data) ? cashRes.data : [];
+      const rawCash = (cashRes?.success && cashRes.data) ? cashRes.data : [];
+      this.cachedCashRegisters = activeCid ? rawCash.filter((c: any) => !c.companyId || c.companyId === activeCid) : rawCash;
       const customers = (custRes?.success && custRes.data) ? custRes.data : [];
+      this.totalCustomersCount.set(customers.length);
       this.totalCustomersCount.set(customers.length);
 
       // Overdue receivables

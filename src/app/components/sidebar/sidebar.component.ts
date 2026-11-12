@@ -210,14 +210,14 @@ export const ROUTES: RouteInfo[] = [
   {
     path: '/metrics',
     moduleCode: 'metrics',
-    title: 'Métricas',
+    title: 'Métricas & KPIs',
     icon: 'cilChartPie',
     class: '',
   },
   {
     path: '/reports',
     moduleCode: 'reports',
-    title: 'Reportes',
+    title: 'Reportes Financieros',
     icon: 'cilChart',
     class: '',
   },
