@@ -1597,8 +1597,22 @@ export class AuthService {
           const rawRefresh =
             switchedTokens.refreshToken ||
             switchedTokens.RefreshToken;
-          if (rawAccess) setAccessToken(rawAccess);
-          if (rawRefresh) setRefreshToken(rawRefresh);
+          if (rawAccess) {
+            setAccessToken(rawAccess);
+            if (typeof window !== 'undefined') {
+              window.localStorage?.setItem('cuadre_access_token', rawAccess);
+              window.localStorage?.setItem('accessToken', rawAccess);
+              window.sessionStorage?.setItem('accessToken', rawAccess);
+            }
+          }
+          if (rawRefresh) {
+            setRefreshToken(rawRefresh);
+            if (typeof window !== 'undefined') {
+              window.localStorage?.setItem('cuadre_refresh_token', rawRefresh);
+              window.localStorage?.setItem('refreshToken', rawRefresh);
+              window.sessionStorage?.setItem('refreshToken', rawRefresh);
+            }
+          }
           this.handleTokenResponse(switchedTokens, false);
         }
       } catch (err) {

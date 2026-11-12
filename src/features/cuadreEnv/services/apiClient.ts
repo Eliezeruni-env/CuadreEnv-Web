@@ -299,7 +299,23 @@ export function setCompanyId(companyId: string | number | null) {
 
 export function getCompanyId(): string | null {
   if (typeof window !== 'undefined') {
-    // 1. Authoritative source: Signed JWT claims
+    // 1. Prioridad: Empresa seleccionada explícitamente en la sesión
+    try {
+      const explicit =
+        window.sessionStorage?.getItem('currentCompanyId') ||
+        window.sessionStorage?.getItem('auth_company_id') ||
+        window.sessionStorage?.getItem('companyId') ||
+        window.localStorage?.getItem('currentCompanyId') ||
+        window.localStorage?.getItem('auth_company_id') ||
+        window.localStorage?.getItem('companyId') ||
+        window.localStorage?.getItem(API_CONSTANTS.COMPANY_ID_KEY);
+      if (explicit && explicit !== 'null' && explicit !== 'undefined' && explicit !== '0') {
+        activeCompanyId = explicit;
+        return activeCompanyId;
+      }
+    } catch {}
+
+    // 2. Si no hay selección explícita, decodificar del JWT
     const token = getAccessToken();
     if (token) {
       try {
