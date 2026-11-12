@@ -2989,6 +2989,20 @@ select.pos-category-select {
       }
     }
   }
+
+  &.is-not-found {
+    border-color: #F59E0B;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(245, 158, 11, 0.35);
+
+    .banner-icon-badge {
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+    }
+
+    .banner-status-tag {
+      color: #FBBF24;
+    }
+  }
 }
 
 @keyframes bannerSlideDown {

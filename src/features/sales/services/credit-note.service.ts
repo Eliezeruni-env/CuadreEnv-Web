@@ -263,20 +263,30 @@ export class CreditNoteService {
   }
 
   async createCreditNote(note: CreditNote): Promise<ApiResponse<CreditNote>> {
+    const rawDetails = note.creditNoteDetails || (note as any).details || [];
+    const mappedDetails = rawDetails.map((d: any) => ({
+      productId: Number(d.productId || d.id || 0),
+      quantity: Number(d.quantity || 1),
+      unitPrice: Number(d.unitPrice || d.price || 0),
+      warehouseId: Number(d.warehouseId || note.warehouseId || 1),
+    }));
+
     const payload = {
       billingId: note.billingId,
+      saleId: note.billingId || (note as any).saleId,
       billingNumber: note.billingNumber,
       originalNcf: note.originalNcf,
       customerId: note.customerId,
       warehouseId: note.warehouseId || 1,
-      reason: note.observations || (note as any).reason,
+      reason: note.observations || (note as any).reason || 'Devolución de mercancía',
       refundMethod: note.refundMethod,
       voucherTypeId: 3, // B04 Nota de Crédito
       amountSubTotal: note.amountSubTotal,
       amountDesc: note.amountDesc,
       amountItbis: note.amountItbis,
       amountTotal: note.amountTotal,
-      creditNoteDetails: note.creditNoteDetails,
+      details: mappedDetails,
+      creditNoteDetails: mappedDetails,
       date: new Date().toISOString(),
     };
 

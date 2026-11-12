@@ -276,7 +276,13 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   cameraScanFlash = signal<boolean>(false);
   cameraLastScannedItem = signal<{ name: string; price: number; time: string } | null>(null);
   cameraBurstScannedCount = signal<number>(0);
-  cameraLastScanAlert = signal<{ code: string; name: string; price: number; time: string } | null>(null);
+  cameraLastScanAlert = signal<{
+    code: string;
+    name: string;
+    price: number;
+    time: string;
+    status: 'success' | 'not_found';
+  } | null>(null);
   private cameraAlertTimeoutId: any = null;
   private lastCameraScanCode = '';
   private lastCameraScanTime = 0;
@@ -2549,7 +2555,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         ];
         hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
         hints.set(DecodeHintType.TRY_HARDER, true);
-        this.zxingReader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 120 });
+        this.zxingReader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 80 });
       }
 
       setTimeout(async () => {
@@ -2565,20 +2571,43 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         let stream: MediaStream | null = null;
         try {
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1920, min: 1280 },
+              height: { ideal: 1080, min: 720 },
+              frameRate: { ideal: 30, min: 20 },
+            },
             audio: false,
           });
         } catch {
           try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          } catch (fallbackErr: any) {
-            throw fallbackErr;
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+              audio: false,
+            });
+          } catch {
+            try {
+              stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            } catch (fallbackErr: any) {
+              throw fallbackErr;
+            }
           }
         }
 
         if (!stream) {
           throw new Error('No se pudo inicializar la cámara');
         }
+
+        // Aplicar autoenfoque continuo si el hardware de la cámara lo soporta
+        try {
+          const videoTrack = stream.getVideoTracks()[0];
+          if (videoTrack) {
+            const capabilities: any = (videoTrack as any).getCapabilities ? (videoTrack as any).getCapabilities() : {};
+            if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+              void (videoTrack as any).applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
+            }
+          }
+        } catch {}
 
         this.cameraStream = stream;
         videoEl.srcObject = stream;
@@ -2837,23 +2866,43 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         name: prodName,
         price: prodPrice,
         time: scanTimeStr,
+        status: 'success',
       });
       if (this.cameraAlertTimeoutId) {
         clearTimeout(this.cameraAlertTimeoutId);
       }
       this.cameraAlertTimeoutId = setTimeout(() => {
         this.cameraLastScanAlert.set(null);
-      }, 3200);
+      }, 3500);
 
       this.cameraScanFlash.set(true);
-      setTimeout(() => this.cameraScanFlash.set(false), 280);
+      setTimeout(() => this.cameraScanFlash.set(false), 300);
 
-      this.notificationService.success(`+1 "${prodName}" agregado.`);
+      this.notificationService.success(`¡Código leído con éxito! +1 "${prodName}" agregado.`);
       this.focusCatalogSearch();
     } else {
       this.posAudio.playScanError();
       soundEffects.playErrorBeep();
-      this.notificationService.warning(`Código "${raw}" no encontrado en el catálogo de esta empresa.`);
+
+      // Alerta visual inmediata en el visor indicando que la lectura sí se produjo
+      this.cameraLastScanAlert.set({
+        code: raw,
+        name: 'Código leído (No registrado)',
+        price: 0,
+        time: formatTimeInRD(new Date()),
+        status: 'not_found',
+      });
+      if (this.cameraAlertTimeoutId) {
+        clearTimeout(this.cameraAlertTimeoutId);
+      }
+      this.cameraAlertTimeoutId = setTimeout(() => {
+        this.cameraLastScanAlert.set(null);
+      }, 3500);
+
+      this.cameraScanFlash.set(true);
+      setTimeout(() => this.cameraScanFlash.set(false), 300);
+
+      this.notificationService.warning(`Código "${raw}" leído correctamente, pero no está registrado en el catálogo.`);
       this.focusCatalogSearch();
     }
   }
