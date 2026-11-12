@@ -272,15 +272,10 @@ export function setCompanyId(companyId: string | number | null) {
         sessionStorage.setItem('companyId', activeCompanyId);
       }
       if (window.localStorage) {
-        if (isRememberMe()) {
-          localStorage.setItem('currentCompanyId', activeCompanyId);
-          localStorage.setItem('auth_company_id', activeCompanyId);
-          localStorage.setItem('companyId', activeCompanyId);
-        } else {
-          localStorage.removeItem('currentCompanyId');
-          localStorage.removeItem('auth_company_id');
-          localStorage.removeItem('companyId');
-        }
+        localStorage.setItem('currentCompanyId', activeCompanyId);
+        localStorage.setItem('auth_company_id', activeCompanyId);
+        localStorage.setItem('companyId', activeCompanyId);
+        localStorage.setItem('cuadre_company_id', activeCompanyId);
       }
     } else {
       if (window.localStorage) {

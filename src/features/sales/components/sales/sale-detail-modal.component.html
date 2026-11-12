@@ -106,78 +106,93 @@
             </div>
           </div>
 
-          <!-- Tabla de Artículos Facturados -->
-          <div class="card border-0 shadow-2xs rounded-3 overflow-hidden bg-white mb-3">
-            <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white">
-              <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-1.5" style="font-size: 0.9rem;">
-                @if (isServiceSale()) {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
-                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+          <!-- Tabla de Artículos Facturados (Diseño Unificado Image 4) -->
+          <div class="billing-detail-card mb-3">
+            <!-- Cabecera de la subtabla -->
+            <div class="billing-detail-header">
+              <div class="d-flex align-items-center gap-2">
+                <div class="detail-header-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                    <path d="M3 6h18"></path>
+                    <path d="M16 10a4 4 0 0 1-8 0"></path>
                   </svg>
-                  <span>Servicios Facturados ({{ itemsList().length }})</span>
-                } @else {
-                  <span>Artículos Facturados ({{ itemsList().length }})</span>
-                }
-              </h6>
-              <span class="badge bg-light text-secondary border font-monospace" style="font-size: 0.75rem;">
-                Comprobante Fiscal Electrónico
-              </span>
-            </div>
-
-            <div class="table-responsive">
-              <table class="table table-hover align-middle mb-0" style="font-size: 0.84rem;">
-                <thead class="table-light text-secondary" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                  <tr>
-                    <th class="ps-3 py-2.5">Producto / Descripción</th>
-                    <th class="text-center py-2.5" style="width: 110px;">Cant.</th>
-                    <th class="text-end py-2.5" style="width: 140px;">Precio Unit.</th>
-                    <th class="text-end pe-3 py-2.5" style="width: 150px;">Importe Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (item of itemsList(); track item.productId) {
-                    <tr>
-                      <td class="ps-3 py-3">
-                        <div class="fw-bold text-dark">
-                          {{ item.productName || item.description || getProductName(item.productId) }}
-                        </div>
-                        <div class="text-muted small font-monospace" style="font-size: 0.72rem;">
-                          Cód. #{{ item.productId }}
-                        </div>
-                      </td>
-                      <td class="text-center py-3">
-                        <span class="badge bg-secondary-subtle text-secondary border px-2.5 py-1 rounded-pill font-monospace fw-bold">
-                          {{ item.quantity }} ud.
-                        </span>
-                      </td>
-                      <td class="text-end py-3 font-monospace text-secondary">
-                        RD$ {{ item.unitPrice | number: '1.2-2' }}
-                      </td>
-                      <td class="text-end pe-3 py-3 fw-bold text-dark font-monospace">
-                        RD$ {{ (item.quantity * item.unitPrice) | number: '1.2-2' }}
-                      </td>
-                    </tr>
-                  }
-                  @if (itemsList().length === 0) {
-                    <tr>
-                      <td colspan="4" class="text-center py-4 text-muted">
-                        No hay artículos registrados en esta venta.
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Total Resumen Card -->
-            <div class="p-3 bg-light border-top d-flex justify-content-end align-items-center">
-              <div class="d-flex align-items-center gap-4">
-                <div class="text-end">
-                  <div class="text-muted small" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Total Facturado</div>
-                  <div class="fs-4 fw-bold text-success font-monospace mb-0">
-                    RD$ {{ sale.total | number: '1.2-2' }}
-                  </div>
                 </div>
+                <span class="detail-header-title">
+                  {{ isServiceSale() ? 'Detalle de Servicios Facturados' : 'Detalle de Artículos Facturados' }}
+                </span>
+                <span class="detail-items-count-badge">
+                  {{ itemsList().length }} {{ itemsList().length === 1 ? 'ítem' : 'ítems' }}
+                </span>
+              </div>
+
+              <div class="detail-summary-pills">
+                <span class="summary-pill">
+                  <span class="pill-label">Subtotal</span>
+                  <strong class="pill-value">RD$ {{ (sale.total / 1.18) | number:'1.2-2' }}</strong>
+                </span>
+                <span class="summary-pill">
+                  <span class="pill-label">ITBIS</span>
+                  <strong class="pill-value">RD$ {{ (sale.total - (sale.total / 1.18)) | number:'1.2-2' }}</strong>
+                </span>
+                <span class="summary-pill total-pill">
+                  <span class="pill-label">Total</span>
+                  <strong class="pill-value text-success">RD$ {{ sale.total | number:'1.2-2' }}</strong>
+                </span>
+              </div>
+            </div>
+
+            <div class="billing-detail-body">
+              <div class="table-responsive">
+                <table class="table billing-subtable mb-0 align-middle">
+                  <thead>
+                    <tr>
+                      <th class="ps-3" style="width: 120px;">CÓDIGO</th>
+                      <th>DESCRIPCIÓN</th>
+                      <th class="text-center" style="width: 80px;">CANT.</th>
+                      <th class="text-end" style="width: 120px;">PRECIO UNIT.</th>
+                      <th class="text-center" style="width: 80px;">DESC.</th>
+                      <th class="text-end" style="width: 120px;">SUBTOTAL</th>
+                      <th class="text-end" style="width: 110px;">ITBIS</th>
+                      <th class="text-end pe-3" style="width: 140px;">IMPORTE TOTAL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of itemsList(); track item.productId) {
+                      <tr>
+                        <td class="ps-3">
+                          <span class="product-code-pill font-monospace">{{ item.productCode || 'PROD-' + item.productId }}</span>
+                        </td>
+                        <td>
+                          <span class="product-name-text">{{ item.productName || item.description || getProductName(item.productId) }}</span>
+                        </td>
+                        <td class="text-center">
+                          <span class="quantity-badge font-monospace">{{ item.quantity }}</span>
+                        </td>
+                        <td class="text-end font-monospace text-muted">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
+                        <td class="text-center">
+                          @if ((item.discount || 0) > 0) {
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle small font-monospace">
+                              {{ item.discount }}%
+                            </span>
+                          } @else {
+                            <span class="text-muted">-</span>
+                          }
+                        </td>
+                        <td class="text-end font-monospace">RD$ {{ (item.subtotal || (item.quantity * item.unitPrice / 1.18)) | number:'1.2-2' }}</td>
+                        <td class="text-end font-monospace text-muted">RD$ {{ (item.itbis || (item.quantity * item.unitPrice - (item.quantity * item.unitPrice / 1.18))) | number:'1.2-2' }}</td>
+                        <td class="text-end pe-3 font-monospace fw-bold text-success">RD$ {{ (item.totalAmount || (item.quantity * item.unitPrice)) | number:'1.2-2' }}</td>
+                      </tr>
+                    }
+                    @if (itemsList().length === 0) {
+                      <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                          No hay artículos registrados en esta venta.
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

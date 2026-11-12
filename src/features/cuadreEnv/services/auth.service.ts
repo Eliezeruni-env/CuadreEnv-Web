@@ -1457,8 +1457,8 @@ export class AuthService {
           else if (Array.isArray(res?.data)) list = res.data;
           else if (Array.isArray(res?.Data)) list = res.Data;
         } catch {
-          // Fallback a /Company solo para SuperAdmin para evitar 403 y alertas de seguridad
-          if (this.isSuperUser() || this.hasRole(['SuperAdmin'])) {
+          // Fallback a /Company EXCLUSIVAMENTE para administradores globales de plataforma (SuperAdmin/SysAdmin)
+          if (this.isPlatformSuperUser() || this.hasRole(['SuperAdmin', 'SysAdmin', 'SuperUser'])) {
             try {
               const compRes = await this.api.get<any, any>('/Company');
               if (Array.isArray(compRes)) list = compRes;
@@ -1523,6 +1523,21 @@ export class AuthService {
           }
           return mapped;
         }
+      }
+
+      // Si el backend no devolvió empresas pero hay un tenant activo en la sesión, mantener únicamente la empresa actual del usuario
+      if (this.companyId() && this.companyId()! > 0) {
+        const curId = this.companyId()!;
+        const singleCompany: UserCompanyDto[] = [
+          {
+            id: curId,
+            name: 'Mi Empresa',
+            role: this.currentRole() || 'Admin',
+            isDefault: true,
+          },
+        ];
+        this.userCompanies.set(singleCompany);
+        return singleCompany;
       }
     } catch (err) {
       console.warn(

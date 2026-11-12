@@ -264,12 +264,21 @@ export class CreditNoteService {
 
   async createCreditNote(note: CreditNote): Promise<ApiResponse<CreditNote>> {
     const rawDetails = note.creditNoteDetails || (note as any).details || [];
-    const mappedDetails = rawDetails.map((d: any) => ({
-      productId: Number(d.productId || d.id || 0),
-      quantity: Number(d.quantity || 1),
-      unitPrice: Number(d.unitPrice || d.price || 0),
-      warehouseId: Number(d.warehouseId || note.warehouseId || 1),
-    }));
+    const mappedDetails = rawDetails
+      .map((d: any) => ({
+        productId: Number(d.productId || d.id || 0),
+        quantity: Number(d.quantity || 1),
+        unitPrice: Number(d.unitPrice || d.price || 0),
+        warehouseId: Number(d.warehouseId || note.warehouseId || 1),
+      }))
+      .filter((d) => d.productId > 0 && d.quantity > 0);
+
+    if (mappedDetails.length === 0) {
+      return {
+        success: false,
+        message: 'La nota de crédito debe tener al menos un detalle de producto.',
+      };
+    }
 
     const payload = {
       billingId: note.billingId,

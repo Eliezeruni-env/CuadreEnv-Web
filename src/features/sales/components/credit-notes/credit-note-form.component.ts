@@ -256,6 +256,12 @@ export class CreditNoteFormComponent implements OnInit {
         },
       );
 
+      if (!returnDetails || returnDetails.length === 0) {
+        this.notificationService.warning('La nota de crédito debe tener al menos un detalle de producto seleccionado.');
+        this.isSubmitting = false;
+        return;
+      }
+
       const notePayload: CreditNote = {
         billingId: this.loadedInvoice.saleId,
         billingNumber: this.loadedInvoice.billingNumber,
