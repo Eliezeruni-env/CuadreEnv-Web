@@ -149,6 +149,17 @@
               <span>Ingresar</span>
             }
           </button>
+
+          @if (isLocalhost) {
+            <div class="text-center mt-3 pt-2 border-top">
+              <small class="text-muted" style="font-size: 11.5px;">
+                Servidor API: <strong [class.text-success]="!isUsingLocalApi" [class.text-primary]="isUsingLocalApi">{{ isUsingLocalApi ? 'Local (localhost:8080)' : 'Nube Heroku (Producción)' }}</strong> ·
+                <a href="javascript:void(0)" (click)="toggleApiTarget()" class="text-decoration-underline fw-semibold ms-1">
+                  Cambiar a {{ isUsingLocalApi ? 'Nube Heroku' : 'Local' }}
+                </a>
+              </small>
+            </div>
+          }
         </form>
       </div>
     </div>

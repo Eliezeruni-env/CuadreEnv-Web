@@ -4,7 +4,7 @@ const isLocalhost = isBrowser && (window.location?.hostname === 'localhost' || w
 // Soporte dinámico para desarrollo en local:
 // - Por defecto en localhost, conecta a la API local http://localhost:8080 sincronizada con USM (puerto 3000) y Supabase
 // - Si se desea conectar a Heroku, simplemente abrir la app con '?api=remote' o '?api=heroku'
-let useLocalApi = isLocalhost;
+let useLocalApi = false;
 if (isBrowser) {
   if (window.location.search.includes('api=local')) {
     localStorage.setItem('cuadre_api_target', 'local');
@@ -14,11 +14,7 @@ if (isBrowser) {
     useLocalApi = false;
   } else {
     const stored = localStorage.getItem('cuadre_api_target');
-    if (stored === 'remote') {
-      useLocalApi = false;
-    } else if (stored === 'local' || isLocalhost) {
-      useLocalApi = true;
-    }
+    useLocalApi = stored === 'local';
   }
 }
 
