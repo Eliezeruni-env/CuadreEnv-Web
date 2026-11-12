@@ -291,3 +291,4 @@ export class FinancialReportsComponent implements OnInit {
     window.print();
   }
 }
+
