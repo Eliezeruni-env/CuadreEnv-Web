@@ -1155,6 +1155,8 @@ export class CashRegisterService {
           originChannel: saleData.originChannel || 'POS_PRESENCIAL',
           paymentMethod: saleData.paymentMethod,
           paymentReference: saleData.paymentReference || saleData.paymentMethod,
+          amountReceived: saleData.amountReceived,
+          changeAmount: saleData.change,
           createBy: 'system',
           items: saleData.items.map((it) => ({
             productId: it.productId,
