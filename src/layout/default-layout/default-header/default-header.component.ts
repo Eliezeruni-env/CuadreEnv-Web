@@ -126,6 +126,11 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
 
   readonly activeCompany = computed(() => this.authService.activeCompany());
   readonly userCompanies = computed(() => this.authService.userCompanies());
+  readonly userCompaniesLoading = computed(() => this.authService.userCompaniesLoading());
+  readonly userCompaniesError = computed(() => this.authService.userCompaniesError());
+  readonly isSwitchingCompany = computed(() => this.authService.isSwitchingCompany());
+  readonly hasNoCompanies = computed(() => !this.authService.userCompaniesLoading() && this.userCompanies().length === 0);
+  readonly hasSingleCompany = computed(() => this.userCompanies().length === 1);
   readonly hasMultipleCompanies = computed(() => this.userCompanies().length > 1);
 
   readonly currentPlanName = computed(() => {
@@ -164,6 +169,10 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
 
   async onSelectCompany(companyId: number): Promise<void> {
     await this.authService.switchCompany(companyId);
+  }
+
+  async retryLoadUserCompanies(): Promise<void> {
+    await this.authService.loadUserCompanies();
   }
 
   setTheme(theme: 'light' | 'dark' | 'auto'): void {

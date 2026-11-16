@@ -286,16 +286,16 @@ export class CreditNoteService {
       billingNumber: note.billingNumber,
       originalNcf: note.originalNcf,
       customerId: note.customerId,
-      warehouseId: note.warehouseId || 1,
+      warehouseId: note.warehouseId || mappedDetails[0]?.warehouseId || 1,
       reason: note.observations || (note as any).reason || 'Devolución de mercancía',
-      refundMethod: note.refundMethod,
+      refundMethod: note.refundMethod || 'CASH',
+      creditNoteType: note.creditNoteType || 1,
       voucherTypeId: 3, // B04 Nota de Crédito
       amountSubTotal: note.amountSubTotal,
       amountDesc: note.amountDesc,
       amountItbis: note.amountItbis,
       amountTotal: note.amountTotal,
       details: mappedDetails,
-      creditNoteDetails: mappedDetails,
       date: new Date().toISOString(),
     };
 
