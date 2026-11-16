@@ -838,6 +838,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
   constructor() {
     effect(() => {
+      if (!this.hasOpenSession()) return;
       const items = this.cartItems();
       if (items.length > 0) {
         this.saveActiveDraftBeforeExit();
@@ -850,7 +851,6 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   ngOnInit() {
     this.loadInitialLookups();
     this.restoreLastCompletedSale();
-    this.restoreActiveDraftIfAny();
     this.registerDraftLifecycleListeners();
     setTimeout(() => this.focusCatalogSearch(), 400);
   }
@@ -1250,6 +1250,11 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   }
 
   private restoreActiveDraftIfAny(): void {
+    if (!this.hasOpenSession()) {
+      this.draftStorageService.clearActiveDraft();
+      return;
+    }
+
     const draft = this.draftStorageService.getActiveDraft();
     if (!draft || !draft.items || draft.items.length === 0) return;
 
@@ -1263,11 +1268,6 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     this.cardAuthVoucher.set(draft.cardAuthVoucher || '');
     this.transferBank.set(draft.transferBank || '');
     this.transferReference.set(draft.transferReference || '');
-
-    // Draft remains active and in-sync
-    this.notificationService.info(
-      'Se ha restaurado automáticamente la venta en curso previa a la expiración de sesión.',
-    );
   }
 
   private restoreLastCompletedSale(): void {
@@ -1731,14 +1731,19 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         );
         this.hasOpenSession.set(true);
         this.isOpenSessionModalVisible.set(false);
+        this.restoreActiveDraftIfAny();
       } else {
         this.activeSessionName.set('Sin Caja Abierta');
         this.hasOpenSession.set(false);
+        this.cartItems.set([]);
+        this.draftStorageService.clearActiveDraft();
         this.isOpenSessionModalVisible.set(true);
       }
     } catch {
       this.activeSessionName.set('Sin Caja Abierta');
       this.hasOpenSession.set(false);
+      this.cartItems.set([]);
+      this.draftStorageService.clearActiveDraft();
     }
 
     // 2. Carga resiliente de catálogos (evita que un 403 o error en un recurso bloquee los demás)
@@ -1916,27 +1921,35 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     this.router.navigate(['/sales']);
   }
 
-  async checkActiveSession() {
+  async checkActiveSession(notify = false) {
     this.isLoading.set(true);
     try {
       const sessionRes = await this.cashRegisterService.getActiveSession();
-      if (sessionRes?.success && sessionRes.data) {
+      if (sessionRes?.success && sessionRes.data && sessionRes.data.isOpen !== false) {
         this.activeSessionName.set(
           `Caja #${sessionRes.data.id || 1} (${sessionRes.data.cashierName || 'Turno Abierto'})`,
         );
         this.hasOpenSession.set(true);
         this.isOpenSessionModalVisible.set(false);
-        this.notificationService.success(
-          'Turno de caja activo detectado. Punto de Venta habilitado.',
-        );
+        if (notify) {
+          this.notificationService.success(
+            'Turno de caja activo detectado. Punto de Venta habilitado.',
+          );
+        }
       } else {
         this.hasOpenSession.set(false);
-        this.notificationService.warning(
-          'Aún no se ha detectado un turno de caja abierto en el sistema.',
-        );
+        this.cartItems.set([]);
+        this.draftStorageService.clearActiveDraft();
+        if (notify) {
+          this.notificationService.warning(
+            'Aún no se ha detectado un turno de caja abierto en el sistema.',
+          );
+        }
       }
     } catch {
       this.hasOpenSession.set(false);
+      this.cartItems.set([]);
+      this.draftStorageService.clearActiveDraft();
     } finally {
       this.isLoading.set(false);
     }
