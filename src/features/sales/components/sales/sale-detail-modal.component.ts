@@ -316,4 +316,54 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
     }
     return false;
   }
+
+  getPaymentStatusLabel(): string {
+    if (!this.sale) return 'Pendiente';
+    const total = Number(this.sale.total ?? 0);
+    const paid = Number(this.sale.paidAmount ?? 0);
+    if (this.sale.isCancelled) return 'Anulado / Devuelto';
+    if (paid >= total && total > 0) return 'Pagado';
+    if (paid > 0) return `Parcial (RD$ ${paid.toLocaleString()})`;
+    return 'Pendiente';
+  }
+
+  getPaymentStatusClass(): string {
+    const label = this.getPaymentStatusLabel();
+    if (label === 'Pagado') return 'bg-success-subtle text-success border-success-subtle';
+    if (label.startsWith('Parcial')) return 'bg-warning-subtle text-warning-emphasis border-warning-subtle';
+    if (label.includes('Anulado')) return 'bg-secondary-subtle text-secondary border-secondary-subtle';
+    return 'bg-danger-subtle text-danger border-danger-subtle';
+  }
+
+  getDeliveryStatusLabel(): string {
+    if (this.isServiceSale()) return 'No Aplica (Servicio)';
+    if (this.sale?.isCancelled) return 'Devuelta a Almacén';
+    return 'Completa';
+  }
+
+  getDeliveryStatusClass(): string {
+    if (this.isServiceSale()) return 'bg-info-subtle text-info border-info-subtle';
+    if (this.sale?.isCancelled) return 'bg-secondary-subtle text-secondary border-secondary-subtle';
+    return 'bg-primary-subtle text-primary border-primary-subtle';
+  }
+
+  getCreditNoteStatusLabel(): string {
+    if (!this.sale) return 'Sin Acreditar';
+    const notes = String(this.sale.notes || '').toUpperCase();
+    const reason = String(this.sale.cancellationReason || '').toUpperCase();
+    if (this.sale.isCancelled && (notes.includes('NOTA DE CRÉDITO') || reason.includes('NOTA DE CRÉDITO') || notes.includes('DEVUELTA'))) {
+      return 'Totalmente Acreditada';
+    }
+    if (notes.includes('DEVOLUCIÓN PARCIAL') || notes.includes('PARCIAL')) {
+      return 'Parcialmente Acreditada';
+    }
+    return 'Sin Acreditar';
+  }
+
+  getCreditNoteStatusClass(): string {
+    const label = this.getCreditNoteStatusLabel();
+    if (label === 'Totalmente Acreditada') return 'bg-danger-subtle text-danger border-danger-subtle';
+    if (label === 'Parcialmente Acreditada') return 'bg-warning-subtle text-warning-emphasis border-warning-subtle';
+    return 'bg-light text-secondary border-secondary-subtle';
+  }
 }
