@@ -15,6 +15,8 @@ import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog
 import { ProductModalComponent } from './product-modal.component';
 import { ProductImportModalComponent } from './product-import-modal.component';
 import { ProductDetailModalComponent } from './product-detail-modal.component';
+import { DataExchangeModalComponent } from '../../../data-exchange/components/data-exchange-modal/data-exchange-modal.component';
+import { DataExchangeService } from '../../../data-exchange/services/data-exchange.service';
 import {
   FilterPanelComponent,
   type FilterConfig,
@@ -40,6 +42,7 @@ import { ProductDto } from '../../../cuadreEnv/types/api';
     ProductModalComponent,
     ProductImportModalComponent,
     ProductDetailModalComponent,
+    DataExchangeModalComponent,
     FilterPanelComponent,
     KtPaginatorComponent,
   ],
@@ -48,6 +51,7 @@ export class ProductsComponent implements OnInit {
   @ViewChild('productModal') productModal!: ProductModalComponent;
   @ViewChild('importModal') importModal!: ProductImportModalComponent;
   @ViewChild('detailModal') detailModal!: ProductDetailModalComponent;
+  @ViewChild('dataExchangeModal') dataExchangeModal!: DataExchangeModalComponent;
 
   selectedProductForDetail = signal<ProductDto | null>(null);
   isDetailModalOpen = signal<boolean>(false);
@@ -56,6 +60,28 @@ export class ProductsComponent implements OnInit {
   readonly authService = inject(AuthService);
   private confirmService = inject(ConfirmDialogService);
   private notificationService = inject(NotificationService);
+  private readonly dataExchangeService = inject(DataExchangeService);
+
+  isExportMenuOpen = signal<boolean>(false);
+
+  toggleExportMenu(): void {
+    this.isExportMenuOpen.update((v) => !v);
+  }
+
+  async exportProducts(format: 'xlsx' | 'csv'): Promise<void> {
+    this.isExportMenuOpen.set(false);
+    try {
+      this.notificationService.info(`Generando exportación en formato .${format.toUpperCase()}...`);
+      await this.dataExchangeService.exportData('products', format);
+      this.notificationService.success('Catálogo de productos exportado con éxito.');
+    } catch (err: any) {
+      this.notificationService.error('Error al exportar catálogo de productos.');
+    }
+  }
+
+  openDataExchangeModal(): void {
+    this.dataExchangeModal?.open();
+  }
 
   openImportModal(): void {
     this.importModal?.open();

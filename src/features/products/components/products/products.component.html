@@ -25,8 +25,39 @@
         <a routerLink="/products/settings" class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" title="Configurar Categorías y Tipos">
           <span>Categorías</span>
         </a>
-        <button class="btn btn-outline-success d-flex align-items-center gap-2 shadow-xs px-3 fw-bold" (click)="openImportModal()">
-          <span>Importar Excel / Plantillas</span>
+        <div class="dropdown d-inline-block position-relative">
+          <button class="btn btn-outline-secondary d-flex align-items-center gap-2 shadow-xs px-3 fw-bold" type="button" (click)="toggleExportMenu()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Exportar</span>
+          </button>
+          @if (isExportMenuOpen()) {
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm show position-absolute" style="top: 100%; right: 0; z-index: 1050; min-width: 180px;">
+              <li>
+                <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2" (click)="exportProducts('xlsx')">
+                  <span class="badge bg-success-subtle text-success border font-monospace">.XLSX</span>
+                  <span>Excel</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2" (click)="exportProducts('csv')">
+                  <span class="badge bg-primary-subtle text-primary border font-monospace">.CSV</span>
+                  <span>CSV</span>
+                </button>
+              </li>
+            </ul>
+          }
+        </div>
+        <button class="btn btn-outline-success d-flex align-items-center gap-2 shadow-xs px-3 fw-bold" (click)="openDataExchangeModal()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span>Importar Excel / CSV</span>
         </button>
         <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openCreateModal()">
           <span>+ {{ translationService.t('products.new') }}</span>
@@ -326,6 +357,14 @@
 
 <!-- Modal de Importación Inteligente y Catálogos Pre-cargados -->
 <app-product-import-modal #importModal (imported)="loadProducts()"></app-product-import-modal>
+
+<!-- Modal de Intercambio de Datos (Importar / Exportar Lotes Excel y CSV) -->
+<app-data-exchange-modal
+  #dataExchangeModal
+  entity="products"
+  entityTitle="Productos"
+  (imported)="loadProducts()"
+></app-data-exchange-modal>
 
 <!-- Modal Detalle de Producto con Código de Barras y Foto -->
 <app-product-detail-modal
