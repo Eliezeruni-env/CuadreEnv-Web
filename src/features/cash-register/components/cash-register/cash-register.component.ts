@@ -291,6 +291,24 @@ export class CashRegisterComponent implements OnInit, OnDestroy {
     return this.movements().length;
   });
 
+  formatMovementDate(dateStr?: string | null): string {
+    if (!dateStr) return '-';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return String(dateStr);
+      return d.toLocaleString('es-DO', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return String(dateStr);
+    }
+  };
+
   onMovementsPageChange(page: number) {
     this.movementsPage.set(page);
   }

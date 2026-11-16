@@ -243,11 +243,16 @@ export class CreditNoteFormComponent implements OnInit {
 
       const returnDetails: ProductDetails[] = this.getSelectedItemsList().map(
         (it) => {
-          const qty = this.returnQuantities[it.productId] || 1;
+          const qty = Number(this.returnQuantities[it.productId] || 1);
           const sub = this.getItemSubtotal(it);
           const itbis = this.getItemItbis(it);
+          const unitPrice = Number(it.price || (it as any).unitPrice || 0);
           return {
             ...it,
+            productId: Number(it.productId),
+            warehouseId: Number(it.warehouseId || this.loadedInvoice?.warehouseId || 1),
+            price: unitPrice,
+            unitPrice: unitPrice,
             quantity: qty,
             subTotal: sub,
             itbisAmount: itbis,
@@ -255,6 +260,12 @@ export class CreditNoteFormComponent implements OnInit {
           };
         },
       );
+
+      if (!returnDetails || returnDetails.length === 0) {
+        this.notificationService.warning('La nota de crédito debe tener al menos un detalle de producto seleccionado.');
+        this.isSubmitting = false;
+        return;
+      }
 
       const notePayload: CreditNote = {
         billingId: this.loadedInvoice.saleId,

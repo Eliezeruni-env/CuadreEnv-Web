@@ -71,157 +71,10 @@
       </div>
     </div>
 
-    <!-- Botones de la cabecera (40px, con icono, atajo como kbd al lado del texto, borde uniforme #CBD5E1) -->
+    <!-- Botones de cabecera compacta: Estado esencial visible y Menú Desplegable de Ajustes -->
     @if (hasOpenSession()) {
     <div class="header-actions-row">
-      <!-- BOTÓN DE SONIDO / FEEDBACK AUDITIVO POS -->
-      @if (canAccessFeature('pos-sound', 'sales')) {
-      <button
-        type="button"
-        class="btn-pos-outline btn-40"
-        (click)="posAudio.toggleMute()"
-        [title]="posAudio.isMuted() ? 'Sonido silenciado. Clic para activar alertas y beeps' : 'Sonido activo (Beeps de escáner y cobro). Clic para silenciar'"
-      >
-        @if (posAudio.isMuted()) {
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
-            <line x1="1" y1="1" x2="23" y2="23"></line>
-            <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
-            <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
-            <line x1="12" y1="19" x2="12" y2="23"></line>
-            <line x1="8" y1="23" x2="16" y2="23"></line>
-          </svg>
-          <span style="font-size: 12.5px;">Silenciado</span>
-        } @else {
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-success">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-          </svg>
-          <span style="font-size: 12.5px;">Sonido On</span>
-        }
-      </button>
-      }
-
-      <!-- 1. AUTO-IMPRESIÓN TOGGLE -->
-      @if (canAccessFeature('pos-autoprint', 'sales')) {
-      <label class="pos-toggle-switch-card" [class.active]="autoPrintTicket()" title="Auto-imprimir ticket térmico al cobrar una venta (58mm/80mm)">
-        <input type="checkbox" [checked]="autoPrintTicket()" (change)="toggleAutoPrint()" />
-        <span class="switch-slider"></span>
-        <span class="switch-label">Auto-imprimir</span>
-      </label>
-      }
-
-      <!-- 3. HISTORIAL & ANULACIÓN DE FACTURA -->
-      @if (canAccessFeature('pos-void-history', 'sales')) {
-      <button
-        type="button"
-        class="btn-pos-outline btn-40"
-        (click)="openRecentSalesModal()"
-        title="Historial de ventas de la caja y anulación rápida de factura"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
-        <span>Historial / Anular</span>
-      </button>
-      }
-
-      <!-- 5. DATOS DEL NEGOCIO PARA EL TICKET -->
-      @if (canAccessFeature('pos-ticket-config', 'sales')) {
-      <button
-        type="button"
-        class="btn-pos-outline btn-40"
-        (click)="openBusinessTicketModal()"
-        title="Configurar datos del negocio en el ticket impreso (Nombre, RNC, dirección, 80mm/58mm)"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-          <line x1="7" y1="7" x2="7.01" y2="7"></line>
-        </svg>
-        <span>Datos Ticket</span>
-      </button>
-      }
-
-      <!-- 6. CÓDIGOS DE BARRA (DESCARGA / IMPRESIÓN PLANILLA) -->
-      @if (canAccessFeature('pos-barcodes', 'sales')) {
-      <button
-        type="button"
-        class="btn-pos-outline btn-40"
-        (click)="openBarcodeSheetModal()"
-        title="Descargar o imprimir planilla de códigos de barra para productos"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="3" y1="5" x2="3" y2="19"></line>
-          <line x1="7" y1="5" x2="7" y2="19"></line>
-          <line x1="11" y1="5" x2="11" y2="19"></line>
-          <line x1="15" y1="5" x2="15" y2="19"></line>
-          <line x1="18" y1="5" x2="18" y2="19"></line>
-          <line x1="21" y1="5" x2="21" y2="19"></line>
-        </svg>
-        <span>Códigos de Barra</span>
-      </button>
-      }
-
-      <!-- MODO COMPACTO (15" / 1366x768 / ALTA DENSIDAD) -->
-      @if (canAccessFeature('pos-compact-mode', 'sales')) {
-      <button
-        type="button"
-        class="btn-pos-outline btn-40"
-        [class.active]="isCompactMode()"
-        (click)="toggleCompactMode()"
-        [title]="isCompactMode() ? 'Desactivar Modo Compacto' : 'Activar Modo Cajero Compacto (Pantallas 15&quot; táctiles o 1366x768)'"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="4 14 10 14 10 20"></polyline>
-          <polyline points="20 10 14 10 14 4"></polyline>
-          <line x1="14" y1="10" x2="21" y2="3"></line>
-          <line x1="3" y1="21" x2="10" y2="14"></line>
-        </svg>
-        <span>{{ isCompactMode() ? 'Compacto: ON' : 'Modo Compacto' }}</span>
-      </button>
-      }
-
-      <!-- Atajos [F1] -->
-      @if (canAccessFeature('pos-shortcuts', 'sales')) {
-      <button
-        type="button"
-        class="btn-pos-outline btn-40"
-        (click)="isShortcutsModalOpen.set(true)"
-        title="Ver atajos de teclado (F1)"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
-          <line x1="6" y1="8" x2="6.01" y2="8"></line>
-          <line x1="10" y1="8" x2="10.01" y2="8"></line>
-          <line x1="14" y1="8" x2="14.01" y2="8"></line>
-          <line x1="18" y1="8" x2="18.01" y2="8"></line>
-          <line x1="8" y1="12" x2="16" y2="12"></line>
-        </svg>
-        <span>Atajos</span>
-        <span class="kbd-pill">F1</span>
-      </button>
-      }
-
-      <!-- Calc [F3] -->
-      @if (canAccessFeature('pos-calculator', 'sales')) {
-      <button
-        type="button"
-        class="btn-pos-outline btn-40"
-        (click)="isCalculatorOpen.update(v => !v)"
-        title="Calculadora (F3)"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="4" y="2" width="16" height="20" rx="2"></rect>
-          <line x1="8" y1="6" x2="16" y2="6"></line>
-          <line x1="16" y1="14" x2="16" y2="18"></line>
-          <path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"></path>
-        </svg>
-        <span>Calc</span>
-        <span class="kbd-pill">F3</span>
-      </button>
-      }
-
-      <!-- En espera -->
+      <!-- 1. En espera (F9) -->
       @if (canAccessFeature('pos-held-sales', 'sales')) {
       <button
         type="button"
@@ -237,9 +90,10 @@
         @if (draftStorageService.heldCount() > 0) {
           <span class="cuadre-badge badge-info" style="padding: 1px 6px; font-size: 11px;">{{ draftStorageService.heldCount() }}</span>
         }
+        <span class="kbd-pill">F9</span>
       </button>
 
-      <!-- Pausar [F8] -->
+      <!-- 2. Pausar venta [F8] -->
       <button
         type="button"
         class="btn-pos-outline btn-40"
@@ -256,7 +110,7 @@
       </button>
       }
 
-      <!-- Reimprimir -->
+      <!-- 3. Reimprimir última venta -->
       @if (canAccessFeature('pos-reprint', 'sales')) {
       <button
         type="button"
@@ -274,37 +128,187 @@
       </button>
       }
 
-      <!-- Abrir gaveta -->
-      @if (canAccessFeature('pos-open-drawer', 'cash-register')) {
-      <button
-        type="button"
-        class="btn-pos-outline btn-40"
-        (click)="openDrawerManual()"
-        title="Abrir gaveta manual"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-          <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-        </svg>
-        <span>Abrir gaveta</span>
-      </button>
-      }
+      <!-- 4. MENÚ DESPLEGABLE DE AJUSTES Y HERRAMIENTAS POS -->
+      <div class="pos-options-dropdown-wrapper" style="position: relative;">
+        <button
+          type="button"
+          class="btn-pos-outline btn-40"
+          [class.active]="isOptionsMenuOpen()"
+          (click)="toggleOptionsMenu()"
+          title="Ajustes y herramientas del Punto de Venta"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>Ajustes</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
 
-      <!-- Limpiar (danger-outline) -->
-      @if (canAccessFeature('pos-clear-cart', 'sales')) {
-      <button
-        type="button"
-        class="btn-pos-danger-outline"
-        (click)="resetForm()"
-        title="Limpiar carrito (F5)"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        </svg>
-        <span>Limpiar</span>
-      </button>
-      }
+        @if (isOptionsMenuOpen()) {
+          <div class="pos-dropdown-backdrop" (click)="closeOptionsMenu()"></div>
+          <div class="pos-options-dropdown-menu shadow-lg animate-fade-in" (click)="$event.stopPropagation()">
+            <div class="dropdown-menu-header">
+              <span class="dropdown-title">Ajustes del Punto de Venta</span>
+              <button type="button" class="btn-close-sm" (click)="closeOptionsMenu()" aria-label="Cerrar">✕</button>
+            </div>
+
+            <!-- Sonido Toggle -->
+            @if (canAccessFeature('pos-sound', 'sales')) {
+            <button
+              type="button"
+              class="pos-dropdown-item"
+              (click)="posAudio.toggleMute()"
+            >
+              <div class="dropdown-item-left">
+                <span class="dropdown-item-icon">{{ posAudio.isMuted() ? '🔇' : '🔊' }}</span>
+                <div class="dropdown-item-texts">
+                  <div class="dropdown-item-title">Sonido y alertas</div>
+                  <div class="dropdown-item-desc">{{ posAudio.isMuted() ? 'Silenciado' : 'Beeps de escáner y cobro activos' }}</div>
+                </div>
+              </div>
+              <span class="badge" [class.bg-success-subtle]="!posAudio.isMuted()" [class.text-success]="!posAudio.isMuted()" [class.bg-light]="posAudio.isMuted()" [class.text-secondary]="posAudio.isMuted()">
+                {{ posAudio.isMuted() ? 'Silenciado' : 'Activo' }}
+              </span>
+            </button>
+            }
+
+            <!-- Autoimpresión Toggle -->
+            @if (canAccessFeature('pos-autoprint', 'sales')) {
+            <button
+              type="button"
+              class="pos-dropdown-item"
+              (click)="toggleAutoPrint()"
+            >
+              <div class="dropdown-item-left">
+                <span class="dropdown-item-icon">🖨️</span>
+                <div class="dropdown-item-texts">
+                  <div class="dropdown-item-title">Auto-impresión de ticket</div>
+                  <div class="dropdown-item-desc">Imprimir ticket térmico al cobrar</div>
+                </div>
+              </div>
+              <span class="badge" [class.bg-success-subtle]="autoPrintTicket()" [class.text-success]="autoPrintTicket()" [class.bg-light]="!autoPrintTicket()" [class.text-secondary]="!autoPrintTicket()">
+                {{ autoPrintTicket() ? 'ON' : 'OFF' }}
+              </span>
+            </button>
+            }
+
+            <div class="dropdown-divider"></div>
+
+            <!-- Historial / Anular -->
+            @if (canAccessFeature('pos-void-history', 'sales')) {
+            <button
+              type="button"
+              class="pos-dropdown-item"
+              (click)="openRecentSalesModal(); closeOptionsMenu()"
+            >
+              <div class="dropdown-item-left">
+                <span class="dropdown-item-icon">📋</span>
+                <div class="dropdown-item-texts">
+                  <div class="dropdown-item-title">Historial / Anular factura</div>
+                  <div class="dropdown-item-desc">Consultar ventas de este turno</div>
+                </div>
+              </div>
+              <span class="dropdown-arrow">&rsaquo;</span>
+            </button>
+            }
+
+            <!-- Datos Ticket -->
+            @if (canAccessFeature('pos-ticket-config', 'sales')) {
+            <button
+              type="button"
+              class="pos-dropdown-item"
+              (click)="openBusinessTicketModal(); closeOptionsMenu()"
+            >
+              <div class="dropdown-item-left">
+                <span class="dropdown-item-icon">🏷️</span>
+                <div class="dropdown-item-texts">
+                  <div class="dropdown-item-title">Datos del negocio para ticket</div>
+                  <div class="dropdown-item-desc">Nombre, RNC, dirección y papel térmico</div>
+                </div>
+              </div>
+              <span class="dropdown-arrow">&rsaquo;</span>
+            </button>
+            }
+
+            <!-- Códigos de Barra -->
+            @if (canAccessFeature('pos-barcodes', 'sales')) {
+            <button
+              type="button"
+              class="pos-dropdown-item"
+              (click)="openBarcodeSheetModal(); closeOptionsMenu()"
+            >
+              <div class="dropdown-item-left">
+                <span class="dropdown-item-icon">📊</span>
+                <div class="dropdown-item-texts">
+                  <div class="dropdown-item-title">Códigos de barra</div>
+                  <div class="dropdown-item-desc">Planilla para imprimir etiquetas</div>
+                </div>
+              </div>
+              <span class="dropdown-arrow">&rsaquo;</span>
+            </button>
+            }
+
+            <!-- Modo Compacto -->
+            @if (canAccessFeature('pos-compact-mode', 'sales')) {
+            <button
+              type="button"
+              class="pos-dropdown-item"
+              (click)="toggleCompactMode()"
+            >
+              <div class="dropdown-item-left">
+                <span class="dropdown-item-icon">🖥️</span>
+                <div class="dropdown-item-texts">
+                  <div class="dropdown-item-title">Modo compacto</div>
+                  <div class="dropdown-item-desc">Optimizado para pantallas 15" o 1366x768</div>
+                </div>
+              </div>
+              <span class="badge" [class.bg-primary-subtle]="isCompactMode()" [class.text-primary]="isCompactMode()" [class.bg-light]="!isCompactMode()" [class.text-secondary]="!isCompactMode()">
+                {{ isCompactMode() ? 'ON' : 'OFF' }}
+              </span>
+            </button>
+            }
+
+            <!-- Abrir Gaveta Manual -->
+            @if (canAccessFeature('pos-open-drawer', 'cash-register')) {
+            <button
+              type="button"
+              class="pos-dropdown-item"
+              (click)="openDrawerManual(); closeOptionsMenu()"
+            >
+              <div class="dropdown-item-left">
+                <span class="dropdown-item-icon">🗄️</span>
+                <div class="dropdown-item-texts">
+                  <div class="dropdown-item-title">Abrir gaveta manual</div>
+                  <div class="dropdown-item-desc">Pulso de apertura de dinero</div>
+                </div>
+              </div>
+              <span class="dropdown-arrow">&rsaquo;</span>
+            </button>
+            }
+
+            <!-- Atajos F1 -->
+            @if (canAccessFeature('pos-shortcuts', 'sales')) {
+            <button
+              type="button"
+              class="pos-dropdown-item"
+              (click)="isShortcutsModalOpen.set(true); closeOptionsMenu()"
+            >
+              <div class="dropdown-item-left">
+                <span class="dropdown-item-icon">⌨️</span>
+                <div class="dropdown-item-texts">
+                  <div class="dropdown-item-title">Guía de atajos</div>
+                  <div class="dropdown-item-desc">Teclas rápidas de caja</div>
+                </div>
+              </div>
+              <span class="kbd-pill">F1</span>
+            </button>
+            }
+          </div>
+        }
+      </div>
     </div>
     }
   </header>
@@ -599,36 +603,58 @@
           }
         </div>
 
-        <!-- 3. CARRITO DE VENTA (Card, flex: 1) -->
+        <!-- 3. BARRA DE TECLAS RÁPIDAS (Card compacta, padding 10px) -->
+        <div class="pos-card pos-shortcuts-bar">
+          <div class="shortcuts-left">
+            <div class="shortcuts-title">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                <line x1="6" y1="8" x2="6.01" y2="8"></line>
+                <line x1="10" y1="8" x2="10.01" y2="8"></line>
+                <line x1="14" y1="8" x2="14.01" y2="8"></line>
+                <line x1="18" y1="8" x2="18.01" y2="8"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              <span>Teclas rápidas</span>
+            </div>
+            <div class="shortcut-item"><span class="kbd-pill">F2</span> <span>Buscar</span></div>
+            <div class="shortcut-item"><span class="kbd-pill">F3</span> <span>Calculadora</span></div>
+            <div class="shortcut-item"><span class="kbd-pill">F4</span> <span>Cobrar</span></div>
+            <div class="shortcut-item"><span class="kbd-pill">F5</span> <span>Limpiar</span></div>
+            @if (checkoutStep() === 3) {
+              <div class="shortcut-item"><span class="kbd-pill">F8</span> <span>Ticket</span></div>
+            } @else {
+              <div class="shortcut-item"><span class="kbd-pill">F8</span> <span>Pausar</span></div>
+            }
+            <div class="shortcut-item"><span class="kbd-pill">F9</span> <span>En espera</span></div>
+            <div class="shortcut-item"><span class="kbd-pill">Esc</span> <span>Cerrar</span></div>
+          </div>
+          <button type="button" class="btn-more-shortcuts" (click)="isShortcutsModalOpen.set(true)">
+            Más atajos &gt;
+          </button>
+        </div>
+      </div>
+
+      <!-- COLUMNA DERECHA (Carrito de compra arriba + Panel de cobro fijo al pie) -->
+      <div class="pos-right-column">
+        <!-- CARRITO DE VENTA (Lista con scroll vertical independiente) -->
         <div class="pos-card pos-cart-card">
           <div class="cart-header">
             <h3 class="cart-title">Productos en la venta ({{ cartItems().length }})</h3>
             <div style="display: flex; align-items: center; gap: 8px;">
               <button
                 type="button"
-                class="btn-pos-outline btn-40"
-                (click)="holdCurrentSale()"
-                [disabled]="cartItems().length === 0"
-                title="Poner venta actual en espera (F8)"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="6" y="4" width="4" height="16"></rect>
-                  <rect x="14" y="4" width="4" height="16"></rect>
-                </svg>
-                <span>Pausar (F8)</span>
-              </button>
-              <button
-                type="button"
                 class="btn-pos-danger-outline"
                 (click)="resetForm()"
                 [disabled]="cartItems().length === 0"
-                title="Limpiar carrito (F5)"
+                title="Limpiar venta actual (F5)"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="3 6 5 6 21 6"></polyline>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
                 <span>Limpiar</span>
+                <span class="kbd-pill" style="margin-left: 2px;">F5</span>
               </button>
             </div>
           </div>
@@ -638,12 +664,12 @@
               <table class="cart-table">
                 <thead>
                   <tr>
-                    <th style="width: 40px; text-align: center;">#</th>
+                    <th style="width: 32px; text-align: center;">#</th>
                     <th>Producto</th>
-                    <th style="width: 120px; text-align: right;">Precio unit.</th>
-                    <th style="width: 150px; text-align: center;">Cantidad</th>
-                    <th style="width: 130px; text-align: right;">Subtotal</th>
-                    <th style="width: 44px; text-align: center;"></th>
+                    <th style="width: 100px; text-align: right;">Precio</th>
+                    <th style="width: 110px; text-align: center;">Cant.</th>
+                    <th style="width: 105px; text-align: right;">Subtotal</th>
+                    <th style="width: 36px; text-align: center;"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -741,41 +767,12 @@
               </div>
             </div>
             <div class="cart-items-count">
-              {{ cartItems().length }} artículo(s) en venta
+              {{ cartItems().length }} artículo(s)
             </div>
           </div>
         </div>
 
-        <!-- 4. BARRA DE TECLAS RÁPIDAS (Card compacta, padding 10px) -->
-        <div class="pos-card pos-shortcuts-bar">
-          <div class="shortcuts-left">
-            <div class="shortcuts-title">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
-                <line x1="6" y1="8" x2="6.01" y2="8"></line>
-                <line x1="10" y1="8" x2="10.01" y2="8"></line>
-                <line x1="14" y1="8" x2="14.01" y2="8"></line>
-                <line x1="18" y1="8" x2="18.01" y2="8"></line>
-                <line x1="8" y1="12" x2="16" y2="12"></line>
-              </svg>
-              <span>Teclas rápidas</span>
-            </div>
-            <div class="shortcut-item"><span class="kbd-pill">F2</span> <span>Buscar</span></div>
-            <div class="shortcut-item"><span class="kbd-pill">F3</span> <span>Calculadora</span></div>
-            <div class="shortcut-item"><span class="kbd-pill">F4</span> <span>Cobrar</span></div>
-            <div class="shortcut-item"><span class="kbd-pill">F5</span> <span>Cancelar</span></div>
-            <div class="shortcut-item"><span class="kbd-pill">F8</span> <span>Pausar</span></div>
-            <div class="shortcut-item"><span class="kbd-pill">F9</span> <span>En espera</span></div>
-            <div class="shortcut-item"><span class="kbd-pill">Esc</span> <span>Cerrar</span></div>
-          </div>
-          <button type="button" class="btn-more-shortcuts" (click)="isShortcutsModalOpen.set(true)">
-            Más atajos &gt;
-          </button>
-        </div>
-      </div>
-
-      <!-- COLUMNA DERECHA (Fija 420px, Panel de cobro) -->
-      <div class="pos-right-column">
+        <!-- PANEL DE COBRO (Fijo al pie de la columna derecha) -->
         <div class="pos-card pos-checkout-card">
           <!-- 1. STEPPER DE PASOS GUIADOS -->
           <div class="pos-stepper-container">
@@ -1168,10 +1165,28 @@
               </div>
             </div>
 
-            <!-- TARJETA CAMBIO (solo si el método es Efectivo) -->
+            <!-- TARJETA CAMBIO Y ESTADOS DE PAGO (solo si el método es Efectivo) -->
             @if (selectedMethod() === 'Efectivo') {
-              @if (cashShortage() > 0) {
-                <div class="pos-cambio-card shortage">
+              @if (!amountReceived() || amountReceived() <= 0) {
+                <div class="pos-cambio-card status-pending">
+                  <div class="cambio-left">
+                    <div class="cambio-icon-badge pending-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                    </div>
+                    <div class="cambio-text-group">
+                      <div class="cambio-label">PENDIENTE DE PAGO</div>
+                      <div class="cambio-sub-desc">Digite el efectivo o elija un monto rápido</div>
+                    </div>
+                  </div>
+                  <div class="cambio-amount-wrapper">
+                    <span class="cambio-amount pending-amount">RD$ {{ netPayable() | number:'1.2-2' }}</span>
+                  </div>
+                </div>
+              } @else if (cashShortage() > 0) {
+                <div class="pos-cambio-card status-shortage">
                   <div class="cambio-left">
                     <div class="cambio-icon-badge shortage-icon">
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1181,8 +1196,8 @@
                       </svg>
                     </div>
                     <div class="cambio-text-group">
-                      <div class="cambio-label">FALTANTE POR COBRAR</div>
-                      <div class="cambio-sub-desc">Monto restante para completar</div>
+                      <div class="cambio-label">FALTAN RD$ {{ cashShortage() | number:'1.2-2' }}</div>
+                      <div class="cambio-sub-desc">Importe insuficiente para completar</div>
                     </div>
                   </div>
                   <div class="cambio-amount-wrapper">
@@ -1190,7 +1205,7 @@
                   </div>
                 </div>
               } @else {
-                <div class="pos-cambio-card change-ready">
+                <div class="pos-cambio-card status-ready">
                   <div class="cambio-left">
                     <div class="cambio-icon-badge ready-icon">
                       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1198,8 +1213,8 @@
                       </svg>
                     </div>
                     <div class="cambio-text-group">
-                      <div class="cambio-label">DEVUELTA AL CLIENTE</div>
-                      <div class="cambio-sub-desc">Cambio exacto a entregar</div>
+                      <div class="cambio-label">CAMBIO A ENTREGAR · RD$ {{ change() | number:'1.2-2' }}</div>
+                      <div class="cambio-sub-desc">Devolver al cliente antes de cerrar</div>
                     </div>
                   </div>
                   <div class="cambio-amount-wrapper">
@@ -1209,7 +1224,7 @@
               }
             }
 
-            <!-- BOTÓN COBRAR Y FACTURAR · F12 (56px) -->
+            <!-- BOTÓN COBRAR Y FACTURAR · F4 (56px) -->
             <button
               type="button"
               class="btn-checkout-56"
@@ -1221,8 +1236,8 @@
                 <span>Procesando Cobro...</span>
               } @else {
                 <div class="d-flex align-items-center justify-content-between w-100 px-1">
-                  <span class="btn-checkout-kbd">F12</span>
-                  <span class="fw-bold">Cobrar (F12)</span>
+                  <span class="btn-checkout-kbd">F4</span>
+                  <span class="fw-bold">Cobrar (F4)</span>
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                     <polyline points="12 5 19 12 12 19"></polyline>

@@ -36,11 +36,15 @@ import { TableComponent } from '../../../cuadreEnv/components/table/table.compon
 
 export interface SaleDetailItemView {
   productId: number;
+  productCode?: string;
   productName: string;
   description: string;
   quantity: number;
   unitPrice: number;
+  discount?: number;
   subtotal: number;
+  itbis?: number;
+  totalAmount?: number;
 }
 
 @Component({
@@ -108,7 +112,8 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
   async loadProducts() {
     try {
       const pRes = await this.productService.getPagedProducts(1, 100);
-      const items = pRes?.data?.items || (Array.isArray(pRes?.data) ? pRes.data : []);
+      const items =
+        pRes?.data?.items || (Array.isArray(pRes?.data) ? pRes.data : []);
       if (items.length > 0) {
         this.products.set(items);
       } else {
@@ -163,6 +168,8 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
     if (rawDetails && rawDetails.length > 0) {
       const mapped: SaleDetailItemView[] = rawDetails.map((item: any) => {
         const pId = item.productId || item.id || 0;
+        const pCode =
+          item.productCode || item.code || item.barcode || `PROD-${pId}`;
         const pName =
           item.productName ||
           item.description ||
@@ -170,27 +177,52 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
           this.getProductName(pId);
         const qty = Number(item.quantity ?? 1) || 1;
         const price = Number(item.unitPrice ?? item.price ?? 0) || 0;
-        const sub = Number(item.subtotal ?? item.total ?? (qty * price)) || (qty * price);
+        const disc = Number(item.discount ?? item.discountPercentage ?? 0) || 0;
+        const lineTotal =
+          Number(item.totalAmount ?? item.total ?? qty * price) || qty * price;
+        const sub =
+          Number(item.subtotal ?? item.subTotal ?? lineTotal / 1.18) ||
+          Math.round((lineTotal / 1.18) * 100) / 100;
+        const itbis =
+          Number(item.itbisAmount ?? item.itbis ?? lineTotal - sub) ||
+          Math.round((lineTotal - sub) * 100) / 100;
 
         return {
           productId: pId,
+          productCode: pCode,
           productName: pName,
           description: pName,
           quantity: qty,
           unitPrice: price,
+          discount: disc,
           subtotal: sub,
+          itbis,
+          totalAmount: lineTotal,
         };
       });
       this.itemsList.set(mapped);
     } else if (this.sale.total && this.sale.total > 0) {
       // Fallback if backend returned summary sale without line details
+      const invTotal = this.sale.total;
+      const sub = Math.round((invTotal / 1.18) * 100) / 100;
+      const itbis = Math.round((invTotal - sub) * 100) / 100;
       const fallbackItem: SaleDetailItemView = {
         productId: (this.sale as any).productId || 1,
-        productName: (this.sale as any).notes || (this.sale as any).description || `Venta #${this.sale.id}`,
-        description: (this.sale as any).notes || (this.sale as any).description || `Venta #${this.sale.id}`,
+        productCode: (this.sale as any).productCode || `VTA-${this.sale.id}`,
+        productName:
+          (this.sale as any).notes ||
+          (this.sale as any).description ||
+          `Venta #${this.sale.id}`,
+        description:
+          (this.sale as any).notes ||
+          (this.sale as any).description ||
+          `Venta #${this.sale.id}`,
         quantity: 1,
-        unitPrice: this.sale.total,
-        subtotal: this.sale.total,
+        unitPrice: invTotal,
+        discount: 0,
+        subtotal: sub,
+        itbis,
+        totalAmount: invTotal,
       };
       this.itemsList.set([fallbackItem]);
     } else {
@@ -236,13 +268,20 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
 
   getProductName(productId: number): string {
     const p = this.products().find((item) => item.id === productId);
-    return p ? p.description || p.barcode || 'Producto' : `Producto #${productId}`;
+    return p
+      ? p.description || p.barcode || 'Producto'
+      : `Producto #${productId}`;
   }
 
   isServiceSale(): boolean {
     if (!this.sale) return false;
     const s: any = this.sale;
-    if (s.originChannel === 'SERVICIO' || s.originChannel === 'SERVICE' || s.originChannel === 3) return true;
+    if (
+      s.originChannel === 'SERVICIO' ||
+      s.originChannel === 'SERVICE' ||
+      s.originChannel === 3
+    )
+      return true;
     if (typeof s.notes === 'string') {
       const upper = s.notes.toUpperCase();
       if (
@@ -254,15 +293,25 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
         return true;
       }
     }
-    if (typeof s.invoiceNumber === 'string' && s.invoiceNumber.toUpperCase().includes('SERV')) return true;
+    if (
+      typeof s.invoiceNumber === 'string' &&
+      s.invoiceNumber.toUpperCase().includes('SERV')
+    )
+      return true;
     const items = this.itemsList();
     if (items && items.length > 0) {
       return items.some((it: any) => {
         if (it.isService === true || it.productTypeId === 2) return true;
         const code = String(it.productCode || it.code || '').toUpperCase();
         if (code.startsWith('SERV') || code.startsWith('SRV')) return true;
-        const name = String(it.productName || it.description || '').toLowerCase();
-        return name.includes('servicio') || name.includes('mano de obra') || name.includes('mantenimiento');
+        const name = String(
+          it.productName || it.description || '',
+        ).toLowerCase();
+        return (
+          name.includes('servicio') ||
+          name.includes('mano de obra') ||
+          name.includes('mantenimiento')
+        );
       });
     }
     return false;

@@ -136,6 +136,9 @@ export class AuthService {
   companyId = signal<number | null>(this.getInitialCompanyId());
   currentCompanyId = computed<number | null>(() => this.companyId());
   userCompanies = signal<UserCompanyDto[]>(this.getStoredUserCompanies());
+  userCompaniesLoading = signal<boolean>(false);
+  userCompaniesError = signal<string | null>(null);
+  isSwitchingCompany = signal<boolean>(false);
   activeCompany = computed<UserCompanyDto | null>(() => {
     const id = this.companyId();
     if (!id) return null;
@@ -1443,94 +1446,87 @@ export class AuthService {
 
   async loadUserCompanies(): Promise<UserCompanyDto[]> {
     if (!this.isAuthenticated()) return this.userCompanies();
+    this.userCompaniesLoading.set(true);
+    this.userCompaniesError.set(null);
+
     try {
       let list: any[] = [];
       try {
-        const res = await this.api.get<any, any>('/users/my-companies');
+        const res = await this.api.get<any, any>('/auth/user-companies');
         if (Array.isArray(res)) list = res;
         else if (Array.isArray(res?.data)) list = res.data;
         else if (Array.isArray(res?.Data)) list = res.Data;
       } catch {
         try {
-          const res = await this.api.get<any, any>('/auth/user-companies');
-          if (Array.isArray(res)) list = res;
-          else if (Array.isArray(res?.data)) list = res.data;
-          else if (Array.isArray(res?.Data)) list = res.Data;
+          const res2 = await this.api.get<any, any>('/users/my-companies');
+          if (Array.isArray(res2)) list = res2;
+          else if (Array.isArray(res2?.data)) list = res2.data;
+          else if (Array.isArray(res2?.Data)) list = res2.Data;
         } catch {
-          // Fallback a /Company solo para SuperAdmin para evitar 403 y alertas de seguridad
-          if (this.isSuperUser() || this.hasRole(['SuperAdmin'])) {
-            try {
-              const compRes = await this.api.get<any, any>('/Company');
-              if (Array.isArray(compRes)) list = compRes;
-              else if (Array.isArray(compRes?.data)) list = compRes.data;
-              else if (Array.isArray(compRes?.Data)) list = compRes.Data;
-            } catch {}
-          }
+          this.userCompaniesError.set('No se pudieron recuperar las empresas asignadas.');
+          return this.userCompanies();
         }
       }
 
-      if (list.length > 0) {
-        const mapped: UserCompanyDto[] = list
-          .map((c) => ({
-            id: Number(c.id ?? c.companyId ?? c.CompanyId ?? 0),
-            name: String(c.name ?? c.companyName ?? c.CompanyName ?? ''),
-            commercialName: c.commercialName ?? c.CommercialName ?? undefined,
-            rnc: c.rnc ?? c.Rnc ?? undefined,
-            role: c.role ?? c.Role ?? undefined,
-            plan: c.plan ?? c.Plan ?? c.planName ?? c.PlanName ?? undefined,
-            isDefault: Boolean(c.isDefault ?? c.IsDefault ?? false),
-          }))
-          .filter((c) => c.id > 0);
+      const mapped: UserCompanyDto[] = (list || [])
+        .map((c) => ({
+          id: Number(c.id ?? c.companyId ?? c.CompanyId ?? 0),
+          name: String(c.name ?? c.companyName ?? c.CompanyName ?? ''),
+          commercialName: c.commercialName ?? c.CommercialName ?? undefined,
+          rnc: c.rnc ?? c.Rnc ?? undefined,
+          role: c.role ?? c.Role ?? undefined,
+          plan: c.plan ?? c.Plan ?? c.planName ?? c.PlanName ?? undefined,
+          isDefault: Boolean(c.isDefault ?? c.IsDefault ?? false),
+        }))
+        .filter((c) => c.id > 0);
 
-        if (mapped.length > 0) {
-          this.userCompanies.set(mapped);
+      this.userCompanies.set(mapped);
+      if (typeof window !== 'undefined') {
+        window.localStorage?.setItem('userCompanies', JSON.stringify(mapped));
+        window.sessionStorage?.setItem('userCompanies', JSON.stringify(mapped));
+      }
+
+      if (mapped.length === 0) {
+        // Cero membresías autorizadas: estado vacío sin cargar datos
+        this.companyId.set(null);
+        setCompanyId(null);
+        if (typeof window !== 'undefined') {
+          window.localStorage?.removeItem(API_CONSTANTS.COMPANY_ID_KEY);
+          window.localStorage?.removeItem('companyId');
+          window.localStorage?.removeItem('currentCompanyId');
+          window.sessionStorage?.removeItem('companyId');
+          window.sessionStorage?.removeItem('currentCompanyId');
+        }
+        return [];
+      }
+
+      // Si tiene una o varias empresas, verificar que la empresa activa pertenezca a sus membresías
+      const currentId = this.companyId();
+      const currentValid = currentId && mapped.some((c) => c.id === currentId);
+
+      if (!currentValid) {
+        const defaultCompany = mapped.find((c) => c.isDefault) || mapped[0];
+        if (defaultCompany?.id) {
+          this.companyId.set(defaultCompany.id);
+          setCompanyId(defaultCompany.id);
           if (typeof window !== 'undefined') {
-            window.localStorage?.setItem(
-              'userCompanies',
-              JSON.stringify(mapped),
-            );
-            window.sessionStorage?.setItem(
-              'userCompanies',
-              JSON.stringify(mapped),
-            );
+            window.localStorage?.setItem(API_CONSTANTS.COMPANY_ID_KEY, String(defaultCompany.id));
+            window.localStorage?.setItem('companyId', String(defaultCompany.id));
+            window.localStorage?.setItem('currentCompanyId', String(defaultCompany.id));
+            window.sessionStorage?.setItem('companyId', String(defaultCompany.id));
+            window.sessionStorage?.setItem('currentCompanyId', String(defaultCompany.id));
           }
-
-          // Si el usuario no tenía un companyId válido, asignar el default o la primera
-          if (!this.companyId() || this.companyId()! <= 0) {
-            const defaultCompany = mapped.find((c) => c.isDefault) || mapped[0];
-            if (defaultCompany?.id) {
-              this.companyId.set(defaultCompany.id);
-              setCompanyId(defaultCompany.id);
-              if (typeof window !== 'undefined') {
-                window.localStorage?.setItem(
-                  API_CONSTANTS.COMPANY_ID_KEY,
-                  String(defaultCompany.id),
-                );
-                window.localStorage?.setItem(
-                  'companyId',
-                  String(defaultCompany.id),
-                );
-                window.localStorage?.setItem(
-                  'currentCompanyId',
-                  String(defaultCompany.id),
-                );
-                window.localStorage?.setItem(
-                  'auth_company_id',
-                  String(defaultCompany.id),
-                );
-              }
-            }
-          }
-          return mapped;
         }
       }
-    } catch (err) {
-      console.warn(
-        '[AuthService] No se pudieron cargar las empresas del usuario:',
-        err,
-      );
+
+      return mapped;
+    } catch (err: any) {
+      console.warn('[AuthService] Error loading user companies:', err);
+      this.userCompaniesError.set('Error al conectar con el servidor.');
+      return this.userCompanies();
+    } finally {
+      this.userCompaniesLoading.set(false);
     }
-    return this.userCompanies();
   }
 
   async switchCompany(newCompanyId: number): Promise<boolean> {
@@ -1543,15 +1539,38 @@ export class AuthService {
       return true;
     }
 
-    try {
-      this.notificationService.info('Cambiando a empresa seleccionada...');
+    if (this.isSwitchingCompany()) {
+      return false;
+    }
 
-      // 1. Purgar datos de caja y cachés no particionados del tenant anterior para evitar contaminación
+    if (this.userCompaniesError()) {
+      this.notificationService.warning('Recupere el listado de empresas autorizadas antes de cambiar.');
+      return false;
+    }
+
+    const isAuthorized = this.userCompanies().some((c) => c.id === targetId);
+    if (!isAuthorized && !this.isPlatformSuperUser()) {
+      this.notificationService.error('No tiene asignación autorizada para esta empresa.');
+      return false;
+    }
+
+    const previousCompanyId = this.companyId();
+    this.isSwitchingCompany.set(true);
+    this.notificationService.info('Confirmando cambio de empresa...');
+
+    try {
+      // 1. Validar autorización y cambiar tenant en el backend antes de modificar el estado local
+      const res: any = await this.api.post('/auth/switch-company', { companyId: targetId });
+      const switchedTokens = res?.data || res;
+
+      if (!switchedTokens) {
+        throw new Error('Respuesta de cambio de empresa inválida.');
+      }
+
+      // 2. Éxito confirmado: purgar cachés y estado de la empresa anterior
       if (typeof window !== 'undefined') {
         window.localStorage?.removeItem('app_active_cash_register_session');
-        window.localStorage?.removeItem(
-          'cuadreenv_active_cash_register_session',
-        );
+        window.localStorage?.removeItem('cuadreenv_active_cash_register_session');
         window.localStorage?.removeItem('cuadre_active_cash_register_session');
         window.localStorage?.removeItem('cuadre_company_settings');
         window.localStorage?.removeItem('cuadreenv_warehouses_db');
@@ -1564,74 +1583,63 @@ export class AuthService {
         window.sessionStorage?.removeItem('hasAllModules');
       }
 
-      // 2. Establecer el nuevo tenant en el servicio y en el cliente HTTP de inmediato
+      // 3. Aplicar tokens renovados y actualizar CompanyId
+      const rawAccess = switchedTokens.accessToken || switchedTokens.AccessToken || switchedTokens.token;
+      const rawRefresh = switchedTokens.refreshToken || switchedTokens.RefreshToken;
+      if (rawAccess) {
+        setAccessToken(rawAccess);
+        if (typeof window !== 'undefined') {
+          window.localStorage?.setItem('cuadre_access_token', rawAccess);
+          window.localStorage?.setItem('accessToken', rawAccess);
+          window.sessionStorage?.setItem('accessToken', rawAccess);
+        }
+      }
+      if (rawRefresh) {
+        setRefreshToken(rawRefresh);
+        if (typeof window !== 'undefined') {
+          window.localStorage?.setItem('cuadre_refresh_token', rawRefresh);
+          window.localStorage?.setItem('refreshToken', rawRefresh);
+          window.sessionStorage?.setItem('refreshToken', rawRefresh);
+        }
+      }
+
       this.companyId.set(targetId);
       setCompanyId(targetId);
 
       if (typeof window !== 'undefined') {
-        window.localStorage?.setItem(
-          API_CONSTANTS.COMPANY_ID_KEY,
-          String(targetId),
-        );
+        window.localStorage?.setItem(API_CONSTANTS.COMPANY_ID_KEY, String(targetId));
         window.localStorage?.setItem('companyId', String(targetId));
         window.localStorage?.setItem('currentCompanyId', String(targetId));
-        window.localStorage?.setItem('auth_company_id', String(targetId));
         window.sessionStorage?.setItem('companyId', String(targetId));
-        window.sessionStorage?.setItem(
-          'currentCompanyId',
-          String(targetId),
-        );
-        window.sessionStorage?.setItem('auth_company_id', String(targetId));
+        window.sessionStorage?.setItem('currentCompanyId', String(targetId));
       }
 
-      // 3. Invocar al backend para cambiar el contexto en BD y obtener los tokens renovados firmados
-      try {
-        const res: any = await this.api.post('/auth/switch-company', { companyId: targetId });
-        const switchedTokens = res?.data || res;
-        if (switchedTokens) {
-          const rawAccess =
-            switchedTokens.accessToken ||
-            switchedTokens.AccessToken ||
-            switchedTokens.token ||
-            switchedTokens.Token;
-          const rawRefresh =
-            switchedTokens.refreshToken ||
-            switchedTokens.RefreshToken;
-          if (rawAccess) {
-            setAccessToken(rawAccess);
-            if (typeof window !== 'undefined') {
-              window.localStorage?.setItem('cuadre_access_token', rawAccess);
-              window.localStorage?.setItem('accessToken', rawAccess);
-              window.sessionStorage?.setItem('accessToken', rawAccess);
-            }
-          }
-          if (rawRefresh) {
-            setRefreshToken(rawRefresh);
-            if (typeof window !== 'undefined') {
-              window.localStorage?.setItem('cuadre_refresh_token', rawRefresh);
-              window.localStorage?.setItem('refreshToken', rawRefresh);
-              window.sessionStorage?.setItem('refreshToken', rawRefresh);
-            }
-          }
-          this.handleTokenResponse(switchedTokens, false);
-        }
-      } catch (err) {
-        console.warn('[AuthService] switch-company API call fallback:', err);
-      }
-
-      // 4. Refrescar módulos y licencias de la nueva empresa
+      this.handleTokenResponse(switchedTokens, false);
       await this.refreshModuleEntitlements(true).catch(() => {});
 
-      // 5. Recargar la interfaz para limpiar cachés de componentes y estado en memoria
       if (typeof window !== 'undefined') {
         window.location.reload();
       }
       return true;
     } catch (err: any) {
+      console.error('[AuthService] switchCompany failed:', err);
       this.notificationService.error(
-        err?.message || 'Error al cambiar de empresa',
+        err?.error?.message || err?.message || 'Error al cambiar de empresa. Acceso no autorizado.',
       );
+
+      // Conservar empresa anterior solo si el usuario sigue autorizado
+      const prevStillValid = previousCompanyId && this.userCompanies().some((c) => c.id === previousCompanyId);
+      if (prevStillValid) {
+        this.companyId.set(previousCompanyId);
+        setCompanyId(previousCompanyId);
+      } else {
+        const fallback = this.userCompanies()[0]?.id || null;
+        this.companyId.set(fallback);
+        setCompanyId(fallback);
+      }
       return false;
+    } finally {
+      this.isSwitchingCompany.set(false);
     }
   }
 

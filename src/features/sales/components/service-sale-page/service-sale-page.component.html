@@ -183,19 +183,48 @@
           </div>
         </div>
 
-        <!-- Table of Added Services con diseño coincidente con billing-detail-card -->
+        <!-- Table of Added Services con diseño unificado Image 4 -->
         <div class="billing-detail-card m-0" style="border-top-color: #6366F1;">
+          <div class="billing-detail-header">
+            <div class="d-flex align-items-center gap-2">
+              <div class="detail-header-icon" style="background: #EEF2FF; color: #4F46E5;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                </svg>
+              </div>
+              <span class="detail-header-title">Detalle de Servicios a Facturar</span>
+              <span class="detail-items-count-badge">
+                {{ cart.length }} {{ cart.length === 1 ? 'servicio' : 'servicios' }}
+              </span>
+            </div>
+
+            <div class="detail-summary-pills">
+              <span class="summary-pill">
+                <span class="pill-label">Subtotal</span>
+                <strong class="pill-value">RD$ {{ subtotal | number:'1.2-2' }}</strong>
+              </span>
+              <span class="summary-pill">
+                <span class="pill-label">ITBIS</span>
+                <strong class="pill-value">RD$ {{ itbisAmount | number:'1.2-2' }}</strong>
+              </span>
+              <span class="summary-pill total-pill">
+                <span class="pill-label">Total</span>
+                <strong class="pill-value text-success">RD$ {{ totalAmount | number:'1.2-2' }}</strong>
+              </span>
+            </div>
+          </div>
+
           <div class="billing-detail-body">
             <div class="table-responsive">
               <table class="table billing-subtable mb-0 align-middle">
                 <thead>
                   <tr>
-                    <th class="ps-3" style="width: 130px;">Código</th>
-                    <th>Servicio / Mano de Obra</th>
-                    <th class="text-end" style="width: 150px;">Precio Unit. (RD$)</th>
-                    <th class="text-center" style="width: 130px;">Cantidad</th>
-                    <th class="text-end" style="width: 140px;">Subtotal (RD$)</th>
-                    <th style="width: 50px;"></th>
+                    <th class="ps-3" style="width: 130px;">CÓDIGO</th>
+                    <th>SERVICIO / MANO DE OBRA</th>
+                    <th class="text-end" style="width: 160px;">PRECIO UNIT. (RD$)</th>
+                    <th class="text-center" style="width: 130px;">CANTIDAD</th>
+                    <th class="text-end" style="width: 150px;">SUBTOTAL (RD$)</th>
+                    <th class="text-center" style="width: 60px;">ACCIONES</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -348,14 +377,6 @@
     </div>
   </div>
 </div>
-
-<!-- Receipt Modal Upon Completion -->
-<app-sale-completed-modal
-  [(visible)]="isSaleCompletedModalOpen"
-  [saleData]="lastCompletedSale"
-  (newSaleRequested)="isSaleCompletedModalOpen = false; cart = []; serviceNotes = ''"
-  (closed)="onReceiptClosed()"
-></app-sale-completed-modal>
 
 <!-- Receipt Modal Upon Completion -->
 <app-sale-completed-modal

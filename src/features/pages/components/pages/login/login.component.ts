@@ -91,6 +91,17 @@ export class LoginComponent implements OnInit {
     });
   }
 
+  readonly isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  readonly isUsingLocalApi = typeof window !== 'undefined' && localStorage.getItem('cuadre_api_target') === 'local';
+
+  toggleApiTarget(): void {
+    if (typeof window !== 'undefined') {
+      const next = this.isUsingLocalApi ? 'remote' : 'local';
+      localStorage.setItem('cuadre_api_target', next);
+      window.location.reload();
+    }
+  }
+
   toggleShowPassword() {
     this.showPassword.update((val) => !val);
   }

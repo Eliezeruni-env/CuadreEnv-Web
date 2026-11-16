@@ -58,7 +58,27 @@
 
     <c-header-nav class="ms-auto align-items-center">
       <!-- Selector de Empresa Activa / Plan Contratado -->
-      @if (hasMultipleCompanies()) {
+      @if (userCompaniesError()) {
+        <div class="d-flex align-items-center gap-2 px-2.5 py-1.5 rounded-3 border border-danger-subtle bg-danger-subtle text-danger">
+          <svg cIcon name="cilWarning" style="width: 14px; height: 14px;" class="flex-shrink-0"></svg>
+          <span class="small font-size-xs fw-semibold">Error al cargar empresas</span>
+          <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1.5 fw-bold ms-1" (click)="retryLoadUserCompanies()">
+            Reintentar
+          </button>
+        </div>
+      } @else if (userCompaniesLoading() || isSwitchingCompany()) {
+        <div class="d-flex align-items-center gap-2 px-3 py-1.5 rounded-3 border border-secondary-subtle bg-body shadow-2xs">
+          <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true" style="width: 14px; height: 14px;"></span>
+          <span class="small text-secondary font-size-xs">
+            @if (isSwitchingCompany()) { Cambiando de empresa... } @else { Cargando empresa... }
+          </span>
+        </div>
+      } @else if (hasNoCompanies()) {
+        <div class="d-flex align-items-center gap-2 px-3 py-1.5 rounded-3 border border-warning-subtle bg-warning-subtle text-warning-emphasis">
+          <svg cIcon name="cilBuilding" style="width: 16px; height: 16px;"></svg>
+          <span class="small fw-semibold">Sin empresa asignada</span>
+        </div>
+      } @else if (hasMultipleCompanies()) {
         <c-dropdown [popperOptions]="{ placement: 'bottom-end' }" variant="nav-item">
           <button
             [caret]="false"
