@@ -139,7 +139,7 @@ export class ListbillingComponent implements OnInit {
   }
 
   createCreditNote(billing: Billing) {
-    if (billing.hasAFullCreditNote) {
+    if (billing.hasAFullCreditNote || billing.statusId === 3 || (billing as any).notes?.includes('DEVUELTA')) {
       this.notificationService.warning('Esta factura ya tiene una nota de crédito total aplicada.');
       return;
     }

@@ -148,6 +148,19 @@ export class CreditNoteService {
       };
     }
 
+    const isAlreadyReturned =
+      foundInvoice.status === 4 ||
+      foundInvoice.statusId === 3 ||
+      foundInvoice.isCancelled ||
+      (typeof foundInvoice.notes === 'string' && foundInvoice.notes.includes('DEVUELTA'));
+
+    if (isAlreadyReturned) {
+      return {
+        success: false,
+        message: `La factura o venta ${clean} ya fue devuelta en su totalidad mediante nota de crédito.`,
+      };
+    }
+
     // Check existing credit notes for this invoice to calculate max returnable quantities
     const invoiceId = foundInvoice.id || targetId || 1;
     const existingNotes = this.getLocalCreditNotes().filter(

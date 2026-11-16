@@ -382,6 +382,7 @@ export interface SaleResponseDto {
   customerName?: string;
   total: number;
   paidAmount: number;
+  status?: number;
   cashRegisterId?: number | null;
   cashRegisterName?: string;
   dueDate?: string | null;

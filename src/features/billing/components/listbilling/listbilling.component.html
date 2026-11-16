@@ -99,7 +99,7 @@
                       RD$ {{ b.amountTotal | number:'1.2-2' }}
                     </td>
                     <td class="text-center">
-                      @if (b.hasAFullCreditNote || b.statusId === 3) {
+                      @if (b.hasAFullCreditNote || b.statusId === 3 || b.notes?.includes('DEVUELTA')) {
                         <span class="badge status-badge-danger px-2.5 py-1 rounded-pill">Devuelta / NC</span>
                       } @else if (b.statusId === 1) {
                         <span class="badge status-badge-success px-2.5 py-1 rounded-pill">Emitida</span>
@@ -138,9 +138,10 @@
                         <button
                           class="btn btn-sm btn-light border text-danger"
                           type="button"
-                          [disabled]="b.hasAFullCreditNote"
+                          [disabled]="b.hasAFullCreditNote || b.statusId === 3 || b.notes?.includes('DEVUELTA')"
+                          [class.opacity-50]="b.hasAFullCreditNote || b.statusId === 3 || b.notes?.includes('DEVUELTA')"
                           (click)="createCreditNote(b)"
-                          title="Crear Nota de Crédito / Devolución"
+                          [title]="(b.hasAFullCreditNote || b.statusId === 3 || b.notes?.includes('DEVUELTA')) ? 'Factura ya devuelta en su totalidad' : 'Crear Nota de Crédito / Devolución'"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="9 14 4 9 9 4"></polyline>
