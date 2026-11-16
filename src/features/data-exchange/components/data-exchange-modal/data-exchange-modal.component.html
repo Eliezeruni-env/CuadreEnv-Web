@@ -1,0 +1,375 @@
+@if (isOpen()) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+
+        <!-- Header -->
+        <div class="modal-header bg-dark text-white border-0 py-3 px-4 d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-3">
+            <div class="p-2 bg-white-subtle rounded-3 text-white">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </div>
+            <div>
+              <h5 class="modal-title fw-bold mb-0 text-white">Importar {{ entityTitle }} (Excel / CSV)</h5>
+              <p class="small text-white-50 mb-0">Carga masiva con validación previa estricta, tolerancia a celdas vacías e idempotencia</p>
+            </div>
+          </div>
+          <button type="button" class="btn-close btn-close-white" (click)="close()" [disabled]="isConfirming()"></button>
+        </div>
+
+        <!-- Body -->
+        <div class="modal-body p-4 bg-light">
+
+          <!-- Section 1: Templates & Guidelines -->
+          <div class="card border-0 rounded-4 p-3 bg-white shadow-sm mb-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+              <div>
+                <h6 class="fw-bold mb-1 text-dark">Plantillas Oficiales</h6>
+                <p class="small text-secondary mb-0">
+                  Descarga la plantilla con encabezados estándar para evitar errores de mapeo.
+                  <span class="d-block text-muted">Las celdas vacías en una actualización conservan el valor actual en base de datos.</span>
+                </p>
+              </div>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-outline-success btn-sm d-flex align-items-center gap-1 fw-semibold px-3 py-2"
+                  (click)="downloadTemplate('xlsx')"
+                  [disabled]="isDownloadingTemplate()"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  <span>Plantilla Excel (.XLSX)</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 fw-semibold px-3 py-2"
+                  (click)="downloadTemplate('csv')"
+                  [disabled]="isDownloadingTemplate()"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  <span>Plantilla CSV (.CSV)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Mode Selector & Upload Area -->
+          <div class="card border-0 rounded-4 p-4 bg-white shadow-sm mb-4">
+            <div class="row g-4 align-items-center">
+              <div class="col-md-5 border-end-md">
+                <label class="form-label fw-bold text-dark small text-uppercase tracking-wider mb-2">Modo de Importación</label>
+                <div class="form-check mb-3 p-3 rounded-3 border" [class.border-primary]="mode() === 'create_and_update'" [class.bg-primary-subtle]="mode() === 'create_and_update'">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="importMode"
+                    id="modeCreateAndUpdate"
+                    [checked]="mode() === 'create_and_update'"
+                    (change)="onModeChange('create_and_update')"
+                    [disabled]="isConfirming()"
+                  />
+                  <label class="form-check-label fw-semibold text-dark cursor-pointer d-block" for="modeCreateAndUpdate">
+                    Crear y Actualizar
+                    <span class="d-block small text-secondary fw-normal mt-1">
+                      Crea nuevos registros y actualiza los existentes según la clave única (Referencia o Código). Conserva valores vacíos.
+                    </span>
+                  </label>
+                </div>
+
+                <div class="form-check p-3 rounded-3 border" [class.border-primary]="mode() === 'create_only'" [class.bg-primary-subtle]="mode() === 'create_only'">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="importMode"
+                    id="modeCreateOnly"
+                    [checked]="mode() === 'create_only'"
+                    (change)="onModeChange('create_only')"
+                    [disabled]="isConfirming()"
+                  />
+                  <label class="form-check-label fw-semibold text-dark cursor-pointer d-block" for="modeCreateOnly">
+                    Solo Crear
+                    <span class="d-block small text-secondary fw-normal mt-1">
+                      Inserta registros que no existan. Si ya existen, los omite o los señala sin modificar la base de datos.
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Upload Dropzone -->
+              <div class="col-md-7">
+                <label class="form-label fw-bold text-dark small text-uppercase tracking-wider mb-2">Archivo de Datos</label>
+                <div
+                  class="dropzone-area p-4 rounded-4 border-2 border-dashed text-center cursor-pointer transition-all"
+                  (dragover)="onDragOver($event)"
+                  (drop)="onFileDropped($event)"
+                  (click)="fileInput.click()"
+                >
+                  <input
+                    #fileInput
+                    type="file"
+                    class="d-none"
+                    accept=".xlsx,.xls,.csv"
+                    (change)="onFileSelected($event)"
+                  />
+                  <div class="mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                  </div>
+                  @if (fileName()) {
+                    <h6 class="fw-bold text-dark mb-1 font-monospace">{{ fileName() }}</h6>
+                    <span class="badge bg-primary-subtle text-primary mb-2">Archivo seleccionado</span>
+                    <p class="small text-secondary mb-0">Haz clic o arrastra otro archivo para reemplazarlo</p>
+                  } @else {
+                    <h6 class="fw-bold text-dark mb-1">Arrastra aquí tu archivo .XLSX o .CSV</h6>
+                    <p class="small text-secondary mb-0">o haz clic para examinar desde tu equipo</p>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading state for preview -->
+          @if (isLoadingPreview()) {
+            <div class="card border-0 rounded-4 p-5 bg-white shadow-sm text-center mb-4">
+              <div class="spinner-border text-primary mb-3" role="status"></div>
+              <h6 class="fw-bold text-dark mb-1">Analizando y validando archivo...</h6>
+              <p class="small text-secondary mb-0">Detectando claves únicas, comparando cambios y validando reglas de negocio</p>
+            </div>
+          }
+
+          <!-- Section 3: Preview Results -->
+          @if (preview(); as p) {
+            <!-- Metrics KPI row -->
+            <div class="row g-3 mb-4">
+              <div class="col-sm-6 col-lg-2-4 col-xl">
+                <div class="card border-0 rounded-4 p-3 bg-white shadow-sm text-center">
+                  <div class="small text-secondary fw-semibold">Total Filas</div>
+                  <h4 class="fw-bold text-dark mb-0 font-monospace">{{ p.totalRows }}</h4>
+                </div>
+              </div>
+              <div class="col-sm-6 col-lg-2-4 col-xl">
+                <div class="card border-0 rounded-4 p-3 bg-white shadow-sm text-center border-start border-success border-4">
+                  <div class="small text-success fw-semibold">Nuevos</div>
+                  <h4 class="fw-bold text-success mb-0 font-monospace">+{{ p.rowsToInsert }}</h4>
+                </div>
+              </div>
+              <div class="col-sm-6 col-lg-2-4 col-xl">
+                <div class="card border-0 rounded-4 p-3 bg-white shadow-sm text-center border-start border-primary border-4">
+                  <div class="small text-primary fw-semibold">Actualizaciones</div>
+                  <h4 class="fw-bold text-primary mb-0 font-monospace">~{{ p.rowsToUpdate }}</h4>
+                </div>
+              </div>
+              <div class="col-sm-6 col-lg-2-4 col-xl">
+                <div class="card border-0 rounded-4 p-3 bg-white shadow-sm text-center border-start border-secondary border-4">
+                  <div class="small text-secondary fw-semibold">Sin Cambios</div>
+                  <h4 class="fw-bold text-secondary mb-0 font-monospace">{{ p.rowsUnchanged }}</h4>
+                </div>
+              </div>
+              <div class="col-sm-6 col-lg-2-4 col-xl">
+                <div class="card border-0 rounded-4 p-3 bg-white shadow-sm text-center border-start border-danger border-4" [class.bg-danger-subtle]="p.rowsWithErrors > 0">
+                  <div class="small text-danger fw-semibold">Con Errores</div>
+                  <h4 class="fw-bold text-danger mb-0 font-monospace">{{ p.rowsWithErrors }}</h4>
+                </div>
+              </div>
+            </div>
+
+            <!-- Errors banner if any -->
+            @if (p.rowsWithErrors > 0) {
+              <div class="alert alert-danger rounded-4 shadow-sm p-4 mb-4">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fs-4">⛔</span>
+                    <div>
+                      <h6 class="fw-bold text-danger mb-0">El lote no puede confirmarse mientras existan errores</h6>
+                      <small class="text-danger-emphasis">
+                        Se detectaron {{ p.rowsWithErrors }} fila(s) con datos inválidos o incompletos.
+                      </small>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-danger fw-bold shadow-xs px-3 py-2 d-flex align-items-center gap-2"
+                    (click)="downloadErrorReport()"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>Descargar Reporte de Errores (.XLSX)</span>
+                  </button>
+                </div>
+
+                <div class="table-responsive bg-white rounded-3 p-2 border">
+                  <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 80px;">Fila</th>
+                        <th style="width: 140px;">Campo</th>
+                        <th>Motivo del Error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (err of p.errors.slice(0, 10); track $index) {
+                        <tr>
+                          <td class="font-monospace fw-bold text-danger">#{{ err.rowNumber }}</td>
+                          <td><span class="badge bg-secondary-subtle text-dark">{{ err.field }}</span></td>
+                          <td class="text-danger small">{{ err.reason }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                  @if (p.errors.length > 10) {
+                    <div class="text-center py-2 text-muted small">
+                      Mostrando 10 de {{ p.errors.length }} errores. Descarga el reporte completo para verlos todos.
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else {
+              <!-- 100% Valid banner -->
+              <div class="alert alert-success rounded-4 shadow-sm p-3 mb-4 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="fs-4">✅</span>
+                  <div>
+                    <h6 class="fw-bold text-success mb-0">Lote 100% válido y listo para aplicar</h6>
+                    <small class="text-success-emphasis">
+                      No se detectaron errores. Los cambios se guardarán de forma atómica en una sola transacción.
+                    </small>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- Sample rows diff preview -->
+            @if (p.sampleRows && p.sampleRows.length > 0) {
+              <div class="card border-0 rounded-4 bg-white shadow-sm overflow-hidden mb-4">
+                <div class="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
+                  <h6 class="fw-bold mb-0 text-dark">Previsualización de Cambios (Primeras Filas)</h6>
+                  <span class="badge bg-secondary-subtle text-secondary">{{ p.sampleRows.length }} filas de muestra</span>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 70px;">Fila</th>
+                        <th style="width: 130px;">Acción</th>
+                        <th style="width: 150px;">Clave / Ref</th>
+                        <th>Descripción</th>
+                        <th>Cambios Detectados</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of p.sampleRows; track row.rowNumber) {
+                        <tr>
+                          <td class="font-monospace text-muted small">#{{ row.rowNumber }}</td>
+                          <td>
+                            @if (row.action === 'INSERT') {
+                              <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold">+ CREAR</span>
+                            } @else if (row.action === 'UPDATE') {
+                              <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold">~ ACTUALIZAR</span>
+                            } @else if (row.action === 'UNCHANGED') {
+                              <span class="badge bg-light text-secondary border fw-normal">SIN CAMBIOS</span>
+                            } @else {
+                              <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-semibold">ERROR</span>
+                            }
+                          </td>
+                          <td class="font-monospace fw-semibold small text-dark">{{ row.key }}</td>
+                          <td class="small">{{ row.description }}</td>
+                          <td>
+                            @if (row.changes && row.changes.length > 0) {
+                              <div class="d-flex flex-wrap gap-1">
+                                @for (c of row.changes; track c.fieldName) {
+                                  <span class="badge bg-light text-dark border font-monospace small" style="font-size: 0.75rem;">
+                                    <strong>{{ c.fieldName }}:</strong>
+                                    <span class="text-danger text-decoration-line-through">{{ c.oldValue || '(vacío)' }}</span>
+                                    →
+                                    <span class="text-success fw-bold">{{ c.newValue }}</span>
+                                  </span>
+                                }
+                              </div>
+                            } @else if (row.action === 'INSERT') {
+                              <span class="text-muted small">Nuevo registro completo</span>
+                            } @else {
+                              <span class="text-muted small">Sin modificaciones de valor</span>
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            }
+
+          }
+
+          <!-- Section 4: Confirmed Result -->
+          @if (confirmResult(); as cr) {
+            <div class="alert alert-success rounded-4 shadow-sm p-4 text-center">
+              <span class="fs-1 d-block mb-2">🎉</span>
+              <h5 class="fw-bold text-success mb-1">¡Importación Completada con Éxito!</h5>
+              <p class="text-dark mb-3">{{ cr.message }}</p>
+              <div class="d-flex justify-content-center gap-3">
+                <span class="badge bg-success px-3 py-2 fs-6">+{{ cr.insertedCount }} Registros Creados</span>
+                <span class="badge bg-primary px-3 py-2 fs-6">~{{ cr.updatedCount }} Actualizados</span>
+                @if (cr.alreadyApplied) {
+                  <span class="badge bg-warning text-dark px-3 py-2 fs-6">Respuesta Idempotente</span>
+                }
+              </div>
+            </div>
+          }
+
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer bg-white border-top py-3 px-4 d-flex align-items-center justify-content-between">
+          <button type="button" class="btn btn-light px-4 fw-semibold" (click)="close()" [disabled]="isConfirming()">
+            Cerrar
+          </button>
+
+          <div class="d-flex gap-2">
+            @if (preview(); as p) {
+              @if (p.canConfirm && !confirmResult()) {
+                <button
+                  type="button"
+                  class="btn btn-cuadre-primary fw-bold px-4 py-2 shadow-sm d-flex align-items-center gap-2"
+                  (click)="confirmImport()"
+                  [disabled]="isConfirming()"
+                >
+                  @if (isConfirming()) {
+                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                    <span>Aplicando lote de forma atómica...</span>
+                  } @else {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Confirmar e Importar Lote</span>
+                  }
+                </button>
+              }
+            }
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}
