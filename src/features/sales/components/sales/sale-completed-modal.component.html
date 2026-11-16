@@ -220,40 +220,82 @@
                 </div>
               </div>
 
-              <!-- Products Table -->
-              <div class="table-responsive border rounded-3 overflow-hidden mb-4">
-                <table class="table align-middle mb-0 small">
-                  <thead class="table-light">
-                    <tr>
-                      <th class="ps-3" style="width: 30px;">#</th>
-                      <th>Producto</th>
-                      <th>Código</th>
-                      <th class="text-end">Precio unit.</th>
-                      <th class="text-center">Cantidad</th>
-                      <th class="text-end">ITBIS (18%)</th>
-                      <th class="text-end pe-3">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (item of (saleData?.items || []); track $index; let idx = $index) {
-                      <tr>
-                        <td class="ps-3 font-monospace text-secondary">{{ idx + 1 }}</td>
-                        <td class="fw-bold text-dark">{{ item.productName }}</td>
-                        <td class="text-secondary font-monospace" style="font-size: 0.75rem;">
-                          {{ item.productCode || ('PROD-' + (item.productId || (idx + 1))) }}
-                        </td>
-                        <td class="text-end font-monospace">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
-                        <td class="text-center font-monospace">{{ item.quantity }}</td>
-                        <td class="text-end font-monospace text-secondary">
-                          RD$ {{ (item.total * 0.18) | number:'1.2-2' }}
-                        </td>
-                        <td class="text-end pe-3 font-monospace fw-bold text-dark">
-                          RD$ {{ item.total | number:'1.2-2' }}
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
+              <!-- Detalle de Artículos Facturados (Diseño Unificado Captura 3) -->
+              <div class="billing-detail-card mb-4">
+                <div class="billing-detail-header">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="detail-header-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                        <path d="M3 6h18"></path>
+                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                      </svg>
+                    </div>
+                    <span class="detail-header-title">Detalle de Artículos Facturados</span>
+                    <span class="detail-items-count-badge">
+                      {{ (saleData?.items || []).length }} {{ (saleData?.items || []).length === 1 ? 'ítem' : 'ítems' }}
+                    </span>
+                  </div>
+
+                  <div class="detail-summary-pills">
+                    <span class="summary-pill">
+                      <span class="pill-label">Subtotal</span>
+                      <strong class="pill-value">RD$ {{ (saleData?.subtotal || 0) | number:'1.2-2' }}</strong>
+                    </span>
+                    <span class="summary-pill">
+                      <span class="pill-label">ITBIS</span>
+                      <strong class="pill-value">RD$ {{ (saleData?.itbis || 0) | number:'1.2-2' }}</strong>
+                    </span>
+                    <span class="summary-pill total-pill">
+                      <span class="pill-label">Total</span>
+                      <strong class="pill-value text-success">RD$ {{ (saleData?.total || 0) | number:'1.2-2' }}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="billing-detail-body">
+                  <div class="table-responsive">
+                    <table class="table billing-subtable mb-0 align-middle">
+                      <thead>
+                        <tr>
+                          <th class="ps-3" style="width: 130px;">CÓDIGO</th>
+                          <th>DESCRIPCIÓN</th>
+                          <th class="text-center" style="width: 80px;">CANT.</th>
+                          <th class="text-end" style="width: 120px;">PRECIO UNIT.</th>
+                          <th class="text-end" style="width: 120px;">SUBTOTAL</th>
+                          <th class="text-end" style="width: 110px;">ITBIS</th>
+                          <th class="text-end pe-3" style="width: 140px;">IMPORTE TOTAL</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (item of (saleData?.items || []); track $index; let idx = $index) {
+                          <tr>
+                            <td class="ps-3">
+                              <span class="product-code-pill font-monospace">{{ item.productCode || ('PROD-' + (item.productId || (idx + 1))) }}</span>
+                            </td>
+                            <td>
+                              <span class="product-name-text">{{ item.productName }}</span>
+                            </td>
+                            <td class="text-center">
+                              <span class="quantity-badge font-monospace">{{ item.quantity }}</span>
+                            </td>
+                            <td class="text-end font-monospace text-muted">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
+                            <td class="text-end font-monospace">RD$ {{ (item.total / 1.18) | number:'1.2-2' }}</td>
+                            <td class="text-end font-monospace text-muted">RD$ {{ (item.total - (item.total / 1.18)) | number:'1.2-2' }}</td>
+                            <td class="text-end pe-3 font-monospace fw-bold text-success">RD$ {{ item.total | number:'1.2-2' }}</td>
+                          </tr>
+                        }
+                        @if ((saleData?.items || []).length === 0) {
+                          <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                              No hay artículos especificados en este comprobante.
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
 
               <!-- Observaciones & Financial Summary -->

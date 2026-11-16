@@ -219,22 +219,32 @@
               <table class="table billing-subtable mb-0 align-middle">
                 <thead>
                   <tr>
-                    <th class="ps-3" style="width: 130px;">CÓDIGO</th>
-                    <th>SERVICIO / MANO DE OBRA</th>
-                    <th class="text-end" style="width: 160px;">PRECIO UNIT. (RD$)</th>
-                    <th class="text-center" style="width: 130px;">CANTIDAD</th>
-                    <th class="text-end" style="width: 150px;">SUBTOTAL (RD$)</th>
-                    <th class="text-center" style="width: 60px;">ACCIONES</th>
+                    <th class="ps-3" style="width: 120px;">CÓDIGO</th>
+                    <th>DESCRIPCIÓN</th>
+                    <th class="text-center" style="width: 100px;">CANT.</th>
+                    <th class="text-end" style="width: 130px;">PRECIO UNIT.</th>
+                    <th class="text-center" style="width: 70px;">DESC.</th>
+                    <th class="text-end" style="width: 120px;">SUBTOTAL</th>
+                    <th class="text-end" style="width: 100px;">ITBIS</th>
+                    <th class="text-end" style="width: 130px;">IMPORTE TOTAL</th>
+                    <th class="text-center pe-3" style="width: 60px;">ACCIONES</th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (item of cart; track item.serviceId; let i = $index) {
                     <tr>
                       <td class="ps-3">
-                        <span class="product-code-pill font-monospace">{{ item.serviceCode }}</span>
+                        <span class="product-code-pill font-monospace">{{ item.serviceCode || 'SERV-' + item.serviceId }}</span>
                       </td>
                       <td>
                         <span class="product-name-text">{{ item.serviceName }}</span>
+                      </td>
+                      <td class="text-center">
+                        <div class="service-stepper">
+                          <button type="button" class="stepper-btn" (click)="updateQuantity(i, -1)" title="Disminuir">-</button>
+                          <span class="stepper-val font-monospace">{{ item.quantity }}</span>
+                          <button type="button" class="stepper-btn" (click)="updateQuantity(i, 1)" title="Aumentar">+</button>
+                        </div>
                       </td>
                       <td class="text-end">
                         <div class="d-inline-flex align-items-center">
@@ -244,23 +254,25 @@
                             min="0"
                             step="50"
                             class="form-control form-control-sm text-end font-monospace service-price-inline-input"
-                            style="width: 100px;"
+                            style="width: 90px;"
                             [ngModel]="item.unitPrice"
                             (ngModelChange)="updateItemPrice(i, $event)"
                           />
                         </div>
                       </td>
                       <td class="text-center">
-                        <div class="service-stepper">
-                          <button type="button" class="stepper-btn" (click)="updateQuantity(i, -1)" title="Disminuir">-</button>
-                          <span class="stepper-val font-monospace">{{ item.quantity }}</span>
-                          <button type="button" class="stepper-btn" (click)="updateQuantity(i, 1)" title="Aumentar">+</button>
-                        </div>
+                        <span class="text-muted">-</span>
                       </td>
-                      <td class="text-end font-monospace fw-bold text-success">
+                      <td class="text-end font-monospace">
                         RD$ {{ (item.quantity * item.unitPrice) | number:'1.2-2' }}
                       </td>
-                      <td class="text-center pe-2">
+                      <td class="text-end font-monospace text-muted">
+                        RD$ {{ (applyItbis ? (item.quantity * item.unitPrice * 0.18) : 0) | number:'1.2-2' }}
+                      </td>
+                      <td class="text-end font-monospace fw-bold text-success">
+                        RD$ {{ (item.quantity * item.unitPrice * (applyItbis ? 1.18 : 1)) | number:'1.2-2' }}
+                      </td>
+                      <td class="text-center pe-3">
                         <button type="button" class="btn-remove-item" (click)="removeCartItem(i)" title="Quitar servicio">
                           <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="3 6 5 6 21 6"></polyline>
@@ -272,7 +284,7 @@
                   }
                   @if (cart.length === 0) {
                     <tr>
-                      <td colspan="6" class="text-center py-5">
+                      <td colspan="9" class="text-center py-5">
                         <div class="service-empty-state">
                           <div class="empty-icon-circle">
                             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -294,9 +306,9 @@
       </div>
     </div>
 
-    <!-- RIGHT SIDE: Notes & Summary (Col-lg-4) -->
+    <!-- RIGHT SIDE: Floating Summary Card (Col-lg-4) -->
     <div class="col-lg-4 col-xl-4">
-      <div class="service-card p-3 p-md-4 h-100 d-flex flex-column justify-content-between summary-card-accent">
+      <div class="service-card p-3 p-md-4 d-flex flex-column justify-content-between summary-card-accent floating-summary-card">
         <div>
           <!-- Notas / Alcance del Servicio -->
           <div class="d-flex align-items-center gap-2 mb-2">

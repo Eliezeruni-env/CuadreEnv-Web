@@ -66,6 +66,12 @@
   &.summary-card-accent {
     border-top: 3px solid #6366F1;
   }
+
+  &.floating-summary-card {
+    position: sticky;
+    top: 20px;
+    z-index: 10;
+  }
 }
 
 .service-step-title {
