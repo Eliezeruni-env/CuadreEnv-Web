@@ -381,6 +381,7 @@ export class BillingService {
         discount: (it as any).discount || 0,
         itbis: (it as any).itbis || 0,
         subtotal: it.subTotal || it.quantity * it.price,
+        warehouseId: header.warehouseId || 1,
       })),
       productDetails: items,
     };
@@ -406,6 +407,7 @@ export class BillingService {
             quantity: it.quantity,
             unitPrice: it.price,
             discount: (it as any).discount || 0,
+            warehouseId: header.warehouseId || 1,
           })),
         });
         createdBilling = saleRes?.data || saleRes;
