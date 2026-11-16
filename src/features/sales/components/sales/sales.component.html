@@ -176,6 +176,10 @@
                         <span class="badge bg-danger text-white border border-danger px-2.5 py-1 rounded-pill" [title]="sale.cancellationReason || 'Factura Devuelta / Nota de Crédito'">
                           Devuelta / NC
                         </span>
+                      } @else if (sale.notes?.includes('PARCIAL') || sale.notes?.includes('DEVOLUCIÓN PARCIAL')) {
+                        <span class="badge bg-warning text-dark border border-warning px-2.5 py-1 rounded-pill" [title]="'Devolución parcial aplicada con nota de crédito'">
+                          Parcial NC
+                        </span>
                       } @else if (sale.paidAmount >= sale.total) {
                         <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill">
                           {{ translationService.t('sales.status.paid') }}

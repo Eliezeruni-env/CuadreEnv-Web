@@ -26,8 +26,23 @@
                 </span>
               }
               @if (sale) {
-                <span class="badge rounded-pill px-2.5 py-1" [ngClass]="sale.isCancelled ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-success-subtle text-success border border-success-subtle'" style="font-size: 0.75rem;">
-                  {{ sale.isCancelled ? 'ANULADA / CANCELADA' : 'COMPLETADA' }}
+                <!-- Pago -->
+                <span class="badge rounded-pill px-2.5 py-1 font-size-xs fw-semibold border shadow-2xs d-inline-flex align-items-center gap-1"
+                      [ngClass]="getPaymentStatusClass()"
+                      title="Estado del pago">
+                  <span class="fw-bold">Pago:</span> {{ getPaymentStatusLabel() }}
+                </span>
+                <!-- Entrega -->
+                <span class="badge rounded-pill px-2.5 py-1 font-size-xs fw-semibold border shadow-2xs d-inline-flex align-items-center gap-1"
+                      [ngClass]="getDeliveryStatusClass()"
+                      title="Estado de entrega física">
+                  <span class="fw-bold">Entrega:</span> {{ getDeliveryStatusLabel() }}
+                </span>
+                <!-- Nota de Crédito -->
+                <span class="badge rounded-pill px-2.5 py-1 font-size-xs fw-semibold border shadow-2xs d-inline-flex align-items-center gap-1"
+                      [ngClass]="getCreditNoteStatusClass()"
+                      title="Estado de devoluciones y notas de crédito">
+                  <span class="fw-bold">Nota de Crédito:</span> {{ getCreditNoteStatusLabel() }}
                 </span>
               }
             </div>
