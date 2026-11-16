@@ -57,6 +57,12 @@ export const appHttpInterceptorFn: HttpInterceptorFn = (req, next) => {
         lowerUrl.includes('/auth/login') ||
         lowerUrl.includes('/auth/refresh') ||
         lowerUrl.includes('/auth/register');
+      const isSwitchCompany = lowerUrl.includes('switch-company');
+
+      if (isSwitchCompany) {
+        // No invalidar sesión ni reintentar refresh si falla switch-company; auth.service maneja el error
+        return throwError(() => error);
+      }
 
       if (error.status === 401 && !isPublic && !req.headers.has('X-Retry-After-Refresh')) {
         return tokenRefreshService.refreshToken().pipe(
@@ -106,6 +112,11 @@ export class AppHttpInterceptor implements HttpInterceptor {
           lowerUrl.includes('/auth/login') ||
           lowerUrl.includes('/auth/refresh') ||
           lowerUrl.includes('/auth/register');
+        const isSwitchCompany = lowerUrl.includes('switch-company');
+
+        if (isSwitchCompany) {
+          return throwError(() => error);
+        }
 
         if (error.status === 401 && !isPublic && !req.headers.has('X-Retry-After-Refresh')) {
           return this.tokenRefreshService.refreshToken().pipe(

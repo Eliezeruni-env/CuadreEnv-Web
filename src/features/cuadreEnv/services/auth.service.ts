@@ -274,7 +274,7 @@ export class AuthService {
     }
 
     const rt = getRefreshToken();
-    if (rt) {
+    if (rt && !hasValidAccessToken) {
       try {
         const tokens = await doRefresh(this.api);
         if (tokens?.accessToken) {

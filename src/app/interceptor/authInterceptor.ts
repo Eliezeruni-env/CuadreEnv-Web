@@ -66,14 +66,17 @@ export const authInterceptorFn: HttpInterceptorFn = (req, next) => {
   const token = getAccessToken();
   const companyId = getCompanyId();
   const isAuth = isPublicAuthEndpoint(req.url);
+  const isSwitchCompany = req.url.toLowerCase().includes('switch-company');
 
   let headers = req.headers;
   if (!isAuth && token && !headers.has('Authorization')) {
     headers = headers.set('Authorization', `Bearer ${token}`);
   }
 
-  if (!isAuth && isValidCompanyId(companyId) && !headers.has('X-Company-Id')) {
+  if (!isAuth && !isSwitchCompany && isValidCompanyId(companyId) && !headers.has('X-Company-Id')) {
     headers = headers.set('X-Company-Id', String(companyId));
+  } else if (isSwitchCompany && req.body && typeof req.body === 'object' && (req.body as any).companyId) {
+    headers = headers.set('X-Company-Id', String((req.body as any).companyId));
   }
 
   if (
@@ -86,10 +89,11 @@ export const authInterceptorFn: HttpInterceptorFn = (req, next) => {
     headers = headers.set('Content-Type', 'application/json');
   }
 
-  // Garantizar que si el body incluye companyId, coincida con el tenant activo
+  // Garantizar que si el body incluye companyId, coincida con el tenant activo (salvo en switch-company)
   let body: any = req.body;
   if (
     !isAuth &&
+    !isSwitchCompany &&
     body &&
     typeof body === 'object' &&
     !Array.isArray(body) &&
@@ -130,14 +134,17 @@ export class AuthInterceptor implements HttpInterceptor {
     const token = getAccessToken();
     const companyId = getCompanyId();
     const isAuth = isPublicAuthEndpoint(req.url);
+    const isSwitchCompany = req.url.toLowerCase().includes('switch-company');
 
     let headers = req.headers;
     if (!isAuth && token && !headers.has('Authorization')) {
       headers = headers.set('Authorization', `Bearer ${token}`);
     }
 
-    if (!isAuth && isValidCompanyId(companyId) && !headers.has('X-Company-Id')) {
+    if (!isAuth && !isSwitchCompany && isValidCompanyId(companyId) && !headers.has('X-Company-Id')) {
       headers = headers.set('X-Company-Id', String(companyId));
+    } else if (isSwitchCompany && req.body && typeof req.body === 'object' && (req.body as any).companyId) {
+      headers = headers.set('X-Company-Id', String((req.body as any).companyId));
     }
 
     if (
@@ -153,6 +160,7 @@ export class AuthInterceptor implements HttpInterceptor {
     let body: any = req.body;
     if (
       !isAuth &&
+      !isSwitchCompany &&
       body &&
       typeof body === 'object' &&
       !Array.isArray(body) &&
