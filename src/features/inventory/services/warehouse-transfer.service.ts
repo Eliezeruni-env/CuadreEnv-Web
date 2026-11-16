@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { ApiClientService, extractArray } from '../../cuadreEnv/services/apiClient';
+import { ApiClientService, extractArray, getCompanyId } from '../../cuadreEnv/services/apiClient';
 import { StockService } from './stock.service';
 import { WarehouseService } from './warehouse.service';
 import { ProductService } from '../../products/services/product.service';
@@ -18,9 +18,14 @@ export class WarehouseTransferService {
   private warehouseService = inject(WarehouseService);
   private productService = inject(ProductService);
 
+  private getTransfersKey(): string {
+    const compId = getCompanyId();
+    return compId ? `${TRANSFERS_STORAGE_KEY}_${compId}` : TRANSFERS_STORAGE_KEY;
+  }
+
   private getLocalTransfers(): WarehouseTransfer[] {
     try {
-      const raw = localStorage.getItem(TRANSFERS_STORAGE_KEY);
+      const raw = localStorage.getItem(this.getTransfersKey()) || localStorage.getItem(TRANSFERS_STORAGE_KEY);
       const list: WarehouseTransfer[] = raw ? JSON.parse(raw) : [];
       return list.filter((item) => (item.totalQuantity || 0) > 0 || (item.productDetails && item.productDetails.length > 0));
     } catch {
@@ -30,20 +35,36 @@ export class WarehouseTransferService {
 
   private saveLocalTransfers(list: WarehouseTransfer[]): void {
     try {
-      localStorage.setItem(TRANSFERS_STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(this.getTransfersKey(), JSON.stringify(list));
     } catch (e) {
       console.error('Error saving local warehouse transfers:', e);
     }
   }
 
+  private clearStaleLocalTransfers(): void {
+    try {
+      const list = this.getLocalTransfers();
+      const pending = list.filter((t: any) => t.isPendingSync === true);
+      this.saveLocalTransfers(pending);
+      if (localStorage.getItem(TRANSFERS_STORAGE_KEY) && this.getTransfersKey() !== TRANSFERS_STORAGE_KEY) {
+        localStorage.removeItem(TRANSFERS_STORAGE_KEY);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   async getTransfers(): Promise<ApiResponse<WarehouseTransfer[]>> {
     let apiList: WarehouseTransfer[] = [];
+    let isApiConnected = false;
+
     try {
       const res = await this.api.get<any, any>('/WarehouseTransfer');
       const list = extractArray<WarehouseTransfer>(res);
       if (list && list.length > 0) {
         apiList = list.map((item) => normalizeWarehouseMovement<WarehouseTransfer>(item));
       }
+      isApiConnected = true;
     } catch {
       try {
         const res2 = await this.api.get<any, any>('/inventory/movements', { params: { type: 'Transfer' } });
@@ -51,12 +72,12 @@ export class WarehouseTransferService {
         if (list2 && list2.length > 0) {
           apiList = list2.map((item) => normalizeWarehouseMovement<WarehouseTransfer>({ ...item, type: 'TRANSFER' }));
         }
+        isApiConnected = true;
       } catch {
-        // ignore
+        // Backend offline
       }
     }
 
-    // Filter out invalid/empty movements (such as deleted rows with 0 quantity and 0 products)
     const validApiList = apiList.filter((item) => {
       const hasProducts = item.productDetails && item.productDetails.length > 0 && item.productDetails[0].productId > 0;
       const hasQty = (item.totalQuantity || 0) > 0;
@@ -64,31 +85,24 @@ export class WarehouseTransferService {
       return (hasProducts || hasQty) && isNotDeleted;
     });
 
+    if (isApiConnected) {
+      // Backend is online and authoritative.
+      // Purge any stale non-pending local entries to eliminate past duplicates
+      this.clearStaleLocalTransfers();
+
+      // Only append pending offline entries that failed to reach the server
+      const pendingOffline = this.getLocalTransfers()
+        .filter((t: any) => t.isPendingSync === true)
+        .map((t) => normalizeWarehouseMovement<WarehouseTransfer>(t));
+
+      const combined = [...validApiList, ...pendingOffline].sort(
+        (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
+      );
+      return { success: true, data: combined };
+    }
+
     const localList = this.getLocalTransfers().map((t) => normalizeWarehouseMovement<WarehouseTransfer>(t));
-    const map = new Map<string, WarehouseTransfer>();
-
-    // 1. Register local movements first (they have full rich line item details)
-    for (const loc of localList) {
-      if (loc.id !== undefined) map.set(String(loc.id), loc);
-    }
-
-    // 2. Merge backend movements, preserving line item details from local if available
-    for (const t of validApiList) {
-      if (t.id !== undefined) {
-        const key = String(t.id);
-        const existing = map.get(key);
-        if (existing && existing.productDetails && existing.productDetails.length > 0) {
-          map.set(key, { ...t, ...existing, id: t.id });
-        } else {
-          map.set(key, t);
-        }
-      }
-    }
-
-    const combined = Array.from(map.values()).sort(
-      (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
-    );
-    return { success: true, data: combined };
+    return { success: true, data: localList };
   }
 
   async getTransfer(id: number): Promise<ApiResponse<WarehouseTransfer>> {
@@ -99,8 +113,17 @@ export class WarehouseTransferService {
         return { success: true, data: transfer };
       }
     } catch {
-      // fallback to local
+      // fallback
     }
+
+    try {
+      const listRes = await this.getTransfers();
+      const match = listRes.data?.find((t) => t.id === id);
+      if (match) return { success: true, data: match };
+    } catch {
+      // ignore
+    }
+
     const list = this.getLocalTransfers();
     const found = list.find((t) => t.id === id);
     if (found) return { success: true, data: normalizeWarehouseMovement<WarehouseTransfer>(found) };
@@ -164,14 +187,17 @@ export class WarehouseTransferService {
     };
 
     // 1. Post to backend endpoint POST /WarehouseTransfer
+    let createdBackendId: number | undefined;
     for (const item of transfer.productDetails || []) {
       try {
-        await this.api.post<any, any>('/WarehouseTransfer', {
+        const res = await this.api.post<any, any>('/WarehouseTransfer', {
           productId: item.productId,
           fromWarehouseId: originId,
           toWarehouseId: destinationId,
           quantity: item.quantity,
         });
+        const resData = res?.data ?? res;
+        if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);
       } catch (err: any) {
         console.error('[WarehouseTransfer] Error al persistir en backend:', err);
         const errMsg = err?.mappedError?.message || err?.message || 'Error al guardar la transferencia en el servidor.';
@@ -179,12 +205,12 @@ export class WarehouseTransferService {
       }
     }
 
-    // 2. Persist locally
-    const currentList = this.getLocalTransfers();
-    currentList.unshift(newTransfer);
-    this.saveLocalTransfers(currentList);
+    if (createdBackendId) {
+      newTransfer.id = createdBackendId;
+      newTransfer.movementNumber = `TRF-${String(createdBackendId).padStart(6, '0')}`;
+    }
 
-    // 3. Atomic Stock Update: decrease at origin, increase at destination
+    // 2. Atomic Stock Update in local cache: decrease at origin, increase at destination
     for (const item of transfer.productDetails) {
       await this.stockService.updateStock(
         originId,
@@ -202,10 +228,20 @@ export class WarehouseTransferService {
       );
     }
 
+    // 3. Clear product cache and dispatch event
+    this.productService.clearCache();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('cuadre_stock_changed', {
+          detail: { fromWarehouseId: originId, toWarehouseId: destinationId, transfers: transfer.productDetails },
+        })
+      );
+    }
+
     return {
       success: true,
       data: newTransfer,
-      message: `Transferencia ${transferNumber} completada exitosamente. ${totalQty} unidades transferidas de "${newTransfer.warehouseOfOriginName}" a "${newTransfer.destinationWarehouseName}".`,
+      message: `Transferencia ${newTransfer.movementNumber} completada exitosamente. ${totalQty} unidades transferidas de "${newTransfer.warehouseOfOriginName}" a "${newTransfer.destinationWarehouseName}".`,
     };
   }
 }

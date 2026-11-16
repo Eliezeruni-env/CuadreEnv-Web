@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { ApiClientService, extractArray } from '../../cuadreEnv/services/apiClient';
+import { ApiClientService, extractArray, getCompanyId } from '../../cuadreEnv/services/apiClient';
 import { StockService } from './stock.service';
 import { WarehouseService } from './warehouse.service';
 import { ProductService } from '../../products/services/product.service';
@@ -18,9 +18,14 @@ export class WarehouseOutletService {
   private warehouseService = inject(WarehouseService);
   private productService = inject(ProductService);
 
+  private getOutletsKey(): string {
+    const compId = getCompanyId();
+    return compId ? `${OUTLETS_STORAGE_KEY}_${compId}` : OUTLETS_STORAGE_KEY;
+  }
+
   private getLocalOutlets(): WarehouseOutlet[] {
     try {
-      const raw = localStorage.getItem(OUTLETS_STORAGE_KEY);
+      const raw = localStorage.getItem(this.getOutletsKey()) || localStorage.getItem(OUTLETS_STORAGE_KEY);
       const list: WarehouseOutlet[] = raw ? JSON.parse(raw) : [];
       return list.filter((item) => (item.totalQuantity || 0) > 0 || (item.productDetails && item.productDetails.length > 0));
     } catch {
@@ -30,20 +35,36 @@ export class WarehouseOutletService {
 
   private saveLocalOutlets(list: WarehouseOutlet[]): void {
     try {
-      localStorage.setItem(OUTLETS_STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(this.getOutletsKey(), JSON.stringify(list));
     } catch (e) {
       console.error('Error saving local warehouse outlets:', e);
     }
   }
 
+  private clearStaleLocalOutlets(): void {
+    try {
+      const list = this.getLocalOutlets();
+      const pending = list.filter((o: any) => o.isPendingSync === true);
+      this.saveLocalOutlets(pending);
+      if (localStorage.getItem(OUTLETS_STORAGE_KEY) && this.getOutletsKey() !== OUTLETS_STORAGE_KEY) {
+        localStorage.removeItem(OUTLETS_STORAGE_KEY);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   async getOutlets(): Promise<ApiResponse<WarehouseOutlet[]>> {
     let apiList: WarehouseOutlet[] = [];
+    let isApiConnected = false;
+
     try {
       const res = await this.api.get<any, any>('/WarehouseOutlet');
       const list = extractArray<WarehouseOutlet>(res);
       if (list && list.length > 0) {
         apiList = list.map((item) => normalizeWarehouseMovement<WarehouseOutlet>(item));
       }
+      isApiConnected = true;
     } catch {
       try {
         const res2 = await this.api.get<any, any>('/inventory/movements', { params: { type: 'Outbound' } });
@@ -51,12 +72,13 @@ export class WarehouseOutletService {
         if (list2 && list2.length > 0) {
           apiList = list2.map((item) => normalizeWarehouseMovement<WarehouseOutlet>({ ...item, type: 'OUTLET' }));
         }
+        isApiConnected = true;
       } catch {
-        // ignore
+        // Backend offline
       }
     }
 
-    // Filter out invalid/empty movements (such as deleted rows with 0 quantity and 0 products)
+    // Filter out invalid/empty movements
     const validApiList = apiList.filter((item) => {
       const hasProducts = item.productDetails && item.productDetails.length > 0 && item.productDetails[0].productId > 0;
       const hasQty = (item.totalQuantity || 0) > 0;
@@ -64,31 +86,24 @@ export class WarehouseOutletService {
       return (hasProducts || hasQty) && isNotDeleted;
     });
 
+    if (isApiConnected) {
+      // Backend is online and authoritative.
+      // Purge any stale non-pending local entries to eliminate past duplicates
+      this.clearStaleLocalOutlets();
+
+      // Only append pending offline entries that failed to reach the server
+      const pendingOffline = this.getLocalOutlets()
+        .filter((o: any) => o.isPendingSync === true)
+        .map((o) => normalizeWarehouseMovement<WarehouseOutlet>(o));
+
+      const combined = [...validApiList, ...pendingOffline].sort(
+        (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
+      );
+      return { success: true, data: combined };
+    }
+
     const localList = this.getLocalOutlets().map((o) => normalizeWarehouseMovement<WarehouseOutlet>(o));
-    const map = new Map<string, WarehouseOutlet>();
-
-    // 1. Register local movements first (they have full rich line item details)
-    for (const loc of localList) {
-      if (loc.id !== undefined) map.set(String(loc.id), loc);
-    }
-
-    // 2. Merge backend movements, preserving line item details from local if available
-    for (const o of validApiList) {
-      if (o.id !== undefined) {
-        const key = String(o.id);
-        const existing = map.get(key);
-        if (existing && existing.productDetails && existing.productDetails.length > 0) {
-          map.set(key, { ...o, ...existing, id: o.id });
-        } else {
-          map.set(key, o);
-        }
-      }
-    }
-
-    const combined = Array.from(map.values()).sort(
-      (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
-    );
-    return { success: true, data: combined };
+    return { success: true, data: localList };
   }
 
   async getOutlet(id: number): Promise<ApiResponse<WarehouseOutlet>> {
@@ -99,8 +114,17 @@ export class WarehouseOutletService {
         return { success: true, data: outlet };
       }
     } catch {
-      // fallback to local
+      // fallback
     }
+
+    try {
+      const listRes = await this.getOutlets();
+      const match = listRes.data?.find((o) => o.id === id);
+      if (match) return { success: true, data: match };
+    } catch {
+      // ignore
+    }
+
     const list = this.getLocalOutlets();
     const found = list.find((o) => o.id === id);
     if (found) return { success: true, data: normalizeWarehouseMovement<WarehouseOutlet>(found) };
@@ -152,13 +176,16 @@ export class WarehouseOutletService {
     };
 
     // 1. Post to backend endpoint POST /WarehouseOutlet
+    let createdBackendId: number | undefined;
     for (const item of outlet.productDetails || []) {
       try {
-        await this.api.post<any, any>('/WarehouseOutlet', {
+        const res = await this.api.post<any, any>('/WarehouseOutlet', {
           productId: item.productId,
           warehouseId: whId,
           quantity: item.quantity,
         });
+        const resData = res?.data ?? res;
+        if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);
       } catch (err: any) {
         console.error('[WarehouseOutlet] Error al persistir en backend:', err);
         const errMsg = err?.mappedError?.message || err?.message || 'Error al guardar la salida en el servidor.';
@@ -166,12 +193,12 @@ export class WarehouseOutletService {
       }
     }
 
-    // 2. Persist locally
-    const currentList = this.getLocalOutlets();
-    currentList.unshift(newOutlet);
-    this.saveLocalOutlets(currentList);
+    if (createdBackendId) {
+      newOutlet.id = createdBackendId;
+      newOutlet.movementNumber = `SAL-${String(createdBackendId).padStart(6, '0')}`;
+    }
 
-    // 3. Atomically decrease stock in origin warehouse
+    // 2. Atomically decrease stock in origin warehouse local cache
     for (const item of outlet.productDetails) {
       await this.stockService.updateStock(
         whId,
@@ -182,10 +209,20 @@ export class WarehouseOutletService {
       );
     }
 
+    // 3. Clear cache and notify
+    this.productService.clearCache();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('cuadre_stock_changed', {
+          detail: { warehouseId: whId, outlets: outlet.productDetails },
+        })
+      );
+    }
+
     return {
       success: true,
       data: newOutlet,
-      message: `Salida ${outletNumber} procesada exitosamente. ${totalQty} unidades descontadas del inventario.`,
+      message: `Salida ${newOutlet.movementNumber} procesada exitosamente. ${totalQty} unidades descontadas del inventario.`,
     };
   }
 }
