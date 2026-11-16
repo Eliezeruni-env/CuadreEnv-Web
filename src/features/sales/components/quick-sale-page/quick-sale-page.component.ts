@@ -3579,8 +3579,10 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
           quantity: deductQty,
           total: it.total,
           taxRate: it.taxRate,
+          warehouseId: this.selectedWarehouseId() || undefined,
         };
       }),
+      warehouseId: this.selectedWarehouseId() || undefined,
       subtotal: this.subtotal(),
       discount: this.discountAmount(),
       itbis: this.itbis(),
@@ -3655,24 +3657,9 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
           `Venta rápida ${invNum} cobrada exitosamente por RD$ ${this.total().toLocaleString('es-DO', { minimumFractionDigits: 2 })}.`,
         );
 
-        // Stock isolation deduction from chosen warehouse
+        // Refresh warehouse stock after backend atomic sale deduction (single deduction)
         const whId = this.selectedWarehouseId();
         if (whId) {
-          for (const it of this.cartItems()) {
-            const deductQty =
-              it.deductionQuantity !== undefined
-                ? it.deductionQuantity
-                : it.quantity;
-            try {
-              await this.stockService.updateStock(
-                whId,
-                it.productId,
-                -deductQty,
-              );
-            } catch (stockErr) {
-              console.warn('Error deducting stock from warehouse:', stockErr);
-            }
-          }
           await this.loadWarehouseStock(whId);
         }
 
