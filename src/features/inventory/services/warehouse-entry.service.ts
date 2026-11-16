@@ -25,7 +25,7 @@ export class WarehouseEntryService {
 
   private getLocalEntries(): WarehouseEntry[] {
     try {
-      const raw = localStorage.getItem(this.getEntriesKey());
+      const raw = localStorage.getItem(this.getEntriesKey()) || localStorage.getItem(ENTRIES_STORAGE_KEY);
       const list: WarehouseEntry[] = raw ? JSON.parse(raw) : [];
       return list.filter((item) => (item.totalQuantity || 0) > 0 || (item.productDetails && item.productDetails.length > 0));
     } catch {
@@ -41,14 +41,30 @@ export class WarehouseEntryService {
     }
   }
 
+  private clearStaleLocalEntries(): void {
+    try {
+      const list = this.getLocalEntries();
+      const pending = list.filter((e: any) => e.isPendingSync === true);
+      this.saveLocalEntries(pending);
+      if (localStorage.getItem(ENTRIES_STORAGE_KEY) && this.getEntriesKey() !== ENTRIES_STORAGE_KEY) {
+        localStorage.removeItem(ENTRIES_STORAGE_KEY);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   async getEntries(): Promise<ApiResponse<WarehouseEntry[]>> {
     let apiList: WarehouseEntry[] = [];
+    let isApiConnected = false;
+
     try {
       const res = await this.api.get<any, any>('/WarehouseEntry');
       const list = extractArray<WarehouseEntry>(res);
       if (list && list.length > 0) {
         apiList = list.map((item) => normalizeWarehouseMovement<WarehouseEntry>(item));
       }
+      isApiConnected = true;
     } catch {
       try {
         const res2 = await this.api.get<any, any>('/inventory/movements', { params: { type: 'Inbound' } });
@@ -56,8 +72,9 @@ export class WarehouseEntryService {
         if (list2 && list2.length > 0) {
           apiList = list2.map((item) => normalizeWarehouseMovement<WarehouseEntry>({ ...item, type: 'ENTRY' }));
         }
+        isApiConnected = true;
       } catch {
-        // ignore
+        // Backend offline
       }
     }
 
@@ -69,31 +86,25 @@ export class WarehouseEntryService {
       return (hasProducts || hasQty) && isNotDeleted;
     });
 
+    if (isApiConnected) {
+      // Backend is online and authoritative.
+      // Purge any stale non-pending local entries to eliminate past duplicates
+      this.clearStaleLocalEntries();
+
+      // Only append pending offline entries that failed to reach the server
+      const pendingOffline = this.getLocalEntries()
+        .filter((e: any) => e.isPendingSync === true)
+        .map((e) => normalizeWarehouseMovement<WarehouseEntry>(e));
+
+      const combined = [...validApiList, ...pendingOffline].sort(
+        (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
+      );
+      return { success: true, data: combined };
+    }
+
+    // Offline fallback: load strictly from local storage
     const localList = this.getLocalEntries().map((e) => normalizeWarehouseMovement<WarehouseEntry>(e));
-    const map = new Map<string, WarehouseEntry>();
-
-    // 1. Register local movements first (they have full rich line item details)
-    for (const loc of localList) {
-      if (loc.id !== undefined) map.set(String(loc.id), loc);
-    }
-
-    // 2. Merge backend movements, preserving line item details from local if available
-    for (const e of validApiList) {
-      if (e.id !== undefined) {
-        const key = String(e.id);
-        const existing = map.get(key);
-        if (existing && existing.productDetails && existing.productDetails.length > 0) {
-          map.set(key, { ...e, ...existing, id: e.id });
-        } else {
-          map.set(key, e);
-        }
-      }
-    }
-
-    const combined = Array.from(map.values()).sort(
-      (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
-    );
-    return { success: true, data: combined };
+    return { success: true, data: localList };
   }
 
   async getEntry(id: number): Promise<ApiResponse<WarehouseEntry>> {
@@ -104,8 +115,17 @@ export class WarehouseEntryService {
         return { success: true, data: entry };
       }
     } catch {
-      // fallback to local
+      // fallback
     }
+
+    try {
+      const listRes = await this.getEntries();
+      const match = listRes.data?.find((e) => e.id === id);
+      if (match) return { success: true, data: match };
+    } catch {
+      // ignore
+    }
+
     const list = this.getLocalEntries();
     const found = list.find((e) => e.id === id);
     if (found) return { success: true, data: normalizeWarehouseMovement<WarehouseEntry>(found) };
@@ -161,6 +181,9 @@ export class WarehouseEntryService {
     };
 
     // 2. Persistir líneas en el backend usando endpoints oficiales
+    let backendSuccess = false;
+    let createdBackendId: number | undefined;
+
     for (const item of entry.productDetails || []) {
       const payload = {
         productId: item.productId,
@@ -171,33 +194,51 @@ export class WarehouseEntryService {
       };
 
       try {
-        await this.api.post<any, any>('/warehouse/stock/add', payload);
+        const res = await this.api.post<any, any>('/warehouse/stock/add', payload);
+        backendSuccess = true;
+        const resData = res?.data ?? res;
+        if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);
       } catch {
         try {
-          await this.api.post<any, any>('/Warehouse/stock/add', payload);
+          const res = await this.api.post<any, any>('/Warehouse/stock/add', payload);
+          backendSuccess = true;
+          const resData = res?.data ?? res;
+          if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);
         } catch {
           try {
-            await this.api.post<any, any>('/inventory/inbound', payload);
+            const res = await this.api.post<any, any>('/inventory/inbound', payload);
+            backendSuccess = true;
+            const resData = res?.data ?? res;
+            if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);
           } catch {
             try {
-              await this.api.post<any, any>('/inventory/movements', {
+              const res = await this.api.post<any, any>('/inventory/movements', {
                 ...payload,
                 type: 'Entrada',
               });
+              backendSuccess = true;
             } catch (err: any) {
-              console.warn('[WarehouseEntry] Ajuste aplicado localmente:', err);
+              console.warn('[WarehouseEntry] Error al persistir en backend:', err);
             }
           }
         }
       }
     }
 
-    // 3. Persistir en almacenamiento local
-    const currentList = this.getLocalEntries();
-    currentList.unshift(newEntry);
-    this.saveLocalEntries(currentList);
+    if (createdBackendId) {
+      newEntry.id = createdBackendId;
+      newEntry.movementNumber = `ENT-${String(createdBackendId).padStart(6, '0')}`;
+    }
 
-    // 4. Aumentar stock de forma atómica en el inventario por almacén
+    // 3. Persistir en almacenamiento local SOLO si el backend no pudo ser alcanzado (modo offline)
+    if (!backendSuccess) {
+      (newEntry as any).isPendingSync = true;
+      const currentList = this.getLocalEntries();
+      currentList.unshift(newEntry);
+      this.saveLocalEntries(currentList);
+    }
+
+    // 4. Aumentar stock de forma atómica en el inventario local por almacén
     for (const item of entry.productDetails || []) {
       await this.stockService.updateStock(
         targetWhId,
@@ -221,7 +262,7 @@ export class WarehouseEntryService {
     return {
       success: true,
       data: newEntry,
-      message: `Entrada ${entryNumber} registrada exitosamente. ${totalQty} unidades ingresadas a inventario.`,
+      message: `Entrada ${newEntry.movementNumber} registrada exitosamente. ${totalQty} unidades ingresadas a inventario.`,
     };
   }
 }
