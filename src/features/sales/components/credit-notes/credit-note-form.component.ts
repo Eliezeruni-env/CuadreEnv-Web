@@ -250,7 +250,7 @@ export class CreditNoteFormComponent implements OnInit {
           return {
             ...it,
             productId: Number(it.productId),
-            warehouseId: Number(it.warehouseId || this.loadedInvoice?.warehouseId || 1),
+            warehouseId: it.warehouseId ? Number(it.warehouseId) : (this.loadedInvoice?.warehouseId ? Number(this.loadedInvoice.warehouseId) : undefined),
             price: unitPrice,
             unitPrice: unitPrice,
             quantity: qty,
