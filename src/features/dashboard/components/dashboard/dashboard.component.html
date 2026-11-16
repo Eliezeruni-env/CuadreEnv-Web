@@ -423,30 +423,33 @@
           @if (activeCashSession(); as session) {
             <!-- Info Box Pulido y con Espaciado Generoso -->
             <div class="px-4 py-3 rounded-3 mb-4 border bg-light-subtle shadow-2xs" style="border-color: #e2e8f0 !important; background-color: #f8fafc;">
-              <div class="d-flex justify-content-between align-items-center py-2.5 border-bottom" style="border-color: #edf2f7 !important;">
+              <div class="d-flex justify-content-between align-items-center py-3 border-bottom" style="border-color: #edf2f7 !important;">
                 <span class="text-secondary small fw-medium" style="font-size: 13px;">Caja Registradora</span>
                 <span class="fw-bold text-dark small" style="font-size: 13.5px;">{{ session.name || 'Caja Principal' }}</span>
               </div>
-              <div class="d-flex justify-content-between align-items-center py-2.5 border-bottom" style="border-color: #edf2f7 !important;">
+              <div class="d-flex justify-content-between align-items-center py-3 border-bottom" style="border-color: #edf2f7 !important;">
                 <span class="text-secondary small fw-medium" style="font-size: 13px;">Cajero Responsable</span>
                 <span class="fw-semibold text-dark small" style="font-size: 13.5px;">{{ session.cashierName || 'Usuario Actual' }}</span>
               </div>
-              <div class="d-flex justify-content-between align-items-center py-2.5">
+              <div class="d-flex justify-content-between align-items-center py-3">
                 <span class="text-secondary small fw-medium" style="font-size: 13px;">Fondo de Apertura</span>
                 <span class="text-dark small fw-bold font-monospace" style="font-size: 13.5px;">RD$ {{ session.initialAmount | number:'1.2-2' }}</span>
               </div>
             </div>
 
             <!-- Destacado Efectivo en Gaveta -->
-            <div class="p-4 rounded-3 mb-4 border shadow-2xs" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border-color: #a7f3d0 !important;">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <div class="small fw-bold text-uppercase" style="color: #065f46; font-size: 11.5px; letter-spacing: 0.7px; margin-bottom: 4px;">Efectivo en Gaveta</div>
-                  <div style="color: #047857; font-size: 12.5px; font-weight: 500;">Balance auditado disponible</div>
-                </div>
-                <div class="fw-bold font-monospace text-end" style="color: #047857; font-size: 1.45rem; letter-spacing: -0.02em; line-height: 1.25;">
-                  RD$ {{ activeCashEstimatedCash() | number:'1.2-2' }}
-                </div>
+            <div class="p-3.5 px-4 rounded-3 mb-4 border shadow-2xs" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border-color: #a7f3d0 !important;">
+              <div class="d-flex justify-content-between align-items-center mb-1.5">
+                <div class="small fw-bold text-uppercase" style="color: #065f46; font-size: 11.5px; letter-spacing: 0.7px;">Efectivo en Gaveta</div>
+                <span class="badge rounded-pill bg-white border border-success-subtle fw-semibold px-2.5 py-1" style="color: #047857; font-size: 11px;">
+                  Balance auditado
+                </span>
+              </div>
+              <div class="d-flex align-items-baseline gap-1.5 mt-2">
+                <span class="font-monospace fw-bold" style="color: #047857; font-size: 1.15rem;">RD$</span>
+                <span class="fw-bold font-monospace" style="color: #047857; font-size: 1.65rem; letter-spacing: -0.02em; line-height: 1.2;">
+                  {{ activeCashEstimatedCash() | number:'1.2-2' }}
+                </span>
               </div>
             </div>
 
@@ -458,7 +461,7 @@
                 </svg>
                 <span>Arqueo / Turno</span>
               </a>
-              <a routerLink="/pos" class="btn btn-primary w-50 rounded-3 py-2 fw-semibold small text-white text-decoration-none shadow-sm d-flex align-items-center justify-content-center gap-2" style="background-color: #2563EB; border-color: #2563EB; height: 46px;">
+              <a routerLink="/pos" class="btn rounded-3 py-2 fw-semibold small text-white text-decoration-none shadow-sm d-flex align-items-center justify-content-center gap-2 w-50" style="background-color: #1e293b; border-color: #1e293b; height: 46px;">
                 <span>Cobrar POS</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12"></line>
