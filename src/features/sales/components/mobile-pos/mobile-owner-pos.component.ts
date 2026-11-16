@@ -91,6 +91,7 @@ import { generateBarcodeSvg } from '../../../cuadreEnv/utils/barcode.util';
 import type {
   ProductDto,
   CompanyBankAccountDto,
+  CustomerDto,
 } from '../../../cuadreEnv/types/api';
 import type { HeaderDto, ProductDetails } from '../../../../app/models/billing';
 import type { ServiceItemDto } from '../../../services/models/service-item.model';
@@ -483,7 +484,51 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   clientsList = signal<MobileClientOption[]>([
     { id: 1, name: 'Consumidor Final', rnc: '000-0000000-0', type: 'Contado' },
   ]);
+  rawCustomersList = signal<CustomerDto[]>([]);
   selectedCustomerId = signal<number | null>(null);
+
+  // =========================================================================
+  // CREACIÓN RÁPIDA: CLIENTES, VENTAS POR COBRAR (FIAO) Y PRODUCTOS (MOBILE)
+  // =========================================================================
+  // Modal Crear Cliente
+  isCreateCustomerModalOpen = signal<boolean>(false);
+  newCustomerName = signal<string>('');
+  newCustomerPhone = signal<string>('');
+  newCustomerRnc = signal<string>('');
+  newCustomerCreditLimit = signal<number>(0);
+  newCustomerEmail = signal<string>('');
+  isSubmittingCustomer = signal<boolean>(false);
+
+  // Modal Crear Venta por Cobrar (Fiao)
+  isCreateFiaoModalOpen = signal<boolean>(false);
+  fiaoCustomerId = signal<number | null>(null);
+  fiaoCustomerName = signal<string>('');
+  fiaoCustomerPhone = signal<string>('');
+  fiaoDescription = signal<string>('');
+  fiaoTotalAmount = signal<number>(0);
+  fiaoInitialAmount = signal<number>(0);
+  fiaoDueDate = signal<string>(
+    new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  );
+  fiaoFrequency = signal<'Semanal' | 'Quincenal' | 'Mensual' | 'Diaria'>('Quincenal');
+  fiaoInstallments = signal<number>(1);
+  isSubmittingFiao = signal<boolean>(false);
+  fiaoRemainingBalance = computed(() => {
+    const tot = Number(this.fiaoTotalAmount()) || 0;
+    const ini = Number(this.fiaoInitialAmount()) || 0;
+    return Math.max(0, tot - ini);
+  });
+
+  // Modal Crear Producto
+  isCreateProductModalOpen = signal<boolean>(false);
+  newProductDescription = signal<string>('');
+  newProductBarcode = signal<string>('');
+  newProductPrice = signal<number>(0);
+  newProductCost = signal<number>(0);
+  newProductStock = signal<number>(1);
+  newProductCategoryId = signal<number>(1);
+  newProductAutoAddToCart = signal<boolean>(true);
+  isSubmittingProduct = signal<boolean>(false);
 
   // Products Catalog & Search
   products = signal<ProductDto[]>([]);
@@ -701,7 +746,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   // =========================================================================
   // SPEED POS: ESCÁNER EN RÁFAGA (CÁMARA + ESCÁNER FÍSICO USB/BLUETOOTH)
   // =========================================================================
-  scannerMode = signal<'pos' | 'stock_entry'>('pos');
+  scannerMode = signal<'pos' | 'stock_entry' | 'new_product'>('pos');
   cameraScanFlash = signal<boolean>(false);
   cameraLastScannedItem = signal<{
     name: string;
@@ -1290,41 +1335,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
       }
 
       // 4. Cargar clientes reales del tenant
-      try {
-        const custRes = await this.customerService.getCustomers({
-          pageSize: 50,
-        });
-        const realCustomers = custRes.data || [];
-        const formattedClients: MobileClientOption[] = [
-          {
-            id: 1,
-            name: 'Consumidor Final',
-            rnc: '000-0000000-0',
-            type: 'Contado',
-          },
-          ...realCustomers
-            .filter(
-              (c) =>
-                c.name && c.name.toLowerCase().trim() !== 'consumidor final',
-            )
-            .map((c) => ({
-              id: c.id || 1,
-              name: c.name,
-              rnc: c.identification || '000-0000000-0',
-              type: 'Contado',
-            })),
-        ];
-        this.clientsList.set(formattedClients);
-      } catch {
-        this.clientsList.set([
-          {
-            id: 1,
-            name: 'Consumidor Final',
-            rnc: '000-0000000-0',
-            type: 'Contado',
-          },
-        ]);
-      }
+      await this.loadClients();
     } catch (err) {
       console.warn('[Mobile POS] Error al cargar datos ejecutivos:', err);
     }
@@ -1373,6 +1384,46 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
       this.notificationService.showApiError(err);
     } finally {
       this.isSubmitting.set(false);
+    }
+  }
+
+  async loadClients(forceRefresh = false): Promise<void> {
+    try {
+      const custRes = await this.customerService.getCustomers(
+        { pageSize: 100 },
+        forceRefresh,
+      );
+      const realCustomers = custRes.data || [];
+      this.rawCustomersList.set(realCustomers);
+      const formattedClients: MobileClientOption[] = [
+        {
+          id: 1,
+          name: 'Consumidor Final',
+          rnc: '000-0000000-0',
+          type: 'Contado',
+        },
+        ...realCustomers
+          .filter(
+            (c) =>
+              c.name && c.name.toLowerCase().trim() !== 'consumidor final',
+          )
+          .map((c) => ({
+            id: c.id || 1,
+            name: c.name,
+            rnc: c.identification || c.rnc || '000-0000000-0',
+            type: 'Contado',
+          })),
+      ];
+      this.clientsList.set(formattedClients);
+    } catch {
+      this.clientsList.set([
+        {
+          id: 1,
+          name: 'Consumidor Final',
+          rnc: '000-0000000-0',
+          type: 'Contado',
+        },
+      ]);
     }
   }
 
@@ -3460,6 +3511,299 @@ ${itemsList}
   }
 
   // =========================================================================
+  // GESTIÓN RÁPIDA: CLIENTE, VENTA POR COBRAR (FIAO) Y PRODUCTO
+  // =========================================================================
+  openCreateCustomerModal(): void {
+    this.newCustomerName.set('');
+    this.newCustomerPhone.set('');
+    this.newCustomerRnc.set('');
+    this.newCustomerCreditLimit.set(0);
+    this.newCustomerEmail.set('');
+    this.isCreateCustomerModalOpen.set(true);
+    triggerHaptic(10);
+  }
+
+  closeCreateCustomerModal(): void {
+    this.isCreateCustomerModalOpen.set(false);
+  }
+
+  async saveNewCustomer(): Promise<void> {
+    const name = this.newCustomerName().trim();
+    if (!name) {
+      this.notificationService.warning('Por favor ingresa el nombre o razón social del cliente.');
+      return;
+    }
+
+    this.isSubmittingCustomer.set(true);
+    try {
+      const phone = this.newCustomerPhone().trim();
+      const rnc = this.newCustomerRnc().trim();
+      const email = this.newCustomerEmail().trim();
+      const creditLimit = Number(this.newCustomerCreditLimit()) || 0;
+
+      const payload: CustomerDto = {
+        name,
+        phone: phone || null,
+        identification: rnc || null,
+        rnc: rnc || null,
+        email: email || null,
+        creditLimit: creditLimit > 0 ? creditLimit : undefined,
+        active: true,
+      };
+
+      const res = await this.customerService.createCustomer(payload);
+      const created = res?.data || (res as any);
+
+      this.notificationService.success(`¡Cliente "${name}" registrado exitosamente!`);
+      soundEffects.playKaChing();
+      triggerHapticSuccess();
+
+      await this.loadClients(true);
+
+      const createdId = created?.id || created?.Id;
+      if (createdId) {
+        this.selectedCustomerId.set(createdId);
+        this.fiaoCustomerId.set(createdId);
+        this.fiaoCustomerName.set(name);
+        this.fiaoCustomerPhone.set(phone);
+      }
+
+      this.closeCreateCustomerModal();
+    } catch (err: any) {
+      this.notificationService.showApiError(err);
+    } finally {
+      this.isSubmittingCustomer.set(false);
+    }
+  }
+
+  openCreateFiaoModal(): void {
+    const currentCustId = this.selectedCustomerId();
+    if (currentCustId && currentCustId > 1) {
+      this.fiaoCustomerId.set(currentCustId);
+      this.onFiaoCustomerChange(currentCustId);
+    } else {
+      const firstValid = this.clientsList().find((c) => c.id > 1);
+      if (firstValid) {
+        this.fiaoCustomerId.set(firstValid.id);
+        this.onFiaoCustomerChange(firstValid.id);
+      } else {
+        this.fiaoCustomerId.set(null);
+        this.fiaoCustomerName.set('');
+        this.fiaoCustomerPhone.set('');
+      }
+    }
+
+    this.fiaoDescription.set('');
+    this.fiaoTotalAmount.set(0);
+    this.fiaoInitialAmount.set(0);
+    this.fiaoDueDate.set(
+      new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    );
+    this.fiaoFrequency.set('Quincenal');
+    this.fiaoInstallments.set(1);
+    this.isCreateFiaoModalOpen.set(true);
+    triggerHaptic(10);
+  }
+
+  closeCreateFiaoModal(): void {
+    this.isCreateFiaoModalOpen.set(false);
+  }
+
+  onFiaoCustomerChange(selectedId: number | null): void {
+    this.fiaoCustomerId.set(selectedId);
+    if (!selectedId) {
+      this.fiaoCustomerName.set('');
+      this.fiaoCustomerPhone.set('');
+      return;
+    }
+    const match = this.rawCustomersList().find((c) => c.id === selectedId);
+    if (match) {
+      this.fiaoCustomerName.set(match.name || '');
+      this.fiaoCustomerPhone.set(match.phone || match.contactName || '');
+    } else {
+      const option = this.clientsList().find((c) => c.id === selectedId);
+      if (option) {
+        this.fiaoCustomerName.set(option.name || '');
+      }
+    }
+  }
+
+  setFiaoDueDays(days: number): void {
+    this.fiaoDueDate.set(
+      new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    );
+    triggerHaptic(10);
+  }
+
+  async saveNewFiao(): Promise<void> {
+    const custId = this.fiaoCustomerId();
+    let custName = this.fiaoCustomerName().trim();
+    let custPhone = this.fiaoCustomerPhone().trim();
+
+    if (custId && custId > 1) {
+      const match = this.rawCustomersList().find((c) => c.id === custId);
+      if (match) {
+        custName = match.name || custName;
+        custPhone = match.phone || match.contactName || custPhone;
+      } else {
+        const option = this.clientsList().find((c) => c.id === custId);
+        if (option) {
+          custName = option.name || custName;
+        }
+      }
+    }
+
+    if (!custName || custName.toLowerCase() === 'consumidor final') {
+      this.notificationService.warning(
+        'Para registrar un fiao o cuenta por cobrar, debes seleccionar o crear un cliente con nombre.',
+      );
+      return;
+    }
+
+    const total = Number(this.fiaoTotalAmount()) || 0;
+    if (total <= 0) {
+      this.notificationService.warning('El monto total debe ser mayor a 0.');
+      return;
+    }
+
+    const initial = Number(this.fiaoInitialAmount()) || 0;
+    if (initial >= total) {
+      this.notificationService.warning(
+        'El abono inicial no puede ser igual o mayor al total (debe quedar un saldo pendiente para fiao).',
+      );
+      return;
+    }
+
+    const desc = this.fiaoDescription().trim() || 'Venta a crédito / Fiao';
+    const installments = Math.max(1, Number(this.fiaoInstallments()) || 1);
+    const pendingAmount = total - initial;
+    const installmentAmount = Math.round((pendingAmount / installments) * 100) / 100;
+
+    this.isSubmittingFiao.set(true);
+    try {
+      const res = await this.receivableService.createReceivable({
+        customerId: custId && custId > 1 ? custId : null,
+        customerName: custName,
+        customerPhone: custPhone,
+        description: desc,
+        totalAmount: total,
+        downPayment: initial > 0 ? initial : undefined,
+        installmentAmount,
+        totalInstallments: installments,
+        startDate: this.fiaoDueDate(),
+        frequency: this.fiaoFrequency(),
+      });
+
+      if (res?.success) {
+        this.notificationService.success(
+          `¡Venta por cobrar de RD$ ${total.toLocaleString()} registrada para ${custName}!`,
+        );
+        soundEffects.playKaChing();
+        triggerHapticSuccess();
+        await this.loadFiaoList();
+        this.closeCreateFiaoModal();
+      } else {
+        this.notificationService.error(
+          res?.message || 'No se pudo registrar la venta por cobrar.',
+        );
+      }
+    } catch (err: any) {
+      this.notificationService.showApiError(err);
+    } finally {
+      this.isSubmittingFiao.set(false);
+    }
+  }
+
+  openCreateProductModal(initialBarcode = '', initialName = ''): void {
+    this.newProductDescription.set(initialName || '');
+    this.newProductBarcode.set(initialBarcode || '');
+    this.newProductPrice.set(0);
+    this.newProductCost.set(0);
+    this.newProductStock.set(1);
+    const validCat = this.categories().find((c) => c.id != null);
+    this.newProductCategoryId.set(validCat ? Number(validCat.id) : 1);
+    this.newProductAutoAddToCart.set(this.activeTab() === 'ventas');
+    this.isCreateProductModalOpen.set(true);
+    triggerHaptic(10);
+  }
+
+  closeCreateProductModal(): void {
+    this.isCreateProductModalOpen.set(false);
+  }
+
+  scanBarcodeForNewProduct(): void {
+    this.closeCreateProductModal();
+    void this.openCameraScanner('new_product');
+  }
+
+  async saveNewProduct(): Promise<void> {
+    const desc = this.newProductDescription().trim();
+    if (!desc) {
+      this.notificationService.warning(
+        'Por favor ingresa el nombre o descripción del producto.',
+      );
+      return;
+    }
+
+    const price = Number(this.newProductPrice()) || 0;
+    if (price <= 0) {
+      this.notificationService.warning('El precio de venta debe ser mayor a RD$ 0.');
+      return;
+    }
+
+    const cost = Number(this.newProductCost()) || 0;
+    const stock = Number(this.newProductStock()) || 0;
+    const barcode = this.newProductBarcode().trim();
+    const categoryId = Number(this.newProductCategoryId()) || 1;
+
+    this.isSubmittingProduct.set(true);
+    try {
+      const payload: ProductDto = {
+        description: desc,
+        barcode: barcode || undefined,
+        price,
+        cost: cost > 0 ? cost : 0,
+        stock,
+        categoryId,
+        productTypeId: 1,
+        unitOfMeasurementId: 1,
+        invoiceWithoutStock: true,
+        allowFractional: false,
+        isOrganic: false,
+      };
+
+      const res = await this.productService.createProduct(payload);
+      const created = res?.data || (res as any);
+
+      this.notificationService.success(
+        `¡Producto "${desc}" registrado exitosamente con precio RD$ ${price.toLocaleString()}!`,
+      );
+      soundEffects.playKaChing();
+      triggerHapticSuccess();
+
+      await this.loadCatalog();
+
+      if (this.newProductAutoAddToCart()) {
+        const prodToAdd: ProductDto =
+          created && created.id
+            ? created
+            : {
+                ...payload,
+                id: (created as any)?.id || Math.floor(Date.now() / 1000),
+              };
+        this.addToCart(prodToAdd);
+        this.notificationService.info(`"${desc}" agregado al pedido de venta.`);
+      }
+
+      this.closeCreateProductModal();
+    } catch (err: any) {
+      this.notificationService.showApiError(err);
+    } finally {
+      this.isSubmittingProduct.set(false);
+    }
+  }
+
+  // =========================================================================
   // HARDWARE BARCODE SCANNER (PISTOLAS USB / BLUETOOTH / WIRELESS WEDGE)
   // =========================================================================
   @HostListener('window:keydown', ['$event'])
@@ -3482,7 +3826,17 @@ ${itemsList}
         this.lastHardwareKeyTime = 0;
 
         const found = this.findProductByCode(code);
-        if (found) {
+        if (this.scannerMode() === 'new_product') {
+      this.newProductBarcode.set(code);
+      this.closeCameraScanner();
+      this.isCreateProductModalOpen.set(true);
+      this.notificationService.success(`Código de barra asignado: ${code}`);
+      soundEffects.playScannerBeep();
+      triggerHapticSuccess();
+      return;
+    }
+
+    if (found) {
           event.preventDefault();
           event.stopPropagation();
           this.addToCart(found);
@@ -3704,13 +4058,13 @@ ${itemsList}
     void this.openCameraScanner('stock_entry');
   }
 
-  setScannerMode(mode: 'pos' | 'stock_entry'): void {
+  setScannerMode(mode: 'pos' | 'stock_entry' | 'new_product'): void {
     this.scannerMode.set(mode);
     soundEffects.playBeep();
     triggerHaptic(15);
   }
 
-  async openCameraScanner(mode: 'pos' | 'stock_entry' = 'pos'): Promise<void> {
+  async openCameraScanner(mode: 'pos' | 'stock_entry' | 'new_product' = 'pos'): Promise<void> {
     this.scannerMode.set(mode);
     if (
       typeof window !== 'undefined' &&
@@ -4074,6 +4428,16 @@ ${itemsList}
       }
     }
 
+    if (this.scannerMode() === 'new_product') {
+      this.newProductBarcode.set(code);
+      this.closeCameraScanner();
+      this.isCreateProductModalOpen.set(true);
+      this.notificationService.success(`Código de barra asignado: ${code}`);
+      soundEffects.playScannerBeep();
+      triggerHapticSuccess();
+      return;
+    }
+
     if (found) {
       if (this.scannerMode() === 'stock_entry') {
         this.cameraBurstScannedCount.update((c) => c + 1);
@@ -4135,17 +4499,23 @@ ${itemsList}
       void (this.barcodeLookupService as any).lookupUniversalProduct(barcode).then((meta: any) => {
         if (meta) {
           this.notificationService.info(
-            `✨ Identificado globalmente: "${meta.name}" (${meta.brand || 'General'}). Listo para registrar.`
+            `✨ Identificado globalmente: "${meta.name}" (${meta.brand || 'General'}). Abriendo registro rápido...`
           );
+          this.closeCameraScanner();
+          this.openCreateProductModal(barcode, meta.name);
         } else {
           this.notificationService.warning(
-            `Código "${barcode}" no registrado en el catálogo de esta empresa.`
+            `Código "${barcode}" no registrado en el catálogo. Abriendo registro rápido...`
           );
+          this.closeCameraScanner();
+          this.openCreateProductModal(barcode);
         }
       }).catch(() => {
         this.notificationService.warning(
-          `Código "${barcode}" no registrado en el catálogo de esta empresa.`
+          `Código "${barcode}" no registrado en el catálogo. Abriendo registro rápido...`
         );
+        this.closeCameraScanner();
+        this.openCreateProductModal(barcode);
       });
       if (!isFromCamera) {
         this.searchTerm.set(barcode);

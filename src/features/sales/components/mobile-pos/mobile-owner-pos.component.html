@@ -653,6 +653,19 @@
               </svg>
               <span>+ Monto</span>
             </button>
+            <button
+              type="button"
+              class="btn-quick-amount-trigger btn-quick-product-trigger"
+              (click)="openCreateProductModal()"
+              title="Crear Nuevo Producto"
+              aria-label="Crear nuevo producto en el catálogo"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>+ Producto</span>
+            </button>
           </div>
 
           <!-- CHIPS DE CATEGORÍA CON SCROLL HORIZONTAL (TODOS SELECCIONADO) -->
@@ -745,8 +758,11 @@
             }
 
             @if (filteredProducts().length === 0 && !isLoading()) {
-              <div class="empty-state-box">
-                <p class="mb-0">No se encontraron productos con ese filtro.</p>
+              <div class="empty-state-box py-4 text-center">
+                <p class="mb-2 text-muted">No se encontraron productos con ese filtro.</p>
+                <button type="button" class="btn-cuadre-primary btn-sm mx-auto" (click)="openCreateProductModal()">
+                  + Crear Nuevo Producto
+                </button>
               </div>
             }
           </div>
@@ -1115,6 +1131,34 @@
           </div>
         </div>
 
+        <!-- ACCIONES RÁPIDAS: NUEVO FIAO & NUEVO CLIENTE -->
+        <div class="d-flex gap-2 mb-3">
+          <button
+            type="button"
+            class="btn-cuadre-primary flex-fill btn-44 d-flex align-items-center justify-content-center gap-2 fw-bold"
+            (click)="openCreateFiaoModal()"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>+ Nueva Venta por Cobrar</span>
+          </button>
+          <button
+            type="button"
+            class="btn-cuadre-outline btn-44 px-3 d-flex align-items-center justify-content-center gap-1.5 fw-semibold"
+            (click)="openCreateCustomerModal()"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <line x1="19" y1="8" x2="19" y2="14"/>
+              <line x1="22" y1="11" x2="16" y2="11"/>
+            </svg>
+            <span>+ Cliente</span>
+          </button>
+        </div>
+
         <!-- SEGMENTED TABS: DIVISIÓN CLARA ENTRE PENDIENTES Y PAGADAS -->
         <div class="fiao-segmented-control mb-3">
           <button
@@ -1240,8 +1284,15 @@
                 </div>
               </div>
             } @empty {
-              <div class="cuadre-card p-4 text-center text-muted">
-                No hay cuentas por cobrar registradas o pendientes.
+              <div class="cuadre-card p-4 text-center">
+                <p class="text-muted mb-2">No hay cuentas por cobrar registradas o pendientes.</p>
+                <button
+                  type="button"
+                  class="btn-cuadre-primary btn-sm mx-auto"
+                  (click)="openCreateFiaoModal()"
+                >
+                  + Registrar Primer Fiao
+                </button>
               </div>
             }
           }
@@ -1320,6 +1371,66 @@
 
         <!-- OPCIONES EN CARD PLANA -->
         <div class="cuadre-card more-options-flat-card mb-3">
+          <div class="more-option-item" (click)="openCreateCustomerModal()">
+            <div class="option-item-left">
+              <div class="cuadre-icon-chip chip-purple chip-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/>
+                  <line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+              </div>
+              <div>
+                <strong class="option-item-title">Nuevo Cliente</strong>
+                <span class="option-item-sub">Registrar cliente para ventas y créditos</span>
+              </div>
+            </div>
+            <svg class="option-item-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </div>
+
+          <div class="more-option-item" (click)="openCreateFiaoModal()">
+            <div class="option-item-left">
+              <div class="cuadre-icon-chip chip-amber chip-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="12" y1="18" x2="12" y2="12"/>
+                  <line x1="9" y1="15" x2="15" y2="15"/>
+                </svg>
+              </div>
+              <div>
+                <strong class="option-item-title">Nueva Venta por Cobrar (Fiao)</strong>
+                <span class="option-item-sub">Registrar crédito o deuda pendiente</span>
+              </div>
+            </div>
+            <svg class="option-item-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </div>
+
+          <div class="more-option-item" (click)="openCreateProductModal()">
+            <div class="option-item-left">
+              <div class="cuadre-icon-chip chip-emerald chip-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m7.5 4.27 9 5.15"/>
+                  <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                  <path d="m3.3 7 8.7 5 8.7-5"/>
+                  <path d="M12 22V12"/>
+                </svg>
+              </div>
+              <div>
+                <strong class="option-item-title">Nuevo Producto</strong>
+                <span class="option-item-sub">Registrar artículo e inventario</span>
+              </div>
+            </div>
+            <svg class="option-item-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </div>
+
           <div class="more-option-item" (click)="openServiceBilling()">
             <div class="option-item-left">
               <div class="cuadre-icon-chip chip-amber chip-sm">
@@ -2778,6 +2889,22 @@
         </button>
       </div>
 
+      <div class="mb-3">
+        <button
+          type="button"
+          class="btn-cuadre-primary btn-44 w-100 d-flex align-items-center justify-content-center gap-2 fw-bold"
+          (click)="openCreateCustomerModal()"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <line x1="19" y1="8" x2="19" y2="14"/>
+            <line x1="22" y1="11" x2="16" y2="11"/>
+          </svg>
+          <span>+ Registrar Nuevo Cliente</span>
+        </button>
+      </div>
+
       <div class="d-flex flex-column gap-2 mb-3">
         @for (client of clientsList(); track client.id) {
           <div
@@ -3366,7 +3493,7 @@
       <div class="scanner-header flex-column gap-2">
         <div class="d-flex align-items-center justify-content-between w-100">
           <div class="d-flex align-items-center gap-2">
-            <div class="cuadre-icon-chip chip-sm" [ngClass]="scannerMode() === 'pos' ? 'chip-emerald' : 'chip-blue'">
+            <div class="cuadre-icon-chip chip-sm" [ngClass]="scannerMode() === 'pos' ? 'chip-emerald' : (scannerMode() === 'new_product' ? 'chip-amber' : 'chip-blue')">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                 <circle cx="12" cy="13" r="4"></circle>
@@ -3375,14 +3502,14 @@
             <div>
               <div class="d-flex align-items-center gap-1.5">
                 <strong class="text-white font-size-sm">
-                  {{ scannerMode() === 'pos' ? 'Lector de Caja (POS)' : 'Lector de Almacén' }}
+                  {{ scannerMode() === 'pos' ? 'Lector de Caja (POS)' : (scannerMode() === 'new_product' ? 'Asignar Código' : 'Lector de Almacén') }}
                 </strong>
-                <span class="badge font-size-xs px-2 py-0.5 rounded-pill" [ngClass]="scannerMode() === 'pos' ? 'bg-success text-white' : 'bg-primary text-white'">
-                  {{ scannerMode() === 'pos' ? 'Venta Rápida' : 'Recepción Stock' }}
+                <span class="badge font-size-xs px-2 py-0.5 rounded-pill" [ngClass]="scannerMode() === 'pos' ? 'bg-success text-white' : (scannerMode() === 'new_product' ? 'bg-warning text-dark' : 'bg-primary text-white')">
+                  {{ scannerMode() === 'pos' ? 'Venta Rápida' : (scannerMode() === 'new_product' ? 'Nuevo Producto' : 'Recepción Stock') }}
                 </span>
               </div>
               <span class="text-white-50" style="font-size: 11px;">
-                {{ scannerMode() === 'pos' ? 'Escaneo directo al carrito con Precio de Venta' : 'Escanee para registrar entrada y sumar existencias' }}
+                {{ scannerMode() === 'pos' ? 'Escaneo directo al carrito con Precio de Venta' : (scannerMode() === 'new_product' ? 'Apunte al código de barra para asignarlo al producto' : 'Escanee para registrar entrada y sumar existencias') }}
               </span>
             </div>
           </div>
@@ -4003,6 +4130,475 @@
             </button>
           </div>
         }
+      </div>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CREAR CLIENTE RÁPIDO (BOTTOM SHEET DRAWER)        -->
+  <!-- ======================================================== -->
+  @if (isCreateCustomerModalOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="closeCreateCustomerModal()"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <div class="cuadre-icon-chip chip-purple chip-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <line x1="19" y1="8" x2="19" y2="14"/>
+              <line x1="22" y1="11" x2="16" y2="11"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="sheet-title mb-0">Nuevo Cliente</h2>
+            <span class="sheet-subtitle">Registra clientes para ventas y créditos</span>
+          </div>
+        </div>
+        <button type="button" class="btn-subbar-action" (click)="closeCreateCustomerModal()" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Nombre -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Nombre completo o Negocio: <span class="text-danger">*</span></label>
+        <div class="cuadre-money-input-group">
+          <input
+            type="text"
+            class="money-input-field"
+            placeholder="Ej: Juan Pérez / Colmado El Sol"
+            [(ngModel)]="newCustomerName"
+          />
+        </div>
+      </div>
+
+      <!-- Teléfono / WhatsApp -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Teléfono / WhatsApp: <span class="text-muted small fw-normal">(Para recordatorios y cobros)</span></label>
+        <div class="cuadre-money-input-group">
+          <span class="money-prefix">📱</span>
+          <input
+            type="tel"
+            class="money-input-field"
+            placeholder="(809) 000-0000"
+            [(ngModel)]="newCustomerPhone"
+          />
+        </div>
+      </div>
+
+      <!-- Cédula o RNC -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Cédula o RNC: <span class="text-muted small fw-normal">(Opcional)</span></label>
+        <div class="cuadre-money-input-group">
+          <span class="money-prefix">🆔</span>
+          <input
+            type="text"
+            class="money-input-field"
+            placeholder="000-0000000-0 o 1-01-00000-0"
+            [(ngModel)]="newCustomerRnc"
+          />
+        </div>
+      </div>
+
+      <!-- Límite de Crédito -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Límite de crédito autorizado:</label>
+        <div class="cuadre-money-input-group">
+          <span class="money-prefix">RD$</span>
+          <input
+            type="number"
+            class="money-input-field"
+            placeholder="0.00 (Monto máximo acumulable)"
+            [(ngModel)]="newCustomerCreditLimit"
+          />
+        </div>
+      </div>
+
+      <!-- Correo Electrónico -->
+      <div class="mb-4">
+        <label class="cuadre-input-label">Correo electrónico: <span class="text-muted small fw-normal">(Opcional)</span></label>
+        <div class="cuadre-money-input-group">
+          <span class="money-prefix">✉️</span>
+          <input
+            type="email"
+            class="money-input-field"
+            placeholder="cliente@ejemplo.com"
+            [(ngModel)]="newCustomerEmail"
+          />
+        </div>
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="d-flex gap-2">
+        <button
+          type="button"
+          class="btn-cuadre-secondary flex-fill btn-48"
+          (click)="closeCreateCustomerModal()"
+          [disabled]="isSubmittingCustomer()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn-cuadre-primary flex-fill btn-48 fw-bold"
+          (click)="saveNewCustomer()"
+          [disabled]="isSubmittingCustomer() || !newCustomerName().trim()"
+        >
+          @if (isSubmittingCustomer()) {
+            <span class="spinner-border spinner-border-sm me-2"></span> Guardando...
+          } @else {
+            Guardar Cliente
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CREAR VENTA POR COBRAR (FIAO) (BOTTOM SHEET)       -->
+  <!-- ======================================================== -->
+  @if (isCreateFiaoModalOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="closeCreateFiaoModal()"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <div class="cuadre-icon-chip chip-amber chip-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="12" y1="18" x2="12" y2="12"/>
+              <line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="sheet-title mb-0">Nueva Venta por Cobrar</h2>
+            <span class="sheet-subtitle">Registra un crédito o fiao pendiente</span>
+          </div>
+        </div>
+        <button type="button" class="btn-subbar-action" (click)="closeCreateFiaoModal()" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Cliente Selector con botón rápido "+ Nuevo" -->
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <label class="cuadre-input-label mb-0">Cliente deudor: <span class="text-danger">*</span></label>
+          <button
+            type="button"
+            class="btn btn-sm btn-link text-primary p-0 text-decoration-none fw-bold"
+            (click)="openCreateCustomerModal()"
+          >
+            + Nuevo Cliente
+          </button>
+        </div>
+        <div class="cuadre-money-input-group">
+          <select
+            class="money-input-field"
+            [ngModel]="fiaoCustomerId()"
+            (ngModelChange)="onFiaoCustomerChange($event)"
+          >
+            <option [ngValue]="null" disabled>-- Selecciona un cliente registrado --</option>
+            @for (c of clientsList(); track c.id) {
+              @if (c.id > 1) {
+                <option [ngValue]="c.id">{{ c.name }} ({{ c.rnc }})</option>
+              }
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Concepto / Descripción -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Concepto / Detalle de la deuda: <span class="text-danger">*</span></label>
+        <div class="cuadre-money-input-group">
+          <input
+            type="text"
+            class="money-input-field"
+            placeholder="Ej: Víveres del colmado, compra a crédito, repuestos"
+            [(ngModel)]="fiaoDescription"
+          />
+        </div>
+      </div>
+
+      <!-- Monto Total -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Monto total de la deuda: <span class="text-danger">*</span></label>
+        <div class="cuadre-money-input-group">
+          <span class="money-prefix">RD$</span>
+          <input
+            type="number"
+            class="money-input-field font-monospace font-size-lg fw-bold"
+            placeholder="0.00"
+            [(ngModel)]="fiaoTotalAmount"
+          />
+        </div>
+      </div>
+
+      <!-- Abono Inicial -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Abono inicial entregado hoy: <span class="text-muted small fw-normal">(Opcional)</span></label>
+        <div class="cuadre-money-input-group">
+          <span class="money-prefix">RD$</span>
+          <input
+            type="number"
+            class="money-input-field"
+            placeholder="0.00"
+            [(ngModel)]="fiaoInitialAmount"
+          />
+        </div>
+        @if ((fiaoInitialAmount() || 0) > 0) {
+          <div class="d-flex justify-content-between align-items-center mt-1 px-1">
+            <small class="text-muted">Resta por cobrar:</small>
+            <strong class="text-danger font-monospace">RD$ {{ fiaoRemainingBalance() | number:'1.2-2' }}</strong>
+          </div>
+        }
+      </div>
+
+      <!-- Plazo / Fecha Límite -->
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <label class="cuadre-input-label mb-0">Fecha límite de pago:</label>
+          <div class="d-flex gap-1">
+            <button type="button" class="cuadre-chip py-0 px-2" style="font-size: 11px; height: 24px;" (click)="setFiaoDueDays(7)">7d</button>
+            <button type="button" class="cuadre-chip py-0 px-2" style="font-size: 11px; height: 24px;" (click)="setFiaoDueDays(15)">15d</button>
+            <button type="button" class="cuadre-chip py-0 px-2" style="font-size: 11px; height: 24px;" (click)="setFiaoDueDays(30)">30d</button>
+          </div>
+        </div>
+        <div class="cuadre-money-input-group">
+          <span class="money-prefix">📅</span>
+          <input
+            type="date"
+            class="money-input-field"
+            [(ngModel)]="fiaoDueDate"
+          />
+        </div>
+      </div>
+
+      <!-- Frecuencia -->
+      <div class="mb-4">
+        <label class="cuadre-input-label">Frecuencia de cobro acordada:</label>
+        <div class="cuadre-money-input-group">
+          <select class="money-input-field" [(ngModel)]="fiaoFrequency">
+            <option value="Quincenal">Quincenal (Cada 15 días)</option>
+            <option value="Semanal">Semanal (Cada semana)</option>
+            <option value="Mensual">Mensual (Fin de mes)</option>
+            <option value="Diaria">Diaria</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="d-flex gap-2">
+        <button
+          type="button"
+          class="btn-cuadre-secondary flex-fill btn-48"
+          (click)="closeCreateFiaoModal()"
+          [disabled]="isSubmittingFiao()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn-cuadre-primary flex-fill btn-48 fw-bold"
+          (click)="saveNewFiao()"
+          [disabled]="isSubmittingFiao() || !fiaoCustomerId() || (fiaoTotalAmount() || 0) <= 0"
+        >
+          @if (isSubmittingFiao()) {
+            <span class="spinner-border spinner-border-sm me-2"></span> Guardando...
+          } @else {
+            Guardar Venta por Cobrar
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CREAR PRODUCTO RÁPIDO (BOTTOM SHEET DRAWER)       -->
+  <!-- ======================================================== -->
+  @if (isCreateProductModalOpen()) {
+    <div class="drawer-backdrop fade-in" (click)="closeCreateProductModal()"></div>
+    <div class="bottom-sheet-drawer">
+      <div class="sheet-drag-handle mx-auto"></div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <div class="cuadre-icon-chip chip-emerald chip-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m7.5 4.27 9 5.15"/>
+              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+              <path d="m3.3 7 8.7 5 8.7-5"/>
+              <path d="M12 22V12"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="sheet-title mb-0">Nuevo Producto</h2>
+            <span class="sheet-subtitle">Agrega un artículo al inventario y venta</span>
+          </div>
+        </div>
+        <button type="button" class="btn-subbar-action" (click)="closeCreateProductModal()" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Nombre / Descripción -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Nombre del producto: <span class="text-danger">*</span></label>
+        <div class="cuadre-money-input-group">
+          <input
+            type="text"
+            class="money-input-field"
+            placeholder="Ej: Aceite Crisol 64oz, Arroz Pimco 5lb"
+            [(ngModel)]="newProductDescription"
+          />
+        </div>
+      </div>
+
+      <!-- Código de Barras con botón de Cámara Escáner -->
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <label class="cuadre-input-label mb-0">Código de barras / SKU:</label>
+          <button
+            type="button"
+            class="btn btn-sm btn-link text-primary p-0 text-decoration-none d-flex align-items-center gap-1 fw-bold"
+            (click)="scanBarcodeForNewProduct()"
+            title="Escanear con cámara"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            Escanear con Cámara
+          </button>
+        </div>
+        <div class="cuadre-money-input-group">
+          <span class="money-prefix">Barcode</span>
+          <input
+            type="text"
+            class="money-input-field font-monospace"
+            placeholder="Código de barra o déjalo vacío para autogenerar"
+            [(ngModel)]="newProductBarcode"
+          />
+        </div>
+      </div>
+
+      <!-- Precio de Venta -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Precio de venta al público: <span class="text-danger">*</span></label>
+        <div class="cuadre-money-input-group">
+          <span class="money-prefix">RD$</span>
+          <input
+            type="number"
+            class="money-input-field font-monospace font-size-lg fw-bold"
+            placeholder="0.00"
+            [(ngModel)]="newProductPrice"
+          />
+        </div>
+      </div>
+
+      <!-- Costo de Compra -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Costo de compra unitario: <span class="text-muted small fw-normal">(Opcional)</span></label>
+        <div class="cuadre-money-input-group">
+          <span class="money-prefix">RD$</span>
+          <input
+            type="number"
+            class="money-input-field font-monospace"
+            placeholder="0.00"
+            [(ngModel)]="newProductCost"
+          />
+        </div>
+        @if ((newProductPrice() || 0) > 0 && (newProductCost() || 0) > 0) {
+          <div class="d-flex justify-content-between align-items-center mt-1 px-1">
+            <small class="text-muted">Ganancia estimada:</small>
+            <span class="cuadre-badge badge-info" style="font-size: 11px;">
+              +RD$ {{ ((newProductPrice() || 0) - (newProductCost() || 0)) | number:'1.2-2' }}
+              ({{ ((((newProductPrice() || 0) - (newProductCost() || 0)) / (newProductCost() || 1)) * 100) | number:'1.0-1' }}% margen)
+            </span>
+          </div>
+        }
+      </div>
+
+      <!-- Stock Inicial y Categoría (2 columnas) -->
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <label class="cuadre-input-label">Stock inicial:</label>
+          <div class="cuadre-money-input-group">
+            <input
+              type="number"
+              class="money-input-field font-monospace"
+              placeholder="0"
+              [(ngModel)]="newProductStock"
+            />
+          </div>
+        </div>
+        <div class="col-6">
+          <label class="cuadre-input-label">Categoría:</label>
+          <div class="cuadre-money-input-group">
+            <select class="money-input-field" [(ngModel)]="newProductCategoryId">
+              @for (cat of categories(); track cat.id) {
+                @if (cat.id != null) {
+                  <option [ngValue]="cat.id">{{ cat.label }}</option>
+                }
+              }
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toggle Agregar al Carrito -->
+      <div class="cuadre-card p-3 mb-4 d-flex justify-content-between align-items-center cursor-pointer" (click)="newProductAutoAddToCart.set(!newProductAutoAddToCart())">
+        <div>
+          <strong class="d-block text-dark font-size-sm">Agregar al pedido de venta</strong>
+          <small class="text-muted">Sumar 1 unidad al carrito de inmediato</small>
+        </div>
+        <input
+          type="checkbox"
+          class="form-check-input ms-2"
+          style="width: 20px; height: 20px; cursor: pointer;"
+          [checked]="newProductAutoAddToCart()"
+          (click)="$event.stopPropagation()"
+          (change)="newProductAutoAddToCart.set(!newProductAutoAddToCart())"
+        />
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="d-flex gap-2">
+        <button
+          type="button"
+          class="btn-cuadre-secondary flex-fill btn-48"
+          (click)="closeCreateProductModal()"
+          [disabled]="isSubmittingProduct()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn-cuadre-primary flex-fill btn-48 fw-bold"
+          (click)="saveNewProduct()"
+          [disabled]="isSubmittingProduct() || !newProductDescription().trim() || (newProductPrice() || 0) <= 0"
+        >
+          @if (isSubmittingProduct()) {
+            <span class="spinner-border spinner-border-sm me-2"></span> Guardando...
+          } @else {
+            Guardar Producto
+          }
+        </button>
       </div>
     </div>
   }

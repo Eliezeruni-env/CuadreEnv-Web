@@ -449,6 +449,10 @@
     background-color: #ECFDF5;
     color: #059669;
   }
+  &.chip-purple {
+    background-color: #F5F3FF;
+    color: #7C3AED;
+  }
   &.chip-subtle {
     background-color: #F1F5F9;
     color: #475569;
@@ -1675,6 +1679,16 @@
   &:active {
     transform: scale(0.96);
     background: #FDE68A;
+  }
+}
+
+.btn-quick-product-trigger {
+  border: 1px solid #BBF7D0;
+  background: linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%);
+  color: #166534;
+
+  &:active {
+    background: #BBF7D0;
   }
 }
 
