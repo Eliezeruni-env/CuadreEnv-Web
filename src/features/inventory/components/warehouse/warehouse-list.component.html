@@ -75,8 +75,21 @@
               </tr>
             } @else if (filteredWarehouses().length === 0) {
               <tr>
-                <td colspan="7" class="text-center py-5 text-secondary">
-                  {{ errorMessage() ? 'No se pudieron cargar los almacenes.' : 'No se encontraron almacenes registrados.' }}
+                <td colspan="7" class="text-center py-5">
+                  <div class="d-flex flex-column align-items-center justify-content-center p-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 54px; height: 54px; background: #f1f5f9; color: #64748b;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                      </svg>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">No tienes almacenes o depósitos registrados</h6>
+                    <p class="text-secondary small mb-3 text-center" style="max-width: 420px;">
+                      Para iniciar movimientos de inventario, registrar entradas y controlar el stock de tus sucursales, crea tu primer almacén.
+                    </p>
+                    <button type="button" class="btn btn-cuadre-primary fw-semibold px-3 py-2 shadow-sm d-flex align-items-center gap-2" (click)="openCreateModal()">
+                      <span>+ Crear Mi Primer Almacén</span>
+                    </button>
+                  </div>
                 </td>
               </tr>
             } @else {

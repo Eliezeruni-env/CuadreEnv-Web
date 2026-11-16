@@ -164,59 +164,101 @@
                     </td>
                   </tr>
 
-                  <!-- Fila Detail Expandible (Subtabla) -->
+                  <!-- Fila Detail Expandible (Subtabla de Artículos Facturados) -->
                   @if (b.showDetail) {
-                    <tr class="detail-row bg-light">
-                      <td colspan="9" class="p-3">
-                        <div class="card border border-secondary-subtle shadow-xs">
-                          <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-                            <span class="fw-bold small text-secondary text-uppercase">
-                              Detalle de Artículos Facturados ({{ (b.productDetails || b.details || []).length }} ítems)
-                            </span>
-                            <div class="small">
-                              <span class="text-muted me-3">Subtotal: <strong>RD$ {{ b.amountSubTotal | number:'1.2-2' }}</strong></span>
-                              <span class="text-muted me-3">ITBIS: <strong>RD$ {{ b.amountItbis | number:'1.2-2' }}</strong></span>
-                              <span class="text-success fw-bold">Total: RD$ {{ b.amountTotal | number:'1.2-2' }}</span>
+                    <tr class="detail-row">
+                      <td colspan="9" class="p-3 bg-slate-50">
+                        <div class="billing-detail-card">
+                          <!-- Cabecera de la subtabla -->
+                          <div class="billing-detail-header">
+                            <div class="d-flex align-items-center gap-2">
+                              <div class="detail-header-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                                  <path d="M3 6h18"></path>
+                                  <path d="M16 10a4 4 0 0 1-8 0"></path>
+                                </svg>
+                              </div>
+                              <span class="detail-header-title">Detalle de Artículos Facturados</span>
+                              <span class="detail-items-count-badge">
+                                {{ (b.productDetails || b.details || []).length }} {{ (b.productDetails || b.details || []).length === 1 ? 'ítem' : 'ítems' }}
+                              </span>
                             </div>
-                                             <div class="card-body p-0">
+
+                            <div class="detail-summary-pills">
+                              <span class="summary-pill">
+                                <span class="pill-label">Subtotal</span>
+                                <strong class="pill-value">RD$ {{ b.amountSubTotal | number:'1.2-2' }}</strong>
+                              </span>
+                              <span class="summary-pill">
+                                <span class="pill-label">ITBIS</span>
+                                <strong class="pill-value">RD$ {{ b.amountItbis | number:'1.2-2' }}</strong>
+                              </span>
+                              <span class="summary-pill total-pill">
+                                <span class="pill-label">Total</span>
+                                <strong class="pill-value text-success">RD$ {{ b.amountTotal | number:'1.2-2' }}</strong>
+                              </span>
+                            </div>
+                          </div>
+
+                          <!-- Contenido de la subtabla -->
+                          <div class="billing-detail-body">
                             @if ((b.productDetails || b.details || []).length === 0) {
                               <div class="text-center py-4 text-muted small">
                                 <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                                 <span>Consultando artículos facturados...</span>
                               </div>
                             } @else {
-                              <table class="table table-sm table-bordered mb-0 align-middle">
-                                <thead class="table-light text-muted font-size-xs">
-                                  <tr>
-                                    <th class="ps-2">Código</th>
-                                    <th>Descripción</th>
-                                    <th class="text-center">Cant.</th>
-                                    <th class="text-end">Precio Unit.</th>
-                                    <th class="text-center">Desc.</th>
-                                    <th class="text-end">Subtotal</th>
-                                    <th class="text-end">ITBIS</th>
-                                    <th class="text-end pe-2">Importe Total</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  @for (item of (b.productDetails || b.details || []); track $index) {
+                              <div class="table-responsive">
+                                <table class="table billing-subtable mb-0 align-middle">
+                                  <thead>
                                     <tr>
-                                      <td class="ps-2 font-monospace small">{{ item.barCode || 'PROD-' + item.productId }}</td>
-                                      <td class="fw-semibold">{{ item.productName }}</td>
-                                      <td class="text-center font-monospace">{{ item.quantity }}</td>
-                                      <td class="text-end">RD$ {{ item.price | number:'1.2-2' }}</td>
-                                      <td class="text-center">
-                                        {{ item.discountPercentage > 0 ? (item.discountPercentage + '%') : '-' }}
-                                      </td>
-                                      <td class="text-end">RD$ {{ (item.subTotal || (item.quantity * item.price)) | number:'1.2-2' }}</td>
-                                      <td class="text-end">RD$ {{ (item.itbisAmount || 0) | number:'1.2-2' }}</td>
-                                      <td class="text-end pe-2 fw-bold text-success">RD$ {{ (item.totalAmount || (item.subTotal + item.itbisAmount)) | number:'1.2-2' }}</td>
+                                      <th class="ps-3 col-code">Código</th>
+                                      <th class="col-desc">Descripción</th>
+                                      <th class="text-center col-qty">Cant.</th>
+                                      <th class="text-end col-price">Precio Unit.</th>
+                                      <th class="text-center col-desc-pct">Desc.</th>
+                                      <th class="text-end col-subtotal">Subtotal</th>
+                                      <th class="text-end col-itbis">ITBIS</th>
+                                      <th class="text-end pe-3 col-total">Importe Total</th>
                                     </tr>
-                                  }
-                                </tbody>
-                              </table>
+                                  </thead>
+                                  <tbody>
+                                    @for (item of (b.productDetails || b.details || []); track $index) {
+                                      <tr>
+                                        <td class="ps-3">
+                                          <span class="product-code-pill font-monospace">
+                                            {{ item.barCode || 'PROD-' + item.productId }}
+                                          </span>
+                                        </td>
+                                        <td>
+                                          <span class="product-name-text">{{ item.productName }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                          <span class="quantity-badge font-monospace">{{ item.quantity }}</span>
+                                        </td>
+                                        <td class="text-end text-muted font-monospace">RD$ {{ item.price | number:'1.2-2' }}</td>
+                                        <td class="text-center">
+                                          @if (item.discountPercentage > 0) {
+                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle small">
+                                              {{ item.discountPercentage }}%
+                                            </span>
+                                          } @else {
+                                            <span class="text-muted">-</span>
+                                          }
+                                        </td>
+                                        <td class="text-end font-monospace">RD$ {{ (item.subTotal || (item.quantity * item.price)) | number:'1.2-2' }}</td>
+                                        <td class="text-end font-monospace text-muted">RD$ {{ (item.itbisAmount || 0) | number:'1.2-2' }}</td>
+                                        <td class="text-end pe-3 fw-bold text-success font-monospace">
+                                          RD$ {{ (item.totalAmount || (item.subTotal + item.itbisAmount)) | number:'1.2-2' }}
+                                        </td>
+                                      </tr>
+                                    }
+                                  </tbody>
+                                </table>
+                              </div>
                             }
-                          </div>          </div>
+                          </div>
                         </div>
                       </td>
                     </tr>

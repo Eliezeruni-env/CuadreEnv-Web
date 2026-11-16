@@ -2,9 +2,52 @@
   <div class="row g-2 align-items-end">
     <!-- Search / Barcode Input -->
     <div class="col-md-5">
-      <label class="form-label small fw-semibold text-secondary">
-        Buscar Producto / Escanear Código
-      </label>
+      <div class="d-flex align-items-center justify-content-between mb-1">
+        <label class="form-label small fw-semibold text-secondary mb-0">
+          {{ mode === 'entry' ? 'Búsqueda General / Escanear Código' : 'Buscar Producto / Escanear' }}
+        </label>
+        <div class="d-flex align-items-center gap-1">
+          <!-- Hidden File Input for Barcode Photo/File Upload -->
+          <input
+            #barcodeImageInput
+            type="file"
+            accept="image/*"
+            style="display: none;"
+            (change)="onBarcodeImageSelected($event)"
+          />
+          <button
+            type="button"
+            class="btn btn-xs btn-outline-primary d-inline-flex align-items-center gap-1 py-0 px-2 rounded-pill font-size-xs"
+            (click)="barcodeImageInput.click()"
+            [disabled]="isDecodingBarcodeImage()"
+            title="Subir foto o archivo de código de barras para decodificar y buscar en el catálogo general o global"
+          >
+            @if (isDecodingBarcodeImage()) {
+              <span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;"></span>
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                <circle cx="9" cy="9" r="2"/>
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+              </svg>
+            }
+            <span>{{ mode === 'entry' ? 'Cargar Archivo / Foto' : 'Subir Foto' }}</span>
+          </button>
+          <button
+            type="button"
+            class="btn btn-xs btn-outline-success d-inline-flex align-items-center gap-1 py-0 px-2 rounded-pill font-size-xs"
+            (click)="openCameraScanner()"
+            title="Abrir cámara del dispositivo para escanear código de barras"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>Cámara</span>
+          </button>
+        </div>
+      </div>
+
       <div class="input-group input-group-sm">
         <span class="input-group-text bg-light text-secondary">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -13,13 +56,59 @@
           </svg>
         </span>
         <input
+          #searchInput
           type="text"
           class="form-control"
-          placeholder="Escriba nombre o pase el lector de código..."
+          placeholder="Escriba nombre, código de barras o pase el lector..."
           [(ngModel)]="searchTerm"
           (input)="onSearchInput()"
+          (keydown.enter)="onBarcodeEntered($event)"
         />
+        <button
+          type="button"
+          class="btn btn-outline-info d-flex align-items-center gap-1"
+          (click)="onGlobalSearchClicked()"
+          [disabled]="isGlobalSearching() || !searchTerm"
+          title="Buscar código en bases globales (OpenFoodFacts / UPC) y registrar de una vez"
+        >
+          @if (isGlobalSearching()) {
+            <span class="spinner-border spinner-border-sm" style="width: 12px; height: 12px;"></span>
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+          }
+          <span class="d-none d-sm-inline font-size-xs fw-semibold">Global</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-secondary d-flex align-items-center gap-1"
+          (click)="onBarcodeEntered()"
+          [disabled]="isGlobalSearching()"
+          title="Buscar por código de barras escaneado"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="5" x2="3" y2="19"></line>
+            <line x1="7" y1="5" x2="7" y2="19"></line>
+            <line x1="11" y1="5" x2="11" y2="19"></line>
+            <line x1="15" y1="5" x2="15" y2="19"></line>
+            <line x1="18" y1="5" x2="18" y2="19"></line>
+            <line x1="21" y1="5" x2="21" y2="19"></line>
+          </svg>
+          <span class="d-none d-sm-inline font-size-xs fw-semibold">Escanear</span>
+        </button>
       </div>
+
+      @if (mode === 'entry') {
+        <div class="d-flex align-items-center gap-1 mt-1 text-secondary font-size-xs">
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+            🌐 Búsqueda General
+          </span>
+          <span>Búsqueda en todo el catálogo y bases globales (sin filtrar por almacén).</span>
+        </div>
+      }
     </div>
 
     <!-- Packaging Mode Toggle (if product has packaging) -->
@@ -96,7 +185,9 @@
           min="0.01"
           step="any"
           class="form-control form-control-sm text-center font-monospace fw-bold"
+          #quantityInput
           [(ngModel)]="quantity"
+          (keydown.enter)="submitProduct()"
         />
       </div>
 
@@ -196,7 +287,7 @@
             @if (filteredProducts.length === 0) {
               <tr>
                 <td colspan="5" class="text-center py-3 text-secondary">
-                  No se encontraron productos coincidentes.
+                  No se encontraron productos coincidentes en el inventario local. Puedes hacer clic en <strong>Global</strong> para buscarlo y crearlo automáticamente.
                 </td>
               </tr>
             }
@@ -206,18 +297,62 @@
     </div>
   }
 
-  <!-- Selected Product Card Banner -->
+  <!-- Selected Product Card Banner (Detalles Completos por Código de Barra) -->
   @if (selectedProduct) {
-    <div class="selected-banner mt-2 p-2 px-3 rounded-2 bg-primary-subtle border border-primary-subtle d-flex align-items-center justify-content-between flex-wrap gap-2">
-      <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-primary text-white">Seleccionado</span>
-        <strong class="text-dark">{{ selectedProduct.description }}</strong>
-        <span class="text-secondary font-monospace small">({{ selectedProduct.barcode || 'Sin código' }})</span>
+    <div class="selected-banner mt-3 p-3 rounded-3 border bg-light-subtle shadow-xs">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2 pb-2 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold px-2 py-1">
+            ✓ Producto Seleccionado
+          </span>
+          <h6 class="fw-bold text-dark mb-0 fs-6">{{ selectedProduct.description }}</h6>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-dark-subtle text-dark font-monospace px-2 py-1">
+            Código: {{ selectedProduct.barcode || selectedProduct.reference || 'Sin código' }}
+          </span>
+          <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" (click)="resetSelection()" title="Cambiar producto">
+            ✕ Quitar
+          </button>
+        </div>
       </div>
-      <div class="d-flex align-items-center gap-3 small">
-        <span>Stock en Almacén: <strong class="font-monospace text-dark">{{ selectedProduct.stockInWarehouse }} uds</strong></span>
-        <span>Subtotal Renglón: <strong class="font-monospace text-primary">RD$ {{ (quantity * cost) | number:'1.2-2' }}</strong></span>
+      <div class="row g-2 text-center small font-monospace">
+        <div class="col-6 col-md-3">
+          <div class="p-2 rounded bg-white border">
+            <span class="text-secondary d-block font-sans">Stock Almacén</span>
+            <strong class="text-dark fs-6">{{ selectedProduct.stockInWarehouse }} uds</strong>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="p-2 rounded bg-white border">
+            <span class="text-secondary d-block font-sans">Costo Compra</span>
+            <strong class="text-dark fs-6">RD$ {{ (selectedProduct.cost || 0) | number:'1.2-2' }}</strong>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="p-2 rounded bg-white border">
+            <span class="text-secondary d-block font-sans">Precio Venta</span>
+            <strong class="text-primary fs-6">RD$ {{ (selectedProduct.priceList || selectedProduct.cost ? (selectedProduct.cost * 1.3) : 0) | number:'1.2-2' }}</strong>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="p-2 rounded bg-success-subtle border border-success-subtle">
+            <span class="text-success d-block font-sans fw-semibold">Subtotal Línea</span>
+            <strong class="text-success fs-6">RD$ {{ (quantity * cost) | number:'1.2-2' }}</strong>
+          </div>
+        </div>
       </div>
     </div>
   }
 </div>
+
+@if (isCameraScannerOpen()) {
+  <app-camera-barcode-modal
+    [title]="mode === 'entry' ? 'Escaneo General de Productos' : 'Lector de Códigos de Barra'"
+    [subtitle]="mode === 'entry' ? 'Escanea cualquier código de producto para entrada general' : 'Apunta la cámara hacia el código de barras'"
+    [warehouseName]="mode === 'entry' ? '' : getWarehouseName()"
+    (barcodeDetected)="onCameraBarcodeScanned($event)"
+    (codeDetected)="onCameraBarcodeScanned($event)"
+    (closed)="isCameraScannerOpen.set(false)"
+  ></app-camera-barcode-modal>
+}

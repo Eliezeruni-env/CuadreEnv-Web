@@ -158,10 +158,20 @@
                   </td>
                   <td class="text-end font-monospace fw-bold text-dark">RD$ {{ p.cost | number:'1.2-2' }}</td>
                   <td class="text-end font-monospace fw-bold">
-                    {{ p.stock }} <span class="small fw-normal text-muted">uds</span>
+                    @if (isServiceItem(p)) {
+                      <span class="badge bg-light text-primary border border-primary-subtle px-2 py-1">
+                        Mano de Obra
+                      </span>
+                    } @else {
+                      {{ p.stock }} <span class="small fw-normal text-muted">uds</span>
+                    }
                   </td>
                   <td class="text-center">
-                    @if (getStockState(p) === 'healthy') {
+                    @if (isServiceItem(p)) {
+                      <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill">
+                        🛠️ Servicio (Sin Stock)
+                      </span>
+                    } @else if (getStockState(p) === 'healthy') {
                       <div class="stock-status-pill pill-normal">
                         <span class="status-dot-pulse"></span>
                         <span class="status-pill-label">En Stock</span>

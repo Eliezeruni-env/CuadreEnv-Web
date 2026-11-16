@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import {
   HttpRequest,
   HttpHandler,
@@ -11,9 +11,9 @@ import { getAccessToken, getCompanyId } from '../../features/cuadreEnv/services/
 
 /**
  * Agrega automáticamente el encabezado Authorization: Bearer <jwt>.
- * Garantiza que NO se envíe companyId en el body para determinar el tenant,
- * ya que el backend obtiene la compañía del claim companyId del JWT.
- * Agrega X-Company-Id para compatibilidad sólo en peticiones autenticadas.
+ * Agrega X-Company-Id solo cuando exista una compañía activa válida en la sesión.
+ * Nunca usa fallbacks como 1 o default.
+ * Omite encabezados en endpoints públicos y en peticiones directas con X-Skip-Interceptor.
  */
 function isPublicAuthEndpoint(url: string): boolean {
   const lower = url.toLowerCase();
@@ -25,22 +25,58 @@ function isPublicAuthEndpoint(url: string): boolean {
     lower.includes('/auth/reset-password') ||
     lower.includes('/auth/reset-password-request') ||
     lower.includes('/auth/confirm-reset-password') ||
+    lower.includes('/onboarding') ||
+    lower.includes('/companies/my-companies') ||
+    lower.includes('/user-companies') ||
     lower.includes('/hc')
   );
 }
 
+function isValidCompanyId(compId: any): boolean {
+  if (compId == null) return false;
+  const str = String(compId).trim();
+  if (!str || str === '0' || str === 'default' || str === 'null' || str === 'undefined') return false;
+  const num = Number(str);
+  return !isNaN(num) && num > 0;
+}
+
+function isExternalUrl(url: string): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  if (lower.startsWith('http://') || lower.startsWith('https://')) {
+    const isAppApi =
+      lower.includes('cuadreenv') ||
+      lower.includes('localhost') ||
+      lower.includes('127.0.0.1');
+    return !isAppApi;
+  }
+  return false;
+}
+
 export const authInterceptorFn: HttpInterceptorFn = (req, next) => {
+  if (req.headers.has('X-Skip-Interceptor') || isExternalUrl(req.url)) {
+    const cleanReq = req.headers.has('X-Skip-Interceptor')
+      ? req.clone({
+          headers: req.headers.delete('X-Skip-Interceptor'),
+        })
+      : req;
+    return next(cleanReq);
+  }
+
   const token = getAccessToken();
   const companyId = getCompanyId();
   const isAuth = isPublicAuthEndpoint(req.url);
+  const isSwitchCompany = req.url.toLowerCase().includes('switch-company');
 
   let headers = req.headers;
   if (!isAuth && token && !headers.has('Authorization')) {
     headers = headers.set('Authorization', `Bearer ${token}`);
   }
 
-  if (!isAuth && companyId && !headers.has('X-Company-Id')) {
+  if (!isAuth && !isSwitchCompany && isValidCompanyId(companyId) && !headers.has('X-Company-Id')) {
     headers = headers.set('X-Company-Id', String(companyId));
+  } else if (isSwitchCompany && req.body && typeof req.body === 'object' && (req.body as any).companyId) {
+    headers = headers.set('X-Company-Id', String((req.body as any).companyId));
   }
 
   if (
@@ -53,10 +89,11 @@ export const authInterceptorFn: HttpInterceptorFn = (req, next) => {
     headers = headers.set('Content-Type', 'application/json');
   }
 
-  // Garantizar que si el body requiere companyId, use el tenant activo y nunca 0 o null
+  // Garantizar que si el body incluye companyId, coincida con el tenant activo (salvo en switch-company)
   let body: any = req.body;
   if (
     !isAuth &&
+    !isSwitchCompany &&
     body &&
     typeof body === 'object' &&
     !Array.isArray(body) &&
@@ -64,13 +101,7 @@ export const authInterceptorFn: HttpInterceptorFn = (req, next) => {
     !(body instanceof Blob)
   ) {
     const rawBody = body as Record<string, any>;
-    if (
-      companyId &&
-      (rawBody['companyId'] === 0 ||
-        rawBody['companyId'] === null ||
-        rawBody['companyId'] === undefined ||
-        rawBody['companyId'] === '0')
-    ) {
+    if (isValidCompanyId(companyId) && ('companyId' in rawBody)) {
       body = { ...rawBody, companyId: Number(companyId) };
     }
   }
@@ -91,17 +122,29 @@ export class AuthInterceptor implements HttpInterceptor {
     req: HttpRequest<any>,
     next: HttpHandler,
   ): Observable<HttpEvent<any>> {
+    if (req.headers.has('X-Skip-Interceptor') || isExternalUrl(req.url)) {
+      const cleanReq = req.headers.has('X-Skip-Interceptor')
+        ? req.clone({
+            headers: req.headers.delete('X-Skip-Interceptor'),
+          })
+        : req;
+      return next.handle(cleanReq);
+    }
+
     const token = getAccessToken();
     const companyId = getCompanyId();
     const isAuth = isPublicAuthEndpoint(req.url);
+    const isSwitchCompany = req.url.toLowerCase().includes('switch-company');
 
     let headers = req.headers;
     if (!isAuth && token && !headers.has('Authorization')) {
       headers = headers.set('Authorization', `Bearer ${token}`);
     }
 
-    if (!isAuth && companyId && !headers.has('X-Company-Id')) {
+    if (!isAuth && !isSwitchCompany && isValidCompanyId(companyId) && !headers.has('X-Company-Id')) {
       headers = headers.set('X-Company-Id', String(companyId));
+    } else if (isSwitchCompany && req.body && typeof req.body === 'object' && (req.body as any).companyId) {
+      headers = headers.set('X-Company-Id', String((req.body as any).companyId));
     }
 
     if (
@@ -117,6 +160,7 @@ export class AuthInterceptor implements HttpInterceptor {
     let body: any = req.body;
     if (
       !isAuth &&
+      !isSwitchCompany &&
       body &&
       typeof body === 'object' &&
       !Array.isArray(body) &&
@@ -124,13 +168,7 @@ export class AuthInterceptor implements HttpInterceptor {
       !(body instanceof Blob)
     ) {
       const rawBody = body as Record<string, any>;
-      if (
-        companyId &&
-        (rawBody['companyId'] === 0 ||
-          rawBody['companyId'] === null ||
-          rawBody['companyId'] === undefined ||
-          rawBody['companyId'] === '0')
-      ) {
+      if (isValidCompanyId(companyId) && ('companyId' in rawBody)) {
         body = { ...rawBody, companyId: Number(companyId) };
       }
     }

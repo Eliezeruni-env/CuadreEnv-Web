@@ -538,6 +538,18 @@ export class PermissionService {
     const original = (urlOrModule || '').trim();
     if (!original) return false;
 
+    // Superusuario o rol de administración o comodín '*' tiene acceso completo
+    const isSuper =
+      this.authService.isPlatformSuperUser() ||
+      this.authService.isSuperUser() ||
+      this.authService.hasRole(['Admin', 'SuperUser', 'SuperAdmin', 'SysAdmin', 'Manager']);
+    const allowed = this.authService.allowedModules().map((module) => this.normalizeModuleCode(module));
+    const hasWildcard = allowed.includes('*') || allowed.includes('all');
+
+    if (isSuper || hasWildcard) {
+      return true;
+    }
+
     const isRoute = original.startsWith('/');
     const cleanPath = this.cleanPath(original);
     const requestedModule = isRoute ? null : this.normalizeModuleCode(original);
@@ -546,7 +558,6 @@ export class PermissionService {
       if (typeof this.authService.hasAnyModuleAccess === 'function') {
         return this.authService.hasAnyModuleAccess();
       }
-      const allowed = this.authService.allowedModules().map((module) => this.normalizeModuleCode(module));
       return allowed.includes('*') || allowed.some(Boolean);
     }
 
@@ -564,12 +575,6 @@ export class PermissionService {
 
     if (typeof this.authService.hasModule === 'function') {
       return this.authService.hasModule(targetModule);
-    }
-
-    const isSuper = this.authService.isPlatformSuperUser();
-    const allowed = this.authService.allowedModules().map((module) => this.normalizeModuleCode(module));
-    if (isSuper || allowed.includes('*')) {
-      return true;
     }
 
     const normalizedTarget = this.normalizeModuleCode(targetModule);

@@ -263,20 +263,39 @@ export class CreditNoteService {
   }
 
   async createCreditNote(note: CreditNote): Promise<ApiResponse<CreditNote>> {
+    const rawDetails = note.creditNoteDetails || (note as any).details || [];
+    const mappedDetails = rawDetails
+      .map((d: any) => ({
+        productId: Number(d.productId || d.id || 0),
+        quantity: Number(d.quantity || 1),
+        unitPrice: Number(d.unitPrice || d.price || 0),
+        warehouseId: Number(d.warehouseId || note.warehouseId || 1),
+      }))
+      .filter((d) => d.productId > 0 && d.quantity > 0);
+
+    if (mappedDetails.length === 0) {
+      return {
+        success: false,
+        message: 'La nota de crédito debe tener al menos un detalle de producto.',
+      };
+    }
+
     const payload = {
       billingId: note.billingId,
+      saleId: note.billingId || (note as any).saleId,
       billingNumber: note.billingNumber,
       originalNcf: note.originalNcf,
       customerId: note.customerId,
-      warehouseId: note.warehouseId || 1,
-      reason: note.observations || (note as any).reason,
-      refundMethod: note.refundMethod,
+      warehouseId: note.warehouseId || mappedDetails[0]?.warehouseId || 1,
+      reason: note.observations || (note as any).reason || 'Devolución de mercancía',
+      refundMethod: note.refundMethod || 'CASH',
+      creditNoteType: note.creditNoteType || 1,
       voucherTypeId: 3, // B04 Nota de Crédito
       amountSubTotal: note.amountSubTotal,
       amountDesc: note.amountDesc,
       amountItbis: note.amountItbis,
       amountTotal: note.amountTotal,
-      creditNoteDetails: note.creditNoteDetails,
+      details: mappedDetails,
       date: new Date().toISOString(),
     };
 
@@ -316,20 +335,24 @@ export class CreditNoteService {
 
   async processWarehouseEntry(entry: WarehouseEntry): Promise<void> {
     try {
-      await this.api.post<any, any>('/Warehouse/entry', entry);
+      await this.api.post<any, any>('/WarehouseEntry', entry);
     } catch {
-      // Update local product inventory if needed
-      for (const item of entry.details) {
-        try {
-          const p = await this.productService.getProduct(item.productId);
-          if (p?.success && p.data) {
-            await this.productService.updateProduct({
-              ...p.data,
-              stock: (p.data.stock || 0) + item.quantity,
-            });
+      try {
+        await this.api.post<any, any>('/Warehouse/entry', entry);
+      } catch {
+        // Update local product inventory if needed
+        for (const item of entry.details) {
+          try {
+            const p = await this.productService.getProduct(item.productId);
+            if (p?.success && p.data) {
+              await this.productService.updateProduct({
+                ...p.data,
+                stock: (p.data.stock || 0) + item.quantity,
+              });
+            }
+          } catch {
+            // ignore
           }
-        } catch {
-          // ignore
         }
       }
     }

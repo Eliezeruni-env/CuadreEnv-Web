@@ -169,12 +169,21 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
     },
     {
       id: 'mod-metrics',
-      title: 'Métricas Globales y Analítica',
+      title: 'Métricas Globales y KPIs',
       category: 'Módulos y Operaciones',
       icon: '📈',
       route: '/metrics',
-      keywords: ['metricas', 'graficos', 'estadisticas', 'reportes'],
+      keywords: ['metricas', 'kpis', 'graficos', 'estadisticas', 'rendimiento'],
       requiredModule: 'metrics',
+    },
+    {
+      id: 'mod-financial-reports',
+      title: 'Reportes Financieros & Libros de Venta',
+      category: 'Módulos y Operaciones',
+      icon: '📊',
+      route: '/reports',
+      keywords: ['reportes', 'financieros', 'libro de ventas', 'itbis', 'contabilidad', 'impuestos'],
+      requiredModule: 'reports',
     },
 
     // Inventario y Almacén

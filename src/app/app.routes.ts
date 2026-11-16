@@ -7,9 +7,11 @@ import {
   moduleAccessGuard,
   moduleChildAccessGuard,
 } from './guards/auth.guard';
+import { ModuleAccessService } from '../features/cuadreEnv/services/module-access.service';
 
 export const rootRedirectGuard: CanActivateFn = () => {
   const router = inject(Router);
+  const moduleAccess = inject(ModuleAccessService);
   const isMobile =
     typeof window !== 'undefined' &&
     (window.innerWidth <= 768 ||
@@ -17,11 +19,15 @@ export const rootRedirectGuard: CanActivateFn = () => {
         navigator.userAgent.toLowerCase(),
       ) ||
       window.matchMedia('(display-mode: standalone)').matches ||
-      (navigator as any).standalone === true);
+      (navigator as any).standalone === true ||
+      window.location.search.includes('source=pwa') ||
+      window.location.search.includes('pwa=true'));
 
   if (isMobile) {
-    router.navigate(['/mobile']);
-    return false;
+    if (moduleAccess.hasModuleAccess('mobile-pos')) {
+      router.navigate(['/mobile']);
+      return false;
+    }
   }
   router.navigate(['/dashboard']);
   return false;
@@ -40,7 +46,7 @@ export const routes: Routes = [
       import('../features/sales/components/mobile-pos/mobile-owner-pos.component').then(
         (m) => m.MobileOwnerPosComponent,
       ),
-    data: { module: 'sales', title: 'CuadreEnv Mobile POS & Vista Ejecutiva' },
+    data: { module: 'mobile-pos', title: 'CuadreEnv Mobile POS & Vista Ejecutiva' },
   },
   {
     path: 'mobile-pos',
@@ -427,11 +433,20 @@ export const routes: Routes = [
       {
         path: 'reports',
         loadComponent: () =>
-          import('../features/dashboard/components/metrics/metrics.component').then(
-            (m) => m.MetricsComponent,
+          import('../features/dashboard/components/financial-reports/financial-reports.component').then(
+            (m) => m.FinancialReportsComponent,
           ),
-        canActivate: [moduleGuard('billing-reports-dgii')],
-        data: { module: 'billing-reports-dgii', title: 'Reportes' },
+        canActivate: [moduleGuard('reports')],
+        data: { module: 'reports', title: 'Reportes Financieros' },
+      },
+      {
+        path: 'financial-reports',
+        loadComponent: () =>
+          import('../features/dashboard/components/financial-reports/financial-reports.component').then(
+            (m) => m.FinancialReportsComponent,
+          ),
+        canActivate: [moduleGuard('reports')],
+        data: { module: 'reports', title: 'Reportes Financieros' },
       },
       {
         path: 'services',

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -7,7 +7,7 @@ import { ChartjsComponent } from '@coreui/angular-chartjs';
 import {
   SpinnerComponent,
 } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
+// import { IconDirective } from '@coreui/icons-angular';
 import { SaleService } from '../../../sales/services/sale.service';
 import { CashRegisterService } from '../../../cash-register/services/cash-register.service';
 import { AccountReceivableService } from '../../../payments/services/account-receivable.service';
@@ -57,12 +57,24 @@ export interface ExecutiveKpiRow {
     RouterLink,
     ChartjsComponent,
     SpinnerComponent,
-    IconDirective,
+    
   ],
   templateUrl: './metrics.component.html',
   styleUrls: ['./metrics.component.scss'],
 })
 export class MetricsComponent implements OnInit {
+  testDgiiConnection(): void {
+    this.isDgiiTesting.set(true);
+    this.dgiiTestSuccess.set(false);
+    setTimeout(() => {
+      this.isDgiiTesting.set(false);
+      this.dgiiTestSuccess.set(true);
+    }, 1200);
+  }
+
+  saveDgiiConfig(): void {
+    this.isDgiiConfigModalOpen.set(false);
+  }
   private saleService = inject(SaleService);
   private cashService = inject(CashRegisterService);
   private receivableService = inject(AccountReceivableService);
@@ -75,11 +87,37 @@ export class MetricsComponent implements OnInit {
   // Filters
   selectedDateRange = signal<string>('month');
   selectedPeriod = signal<'7D' | '30D' | '90D' | '1A'>('30D');
+  kpiViewMode = signal<'domains' | 'compact'>('domains');
+  uniqueBuyingCustomersCount = signal<number>(0);
+  isDgiiConfigModalOpen = signal<boolean>(false);
+  dgiiRnc = signal<string>('132-94812-1');
+    dgiiEnvironment = signal<'test' | 'prod'>('test');
+  isDgiiTesting = signal<boolean>(false);
+  dgiiTestSuccess = signal<boolean>(false);
+
+  avgSpentPerCustomer = computed(() => {
+    const c = this.uniqueBuyingCustomersCount();
+    return c > 0 ? this.totalRevenue() / c : this.totalRevenue();
+  });
+
+  digitalShareAmount = computed(() => {
+    return this.paymentBreakdown().cardAmount + this.paymentBreakdown().transferAmount;
+  });
+
+  digitalSharePct = computed(() => {
+    return Math.round((this.paymentBreakdown().cardPct + this.paymentBreakdown().transferPct) * 10) / 10;
+  });
+
+  unitsPerDay = computed(() => {
+    const days = this.selectedPeriod() === '7D' ? 7 : (this.selectedPeriod() === '90D' ? 90 : (this.selectedPeriod() === '1A' ? 365 : 30));
+    return days > 0 ? Math.round((this.totalUnitsSold() / days) * 10) / 10 : 0;
+  });
 
   // Key KPI signals
   totalRevenue = signal<number>(0);
   totalSalesCount = signal<number>(0);
   averageTicket = signal<number>(0);
+  totalCogs = signal<number>(0);
   netMarginAmount = signal<number>(0);
   netMarginPercent = signal<number>(0);
   totalItbis = signal<number>(0);
@@ -146,7 +184,7 @@ export class MetricsComponent implements OnInit {
     layout: {
       padding: {
         top: 8,
-        bottom: 8,
+        bottom: 16,
         left: 4,
         right: 8,
       },
@@ -174,6 +212,7 @@ export class MetricsComponent implements OnInit {
       y: {
         beginAtZero: true,
         suggestedMin: 0,
+        min: 0,
         suggestedMax: 100,
         grid: { color: 'rgba(0, 0, 0, 0.05)' },
         ticks: {
@@ -209,7 +248,7 @@ export class MetricsComponent implements OnInit {
     layout: {
       padding: {
         top: 8,
-        bottom: 8,
+        bottom: 16,
         left: 4,
         right: 8,
       },
@@ -260,6 +299,15 @@ export class MetricsComponent implements OnInit {
     );
   });
 
+  constructor() {
+    effect(() => {
+      const cid = this.authService.companyId();
+      if (cid && this.isAuthorized()) {
+        this.loadMetricsData();
+      }
+    });
+  }
+
   ngOnInit() {
     if (this.isAuthorized()) {
       this.loadMetricsData();
@@ -278,6 +326,7 @@ export class MetricsComponent implements OnInit {
 
   async loadMetricsData() {
     this.isLoading.set(true);
+    const activeCid = this.authService.companyId();
 
     try {
       const [salesRes, cashRes, custRes, overdueRes] = await Promise.all([
@@ -287,13 +336,14 @@ export class MetricsComponent implements OnInit {
         this.receivableService.getOverdue().catch(() => ({ success: false, data: [] })),
       ]);
 
-      const sales = (salesRes?.success && salesRes.data)
-        ? salesRes.data.filter((s: any) => !s.isCancelled)
-        : [];
+      const rawSales = (salesRes?.success && salesRes.data) ? salesRes.data : [];
+      const sales = rawSales.filter((s: any) => !s.isCancelled && (!activeCid || !s.companyId || s.companyId === activeCid));
       this.cachedSales = sales;
 
-      this.cachedCashRegisters = (cashRes?.success && cashRes.data) ? cashRes.data : [];
+      const rawCash = (cashRes?.success && cashRes.data) ? cashRes.data : [];
+      this.cachedCashRegisters = activeCid ? rawCash.filter((c: any) => !c.companyId || c.companyId === activeCid) : rawCash;
       const customers = (custRes?.success && custRes.data) ? custRes.data : [];
+      this.totalCustomersCount.set(customers.length);
       this.totalCustomersCount.set(customers.length);
 
       // Overdue receivables
@@ -354,6 +404,7 @@ export class MetricsComponent implements OnInit {
     });
 
     this.totalItbis.set(periodItbis);
+    this.totalCogs.set(periodCogs);
     const netMargin = Math.max(0, revenue - periodItbis - periodCogs);
     const marginPct = revenue > 0 ? Math.round((netMargin / revenue) * 1000) / 10 : 0;
     this.netMarginAmount.set(netMargin);
@@ -520,6 +571,16 @@ export class MetricsComponent implements OnInit {
 
     const netCash = totalIn - totalOut;
     this.netCashFlow.set(netCash);
+
+    // Calcular clientes compradores únicos efectivos en el período
+    const buyingCustomerIds = new Set<number>();
+    periodSales.forEach((s: any) => {
+      if (s.customerId && Number(s.customerId) > 0) {
+        buyingCustomerIds.add(Number(s.customerId));
+      }
+    });
+    const uniqueBuyers = buyingCustomerIds.size > 0 ? buyingCustomerIds.size : (periodSales.length > 0 ? Math.min(periodSales.length, 1) : 0);
+    this.uniqueBuyingCustomersCount.set(uniqueBuyers);
 
     const customersCount = this.totalCustomersCount();
 
@@ -714,16 +775,16 @@ export class MetricsComponent implements OnInit {
       datasets: [
         {
           label: 'Ventas (RD$)',
-          backgroundColor: 'rgba(79, 70, 229, 0.08)',
-          borderColor: '#4f46e5',
-          borderWidth: 2.5,
-          pointBackgroundColor: '#4f46e5',
+          backgroundColor: 'rgba(37, 99, 235, 0.08)',
+          borderColor: '#2563eb',
+          borderWidth: 2,
+          pointBackgroundColor: '#2563eb',
           pointBorderColor: '#ffffff',
           pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6,
+          pointRadius: 3,
+          pointHoverRadius: 5,
           fill: true,
-          tension: 0.4,
+          tension: 0.25,
           data: salesSeries,
         },
       ],

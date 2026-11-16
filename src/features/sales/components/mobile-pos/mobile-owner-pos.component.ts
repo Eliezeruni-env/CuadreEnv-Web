@@ -1,3 +1,4 @@
+import { formatPaymentMethodLabel } from '../../../cuadreEnv/utils/payment-method.util';
 import {
   Component,
   OnInit,
@@ -6,6 +7,8 @@ import {
   inject,
   signal,
   computed,
+  effect,
+  untracked,
   ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -19,6 +22,7 @@ import {
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { getCompanyId } from '../../../cuadreEnv/services/apiClient';
 import { ProductService } from '../../../products/services/product.service';
+import { BarcodeLookupService } from '../../../products/services/barcode-lookup.service';
 import { CategoryService } from '../../../products/services/category.service';
 import {
   UnitOfMeasurementService,
@@ -38,6 +42,7 @@ import { SaleService } from '../../services/sale.service';
 import { CustomerService } from '../../../customers/services/customer.service';
 import { FraudGuardianService } from '../../../cash-register/services/fraud-guardian.service';
 import { PosOfflineSyncService } from '../../services/pos-offline-sync.service';
+import { WarehouseService } from '../../../inventory/services/warehouse.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
 import {
@@ -52,6 +57,7 @@ import {
   type ReceivableDto,
 } from '../../services/receivable.service';
 import { ThemeService } from '../../../cuadreEnv/services/theme.service';
+import { ModuleAccessService } from '../../../cuadreEnv/services/module-access.service';
 import {
   PosDraftStorageService,
   type PosHeldSale,
@@ -152,6 +158,11 @@ function getStableDeviceId(): string {
   ],
 })
 export class MobileOwnerPosComponent implements OnInit, OnDestroy {
+  formatPaymentMethod(method?: string | null): string {
+    return formatPaymentMethodLabel(method);
+  }
+
+
   readonly Math = Math;
   private readonly sanitizer = inject(DomSanitizer);
   private readonly productService = inject(ProductService);
@@ -177,16 +188,79 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   closeRegisterModal?: CloseRegisterModalComponent;
 
   readonly themeService = inject(ThemeService);
+  readonly moduleAccess = inject(ModuleAccessService);
   readonly isDarkMode = computed(() => this.themeService.isDark);
   readonly draftStorageService = inject(PosDraftStorageService);
+  private readonly barcodeLookupService: BarcodeLookupService = inject(BarcodeLookupService);
+  private readonly warehouseService = inject(WarehouseService);
   isHeldSalesModalOpen = signal<boolean>(false);
+
+  // Almacenes
+  warehouses = signal<any[]>([]);
+  selectedWarehouseId = signal<number>(1);
+
+  getSelectedWarehouseName(): string {
+    const found = this.warehouses().find((w) => w.id === this.selectedWarehouseId());
+    return found?.name || 'Almacén Principal';
+  }
+
+  onWarehouseChange(id: number): void {
+    this.selectedWarehouseId.set(Number(id) || 1);
+    this.notificationService.info(`Almacén activo: ${this.getSelectedWarehouseName()}`);
+  }
+
+  async loadWarehouses(): Promise<void> {
+    try {
+      const res = await this.warehouseService.getWarehouses();
+      if (res?.success && res.data && res.data.length > 0) {
+        this.warehouses.set(res.data);
+        const main = res.data.find((w: any) => w.isMain) || res.data[0];
+        if (main?.id) {
+          this.selectedWarehouseId.set(main.id);
+        }
+      }
+    } catch (e) {
+      console.warn('Error loading warehouses in mobile pos:', e);
+    }
+  }
 
   // =========================================================================
   // Mobile Session Authentication (Reconoce sesión existente sin doble login)
   // =========================================================================
-  readonly isMobileAuthenticated = signal<boolean>(
-    typeof window !== 'undefined' && this.authService.isAuthenticated(),
-  );
+  readonly isMobileAuthenticated = computed(() => {
+    return (
+      this.authService.isAuthenticated() ||
+      (typeof window !== 'undefined' &&
+        !!(
+          localStorage.getItem('accessToken') ||
+          sessionStorage.getItem('accessToken') ||
+          localStorage.getItem('cuadre_access_token') ||
+          sessionStorage.getItem('cuadre_access_token')
+        ))
+    );
+  });
+
+  readonly canAccessMobile = computed(() => {
+    if (!this.isMobileAuthenticated()) return true;
+    if (
+      this.authService.isSuperUser() ||
+      this.authService.hasRole([
+        'Admin',
+        'Administrador',
+        'SuperUser',
+        'SuperAdmin',
+        'SysAdmin',
+        'Owner',
+        'Dueño',
+        'Dueno',
+        'Gerente',
+        'Supervisor',
+      ])
+    ) {
+      return true;
+    }
+    return this.moduleAccess.hasModuleAccess('mobile-pos');
+  });
 
   readonly isFullscreen = signal<boolean>(
     typeof document !== 'undefined' && !!document.fullscreenElement,
@@ -223,6 +297,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   fiaoList = signal<ReceivableDto[]>([]);
   isLoadingFiao = signal<boolean>(false);
   fiaoSearchTerm = signal<string>('');
+  fiaoStatusFilter = signal<'pending' | 'paid' | 'all'>('pending');
   isFiaoPaymentModalOpen = signal<boolean>(false);
   selectedFiaoForPayment = signal<ReceivableDto | null>(null);
   fiaoPaymentAmount = signal<number>(0);
@@ -231,9 +306,31 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   );
   fiaoPaymentNotes = signal<string>('');
 
+  readonly pendingFiaoList = computed(() => {
+    return this.fiaoList().filter(
+      (item) => (item.pendingAmount || 0) > 0 && item.status !== 'Pagado'
+    );
+  });
+
+  readonly paidFiaoList = computed(() => {
+    return this.fiaoList().filter(
+      (item) => item.status === 'Pagado' || (item.pendingAmount || 0) <= 0
+    );
+  });
+
+  readonly totalPaidFiaoCount = computed(() => this.paidFiaoList().length);
+
   readonly filteredFiaoList = computed(() => {
     const term = this.fiaoSearchTerm().trim().toLowerCase();
-    const list = this.fiaoList();
+    const filter = this.fiaoStatusFilter();
+    let list = this.fiaoList();
+
+    if (filter === 'pending') {
+      list = list.filter((item) => (item.pendingAmount || 0) > 0 && item.status !== 'Pagado');
+    } else if (filter === 'paid') {
+      list = list.filter((item) => item.status === 'Pagado' || (item.pendingAmount || 0) <= 0);
+    }
+
     if (!term) return list;
     return list.filter(
       (item) =>
@@ -604,6 +701,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   // =========================================================================
   // SPEED POS: ESCÁNER EN RÁFAGA (CÁMARA + ESCÁNER FÍSICO USB/BLUETOOTH)
   // =========================================================================
+  scannerMode = signal<'pos' | 'stock_entry'>('pos');
   cameraScanFlash = signal<boolean>(false);
   cameraLastScannedItem = signal<{
     name: string;
@@ -654,7 +752,6 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     if (p.isService === true || p.type === 'service' || p.type === 'Servicio')
       return true;
     if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
-    if (p.invoiceWithoutStock === true) return true;
 
     const code = String(p.barcode || p.reference || p.code || '')
       .toUpperCase()
@@ -789,20 +886,97 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     return item ? item.quantity : 0;
   }
 
+  private syncInterval: any = null;
+  private isMobileDataInitializing = false;
+  private onWindowFocusHandler = () => {
+    if (this.authService.isAuthenticated()) {
+      void this.loadExecutiveData();
+    }
+  };
+  private onVisibilityChangeHandler = () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible' && this.authService.isAuthenticated()) {
+      void this.loadExecutiveData();
+    }
+  };
+  private onCashRegisterChangedHandler = () => {
+    if (this.authService.isAuthenticated()) {
+      void this.loadExecutiveData();
+    }
+  };
+
+  constructor() {
+    effect(() => {
+      const items = this.cart();
+      if (items.length > 0) {
+        this.syncActiveDraft();
+      } else {
+        this.draftStorageService.clearActiveDraft();
+      }
+    });
+
+    // Reaccionar automáticamente cuando la sesión de autenticación termine de inicializarse
+    effect(() => {
+      const isInit = this.authService.isInitializing();
+      const isAuth = this.authService.isAuthenticated();
+      if (!isInit && isAuth) {
+        untracked(() => {
+          if (this.authService.userCompanies().length === 0) {
+            this.authService.loadUserCompanies().catch(() => {});
+          }
+          void this.initMobileData();
+        });
+      }
+    });
+  }
+
+  private syncActiveDraft(): void {
+    const items = this.cart();
+    if (items.length === 0) {
+      this.draftStorageService.clearActiveDraft();
+      return;
+    }
+    const draftItems: PosDraftItem[] = items.map((i) => ({
+      productId: Number(i.product.id || 0),
+      productCode: String(i.product.barcode || (i.product as any).code || i.product.reference || ''),
+      productName: i.product.description || (i.product as any).name || 'Producto',
+      unitPrice: i.unitPrice,
+      quantity: i.quantity,
+      total: i.total,
+    }));
+    const custName = this.customerName() || 'Consumidor Final';
+    this.draftStorageService.saveActiveDraft({
+      customerId: this.selectedCustomerId(),
+      customerName: custName,
+      items: draftItems,
+      discountType: 'fixed',
+      discountValue: 0,
+      selectedMethod: this.selectedMethod(),
+      amountReceived: 0,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   ngOnInit(): void {
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => this.isOnline.set(true));
       window.addEventListener('offline', () => this.isOnline.set(false));
+      window.addEventListener('focus', this.onWindowFocusHandler);
+      window.addEventListener('cuadre_cash_register_changed', this.onCashRegisterChangedHandler);
+      // Sincronización continua de caja y sesión entre PC y móvil cada 15s
+      this.syncInterval = setInterval(() => {
+        if (this.authService.isAuthenticated()) {
+          void this.loadExecutiveData();
+        }
+      }, 15000);
     }
     if (typeof document !== 'undefined') {
       document.addEventListener('fullscreenchange', () => {
         this.isFullscreen.set(!!document.fullscreenElement);
       });
+      document.addEventListener('visibilitychange', this.onVisibilityChangeHandler);
     }
-    // Cargar siempre datos de configuración de empresa de la sesión
-    this.companyService.getCompanySettings().catch(() => {});
     if (this.authService.isAuthenticated()) {
-      this.isMobileAuthenticated.set(true);
+      this.companyService.getCompanySettings().catch(() => {});
       if (this.authService.userCompanies().length === 0) {
         this.authService.loadUserCompanies().catch(() => {});
       }
@@ -812,19 +986,40 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.closeCameraScanner();
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = null;
+    }
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('focus', this.onWindowFocusHandler);
+      window.removeEventListener('cuadre_cash_register_changed', this.onCashRegisterChangedHandler);
+    }
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.onVisibilityChangeHandler);
+    }
   }
 
   async initMobileData(): Promise<void> {
+    if (this.isMobileDataInitializing) return;
+    this.isMobileDataInitializing = true;
     try {
       await Promise.allSettled([
         this.companyService.getCompanySettings(),
         this.authService.loadUserCompanies(),
       ]);
     } catch {}
-    this.loadExecutiveData();
-    this.loadCatalog();
-    this.loadServicesCatalog();
-    this.loadFiaoList();
+    try {
+      await Promise.allSettled([
+        this.loadExecutiveData(),
+        this.loadCatalog(),
+        this.loadServicesCatalog(),
+        this.loadFiaoList(),
+        this.loadWarehouses(),
+      ]);
+      this.restoreActiveDraftIfAny();
+    } finally {
+      this.isMobileDataInitializing = false;
+    }
   }
 
   async loginMobile(): Promise<void> {
@@ -868,7 +1063,6 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
         }
       }
 
-      this.isMobileAuthenticated.set(true);
       this.notificationService.success(`Bienvenido a CuadreEnv Móvil`);
       await this.initMobileData();
     } catch (err: any) {
@@ -921,29 +1115,76 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     }
   }
 
-  logoutMobile(): void {
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('cuadre_mobile_session_active');
+  // =========================================================================
+  // LOGOUT CONFIRMATION MODAL & PENDING CHANGES AUDIT
+  // =========================================================================
+  isLogoutConfirmModalOpen = signal<boolean>(false);
+
+  readonly hasPendingChangesOnLogout = computed(() => {
+    const hasCart = this.cart().length > 0;
+    const hasServiceCart = this.serviceCart().length > 0;
+    const hasHeld = (this.draftStorageService.heldSales() || []).length > 0;
+    const hasOpenCash = this.activeSessions().some((s) => s.isOpen);
+    return hasCart || hasServiceCart || hasHeld || hasOpenCash;
+  });
+
+  readonly pendingChangesReasons = computed(() => {
+    const reasons: string[] = [];
+    const cartCount = this.totalCartItemsCount();
+    if (cartCount > 0) {
+      reasons.push(`${cartCount} artículo(s) sin facturar en el carrito de ventas`);
     }
-    this.isMobileAuthenticated.set(false);
-    this.mobileLoginPassword = '';
-    this.authService.logout();
-    this.notificationService.info('Terminal móvil bloqueada / sesión cerrada.');
+    const serviceCount = this.totalServiceCartCount();
+    if (serviceCount > 0) {
+      reasons.push(`${serviceCount} servicio(s) sin facturar en el carrito`);
+    }
+    const heldCount = (this.draftStorageService.heldSales() || []).length;
+    if (heldCount > 0) {
+      reasons.push(`${heldCount} venta(s) guardadas en espera (Held Sales)`);
+    }
+    const openCash = this.activeSessions().find((s) => s.isOpen);
+    if (openCash) {
+      reasons.push(`El turno de caja registradora #${openCash.id} continúa abierto sin cuadre`);
+    }
+    return reasons;
+  });
+
+  requestLogout(): void {
+    triggerHaptic(20);
+    this.isLogoutConfirmModalOpen.set(true);
+  }
+
+  cancelLogout(): void {
+    this.isLogoutConfirmModalOpen.set(false);
+  }
+
+  async confirmLogout(): Promise<void> {
+    this.isLogoutConfirmModalOpen.set(false);
+    await this.logout();
+  }
+
+  logoutMobile(): void {
+    this.requestLogout();
   }
 
   async logout(): Promise<void> {
-    this.logoutMobile();
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('cuadre_mobile_session_active');
+    }
+    this.mobileLoginPassword = '';
     await this.authService.logout();
-    this.router.navigate(['/login']);
+    this.notificationService.info('Terminal móvil bloqueada / sesión cerrada.');
   }
 
   async loadExecutiveData(): Promise<void> {
+    if (!this.authService.isAuthenticated()) return;
     try {
-      // 1. Cargar sesión activa real de caja
-      const sessionRes = await this.cashRegisterService.getActiveSession();
+      // 1. Cargar sesión activa real de caja (con fallback silencioso)
+      const sessionRes = await this.cashRegisterService.getActiveSession().catch(() => null);
       if (sessionRes?.data && sessionRes.data.isOpen) {
         this.activeSessions.set([sessionRes.data]);
-      } else {
+      } else if (sessionRes !== null && (!sessionRes.data || sessionRes.data.isOpen === false)) {
+        // Solo vaciar si el servidor respondió explícitamente que la sesión está cerrada
         this.activeSessions.set([]);
       }
 
@@ -1324,14 +1565,14 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     if (pkg && mode === 'package') {
       return (
         pkg.packagePrice ||
-        (prod.price || (prod.cost ? prod.cost * 1.3 : 100)) *
+        Number(prod.price || (prod as any).priceList || 0) *
           (pkg.packageUnitsCount || 1)
       );
     }
     if (pkg && mode === 'individual') {
       return pkg.individualUnitPrice || 15;
     }
-    return prod.price || (prod.cost ? prod.cost * 1.3 : 100);
+    return Number(prod.price || (prod as any).priceList || 0);
   }
 
   getEffectiveUnitLabel(): string {
@@ -1650,7 +1891,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
         i.product.id === product.id &&
         (isGeneric ? i.product.description === product.description : true),
     );
-    const price = product.price || (product.cost ? product.cost * 1.3 : 100);
+    const price = Number(product.price != null && product.price > 0 ? product.price : (product as any).priceList || 0);
     const itbisRate = product.taxRate ?? 0.18;
     const unitSymbol = this.getProductUnitSymbol(product);
     const allowsDecimals = this.isProductMeasurable(product);
@@ -1749,7 +1990,40 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     }
   }
 
+  private restoreActiveDraftIfAny(): void {
+    if (this.cart().length > 0) return;
+    const draft = this.draftStorageService.getActiveDraft();
+    if (!draft || !draft.items || draft.items.length === 0) return;
+    const restoredCart: MobileCartItem[] = draft.items.map((it) => {
+      const matchingProd = this.products().find((p) => Number(p.id) === it.productId);
+      const prod: ProductDto = matchingProd || ({
+        id: it.productId,
+        description: it.productName,
+        price: it.unitPrice,
+        barcode: it.productCode,
+        reference: it.productCode,
+        taxRate: 0.18,
+        stock: 999,
+      } as any);
+      const subtotal = Math.round(it.quantity * it.unitPrice * 100) / 100;
+      const itbis = Math.round(subtotal * (prod.taxRate ?? 0.18) * 100) / 100;
+      const total = Math.round((subtotal + itbis) * 100) / 100;
+      return {
+        product: prod,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+        subtotal,
+        itbis,
+        total,
+        unitSymbol: 'und',
+        allowsDecimals: false,
+      };
+    });
+    this.cart.set(restoredCart);
+  }
+
   clearCart(): void {
+    this.draftStorageService.clearActiveDraft();
     this.cart.set([]);
     this.cartDiscountType.set('none');
     this.cartDiscountValue.set(0);
@@ -2132,7 +2406,12 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     }
 
     this.isSubmitting.set(true);
-    const companyId = this.authService.companyId() || 1;
+    const companyId = this.authService.companyId();
+    if (!companyId) {
+      this.notificationService.error('Se requiere seleccionar una empresa activa para registrar ventas.');
+      this.isSubmitting.set(false);
+      return;
+    }
     const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
     const total = this.cartTotal();
@@ -2310,7 +2589,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
           clientName: customer,
           billingTypeId: 1,
           voucherTypeId: this.ncfType() === 'B01' ? 1 : 2,
-          warehouseId: 1,
+          warehouseId: this.selectedWarehouseId() || 1,
           rncOrCedula: '',
         };
         const items: ProductDetails[] = this.cart().map((item) => {
@@ -3420,7 +3699,19 @@ ${itemsList}
   // =========================================================================
   // ESCÁNER CONTINUO EN RÁFAGA CON CÁMARA (NATIVE BARCODE DETECTOR + ZXING FALLBACK)
   // =========================================================================
-  async openCameraScanner(): Promise<void> {
+  openStockEntryScanner(): void {
+    this.isStockEntryModalOpen.set(false);
+    void this.openCameraScanner('stock_entry');
+  }
+
+  setScannerMode(mode: 'pos' | 'stock_entry'): void {
+    this.scannerMode.set(mode);
+    soundEffects.playBeep();
+    triggerHaptic(15);
+  }
+
+  async openCameraScanner(mode: 'pos' | 'stock_entry' = 'pos'): Promise<void> {
+    this.scannerMode.set(mode);
     if (
       typeof window !== 'undefined' &&
       !window.isSecureContext &&
@@ -3784,6 +4075,37 @@ ${itemsList}
     }
 
     if (found) {
+      if (this.scannerMode() === 'stock_entry') {
+        this.cameraBurstScannedCount.update((c) => c + 1);
+        this.cameraLastScannedItem.set({
+          name: found.description || 'Producto',
+          price: found.cost || found.price || 0,
+          time: new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }),
+        });
+
+        this.cameraScanFlash.set(true);
+        setTimeout(() => this.cameraScanFlash.set(false), 250);
+
+        soundEffects.playScannerBeep();
+        triggerHaptic(30);
+
+        this.stockEntryProductId.set(found.id ?? null);
+        if (found.cost) {
+          this.stockEntryCost.set(found.cost);
+        }
+        this.closeCameraScanner();
+        this.isStockEntryModalOpen.set(true);
+        const unitSym = this.getProductUnitSymbol(found);
+        this.notificationService.success(
+          `📦 "${found.description}" seleccionado para Entrada de Almacén (Existencia actual: ${found.stock || 0} ${unitSym})`
+        );
+        return;
+      }
+
       this.addToCart(found);
       this.cameraBurstScannedCount.update((c) => c + 1);
       this.cameraLastScannedItem.set({
@@ -3804,15 +4126,27 @@ ${itemsList}
 
       if (!isFromCamera) {
         this.notificationService.success(
-          `Producto agregado: ${found.description}`,
+          `Producto agregado: ${found.description} (Precio Venta: RD$ ${(found.price || 0).toLocaleString()})`,
         );
       }
     } else {
       soundEffects.playErrorBeep();
       triggerHaptic([30, 40, 30]);
-      this.notificationService.warning(
-        `Código "${barcode}" no registrado en el catálogo de esta empresa.`,
-      );
+      void (this.barcodeLookupService as any).lookupUniversalProduct(barcode).then((meta: any) => {
+        if (meta) {
+          this.notificationService.info(
+            `✨ Identificado globalmente: "${meta.name}" (${meta.brand || 'General'}). Listo para registrar.`
+          );
+        } else {
+          this.notificationService.warning(
+            `Código "${barcode}" no registrado en el catálogo de esta empresa.`
+          );
+        }
+      }).catch(() => {
+        this.notificationService.warning(
+          `Código "${barcode}" no registrado en el catálogo de esta empresa.`
+        );
+      });
       if (!isFromCamera) {
         this.searchTerm.set(barcode);
         this.closeCameraScanner();

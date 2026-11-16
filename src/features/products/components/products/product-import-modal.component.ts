@@ -321,7 +321,12 @@ export class ProductImportModalComponent implements OnInit {
     this.isImporting.set(true);
     this.importProgress.set(0);
 
-    const companyId = this.authService.companyId() || 1;
+    const companyId = this.authService.companyId();
+    if (!companyId) {
+      this.notificationService.error('Se requiere seleccionar una empresa activa antes de importar productos.');
+      this.isImporting.set(false);
+      return;
+    }
 
     // 1. Obtener o garantizar tipos de producto y categorías
     let defaultTypeId = 1;

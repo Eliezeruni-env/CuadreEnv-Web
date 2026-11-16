@@ -88,6 +88,8 @@ interface AuthenticatedUser {
   email: string;
   id: number;
   fullName?: string;
+  role?: string | null;
+  isSuperUser?: boolean;
   allowedModules: string[];
 }
 
@@ -120,6 +122,8 @@ export class AuthService {
     ? new HttpClient(this.httpBackend)
     : null;
   private moduleEntitlementRefresh: Promise<boolean> | null = null;
+  private lastModuleRefreshAttempt = 0;
+  private readonly MODULE_REFRESH_COOLDOWN_MS = 60000;
   private moduleRefreshInterval: number | null = null;
   private entitlementErrorNotified = false;
 
@@ -132,6 +136,9 @@ export class AuthService {
   companyId = signal<number | null>(this.getInitialCompanyId());
   currentCompanyId = computed<number | null>(() => this.companyId());
   userCompanies = signal<UserCompanyDto[]>(this.getStoredUserCompanies());
+  userCompaniesLoading = signal<boolean>(false);
+  userCompaniesError = signal<string | null>(null);
+  isSwitchingCompany = signal<boolean>(false);
   activeCompany = computed<UserCompanyDto | null>(() => {
     const id = this.companyId();
     if (!id) return null;
@@ -158,11 +165,10 @@ export class AuthService {
         window.sessionStorage?.getItem('currentCompanyId') ||
         window.sessionStorage?.getItem('auth_company_id') ||
         window.sessionStorage?.getItem('companyId') ||
-        (isRememberMe()
-          ? window.localStorage?.getItem('currentCompanyId') ||
-            window.localStorage?.getItem('auth_company_id') ||
-            window.localStorage?.getItem('companyId')
-          : null);
+        window.localStorage?.getItem('currentCompanyId') ||
+        window.localStorage?.getItem('auth_company_id') ||
+        window.localStorage?.getItem('companyId') ||
+        window.localStorage?.getItem(API_CONSTANTS.COMPANY_ID_KEY);
       if (
         stored &&
         stored !== 'null' &&
@@ -268,7 +274,7 @@ export class AuthService {
     }
 
     const rt = getRefreshToken();
-    if (rt) {
+    if (rt && !hasValidAccessToken) {
       try {
         const tokens = await doRefresh(this.api);
         if (tokens?.accessToken) {
@@ -433,17 +439,14 @@ export class AuthService {
       decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/sid'];
 
     let compId: number | null = null;
-    if (rawCompanyId !== undefined && rawCompanyId !== null) {
+
+    // Prioridad 1: Si hay una empresa explícitamente seleccionada y almacenada en la sesión activa
+    const storedCompId = this.getInitialCompanyId();
+    if (storedCompId && storedCompId > 0) {
+      compId = storedCompId;
+    } else if (rawCompanyId !== undefined && rawCompanyId !== null) {
       const parsed = parseInt(rawCompanyId.toString(), 10);
       compId = !isNaN(parsed) && parsed > 0 ? parsed : null;
-    }
-
-    // Si no vino claim válido en token, consultar almacenamiento local o sesión previa activa
-    if (compId === null || compId <= 0) {
-      const storedCompId = this.getInitialCompanyId();
-      if (storedCompId && storedCompId > 0) {
-        compId = storedCompId;
-      }
     }
 
     // Si sigue sin definirse pero hay empresas vinculadas, asignar la empresa por defecto o la primera
@@ -548,22 +551,41 @@ export class AuthService {
     ];
 
     if (literalModules.length === 0) {
-      if (preservePreviousModules && this.allowedModules().length > 0) {
+      const roleLower = String(rawRole || '').toLowerCase();
+      if (
+        this.isPlatformSuperUser() ||
+        roleLower === 'admin' ||
+        roleLower === 'administrador' ||
+        roleLower === 'owner' ||
+        roleLower === 'dueño' ||
+        roleLower === 'dueno' ||
+        roleLower === 'gerente'
+      ) {
+        literalModules = ['*'];
+      } else if (roleLower === 'supervisor') {
+        literalModules = ['dashboard', 'sales', 'cashregister', 'inventory', 'customers', 'audit', 'reports', 'users'];
+      } else if (roleLower.includes('cajer') || roleLower.includes('cashier')) {
+        literalModules = ['dashboard', 'sales', 'cashregister', 'customers', 'products.detail_sales'];
+      } else if (roleLower.includes('vendedor') || roleLower.includes('seller')) {
+        literalModules = ['dashboard', 'sales', 'inventory', 'customers'];
+      } else if (preservePreviousModules && this.allowedModules().length > 0) {
         literalModules = this.allowedModules();
       } else {
-        this.clearSession();
-        return;
+        literalModules = ['dashboard', 'sales', 'cashregister', 'customers'];
       }
     }
 
     this.userPermissions.set(parsedPermissions);
     this.allowedModules.set(literalModules);
-    this.currentUser.set({
+    const currentUserObj: AuthenticatedUser = {
       email,
       id,
       fullName,
+      role: rawRole,
+      isSuperUser: this.isPlatformSuperUser() || this.isSuperUser(),
       allowedModules: literalModules,
-    });
+    };
+    this.currentUser.set(currentUserObj);
     const isImpersonated = Boolean(
       decoded.isImpersonated || (rawTokensResponse as any)?.['isImpersonated'],
     );
@@ -574,6 +596,14 @@ export class AuthService {
     this.isAuthenticated.set(true);
 
     if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('currentUser', JSON.stringify(currentUserObj));
+        localStorage.setItem('currentUser', JSON.stringify(currentUserObj));
+        if (rawRole) {
+          sessionStorage.setItem('user_role', rawRole);
+          localStorage.setItem('user_role', rawRole);
+        }
+      } catch {}
       if (window.sessionStorage) {
         sessionStorage.setItem(
           'allowedModules',
@@ -879,16 +909,17 @@ export class AuthService {
 
   hasModule(moduleCode: string): boolean {
     if (!moduleCode?.trim()) return false;
+    if (this.isSuperUser() || this.isPlatformSuperUser()) return true;
 
-    // Si tiene comodín explícito '*', o es superusuario de plataforma sin lista restrictiva
+    // Si tiene comodín explícito '*' o 'all', otorgar acceso completo
     const assigned = this.allowedModules();
     const hasWildcard = assigned.includes('*') || assigned.includes('all');
-    if (!hasWildcard && assigned.length > 0) {
+    if (hasWildcard) return true;
+
+    if (assigned.length > 0) {
       // Si el usuario tiene una lista taxativa de módulos asignados desde el USM, se respeta estrictamente
       return this.moduleAccessService.hasModuleAccess(moduleCode);
     }
-
-    if (this.isSuperUser() || this.isPlatformSuperUser()) return true;
 
     const licensed = this.licensedModules();
     if (licensed !== null && licensed.length === 0) return false;
@@ -898,18 +929,9 @@ export class AuthService {
       if (!this.isModuleLicensed(moduleCode, licensed)) {
         return false;
       }
-    } else if (licensed === null && hasWildcard) {
-      // Si las licencias de la empresa aún no han cargado y el usuario tiene comodín '*',
-      // no abrir acceso general hasta confirmar contra /auth/me/modules
-      return false;
     }
 
-    // 2. Si el usuario tiene asignado '*', tiene acceso a los módulos licenciados por la empresa
-    if (hasWildcard) {
-      return true;
-    }
-
-    // 3. De lo contrario, verificar autorización explícita / granular
+    // 2. De lo contrario, verificar autorización granular
     return this.moduleAccessService.hasModuleAccess(moduleCode);
   }
 
@@ -924,25 +946,34 @@ export class AuthService {
 
   hasLicensedModule(moduleCode: string): boolean {
     if (!moduleCode?.trim()) return false;
+    if (this.isSuperUser() || this.isPlatformSuperUser()) return true;
+    if (this.hasAllModules()) return true;
     if (this.normalizeModuleCode(moduleCode) === 'inventory-warehouses')
       return true;
     const licensed = this.licensedModules();
-    if (licensed === null) return false;
+    if (licensed === null) return true;
     return this.isModuleLicensed(moduleCode, licensed);
   }
 
   hasAnyModuleAccess(): boolean {
-    const licensed = this.licensedModules();
-    if (licensed === null) return false;
-    if (licensed.length === 0) return false;
+    if (this.isSuperUser() || this.isPlatformSuperUser()) return true;
     const assignedModules = this.allowedModules();
+    if (assignedModules.includes('*') || assignedModules.includes('all')) return true;
+    const licensed = this.licensedModules();
+    if (licensed === null) return assignedModules.length > 0;
+    if (licensed.length === 0) return false;
     if (!assignedModules.length) return false;
-    if (assignedModules.includes('*') || licensed.includes('*')) return true;
+    if (licensed.includes('*')) return true;
     return assignedModules.some((module) => this.isModuleLicensed(module, licensed));
   }
 
   refreshModuleEntitlements(silent = false): Promise<boolean> {
     if (this.moduleEntitlementRefresh) return this.moduleEntitlementRefresh;
+    const now = Date.now();
+    if (now - this.lastModuleRefreshAttempt < this.MODULE_REFRESH_COOLDOWN_MS) {
+      return Promise.resolve(this.allowedModules().length > 0);
+    }
+    this.lastModuleRefreshAttempt = now;
 
     const wrappedRefresh = this.loadModuleEntitlements(silent).finally(() => {
       this.moduleEntitlementRefresh = null;
@@ -964,13 +995,20 @@ export class AuthService {
       try {
         const response = await this.api.get<any, any>('/auth/me/modules');
         payload = response?.data ?? response?.Data ?? response;
-      } catch {
-        try {
-          const response = await this.api.get<any, any>('/api/users/login-sync');
-          payload = response?.data ?? response?.Data ?? response;
-        } catch {
-          const response = await this.api.get<any, any>('/v1/auth/me');
-          payload = response?.data ?? response?.Data ?? response;
+      } catch (err: any) {
+        const status = err?.status ?? err?.statusCode;
+        // Solo intentar endpoints alternativos si fue un 404 (ruta antigua o no encontrada).
+        // Si fue un 500 (servidor/base de datos caída), no saturar con llamadas extra.
+        if (status === 404) {
+          try {
+            const response = await this.api.get<any, any>('/api/users/login-sync');
+            payload = response?.data ?? response?.Data ?? response;
+          } catch (syncErr: any) {
+            if ((syncErr?.status ?? syncErr?.statusCode) === 404) {
+              const response = await this.api.get<any, any>('/v1/auth/me');
+              payload = response?.data ?? response?.Data ?? response;
+            }
+          }
         }
       }
 
@@ -986,6 +1024,8 @@ export class AuthService {
         payload?.module ??
         payload?.user?.allowed_modules ??
         payload?.user?.allowedModules ??
+        payload?.user?.modules ??
+        payload?.user?.Modules ??
         payload?.user?.AllowedModulesJson;
 
       const rawLicensedModules = payload?.licensedModules ??
@@ -1042,6 +1082,12 @@ export class AuthService {
       this.entitlementErrorNotified = false;
       return true;
     } catch (error) {
+      // Si el usuario ya tenía módulos autenticados (del token o login), no eliminarlos a ciegas por un fallo de refresco
+      const currentAllowed = this.allowedModules();
+      if (currentAllowed && currentAllowed.length > 0) {
+        this.entitlementErrorNotified = true;
+        return true;
+      }
       this.licensedModules.set([]);
       this.allowedModules.set([]);
       this.moduleAccessService.setAllowedModules([]);
@@ -1332,27 +1378,9 @@ export class AuthService {
         }
       }
 
-      const activeSessionRaw =
-        localStorage.getItem('app_active_cash_register_session') ||
-        localStorage.getItem('cuadreenv_active_cash_register_session') ||
-        localStorage.getItem('cuadre_active_cash_register_session');
-      if (activeSessionRaw) {
-        try {
-          const sess = JSON.parse(activeSessionRaw);
-          if (sess?.id) {
-            void this.api
-              .post(`/CashRegister/${sess.id}/close`, {
-                actualAmount: sess.currentBalance ?? sess.initialAmount ?? 0,
-                breakdownJson: null,
-                notes: 'Cierre automático por fin de sesión',
-              })
-              .catch(() => {});
-          }
-        } catch {}
-        localStorage.removeItem('app_active_cash_register_session');
-        localStorage.removeItem('cuadreenv_active_cash_register_session');
-        localStorage.removeItem('cuadre_active_cash_register_session');
-      }
+      // No cerramos la caja registradora en la base de datos durante el logout.
+      // La sesión de caja debe permanecer activa para la empresa y cajero
+      // tanto si reingresa desde PC como si continúa desde la versión Móvil / PWA.
     }
     void clientLogout(this.api);
     this.clearSession();
@@ -1418,158 +1446,200 @@ export class AuthService {
 
   async loadUserCompanies(): Promise<UserCompanyDto[]> {
     if (!this.isAuthenticated()) return this.userCompanies();
+    this.userCompaniesLoading.set(true);
+    this.userCompaniesError.set(null);
+
     try {
       let list: any[] = [];
       try {
-        const res = await this.api.get<any, any>('/users/my-companies');
+        const res = await this.api.get<any, any>('/auth/user-companies');
         if (Array.isArray(res)) list = res;
         else if (Array.isArray(res?.data)) list = res.data;
         else if (Array.isArray(res?.Data)) list = res.Data;
       } catch {
         try {
-          const res = await this.api.get<any, any>('/auth/user-companies');
-          if (Array.isArray(res)) list = res;
-          else if (Array.isArray(res?.data)) list = res.data;
-          else if (Array.isArray(res?.Data)) list = res.Data;
+          const res2 = await this.api.get<any, any>('/users/my-companies');
+          if (Array.isArray(res2)) list = res2;
+          else if (Array.isArray(res2?.data)) list = res2.data;
+          else if (Array.isArray(res2?.Data)) list = res2.Data;
         } catch {
-          // Fallback a /Company solo para SuperAdmin para evitar 403 y alertas de seguridad
-          if (this.isSuperUser() || this.hasRole(['SuperAdmin'])) {
-            try {
-              const compRes = await this.api.get<any, any>('/Company');
-              if (Array.isArray(compRes)) list = compRes;
-              else if (Array.isArray(compRes?.data)) list = compRes.data;
-              else if (Array.isArray(compRes?.Data)) list = compRes.Data;
-            } catch {}
-          }
+          this.userCompaniesError.set('No se pudieron recuperar las empresas asignadas.');
+          return this.userCompanies();
         }
       }
 
-      if (list.length > 0) {
-        const mapped: UserCompanyDto[] = list
-          .map((c) => ({
-            id: Number(c.id ?? c.companyId ?? c.CompanyId ?? 0),
-            name: String(c.name ?? c.companyName ?? c.CompanyName ?? ''),
-            commercialName: c.commercialName ?? c.CommercialName ?? undefined,
-            rnc: c.rnc ?? c.Rnc ?? undefined,
-            role: c.role ?? c.Role ?? undefined,
-            plan: c.plan ?? c.Plan ?? c.planName ?? c.PlanName ?? undefined,
-            isDefault: Boolean(c.isDefault ?? c.IsDefault ?? false),
-          }))
-          .filter((c) => c.id > 0);
+      const mapped: UserCompanyDto[] = (list || [])
+        .map((c) => ({
+          id: Number(c.id ?? c.companyId ?? c.CompanyId ?? 0),
+          name: String(c.name ?? c.companyName ?? c.CompanyName ?? ''),
+          commercialName: c.commercialName ?? c.CommercialName ?? undefined,
+          rnc: c.rnc ?? c.Rnc ?? undefined,
+          role: c.role ?? c.Role ?? undefined,
+          plan: c.plan ?? c.Plan ?? c.planName ?? c.PlanName ?? undefined,
+          isDefault: Boolean(c.isDefault ?? c.IsDefault ?? false),
+        }))
+        .filter((c) => c.id > 0);
 
-        if (mapped.length > 0) {
-          this.userCompanies.set(mapped);
+      this.userCompanies.set(mapped);
+      if (typeof window !== 'undefined') {
+        window.localStorage?.setItem('userCompanies', JSON.stringify(mapped));
+        window.sessionStorage?.setItem('userCompanies', JSON.stringify(mapped));
+      }
+
+      if (mapped.length === 0) {
+        // Cero membresías autorizadas: estado vacío sin cargar datos
+        this.companyId.set(null);
+        setCompanyId(null);
+        if (typeof window !== 'undefined') {
+          window.localStorage?.removeItem(API_CONSTANTS.COMPANY_ID_KEY);
+          window.localStorage?.removeItem('companyId');
+          window.localStorage?.removeItem('currentCompanyId');
+          window.sessionStorage?.removeItem('companyId');
+          window.sessionStorage?.removeItem('currentCompanyId');
+        }
+        return [];
+      }
+
+      // Si tiene una o varias empresas, verificar que la empresa activa pertenezca a sus membresías
+      const currentId = this.companyId();
+      const currentValid = currentId && mapped.some((c) => c.id === currentId);
+
+      if (!currentValid) {
+        const defaultCompany = mapped.find((c) => c.isDefault) || mapped[0];
+        if (defaultCompany?.id) {
+          this.companyId.set(defaultCompany.id);
+          setCompanyId(defaultCompany.id);
           if (typeof window !== 'undefined') {
-            window.localStorage?.setItem(
-              'userCompanies',
-              JSON.stringify(mapped),
-            );
-            window.sessionStorage?.setItem(
-              'userCompanies',
-              JSON.stringify(mapped),
-            );
+            window.localStorage?.setItem(API_CONSTANTS.COMPANY_ID_KEY, String(defaultCompany.id));
+            window.localStorage?.setItem('companyId', String(defaultCompany.id));
+            window.localStorage?.setItem('currentCompanyId', String(defaultCompany.id));
+            window.sessionStorage?.setItem('companyId', String(defaultCompany.id));
+            window.sessionStorage?.setItem('currentCompanyId', String(defaultCompany.id));
           }
-
-          // Si el usuario no tenía un companyId válido, asignar el default o la primera
-          if (!this.companyId() || this.companyId()! <= 0) {
-            const defaultCompany = mapped.find((c) => c.isDefault) || mapped[0];
-            if (defaultCompany?.id) {
-              this.companyId.set(defaultCompany.id);
-              setCompanyId(defaultCompany.id);
-              if (typeof window !== 'undefined') {
-                window.localStorage?.setItem(
-                  API_CONSTANTS.COMPANY_ID_KEY,
-                  String(defaultCompany.id),
-                );
-                window.localStorage?.setItem(
-                  'companyId',
-                  String(defaultCompany.id),
-                );
-                window.localStorage?.setItem(
-                  'currentCompanyId',
-                  String(defaultCompany.id),
-                );
-                window.localStorage?.setItem(
-                  'auth_company_id',
-                  String(defaultCompany.id),
-                );
-              }
-            }
-          }
-          return mapped;
         }
       }
-    } catch (err) {
-      console.warn(
-        '[AuthService] No se pudieron cargar las empresas del usuario:',
-        err,
-      );
+
+      return mapped;
+    } catch (err: any) {
+      console.warn('[AuthService] Error loading user companies:', err);
+      this.userCompaniesError.set('Error al conectar con el servidor.');
+      return this.userCompanies();
+    } finally {
+      this.userCompaniesLoading.set(false);
     }
-    return this.userCompanies();
   }
 
   async switchCompany(newCompanyId: number): Promise<boolean> {
-    if (!newCompanyId || newCompanyId <= 0) {
+    const targetId = Number(newCompanyId);
+    if (!targetId || targetId <= 0) {
       this.notificationService.error('Empresa inválida');
       return false;
     }
-    if (newCompanyId === this.companyId()) {
+    if (targetId === this.companyId()) {
       return true;
     }
 
+    if (this.isSwitchingCompany()) {
+      return false;
+    }
+
+    if (this.userCompaniesError()) {
+      this.notificationService.warning('Recupere el listado de empresas autorizadas antes de cambiar.');
+      return false;
+    }
+
+    const isAuthorized = this.userCompanies().some((c) => c.id === targetId);
+    if (!isAuthorized && !this.isPlatformSuperUser()) {
+      this.notificationService.error('No tiene asignación autorizada para esta empresa.');
+      return false;
+    }
+
+    const previousCompanyId = this.companyId();
+    this.isSwitchingCompany.set(true);
+    this.notificationService.info('Confirmando cambio de empresa...');
+
     try {
-      // 1. Purgar datos de caja y temporales del tenant anterior para evitar contaminación
+      // 1. Validar autorización y cambiar tenant en el backend antes de modificar el estado local
+      const res: any = await this.api.post('/auth/switch-company', { companyId: targetId });
+      const switchedTokens = res?.data || res;
+
+      if (!switchedTokens) {
+        throw new Error('Respuesta de cambio de empresa inválida.');
+      }
+
+      // 2. Éxito confirmado: purgar cachés y estado de la empresa anterior
       if (typeof window !== 'undefined') {
         window.localStorage?.removeItem('app_active_cash_register_session');
-        window.localStorage?.removeItem(
-          'cuadreenv_active_cash_register_session',
-        );
+        window.localStorage?.removeItem('cuadreenv_active_cash_register_session');
         window.localStorage?.removeItem('cuadre_active_cash_register_session');
         window.localStorage?.removeItem('cuadre_company_settings');
+        window.localStorage?.removeItem('cuadreenv_warehouses_db');
+        window.localStorage?.removeItem('cuadreenv_stock_db');
+        window.localStorage?.removeItem('cuadreenv_warehouse_entries_db');
+        window.localStorage?.removeItem('cuadreEnv_inventory_movements');
         window.sessionStorage?.removeItem('cuadre_company_settings');
         window.sessionStorage?.removeItem('active_company_id');
+        window.sessionStorage?.removeItem('allowedModules');
+        window.sessionStorage?.removeItem('hasAllModules');
       }
 
-      // 2. Establecer el nuevo tenant en el servicio y en el cliente HTTP
-      this.companyId.set(newCompanyId);
-      setCompanyId(newCompanyId);
+      // 3. Aplicar tokens renovados y actualizar CompanyId
+      const rawAccess = switchedTokens.accessToken || switchedTokens.AccessToken || switchedTokens.token;
+      const rawRefresh = switchedTokens.refreshToken || switchedTokens.RefreshToken;
+      if (rawAccess) {
+        setAccessToken(rawAccess);
+        if (typeof window !== 'undefined') {
+          window.localStorage?.setItem('cuadre_access_token', rawAccess);
+          window.localStorage?.setItem('accessToken', rawAccess);
+          window.sessionStorage?.setItem('accessToken', rawAccess);
+        }
+      }
+      if (rawRefresh) {
+        setRefreshToken(rawRefresh);
+        if (typeof window !== 'undefined') {
+          window.localStorage?.setItem('cuadre_refresh_token', rawRefresh);
+          window.localStorage?.setItem('refreshToken', rawRefresh);
+          window.sessionStorage?.setItem('refreshToken', rawRefresh);
+        }
+      }
+
+      this.companyId.set(targetId);
+      setCompanyId(targetId);
 
       if (typeof window !== 'undefined') {
-        window.localStorage?.setItem(
-          API_CONSTANTS.COMPANY_ID_KEY,
-          String(newCompanyId),
-        );
-        window.localStorage?.setItem('companyId', String(newCompanyId));
-        window.localStorage?.setItem('currentCompanyId', String(newCompanyId));
-        window.localStorage?.setItem('auth_company_id', String(newCompanyId));
-        window.sessionStorage?.setItem('companyId', String(newCompanyId));
-        window.sessionStorage?.setItem(
-          'currentCompanyId',
-          String(newCompanyId),
-        );
-        window.sessionStorage?.setItem('auth_company_id', String(newCompanyId));
+        window.localStorage?.setItem(API_CONSTANTS.COMPANY_ID_KEY, String(targetId));
+        window.localStorage?.setItem('companyId', String(targetId));
+        window.localStorage?.setItem('currentCompanyId', String(targetId));
+        window.sessionStorage?.setItem('companyId', String(targetId));
+        window.sessionStorage?.setItem('currentCompanyId', String(targetId));
       }
 
-      // 3. Informar al backend si el endpoint de selección de empresa existe
-      try {
-        await this.api
-          .post('/auth/switch-company', { companyId: newCompanyId })
-          .catch(() => {});
-      } catch {}
-
-      // 4. Refrescar módulos y licencias
+      this.handleTokenResponse(switchedTokens, false);
       await this.refreshModuleEntitlements(true).catch(() => {});
 
-      // 5. Recargar la interfaz para limpiar cachés de componentes y estado en memoria
       if (typeof window !== 'undefined') {
         window.location.reload();
       }
       return true;
     } catch (err: any) {
+      console.error('[AuthService] switchCompany failed:', err);
       this.notificationService.error(
-        err?.message || 'Error al cambiar de empresa',
+        err?.error?.message || err?.message || 'Error al cambiar de empresa. Acceso no autorizado.',
       );
+
+      // Conservar empresa anterior solo si el usuario sigue autorizado
+      const prevStillValid = previousCompanyId && this.userCompanies().some((c) => c.id === previousCompanyId);
+      if (prevStillValid) {
+        this.companyId.set(previousCompanyId);
+        setCompanyId(previousCompanyId);
+      } else {
+        const fallback = this.userCompanies()[0]?.id || null;
+        this.companyId.set(fallback);
+        setCompanyId(fallback);
+      }
       return false;
+    } finally {
+      this.isSwitchingCompany.set(false);
     }
   }
 
@@ -1584,9 +1654,15 @@ export class AuthService {
     const role = (this.currentRole() || '').toLowerCase();
     return (
       role === 'admin' ||
+      role === 'administrador' ||
+      role === 'owner' ||
+      role === 'dueño' ||
+      role === 'dueno' ||
+      role === 'gerente' ||
       role === 'superuser' ||
       role === 'superadmin' ||
-      role === 'sysadmin'
+      role === 'sysadmin' ||
+      this.isPlatformSuperUser()
     );
   }
 }

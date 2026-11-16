@@ -107,9 +107,16 @@ export class ReceivablesComponent implements OnInit {
       );
     }
 
-    // 3. Status Filter (if specific status is chosen)
+    // 3. Status Filter (if specific status is chosen, only apply when consistent with tab)
     if (status) {
-      list = list.filter((r) => r.status === status);
+      if (tab === 'paid') {
+        // En la pestaña de saldadas, mostrar todas las saldadas o las marcadas como Pagado
+        if (status === 'Pagado') {
+          list = list.filter((r) => r.status === 'Pagado' || r.pendingAmount <= 0);
+        }
+      } else {
+        list = list.filter((r) => r.status === status);
+      }
     }
 
     // 4. Sorting
@@ -150,6 +157,7 @@ export class ReceivablesComponent implements OnInit {
 
   setTab(tab: 'pending' | 'paid') {
     this.selectedTab.set(tab);
+    this.selectedStatus.set(''); // Limpiar filtro secundario para mostrar todas las saldadas o pendientes
     this.currentPage.set(1);
   }
 

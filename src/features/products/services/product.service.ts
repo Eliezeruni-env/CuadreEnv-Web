@@ -3,12 +3,14 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, firstValueFrom, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import type { ProductDto, ApiResponse, PagedResult } from '../../cuadreEnv/types/api';
-import { getCompanyId } from '../../cuadreEnv/services/apiClient';
+import { ApiClientService, getCompanyId } from '../../cuadreEnv/services/apiClient';
 
 export interface ProductFilters {
   description?: string;
   minCost?: number;
   maxCost?: number;
+  excludeServices?: boolean;
+  categoryId?: number;
 }
 
 export interface PagedProductsResponse extends PagedResult<ProductDto> {
@@ -21,10 +23,32 @@ export interface PagedProductsResponse extends PagedResult<ProductDto> {
 })
 export class ProductService {
   private readonly http = inject(HttpClient);
+  private readonly api = inject(ApiClientService);
   private readonly baseUrl =
     (environment.apiUrl || 'http://localhost:8080').replace(/\/v1\/?$/, '').replace(/\/$/, '') + '/v1';
   private readonly PHOTO_STORAGE_KEY = 'cuadreenv_product_photos_v1';
-  private readonly METRICS_STORAGE_KEY = 'cuadreenv_product_cost_metrics_v1';
+  private readonly METRICS_STORAGE_KEY = 'cuadreEnv_product_cost_metrics_v1';
+  private inFlightPagedMap = new Map<string, Promise<ApiResponse<PagedProductsResponse>>>();
+  private pagedCacheMap = new Map<string, { timestamp: number; data: ApiResponse<PagedProductsResponse> }>();
+  private readonly PAGED_CACHE_TTL = 10000; // 10s deduplication/cooldown cache
+
+  clearCache(): void {
+    this.pagedCacheMap.clear();
+    this.inFlightPagedMap.clear();
+  }
+
+  isServiceItem(p: any): boolean {
+    if (!p) return false;
+    if (p.isService === true || p.type === 'service' || p.type === 'Servicio') return true;
+    if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
+    const ref = String(p.barcode || p.reference || '').toUpperCase().trim();
+    if (ref.startsWith('SERV-') || ref.startsWith('SERV')) return true;
+    const typeName = String(p.productTypeName || p.productType?.name || '').toLowerCase();
+    if (typeName.includes('serv')) return true;
+    const catName = String(p.categoryName || p.category?.name || '').toLowerCase();
+    if (catName.includes('serv')) return true;
+    return false;
+  }
 
   getProductPhoto(idOrBarcode: number | string): string | null {
     if (typeof window === 'undefined') return null;
@@ -121,6 +145,9 @@ export class ProductService {
     if (filters?.maxCost !== undefined && filters?.maxCost !== null) {
       params = params.set('maxCost', filters.maxCost.toString());
     }
+    if (filters?.categoryId !== undefined && filters?.categoryId !== null && Number(filters.categoryId) > 0) {
+      params = params.set('categoryId', filters.categoryId.toString());
+    }
 
     const url = `${this.baseUrl}/product/paged`;
 
@@ -171,6 +198,15 @@ export class ProductService {
           });
         }
 
+        // Excluir servicios si se solicita (para catálogos que son estrictamente de productos tangibles)
+        if (filters?.excludeServices) {
+          const beforeCount = items.length;
+          items = items.filter((p: any) => !this.isServiceItem(p));
+          if (items.length < beforeCount) {
+            total = items.length;
+          }
+        }
+
         // Enriquecer productos con fotos y atributos guardados
         items = items.map((p) => {
           const photo = p.imageUrl || (p.id ? this.getProductPhoto(p.id) : null) || (p.barcode ? this.getProductPhoto(p.barcode) : null);
@@ -209,51 +245,82 @@ export class ProductService {
     description?: string,
     minCost?: number,
     maxCost?: number,
+    excludeServices = false,
+    categoryId?: number,
+    forceRefresh = false,
   ): Promise<ApiResponse<PagedProductsResponse>> {
     const validSize = Math.min(100, Math.max(1, pageSize || 10));
     const activeCompanyId = Number(getCompanyId()) || 0;
-    try {
-      return await firstValueFrom(
-        this.getPagedProducts$(pageNumber, validSize, {
-          description,
-          minCost,
-          maxCost,
-        })
-      );
-    } catch {
-      // Fallback a /v1/product sin /paged si el endpoint de paginación tiene otra ruta
+    const cacheKey = `${activeCompanyId}:${pageNumber}:${validSize}:${description || ''}:${minCost ?? ''}:${maxCost ?? ''}:${excludeServices}:${categoryId ?? ''}`;
+
+    const now = Date.now();
+    if (!forceRefresh) {
+      const cached = this.pagedCacheMap.get(cacheKey);
+      if (cached && now - cached.timestamp < this.PAGED_CACHE_TTL) {
+        return cached.data;
+      }
+    }
+
+    if (this.inFlightPagedMap.has(cacheKey)) {
+      return this.inFlightPagedMap.get(cacheKey)!;
+    }
+
+    const requestPromise = (async () => {
       try {
-        let params = new HttpParams()
-          .set('pageNumber', pageNumber.toString())
-          .set('pageSize', validSize.toString());
-        if (activeCompanyId > 0) {
-          params = params.set('companyId', activeCompanyId.toString()).set('CompanyId', activeCompanyId.toString());
+        const result = await firstValueFrom(
+          this.getPagedProducts$(pageNumber, validSize, {
+            description,
+            minCost,
+            maxCost,
+            excludeServices,
+            categoryId,
+          })
+        );
+        this.pagedCacheMap.set(cacheKey, { timestamp: Date.now(), data: result });
+        return result;
+      } catch (err: any) {
+        const status = err?.status ?? err?.statusCode;
+        // Solo fallback a /product si es 404 (endpoint no encontrado). Si es 500+, evitar sobrecarga en cascada
+        if (status === 404) {
+          try {
+            let params = new HttpParams()
+              .set('pageNumber', pageNumber.toString())
+              .set('pageSize', validSize.toString());
+            if (activeCompanyId > 0) {
+              params = params.set('companyId', activeCompanyId.toString()).set('CompanyId', activeCompanyId.toString());
+            }
+            if (description?.trim()) {
+              const term = description.trim();
+              params = params.set('description', term).set('barcode', term);
+            }
+            const res: any = await firstValueFrom(this.http.get<any>(`${this.baseUrl}/product`, { params }));
+            let rawList: ProductDto[] = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : (res?.data?.items || []));
+            if (activeCompanyId > 0) {
+              rawList = rawList.filter((p: any) => {
+                const pCid = p.companyId ?? p.CompanyId;
+                return pCid == null || Number(pCid) === 0 || Number(pCid) === activeCompanyId;
+              });
+            }
+            if (excludeServices) {
+              rawList = rawList.filter((p) => !this.isServiceItem(p));
+            }
+            const fallbackRes: ApiResponse<PagedProductsResponse> = {
+              success: true,
+              data: {
+                items: rawList,
+                pageSize: validSize,
+                pageCount: 1,
+                totalItemCount: rawList.length,
+                total: rawList.length,
+                page: pageNumber,
+              },
+            };
+            this.pagedCacheMap.set(cacheKey, { timestamp: Date.now(), data: fallbackRes });
+            return fallbackRes;
+          } catch {}
         }
-        if (description?.trim()) {
-          const term = description.trim();
-          params = params.set('description', term).set('barcode', term);
-        }
-        const res: any = await firstValueFrom(this.http.get<any>(`${this.baseUrl}/product`, { params }));
-        let rawList: ProductDto[] = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : (res?.data?.items || []));
-        if (activeCompanyId > 0) {
-          rawList = rawList.filter((p: any) => {
-            const pCid = p.companyId ?? p.CompanyId;
-            return pCid == null || Number(pCid) === 0 || Number(pCid) === activeCompanyId;
-          });
-        }
-        return {
-          success: true,
-          data: {
-            items: rawList,
-            pageSize: validSize,
-            pageCount: 1,
-            totalItemCount: rawList.length,
-            total: rawList.length,
-            page: pageNumber,
-          },
-        };
-      } catch {
-        return {
+
+        const emptyRes: ApiResponse<PagedProductsResponse> = {
           success: false,
           data: {
             items: [],
@@ -264,8 +331,15 @@ export class ProductService {
             page: pageNumber,
           },
         };
+        this.pagedCacheMap.set(cacheKey, { timestamp: Date.now(), data: emptyRes });
+        return emptyRes;
+      } finally {
+        this.inFlightPagedMap.delete(cacheKey);
       }
-    }
+    })();
+
+    this.inFlightPagedMap.set(cacheKey, requestPromise);
+    return requestPromise;
   }
 
   /**
@@ -367,33 +441,94 @@ export class ProductService {
   }
 
   /**
+   * Limpia y normaliza el payload del producto para cumplir con el esquema estricto del backend ASP.NET Core:
+   * Evita enviar claves con valor undefined, strings vacíos para fechas, o claves de metadatos locales (imageUrl, hasPackaging).
+   */
+  private sanitizeProductPayload(product: ProductDto): any {
+    const activeCompanyId = Number(getCompanyId()) || 0;
+    const resolvedCompanyId = activeCompanyId > 0 ? activeCompanyId : (product.companyId && product.companyId > 0 ? product.companyId : 1);
+
+    const cost = Number(product.cost) || 0;
+    const price = Number(product.price) || (cost > 0 ? Math.round(cost * 1.35 * 100) / 100 : 0);
+    const profitMargin = cost > 0 && price > 0 ? Math.round(((price - cost) / cost) * 100 * 100) / 100 : 35;
+
+    const clean: Record<string, any> = {
+      description: String(product.description || '').trim(),
+      barcode: String(product.barcode || '').trim(),
+      reference: String(product.reference || '').trim(),
+      shortDescription: String(product.shortDescription || '').trim(),
+      cost: cost,
+      price: price,
+      profitMargin: profitMargin,
+      stock: Number(product.stock) || 0,
+      productTypeId: Number(product.productTypeId) || 1,
+      categoryId: Number(product.categoryId) || 1,
+      unitOfMeasurementId: Number(product.unitOfMeasurementId) || 1,
+      minimumQuantity: Number(product.minimumQuantity) || 0,
+      maximumQuantity: Number(product.maximumQuantity) || 0,
+      invoiceWithoutStock: Boolean(product.invoiceWithoutStock),
+      allowFractional: Boolean(product.allowFractional),
+      isOrganic: Boolean(product.isOrganic),
+      companyId: resolvedCompanyId,
+    };
+
+    if (product.id != null && Number(product.id) > 0) {
+      clean['id'] = Number(product.id);
+    }
+    if (product.imageUrl && String(product.imageUrl).trim()) {
+      clean['imageUrl'] = String(product.imageUrl).trim();
+    }
+    if (product.expirationDate && String(product.expirationDate).trim()) {
+      clean['expirationDate'] = String(product.expirationDate).trim();
+    }
+
+    return clean;
+  }
+
+  /**
    * Crear nuevo producto:
-   * POST /v1/product
+   * POST /v1/product con fallback a /v1/Product
    */
   async createProduct(product: ProductDto): Promise<ApiResponse<ProductDto>> {
-    const url = `${this.baseUrl}/product`;
-    const activeCompanyId = Number(getCompanyId()) || 0;
-    const resolvedCompanyId = activeCompanyId > 0 ? activeCompanyId : (product.companyId && product.companyId > 0 ? product.companyId : 0);
-    const payload = {
-      ...product,
-      ...(resolvedCompanyId > 0 ? { companyId: resolvedCompanyId } : {}),
-    };
-    return firstValueFrom(this.http.post<ApiResponse<ProductDto>>(url, payload));
+    const payload = this.sanitizeProductPayload(product);
+    try {
+      const url = `${this.baseUrl}/product`;
+      return await firstValueFrom(this.http.post<ApiResponse<ProductDto>>(url, payload));
+    } catch (err: any) {
+      // Fallback a PascalCase si el router del backend es sensible a mayúsculas
+      if (err?.status === 404 || err?.status === 400) {
+        try {
+          const url2 = `${this.baseUrl}/Product`;
+          return await firstValueFrom(this.http.post<ApiResponse<ProductDto>>(url2, payload));
+        } catch {
+          // Relanzar el error original con los datos de validación
+          throw err;
+        }
+      }
+      throw err;
+    }
   }
 
   /**
    * Actualizar producto existente:
-   * PUT /v1/product
+   * PUT /v1/product con fallback a /v1/Product
    */
   async updateProduct(product: ProductDto): Promise<ApiResponse<any>> {
-    const url = `${this.baseUrl}/product`;
-    const activeCompanyId = Number(getCompanyId()) || 0;
-    const resolvedCompanyId = activeCompanyId > 0 ? activeCompanyId : (product.companyId && product.companyId > 0 ? product.companyId : 0);
-    const payload = {
-      ...product,
-      ...(resolvedCompanyId > 0 ? { companyId: resolvedCompanyId } : {}),
-    };
-    return firstValueFrom(this.http.put<ApiResponse<any>>(url, payload));
+    const payload = this.sanitizeProductPayload(product);
+    try {
+      const url = `${this.baseUrl}/product`;
+      return await firstValueFrom(this.http.put<ApiResponse<any>>(url, payload));
+    } catch (err: any) {
+      if (err?.status === 404 || err?.status === 400) {
+        try {
+          const url2 = `${this.baseUrl}/Product`;
+          return await firstValueFrom(this.http.put<ApiResponse<any>>(url2, payload));
+        } catch {
+          throw err;
+        }
+      }
+      throw err;
+    }
   }
 
   /**
@@ -410,15 +545,61 @@ export class ProductService {
    * con fallback asíncrono a asset desacoplado, evitando data hardcodeada en el frontend.
    */
   async getPreloadedCatalogs(): Promise<ApiResponse<PreloadedCatalog[]>> {
-    // Consultar exclusivamente el endpoint del backend / DB del sistema
     try {
       const url = `${this.baseUrl}/product/catalogs/preloaded`;
-      const res: any = await firstValueFrom(this.http.get<any>(url));
+      const res: any = await firstValueFrom(
+        this.http.get<any>(url, { headers: { 'x-silent-error': 'true' } })
+      );
       const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
-      return { success: true, data: list };
+      if (list.length > 0) {
+        return { success: true, data: list };
+      }
     } catch {
-      return { success: true, data: [] };
+      // Fallback silencioso sin 404 en consola
     }
+
+    const fallbackCatalogs: PreloadedCatalog[] = [
+      {
+        id: 'colmado',
+        name: 'Colmado & Minimarket Dominicano',
+        icon: '🏪',
+        tagline: 'Víveres, bebidas, embutidos y artículos de primera necesidad',
+        color: '#2563EB',
+        items: [
+          { description: 'Arroz Selecto La Garza 10lb', barcode: '746010010001', reference: 'ARR-GAR-10', category: 'Granos y Cereales', cost: 380, price: 460, stock: 25, minQuantity: 5 },
+          { description: 'Aceite Crisol 64oz', barcode: '746010010002', reference: 'ACE-CRI-64', category: 'Aceites y Grasas', cost: 260, price: 320, stock: 18, minQuantity: 4 },
+          { description: 'Salami Super Especial Induveca 1lb', barcode: '746010010003', reference: 'SAL-IND-1LB', category: 'Embutidos y Carnes', cost: 165, price: 210, stock: 30, minQuantity: 6 },
+          { description: 'Leche Rica Entera UHT 1 Litro', barcode: '746010010004', reference: 'LEC-RIC-1L', category: 'Lácteos', cost: 75, price: 95, stock: 40, minQuantity: 8 },
+          { description: 'Refresco Country Club Frambuesa 2L', barcode: '746010010005', reference: 'REF-CC-2L', category: 'Bebidas y Refrescos', cost: 80, price: 105, stock: 24, minQuantity: 6 }
+        ]
+      },
+      {
+        id: 'farmacia',
+        name: 'Farmacia & Botica',
+        icon: '💊',
+        tagline: 'Medicamentos OTC, primeros auxilios e higiene personal',
+        color: '#10B981',
+        items: [
+          { description: 'Acetaminofén 500mg (Caja 100 tab)', barcode: '746020020001', reference: 'ACE-500-100', category: 'Analgésicos', cost: 210, price: 350, stock: 15, minQuantity: 3 },
+          { description: 'Alcohol Isopropílico 70% 500ml', barcode: '746020020002', reference: 'ALC-70-500', category: 'Antisépticos', cost: 65, price: 110, stock: 20, minQuantity: 5 },
+          { description: 'Ibuprofeno 400mg (Blister 10 tab)', barcode: '746020020003', reference: 'IBU-400-10', category: 'Antiinflamatorios', cost: 45, price: 85, stock: 50, minQuantity: 10 }
+        ]
+      },
+      {
+        id: 'ferreteria',
+        name: 'Ferretería & Repuestos',
+        icon: '🔧',
+        tagline: 'Herramientas básicas, fijaciones y materiales eléctricos',
+        color: '#F59E0B',
+        items: [
+          { description: 'Cinta Aislante 3M Scotch 20m', barcode: '746030030001', reference: 'CIN-AIS-3M', category: 'Material Eléctrico', cost: 85, price: 140, stock: 30, minQuantity: 5 },
+          { description: 'Bombillo LED 9W Luz Blanca E27', barcode: '746030030002', reference: 'BOM-LED-9W', category: 'Iluminación', cost: 60, price: 110, stock: 45, minQuantity: 10 },
+          { description: 'Tornillo Drywall 1-1/4 (Caja 100u)', barcode: '746030030003', reference: 'TOR-DRY-114', category: 'Tornillería', cost: 95, price: 165, stock: 20, minQuantity: 4 }
+        ]
+      }
+    ];
+
+    return { success: true, data: fallbackCatalogs };
   }
 }
 

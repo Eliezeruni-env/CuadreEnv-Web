@@ -4,6 +4,7 @@ import { CashRegisterService } from './cash-register.service';
 
 describe('CashRegisterService', () => {
   let service: CashRegisterService;
+  let mockApi: any;
   let mockRegisters: any[] = [];
   let mockMovements: any[] = [];
 
@@ -15,7 +16,7 @@ describe('CashRegisterService', () => {
     mockRegisters = [];
     mockMovements = [];
 
-    const mockApi: any = {
+    mockApi = {
       get: vi.fn().mockImplementation((url: string) => {
         if (url === '/cash-sessions/active-session') {
           const open = mockRegisters.find((r) => r.isOpen);
@@ -234,5 +235,70 @@ describe('CashRegisterService', () => {
     expect(historyRes.data!.length).toBe(1);
     expect(historyRes.data![0].isOpen).toBe(false);
     expect(historyRes.data![0].closingAmount).toBe(15000);
+  });
+
+  it('should gracefully close session when registered with local timestamp ID (e.g. 1793160089745)', async () => {
+    const timestampId = 1793160089745;
+    localStorage.setItem(
+      'app_active_cash_register_session',
+      JSON.stringify({
+        id: timestampId,
+        cashRegisterId: timestampId,
+        sessionId: timestampId,
+        name: 'Caja Resiliente',
+        cashierName: 'Cajero Offline',
+        openedAt: new Date().toISOString(),
+        initialAmount: 10000,
+        currentBalance: 10000,
+        totalIn: 0,
+        totalOut: 0,
+        isOpen: true,
+        status: 'OPEN',
+      })
+    );
+
+    const closeRes = await service.closeSession({
+      cashRegisterId: timestampId,
+      closingAmount: 10000,
+      notes: 'Cierre de sesión local timestamp',
+    });
+
+    expect(closeRes.success).toBe(true);
+    expect(closeRes.data!.expected).toBe(10000);
+    expect(closeRes.data!.actual).toBe(10000);
+    expect(closeRes.data!.diff).toBe(0);
+
+    const activeRes = await service.getActiveSession();
+    expect(activeRes.data).toBeNull();
+  });
+
+  it('should gracefully close session locally when backend returns 400 Bad Request with not valid ID or not found', async () => {
+    // Mock api.post rejecting with 400 Bad Request
+    mockApi.post.mockRejectedValueOnce({
+      status: 400,
+      error: { message: "The value '1793160089745' is not valid for id." },
+    });
+
+    const closeRes = await service.closeSession({
+      cashRegisterId: 999,
+      session: {
+        id: 999,
+        cashRegisterId: 999,
+        name: 'Caja Expirada',
+        cashierName: 'Cajero',
+        openedAt: new Date().toISOString(),
+        initialAmount: 5000,
+        currentBalance: 5000,
+        totalIn: 0,
+        totalOut: 0,
+        isOpen: true,
+        status: 'OPEN',
+      },
+      closingAmount: 5000,
+    });
+
+    expect(closeRes.success).toBe(true);
+    const activeRes = await service.getActiveSession();
+    expect(activeRes.data).toBeNull();
   });
 });

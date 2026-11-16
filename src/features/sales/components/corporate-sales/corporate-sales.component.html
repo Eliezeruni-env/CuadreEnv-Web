@@ -247,7 +247,7 @@
           <select class="form-select" (change)="addOrderItem(+$any($event.target).value); $any($event.target).value=''">
             <option value="" disabled selected>-- Selecciona un producto para agregar --</option>
             @for (p of products(); track p.id) {
-              <option [value]="p.id">{{ p.description }} · Ref: {{ p.barcode || ('PROD-' + p.id) }} (Precio: RD$ {{ (p.cost ? p.cost * 1.35 : 100) | number:'1.2-2' }})</option>
+              <option [value]="p.id">{{ p.description }} · Ref: {{ p.barcode || ('PROD-' + p.id) }} (Precio: RD$ {{ (p.price || p.priceList || (p.cost ? p.cost * 1.35 : 100)) | number:'1.2-2' }})</option>
             }
           </select>
         </div>

@@ -122,7 +122,8 @@ export function purgeTenantStorage(): void {
         const isProtectedOffline =
           key?.startsWith('cuadre_offline_queue_') ||
           key?.startsWith('cuadre_offline_conflicts_') ||
-          key?.startsWith('cuadre_pos_held_sales_');
+          key?.startsWith('cuadre_pos_held_sales_') ||
+          key?.startsWith('cuadre_pos_active_draft_');
         if (key && !PRESERVED_STORAGE_KEYS.has(key) && !isProtectedOffline) {
           keysToRemove.push(key);
         }
@@ -271,15 +272,10 @@ export function setCompanyId(companyId: string | number | null) {
         sessionStorage.setItem('companyId', activeCompanyId);
       }
       if (window.localStorage) {
-        if (isRememberMe()) {
-          localStorage.setItem('currentCompanyId', activeCompanyId);
-          localStorage.setItem('auth_company_id', activeCompanyId);
-          localStorage.setItem('companyId', activeCompanyId);
-        } else {
-          localStorage.removeItem('currentCompanyId');
-          localStorage.removeItem('auth_company_id');
-          localStorage.removeItem('companyId');
-        }
+        localStorage.setItem('currentCompanyId', activeCompanyId);
+        localStorage.setItem('auth_company_id', activeCompanyId);
+        localStorage.setItem('companyId', activeCompanyId);
+        localStorage.setItem('cuadre_company_id', activeCompanyId);
       }
     } else {
       if (window.localStorage) {
@@ -298,7 +294,23 @@ export function setCompanyId(companyId: string | number | null) {
 
 export function getCompanyId(): string | null {
   if (typeof window !== 'undefined') {
-    // 1. Authoritative source: Signed JWT claims
+    // 1. Prioridad: Empresa seleccionada explícitamente en la sesión
+    try {
+      const explicit =
+        window.sessionStorage?.getItem('currentCompanyId') ||
+        window.sessionStorage?.getItem('auth_company_id') ||
+        window.sessionStorage?.getItem('companyId') ||
+        window.localStorage?.getItem('currentCompanyId') ||
+        window.localStorage?.getItem('auth_company_id') ||
+        window.localStorage?.getItem('companyId') ||
+        window.localStorage?.getItem('cuadre_company_id');
+      if (explicit && explicit !== 'null' && explicit !== 'undefined' && explicit !== '0') {
+        activeCompanyId = explicit;
+        return activeCompanyId;
+      }
+    } catch {}
+
+    // 2. Si no hay selección explícita, decodificar del JWT
     const token = getAccessToken();
     if (token) {
       try {
@@ -537,9 +549,15 @@ export class ApiClientService {
         dispatchTelemetry(method, url, statusCode, mapped, error);
       }
 
-      // Display server outage notification only on user actions (mutations), never on background GET data fetching
+      // Display server outage notification only on user actions (mutations), never on background GET data fetching or silenced requests
+      const isSilencedReq = Boolean(
+        options.headers?.['X-Silent-Error'] ||
+        options.headers?.['x-silent-error'] ||
+        options.headers?.['X-Silent-500'] ||
+        options.headers?.['x-silent-500']
+      );
       const isMutation = method !== 'GET';
-      if (isMutation && (statusCode === 0 || statusCode >= 500 || mapped.errorCode === 'SERVER_OUTAGE')) {
+      if (!isSilencedReq && isMutation && (statusCode === 0 || statusCode >= 500 || mapped.errorCode === 'SERVER_OUTAGE')) {
         this.notificationService?.show(
           mapped.title,
           mapped.message,
@@ -565,6 +583,9 @@ function logRequestError(method: string, url: string, error: any, mapped?: Mappe
   });
 }
 
+const lastTelemetryDispatchMap = new Map<string, number>();
+const TELEMETRY_THROTTLE_MS = 6000;
+
 function dispatchTelemetry(
   method: string,
   url: string,
@@ -572,6 +593,14 @@ function dispatchTelemetry(
   mapped: MappedApiError,
   rawError: any,
 ) {
+  const key = `${method}:${url}`;
+  const now = Date.now();
+  const last = lastTelemetryDispatchMap.get(key) || 0;
+  if (now - last < TELEMETRY_THROTTLE_MS) {
+    return;
+  }
+  lastTelemetryDispatchMap.set(key, now);
+
   const telemetryData = {
     method,
     url,

@@ -27,6 +27,8 @@ describe('CloseRegisterModalComponent (Blind Cash Count Audit)', () => {
 
   const mockAuthService = {
     isSuperUser: vi.fn().mockReturnValue(false),
+    activeCompany: vi.fn().mockReturnValue(null),
+    currentUser: vi.fn().mockReturnValue(null),
   };
 
   const mockNotificationService = {

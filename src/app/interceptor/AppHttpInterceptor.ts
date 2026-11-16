@@ -1,3 +1,5 @@
+import { TokenRefreshService } from '../../features/cuadreEnv/services/token-refresh.service';
+import { switchMap } from 'rxjs/operators';
 import { Injectable, inject } from '@angular/core';
 import {
   HttpRequest,
@@ -10,7 +12,7 @@ import {
 import { Observable, catchError, throwError } from 'rxjs';
 import { Router } from '@angular/router';
 import { NotificationService } from '../../features/cuadreEnv/services/notification.service';
-import { getAccessToken, setAccessToken, setRefreshToken } from '../../features/cuadreEnv/services/apiClient';
+import { getAccessToken, setAccessToken, setRefreshToken, setCompanyId } from '../../features/cuadreEnv/services/apiClient';
 import { SessionInvalidationService } from '../../features/cuadreEnv/services/session-invalidation.service';
 
 const recentForbiddenNotifications = new Map<string, number>();
@@ -24,14 +26,61 @@ const FORBIDDEN_NOTIFICATION_WINDOW_MS = 1500;
  * - 422: Mostrar los errores de validación.
  * - 500: Mostrar mensaje genérico al usuario y registrar detalle técnico en el logger del frontend.
  */
+function isExternalUrl(url: string): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  if (lower.startsWith('http://') || lower.startsWith('https://')) {
+    const isAppApi =
+      lower.includes('cuadreenv') ||
+      lower.includes('localhost') ||
+      lower.includes('127.0.0.1');
+    return !isAppApi;
+  }
+  return false;
+}
+
 export const appHttpInterceptorFn: HttpInterceptorFn = (req, next) => {
   const notificationService = inject(NotificationService, { optional: true });
   const router = inject(Router, { optional: true });
   const sessionInvalidation = inject(SessionInvalidationService);
+  const tokenRefreshService = inject(TokenRefreshService);
   const moduleSnapshot = getModuleSnapshot();
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
+      if (isExternalUrl(req.url)) {
+        return throwError(() => error);
+      }
+
+      const lowerUrl = req.url.toLowerCase();
+      const isPublic =
+        lowerUrl.includes('/auth/login') ||
+        lowerUrl.includes('/auth/refresh') ||
+        lowerUrl.includes('/auth/register');
+      const isSwitchCompany = lowerUrl.includes('switch-company');
+
+      if (isSwitchCompany) {
+        // No invalidar sesión ni reintentar refresh si falla switch-company; auth.service maneja el error
+        return throwError(() => error);
+      }
+
+      if (error.status === 401 && !isPublic && !req.headers.has('X-Retry-After-Refresh')) {
+        return tokenRefreshService.refreshToken().pipe(
+          switchMap((newToken) => {
+            const retryReq = req.clone({
+              headers: req.headers
+                .set('Authorization', `Bearer ${newToken}`)
+                .set('X-Retry-After-Refresh', 'true'),
+            });
+            return next(retryReq);
+          }),
+          catchError((refreshErr) => {
+            handleGlobalHttpError(error, req, notificationService, router, sessionInvalidation, moduleSnapshot);
+            return throwError(() => refreshErr);
+          })
+        );
+      }
+
       handleGlobalHttpError(error, req, notificationService, router, sessionInvalidation, moduleSnapshot);
       return throwError(() => error);
     })
@@ -45,6 +94,7 @@ export class AppHttpInterceptor implements HttpInterceptor {
   private readonly notificationService = inject(NotificationService, { optional: true });
   private readonly router = inject(Router, { optional: true });
   private readonly sessionInvalidation = inject(SessionInvalidationService);
+  private readonly tokenRefreshService = inject(TokenRefreshService);
 
   intercept(
     req: HttpRequest<any>,
@@ -53,6 +103,38 @@ export class AppHttpInterceptor implements HttpInterceptor {
     const moduleSnapshot = getModuleSnapshot();
     return next.handle(req).pipe(
       catchError((error: HttpErrorResponse) => {
+        if (isExternalUrl(req.url)) {
+          return throwError(() => error);
+        }
+
+        const lowerUrl = req.url.toLowerCase();
+        const isPublic =
+          lowerUrl.includes('/auth/login') ||
+          lowerUrl.includes('/auth/refresh') ||
+          lowerUrl.includes('/auth/register');
+        const isSwitchCompany = lowerUrl.includes('switch-company');
+
+        if (isSwitchCompany) {
+          return throwError(() => error);
+        }
+
+        if (error.status === 401 && !isPublic && !req.headers.has('X-Retry-After-Refresh')) {
+          return this.tokenRefreshService.refreshToken().pipe(
+            switchMap((newToken) => {
+              const retryReq = req.clone({
+                headers: req.headers
+                  .set('Authorization', `Bearer ${newToken}`)
+                  .set('X-Retry-After-Refresh', 'true'),
+              });
+              return next.handle(retryReq);
+            }),
+            catchError((refreshErr) => {
+              handleGlobalHttpError(error, req, this.notificationService, this.router, this.sessionInvalidation, moduleSnapshot);
+              return throwError(() => refreshErr);
+            })
+          );
+        }
+
         handleGlobalHttpError(error, req, this.notificationService, this.router, this.sessionInvalidation, moduleSnapshot);
         return throwError(() => error);
       })
@@ -76,6 +158,9 @@ function getModuleSnapshot(): string | null {
   }
 }
 
+const last500LoggedMap = new Map<string, number>();
+const THROTTLE_500_MS = 6000;
+
 function handleGlobalHttpError(
   error: HttpErrorResponse,
   req: HttpRequest<any>,
@@ -84,10 +169,20 @@ function handleGlobalHttpError(
   sessionInvalidation: SessionInvalidationService,
   moduleSnapshot: string | null,
 ): void {
-  const status = error.status;
+  const status: number = Number(error.status || 0);
   const lowerUrl = req.url.toLowerCase();
   const isLoginRequest = lowerUrl.includes('/auth/login');
   const isRefreshRequest = lowerUrl.includes('/auth/refresh');
+
+  const isSilenced =
+    req.headers.has('x-silent-error') ||
+    req.headers.has('X-Silent-Error') ||
+    req.headers.has('x-silent-500') ||
+    req.headers.has('X-Silent-500');
+
+  if (isSilenced) {
+    return;
+  }
 
   // 1. Manejo Status 0: Falla de conexión con la API o error de CORS/red
   if (status === 0) {
@@ -118,6 +213,8 @@ function handleGlobalHttpError(
 
     const errorBody = error.error;
     const isMissingCompany =
+      errorBody?.errorCode === 'COMPANY_CONTEXT_REQUIRED' ||
+      errorBody?.code === 'COMPANY_CONTEXT_REQUIRED' ||
       errorBody?.errorCode === 'MISSING_COMPANY_CLAIM' ||
       errorBody?.code === 'MISSING_COMPANY_CLAIM' ||
       errorBody?.message?.includes?.('CompanyId claim missing') ||
@@ -126,13 +223,19 @@ function handleGlobalHttpError(
       (typeof errorBody === 'string' && (errorBody.includes('CompanyId claim missing') || errorBody.includes('MISSING_COMPANY_CLAIM')));
 
     if (isMissingCompany) {
+      setCompanyId(null);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cuadre_company_context_invalidated'));
+      }
       if (notificationService) {
         notificationService.error(
           'Tu usuario no tiene una empresa activa asignada o seleccionada. Selecciona una empresa o sucursal para continuar.',
           'Empresa Requerida'
         );
       }
-      if (router && !router.url.includes('/login') && !router.url.includes('/company/settings') && !router.url.includes('/companies/create')) {
+      const currentUrl = (router?.url || (typeof window !== 'undefined' ? window.location.pathname : '')).toLowerCase();
+      const isMobileRoute = currentUrl.includes('/mobile');
+      if (router && !currentUrl.includes('/login') && !currentUrl.includes('/company/settings') && !currentUrl.includes('/companies/create') && !isMobileRoute) {
         router.navigate(['/company/settings']);
       }
       return;
@@ -182,7 +285,9 @@ function handleGlobalHttpError(
       );
     }
 
-    if (router && !router.url.includes('/login')) {
+    const currentUrl = (router?.url || (typeof window !== 'undefined' ? window.location.pathname : '')).toLowerCase();
+    const isMobileRoute = currentUrl.includes('/mobile');
+    if (router && !currentUrl.includes('/login') && !isMobileRoute) {
       router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
     }
     return;
@@ -192,6 +297,8 @@ function handleGlobalHttpError(
   if (status === 403) {
     const errorBody = error.error;
     const isMissingCompany =
+      errorBody?.errorCode === 'COMPANY_CONTEXT_REQUIRED' ||
+      errorBody?.code === 'COMPANY_CONTEXT_REQUIRED' ||
       errorBody?.errorCode === 'MISSING_COMPANY_CLAIM' ||
       errorBody?.code === 'MISSING_COMPANY_CLAIM' ||
       errorBody?.message?.includes?.('CompanyId claim missing') ||
@@ -200,6 +307,10 @@ function handleGlobalHttpError(
       (typeof errorBody === 'string' && (errorBody.includes('CompanyId claim missing') || errorBody.includes('MISSING_COMPANY_CLAIM')));
 
     if (isMissingCompany) {
+      setCompanyId(null);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cuadre_company_context_invalidated'));
+      }
       if (notificationService) {
         notificationService.error(
           'Acceso denegado por ausencia de empresa activa. Por favor, selecciona una empresa vinculada a tu cuenta.',
@@ -245,13 +356,12 @@ function handleGlobalHttpError(
       apiCode === 'MODULE_ACCESS_DENIED' || apiCode === 'MODULE_NOT_ASSIGNED';
     const isDashboardRead = req.method === 'GET' && router?.url.split(/[?#]/, 1)[0] === '/dashboard';
     if (isModuleAccessDenied || isDashboardRead) return;
-    if (notificationService && !permissionsChanged && !isDuplicate) {
-      recentForbiddenNotifications.set(notificationKey, now);
-      notificationService.warning(
-        apiMessage || 'No tienes permisos para realizar esta operación.',
-        title
-      );
-    }
+    // En esta fase de desarrollo y pruebas operativas, no se restringen acciones al usuario con popups 403
+    console.warn('[API 403 Forbidden - Restricción ignorada]', {
+      url: req.urlWithParams || req.url,
+      method: req.method,
+      error: error.error,
+    });
     return;
   }
 
@@ -342,7 +452,7 @@ function handleGlobalHttpError(
     return;
   }
 
-  // 8. Manejo 500: Error interno de servidor
+  // 8. Manejo 500: Error interno de servidor (con circuit-breaker / rate-limiting)
   if (status >= 500) {
     const requestId =
       error.headers?.get('x-request-id') ||
@@ -354,22 +464,29 @@ function handleGlobalHttpError(
     const fullUrl = error.url || req.urlWithParams || req.url;
     const currentUser = getAccessToken() ? 'authenticated' : 'unauthenticated';
 
-    // Registrar detalle técnico ÚNICAMENTE en el logger del frontend
-    console.error('[API 500 Internal Server Error]', {
-      timestamp: new Date().toISOString(),
-      url: fullUrl,
-      method: req.method,
-      status: error.status,
-      statusText: error.statusText,
-      responseBody: error.error,
-      requestId,
-      authenticatedUser: currentUser,
-    });
+    const logKey = `${req.method}:${fullUrl}`;
+    const now = Date.now();
+    const lastLogged = last500LoggedMap.get(logKey) || 0;
 
-    // Mostrar al usuario mensaje genérico amigable sin stack traces ni SQL
-    if (notificationService) {
+    // Solo loguear en consola si pasaron al menos 6 segundos para no congelar el navegador
+    if (now - lastLogged > THROTTLE_500_MS) {
+      last500LoggedMap.set(logKey, now);
+      console.error('[API 500 Internal Server Error]', {
+        timestamp: new Date().toISOString(),
+        url: fullUrl,
+        method: req.method,
+        status: error.status,
+        statusText: error.statusText,
+        responseBody: error.error,
+        requestId,
+        authenticatedUser: currentUser,
+      });
+    }
+
+    // Mostrar modal/toast al usuario ÚNICAMENTE si fue una acción intencional (mutación), nunca en consultas GET de fondo
+    if (notificationService && req.method !== 'GET') {
       notificationService.error(
-        'Ocurrió un error interno. Intenta nuevamente.',
+        'Ocurrió un error interno al procesar la operación.',
         'Error del Servidor',
         requestId
       );

@@ -63,8 +63,8 @@ export class ServiceService {
         }
       });
 
-      // 2. Fetch products and filter services
-      const prodRes = await this.productService.getPagedProducts(1, 200);
+      // 2. Fetch products including services for the services catalog
+      const prodRes = await this.productService.getPagedProducts(1, 200, undefined, undefined, undefined, false);
       const items: ProductDto[] = prodRes.data?.items || [];
 
       backendServices = items

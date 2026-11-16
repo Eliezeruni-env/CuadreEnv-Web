@@ -36,7 +36,11 @@
                 <div class="fw-bold text-dark">{{ item.productName }}</div>
                 @if (item.stockAvailable !== undefined) {
                   <span class="text-secondary font-monospace" style="font-size: 0.75rem;">
-                    Stock en almacén: {{ item.stockAvailable }} uds
+                    @if (mode === 'entry') {
+                      Stock actual: {{ item.stockAvailable }} uds ➔ <strong class="text-success fw-bold">Nuevo stock: {{ (item.stockAvailable || 0) + item.quantity }} uds</strong>
+                    } @else {
+                      Stock en almacén: {{ item.stockAvailable }} uds
+                    }
                   </span>
                 }
               </td>

@@ -134,37 +134,67 @@
                 <!-- Detail Row Expandible (Subtabla de Productos Transferidos) -->
                 @if (isTransferExpanded(t.id)) {
                   <tr class="detail-row">
-                    <td colspan="9">
-                      <div class="card border border-secondary-subtle shadow-xs rounded-3 overflow-hidden">
-                        <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                          <span class="fw-bold small text-secondary text-uppercase d-flex align-items-center gap-2">
-                            Detalle de Artículos en Tránsito ({{ (t.productDetails.length || 0) }} ítems)
-                          </span>
-                          <div class="small font-monospace">
-                            <span class="text-muted me-3">Origen: <strong>{{ t.warehouseOfOriginName }}</strong></span>
-                            <span class="text-muted me-3">Destino: <strong>{{ t.destinationWarehouseName }}</strong></span>
-                            <span class="text-primary fw-bold">Total Transferido: {{ (t.totalQuantity || 0) | number:'1.0-2' }} uds</span>
+                    <td colspan="9" class="p-3 bg-slate-50">
+                      <div class="billing-detail-card" style="border-top-color: #8B5CF6;">
+                        <div class="billing-detail-header">
+                          <div class="d-flex align-items-center gap-2">
+                            <div class="detail-header-icon" style="background: #F5F3FF; color: #7C3AED;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m16 3 4 4-4 4"></path>
+                                <path d="M20 7H4"></path>
+                                <path d="m8 21-4-4 4-4"></path>
+                                <path d="M4 17h16"></path>
+                              </svg>
+                            </div>
+                            <span class="detail-header-title">Detalle de Artículos en Tránsito</span>
+                            <span class="detail-items-count-badge">
+                              {{ (t.productDetails.length || 0) }} {{ (t.productDetails.length || 0) === 1 ? 'ítem' : 'ítems' }}
+                            </span>
+                          </div>
+
+                          <div class="detail-summary-pills">
+                            <span class="summary-pill">
+                              <span class="pill-label">Origen</span>
+                              <strong class="pill-value">{{ t.warehouseOfOriginName }}</strong>
+                            </span>
+                            <span class="summary-pill">
+                              <span class="pill-label">Destino</span>
+                              <strong class="pill-value">{{ t.destinationWarehouseName }}</strong>
+                            </span>
+                            <span class="summary-pill total-pill">
+                              <span class="pill-label">Total</span>
+                              <strong class="pill-value">{{ (t.totalQuantity || 0) | number:'1.0-2' }} uds</strong>
+                            </span>
                           </div>
                         </div>
-                        <div class="card-body p-0">
-                          <table class="table table-sm table-bordered mb-0 align-middle">
-                            <thead class="table-light text-muted font-size-xs">
-                              <tr>
-                                <th class="ps-3">Código</th>
-                                <th>Descripción del Producto</th>
-                                <th class="text-center pe-3">Cant. Transferida</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              @for (item of (t.productDetails || []); track $index) {
+
+                        <div class="billing-detail-body">
+                          <div class="table-responsive">
+                            <table class="table billing-subtable mb-0 align-middle">
+                              <thead>
                                 <tr>
-                                  <td class="ps-3 font-monospace small text-secondary">{{ item.barCode || 'PROD-' + item.productId }}</td>
-                                  <td class="fw-semibold text-dark">{{ item.productName }}</td>
-                                  <td class="text-center pe-3 font-monospace fw-bold text-primary">{{ item.quantity }} uds</td>
+                                  <th class="ps-3" style="width: 160px;">Código</th>
+                                  <th>Descripción</th>
+                                  <th class="text-center pe-3" style="width: 160px;">Cant. Transferida</th>
                                 </tr>
-                              }
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                @for (item of (t.productDetails || []); track $index) {
+                                  <tr>
+                                    <td class="ps-3">
+                                      <span class="product-code-pill font-monospace">{{ item.barCode || 'PROD-' + item.productId }}</span>
+                                    </td>
+                                    <td>
+                                      <span class="product-name-text">{{ item.productName }}</span>
+                                    </td>
+                                    <td class="text-center pe-3">
+                                      <span class="quantity-badge font-monospace">{{ item.quantity }} uds</span>
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     </td>

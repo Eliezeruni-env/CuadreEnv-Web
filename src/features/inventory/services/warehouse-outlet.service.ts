@@ -159,16 +159,10 @@ export class WarehouseOutletService {
           warehouseId: whId,
           quantity: item.quantity,
         });
-      } catch {
-        try {
-          await this.api.post<any, any>('/Warehouse/stock/remove', {
-            productId: item.productId,
-            warehouseId: whId,
-            quantity: item.quantity,
-          });
-        } catch {
-          // offline fallback
-        }
+      } catch (err: any) {
+        console.error('[WarehouseOutlet] Error al persistir en backend:', err);
+        const errMsg = err?.mappedError?.message || err?.message || 'Error al guardar la salida en el servidor.';
+        return { success: false, message: errMsg };
       }
     }
 

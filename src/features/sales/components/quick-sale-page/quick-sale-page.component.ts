@@ -1,3 +1,4 @@
+import { formatPaymentMethodLabel } from '../../../cuadreEnv/utils/payment-method.util';
 import { firstValueFrom } from 'rxjs';
 import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
@@ -10,6 +11,7 @@ import {
   signal,
   computed,
   inject,
+  effect,
   HostListener,
   ViewChild,
   ElementRef,
@@ -40,6 +42,9 @@ import type {
   SaleResponseDto,
 } from '../../../cuadreEnv/types/api';
 import { SaleService } from '../../services/sale.service';
+import { PosAudioService } from '../../services/pos-audio.service';
+import { PosCatalogCacheService } from '../../services/pos-catalog-cache.service';
+import { ModuleAccessService } from '../../../cuadreEnv/services/module-access.service';
 import {
   ThermalPrinterService,
   type TicketData,
@@ -121,6 +126,32 @@ const LAST_SALE_STORAGE_KEY = 'cuadre_last_completed_sale';
   styleUrls: ['./quick-sale-page.component.scss'],
 })
 export class QuickSalePageComponent implements OnInit, OnDestroy {
+  formatPaymentMethod(method?: string | number | null): string {
+    return formatPaymentMethodLabel(method);
+  }
+
+  formatSaleDate(sale: any): string {
+    if (!sale) return '—';
+    const val = sale.date || sale.creationDate || sale.createdAt || sale.createdDate;
+    if (!val) return '—';
+    try {
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return '—';
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      let hours = d.getHours();
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'p. m.' : 'a. m.';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      return `${day}/${month}/${year}, ${hours}:${minutes} ${ampm}`;
+    } catch {
+      return '—';
+    }
+  }
+
+
   @ViewChild('catalogSearchInput')
   catalogSearchInputRef?: ElementRef<HTMLInputElement>;
   @ViewChild('amountReceivedInput')
@@ -148,6 +179,17 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   readonly unitService = inject(UnitOfMeasurementService);
   private saleService = inject(SaleService);
   readonly printerService = inject(ThermalPrinterService);
+  readonly posAudio = inject(PosAudioService);
+  readonly catalogCache = inject(PosCatalogCacheService);
+  readonly moduleAccess = inject(ModuleAccessService);
+
+  canAccessFeature(code: string, parentModule?: string): boolean {
+    return this.moduleAccess.hasFeature(code, parentModule);
+  }
+
+  readonly canConfigureNcf = computed(() =>
+    this.moduleAccess.hasFeature('pos-configure-ncf', 'billing')
+  );
 
   isLoading = signal<boolean>(false);
   isSubmitting = signal<boolean>(false);
@@ -212,7 +254,7 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   // 6. Generador de Planilla de Códigos de Barra
   isBarcodeSheetModalOpen = signal<boolean>(false);
   barcodeSheetFormat = signal<'grid' | 'roll'>('grid');
-  barcodeFilterType = signal<'all' | 'with-barcode' | 'favorites'>('all');
+  barcodeFilterType = signal<'all' | 'with-barcode'>('all');
 
   // Warehouse isolation
   warehouses = signal<Warehouse[]>([]);
@@ -234,6 +276,14 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   cameraScanFlash = signal<boolean>(false);
   cameraLastScannedItem = signal<{ name: string; price: number; time: string } | null>(null);
   cameraBurstScannedCount = signal<number>(0);
+  cameraLastScanAlert = signal<{
+    code: string;
+    name: string;
+    price: number;
+    time: string;
+    status: 'success' | 'not_found';
+  } | null>(null);
+  private cameraAlertTimeoutId: any = null;
   private lastCameraScanCode = '';
   private lastCameraScanTime = 0;
   private cameraAnimFrameId: number | null = null;
@@ -251,6 +301,17 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   isCompactMode = signal<boolean>(
     typeof window !== 'undefined' && localStorage.getItem('cuadre_pos_compact_mode') === 'true'
   );
+
+  // Menú desplegable de Opciones / Configuración POS en cabecera
+  isOptionsMenuOpen = signal<boolean>(false);
+
+  toggleOptionsMenu(): void {
+    this.isOptionsMenuOpen.update(v => !v);
+  }
+
+  closeOptionsMenu(): void {
+    this.isOptionsMenuOpen.set(false);
+  }
 
   toggleCompactMode(): void {
     const next = !this.isCompactMode();
@@ -292,7 +353,7 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   setDetailSaleByMoney(amount: number): void {
     const prod = this.selectedProductForMeasurement();
     if (!prod) return;
-    const unitPrice = this.getEffectiveUnitPrice() || (prod.cost ? Number(prod.cost) : 100);
+    const unitPrice = this.getEffectiveUnitPrice() || Number(prod.price || prod.priceList || 0);
     if (unitPrice <= 0) return;
     this.selectedSaleAmountMoney.set(amount);
     const calculatedQty = Math.round((amount / unitPrice) * 1000) / 1000;
@@ -518,7 +579,6 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
   categories = signal<{ id: number | null; label: string }[]>([
     { id: null, label: 'Todos' },
-    { id: -1, label: '⭐ Favoritos' },
   ]);
 
   // Session info & Cash Register Guard
@@ -676,7 +736,6 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     if (p.isService === true || p.type === 'service' || p.type === 'Servicio')
       return true;
     if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
-    if (p.invoiceWithoutStock === true) return true;
 
     const code = String(p.barcode || p.reference || p.code || '')
       .toUpperCase()
@@ -715,39 +774,30 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       }
 
       if (cat !== null) {
-        if (cat === -1) {
-          const favIds = new Set(this.favoriteProducts().map((f) => f.id));
-          if (!favIds.has(p.id)) {
-            return false;
-          }
-        } else {
-          const prodCatId =
-            p.categoryId ??
-            (p as any).category?.id ??
-            (p as any).productCategoryId;
-          const prodTypeId = p.productTypeId;
-          const catNum = Number(cat);
-          const selectedCatObj = this.categories().find((c) => c.id === cat);
-          const selectedLabel = (selectedCatObj?.label || '')
-            .toLowerCase()
-            .trim();
-          const prodCatName = (
-            p.categoryName ||
-            (p as any).category?.description ||
-            (p as any).category?.name ||
-            ''
-          )
-            .toLowerCase()
-            .trim();
+        const prodCatId =
+          p.categoryId ??
+          (p as any).category?.id ??
+          (p as any).productCategoryId;
+        const catNum = Number(cat);
+        const selectedCatObj = this.categories().find((c) => c.id === cat);
+        const selectedLabel = (selectedCatObj?.label || '')
+          .toLowerCase()
+          .trim();
+        const prodCatName = (
+          p.categoryName ||
+          (p as any).category?.description ||
+          (p as any).category?.name ||
+          ''
+        )
+          .toLowerCase()
+          .trim();
 
-          const matchesCat =
-            (prodCatId != null && Number(prodCatId) === catNum) ||
-            (prodTypeId != null && Number(prodTypeId) === catNum) ||
-            (selectedLabel !== '' && prodCatName === selectedLabel);
+        const matchesCat =
+          (prodCatId != null && Number(prodCatId) === catNum) ||
+          (selectedLabel !== '' && (prodCatName === selectedLabel || prodCatName.includes(selectedLabel) || selectedLabel.includes(prodCatName)));
 
-          if (!matchesCat) {
-            return false;
-          }
+        if (!matchesCat) {
+          return false;
         }
       }
       if (term) {
@@ -785,6 +835,17 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       1
     );
   });
+
+  constructor() {
+    effect(() => {
+      const items = this.cartItems();
+      if (items.length > 0) {
+        this.saveActiveDraftBeforeExit();
+      } else {
+        this.draftStorageService.clearActiveDraft();
+      }
+    });
+  }
 
   ngOnInit() {
     this.loadInitialLookups();
@@ -877,7 +938,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     // F2: Buscar producto / Focus en lector de código de barras
-    if (event.key === 'F2') {
+    if (event.key === 'F2' || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k')) {
       event.preventDefault();
       this.focusCatalogSearch();
       return;
@@ -931,7 +992,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     // F4 / F12: Cobrar / Siguiente paso / Nueva venta
-    if (event.key === 'F4' || event.key === 'F12') {
+    if (event.key === 'F4' || event.key === 'F12' || (event.key === ' ' && !isTextInput)) {
       event.preventDefault();
       if (this.checkoutStep() === 3) {
         this.startNewSale();
@@ -968,11 +1029,70 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       return;
     }
 
-    // F9: Abrir ventas en espera
+        // F9: Facturar en Efectivo Exacto en 1 segundo
     if (event.key === 'F9') {
+      event.preventDefault();
+      if (this.checkoutStep() === 3) {
+        this.startNewSale();
+        return;
+      }
+      if (this.cartItems().length > 0) {
+        this.selectedMethod.set('Efectivo');
+        this.amountReceived.set(this.total());
+        void this.processQuickSale();
+      } else {
+        this.notificationService.warning(
+          'Agrega productos al carrito antes de facturar en efectivo exacto (F9).',
+        );
+      }
+      return;
+    }
+
+    // F10: Abrir ventas en espera
+    if (event.key === 'F10') {
       event.preventDefault();
       this.openHeldSalesModal();
       return;
+    }
+
+    // Escape: Cerrar modales o limpiar carrito / cancelar venta
+    if (event.key === 'Escape') {
+      if (this.isOptionsMenuOpen()) {
+        event.preventDefault();
+        this.isOptionsMenuOpen.set(false);
+        return;
+      }
+      if (this.isCalculatorOpen()) {
+        event.preventDefault();
+        this.isCalculatorOpen.set(false);
+        return;
+      }
+      if (this.isShortcutsModalOpen()) {
+        event.preventDefault();
+        this.isShortcutsModalOpen.set(false);
+        return;
+      }
+      if (this.isHeldSalesModalOpen()) {
+        event.preventDefault();
+        this.isHeldSalesModalOpen.set(false);
+        return;
+      }
+      if (this.isCameraScannerOpen()) {
+        event.preventDefault();
+        this.closeCameraScanner();
+        return;
+      }
+      if (this.checkoutStep() === 2) {
+        event.preventDefault();
+        this.checkoutStep.set(1);
+        return;
+      }
+      if (this.cartItems().length > 0) {
+        event.preventDefault();
+        this.resetForm();
+        this.notificationService.info('Venta actual cancelada / carrito limpiado (Esc).');
+        return;
+      }
     }
 
     // Enter: Confirmar cobro en efectivo exacto o nueva venta
@@ -1144,7 +1264,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     this.transferBank.set(draft.transferBank || '');
     this.transferReference.set(draft.transferReference || '');
 
-    this.draftStorageService.clearActiveDraft();
+    // Draft remains active and in-sync
     this.notificationService.info(
       'Se ha restaurado automáticamente la venta en curso previa a la expiración de sesión.',
     );
@@ -1196,6 +1316,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       );
       return;
     }
+    this.posAudio.playCheckoutSuccess();
     this.isSaleCompletedModalOpen = true;
   }
 
@@ -1298,19 +1419,26 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   // =========================================================================
   async openRecentSalesModal(): Promise<void> {
     this.isRecentSalesModalOpen.set(true);
-    this.isLoadingRecentSales.set(true);
+    // Carga instantánea desde caché local (0ms de latencia percibida)
+    const localSales = this.saleService.getLocalSales();
+    if (localSales && localSales.length > 0) {
+      this.recentSales.set(localSales.slice(0, 20));
+      this.isLoadingRecentSales.set(false);
+    } else {
+      this.isLoadingRecentSales.set(true);
+    }
+
+    // Actualización en segundo plano (Stale-While-Revalidate)
     try {
       const res = await this.saleService.getSales({
         pageNumber: 1,
         pageSize: 20,
       });
-      if (res.success && res.data) {
+      if (res.success && res.data && res.data.length > 0) {
         this.recentSales.set(res.data);
-      } else {
-        this.recentSales.set(this.saleService.getLocalSales());
       }
     } catch {
-      this.recentSales.set(this.saleService.getLocalSales());
+      // Las ventas locales ya están disponibles
     } finally {
       this.isLoadingRecentSales.set(false);
     }
@@ -1507,10 +1635,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   getBarcodeItemsToExport(): BarcodePrintItem[] {
     const filter = this.barcodeFilterType();
     let prods = this.products().filter((p) => !this.isServiceItem(p));
-    if (filter === 'favorites') {
-      const favIds = new Set(this.favoriteProducts().map((f) => f.id));
-      prods = prods.filter((p) => favIds.has(p.id));
-    } else if (filter === 'with-barcode') {
+    if (filter === 'with-barcode') {
       prods = prods.filter((p) => Boolean(p.barcode || p.reference));
     }
 
@@ -1523,7 +1648,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         id: p.id || 1,
         name: p.description || 'Producto',
         code,
-        price: p.cost || 100,
+        price: Number(p.price || p.priceList || 0),
         categoryName: p.categoryName || undefined,
       };
     });
@@ -1651,6 +1776,15 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       }
       if (prodList && prodList.length > 0) {
         this.products.set(prodList);
+        this.catalogCache.cacheProducts(prodList);
+        this.catalogCache.prefetchFullCatalog().then((count) => {
+          if (count > prodList.length) {
+            const allCached = this.catalogCache.searchFast('');
+            if (allCached.length > 0) {
+              this.products.set(allCached);
+            }
+          }
+        });
       }
       const rawCustData = custRes?.data as any;
       const custList = Array.isArray(rawCustData)
@@ -1684,8 +1818,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         const catId =
           p.categoryId ??
           p.category?.id ??
-          p.productCategoryId ??
-          p.productTypeId;
+          p.productCategoryId;
         const catName =
           p.categoryName ?? p.category?.description ?? p.category?.name;
         if (catName && catName.toLowerCase().includes('serv')) return;
@@ -1700,7 +1833,6 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       const dynamicCats = Array.from(catMap.values());
       this.categories.set([
         { id: null, label: 'Todos' },
-        { id: -1, label: '⭐ Favoritos' },
         ...dynamicCats,
       ]);
 
@@ -1810,13 +1942,28 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
   }
 
-  setCategory(catId: number | null) {
-    if (this.selectedCategory() === catId) {
-      this.selectedCategory.set(null);
-    } else {
-      this.selectedCategory.set(catId);
-    }
+  async setCategory(catId: number | null) {
+    this.selectedCategory.set(catId);
     this.catalogPage.set(1);
+    if (catId != null && catId > 0) {
+      await this.fetchProductsForCategory(catId);
+    }
+  }
+
+  private async fetchProductsForCategory(catId: number) {
+    try {
+      const res = await this.productService.getPagedProducts(1, 100, undefined, undefined, undefined, false, catId);
+      const items = res?.data?.items || (Array.isArray(res?.data) ? res.data : []);
+      if (items.length > 0) {
+        const current = [...this.products()];
+        const map = new Map<number, ProductDto>();
+        current.forEach((p) => { if (p.id) map.set(p.id, p); });
+        items.forEach((p: any) => { if (p.id) map.set(p.id, p); });
+        this.products.set(Array.from(map.values()));
+      }
+    } catch (e) {
+      console.warn('Could not fetch products for category:', e);
+    }
   }
 
   prevCatalogPage() {
@@ -2014,13 +2161,13 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     if (pkg && mode === 'package') {
       return (
         pkg.packagePrice ||
-        (prod.cost ? Number(prod.cost) : 100) * (pkg.packageUnitsCount || 1)
+        Number(prod.price || prod.priceList || 0) * (pkg.packageUnitsCount || 1)
       );
     }
     if (pkg && mode === 'individual') {
       return pkg.individualUnitPrice || 15;
     }
-    return prod.cost ? Number(prod.cost) : 100;
+    return Number(prod.price || prod.priceList || 0);
   }
 
   getEffectiveUnitLabel(): string {
@@ -2193,7 +2340,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     const available = this.getProductAvailableStock(product.id!);
-    if (available <= 0) {
+    if (available <= 0 && !product.invoiceWithoutStock) {
       const whName =
         this.warehouses().find((w) => w.id === this.selectedWarehouseId())
           ?.name || 'este almacén';
@@ -2221,7 +2368,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       );
     }
 
-    const price = product.cost ? Number(product.cost) : 100;
+    const price = Number(product.price != null && product.price > 0 ? product.price : product.priceList || 0);
     const code =
       product.barcode ||
       product.reference ||
@@ -2382,6 +2529,11 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     this.draftStorageService.clearActiveDraft();
   }
 
+  getSelectedWarehouseName(): string {
+    const found = this.warehouses().find(w => w.id === this.selectedWarehouseId());
+    return found?.name || 'Almacén Principal';
+  }
+
   // =========================================================================
   // Barcode Scanner: PC Camera (Webcam) & External Hardware Scanner Gun
   // =========================================================================
@@ -2399,6 +2551,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     this.isCameraScannerOpen.set(true);
     this.cameraBurstScannedCount.set(0);
     this.cameraLastScannedItem.set(null);
+    this.cameraLastScanAlert.set(null);
 
     try {
       if (!this.zxingReader) {
@@ -2418,7 +2571,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         ];
         hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
         hints.set(DecodeHintType.TRY_HARDER, true);
-        this.zxingReader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 120 });
+        this.zxingReader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 80 });
       }
 
       setTimeout(async () => {
@@ -2434,20 +2587,43 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         let stream: MediaStream | null = null;
         try {
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1920, min: 1280 },
+              height: { ideal: 1080, min: 720 },
+              frameRate: { ideal: 30, min: 20 },
+            },
             audio: false,
           });
         } catch {
           try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          } catch (fallbackErr: any) {
-            throw fallbackErr;
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+              audio: false,
+            });
+          } catch {
+            try {
+              stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            } catch (fallbackErr: any) {
+              throw fallbackErr;
+            }
           }
         }
 
         if (!stream) {
           throw new Error('No se pudo inicializar la cámara');
         }
+
+        // Aplicar autoenfoque continuo si el hardware de la cámara lo soporta
+        try {
+          const videoTrack = stream.getVideoTracks()[0];
+          if (videoTrack) {
+            const capabilities: any = (videoTrack as any).getCapabilities ? (videoTrack as any).getCapabilities() : {};
+            if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+              void (videoTrack as any).applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
+            }
+          }
+        } catch {}
 
         this.cameraStream = stream;
         videoEl.srcObject = stream;
@@ -2518,6 +2694,11 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       this.cameraStream.getTracks().forEach((t) => t.stop());
       this.cameraStream = null;
     }
+    if (this.cameraAlertTimeoutId) {
+      clearTimeout(this.cameraAlertTimeoutId);
+      this.cameraAlertTimeoutId = null;
+    }
+    this.cameraLastScanAlert.set(null);
     this.cameraScanFlash.set(false);
     this.isCameraScannerOpen.set(false);
   }
@@ -2584,37 +2765,56 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     const cleanDigits = raw.replace(/\D/g, '');
     const activeCid = this.authService.companyId() || Number(getCompanyId()) || 0;
 
+    let product: any = null;
+
+    // 0. Búsqueda instantánea sub-2ms en Catálogo Local RAM / IndexedDB
+    let cachedProduct = this.catalogCache.findByBarcode(clean);
+    if (!cachedProduct && cleanDigits.length >= 4) {
+      cachedProduct = this.catalogCache.findByBarcode(cleanDigits);
+    }
+    if (!cachedProduct) {
+      const fastMatches = this.catalogCache.searchFast(raw);
+      if (fastMatches && fastMatches.length > 0) {
+        cachedProduct = fastMatches[0];
+      }
+    }
+    if (cachedProduct && (!activeCid || cachedProduct.companyId == null || Number(cachedProduct.companyId) === 0 || Number(cachedProduct.companyId) === activeCid)) {
+      product = cachedProduct;
+    }
+
     // 1. Check in local products list with multi-property and digits matching respecting tenant
-    let product = this.products().find((p) => {
-      if (this.isServiceItem(p)) return false;
+    if (!product) {
+      product = this.products().find((p) => {
+        if (this.isServiceItem(p)) return false;
 
-      // Tenant isolation: un tenant jamás puede ver ni cobrar productos de otro
-      const pCid = p.companyId ?? (p as any).CompanyId;
-      if (activeCid > 0 && pCid != null && Number(pCid) > 0 && Number(pCid) !== activeCid) {
+        // Tenant isolation: un tenant jamás puede ver ni cobrar productos de otro
+        const pCid = p.companyId ?? (p as any).CompanyId;
+        if (activeCid > 0 && pCid != null && Number(pCid) > 0 && Number(pCid) !== activeCid) {
+          return false;
+        }
+
+        const b = (p.barcode || '').trim().toLowerCase();
+        const r = (p.reference || '').trim().toLowerCase();
+        const sDesc = (p.shortDescription || '').trim().toLowerCase();
+        const idStr = p.id ? String(p.id) : '';
+        const sku = `sku-${p.id}`.toLowerCase();
+
+        if (b === clean || r === clean || sDesc === clean || idStr === clean || sku === clean) {
+          return true;
+        }
+        if (cleanDigits.length >= 4) {
+          const pDigits = (p.barcode || '').replace(/\D/g, '');
+          const rDigits = (p.reference || '').replace(/\D/g, '');
+          if (pDigits && (pDigits === cleanDigits || pDigits.padStart(13, '0') === cleanDigits.padStart(13, '0') || pDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, ''))) {
+            return true;
+          }
+          if (rDigits && (rDigits === cleanDigits || rDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, ''))) {
+            return true;
+          }
+        }
         return false;
-      }
-
-      const b = (p.barcode || '').trim().toLowerCase();
-      const r = (p.reference || '').trim().toLowerCase();
-      const sDesc = (p.shortDescription || '').trim().toLowerCase();
-      const idStr = p.id ? String(p.id) : '';
-      const sku = `sku-${p.id}`.toLowerCase();
-
-      if (b === clean || r === clean || sDesc === clean || idStr === clean || sku === clean) {
-        return true;
-      }
-      if (cleanDigits.length >= 4) {
-        const pDigits = (p.barcode || '').replace(/\D/g, '');
-        const rDigits = (p.reference || '').replace(/\D/g, '');
-        if (pDigits && (pDigits === cleanDigits || pDigits.padStart(13, '0') === cleanDigits.padStart(13, '0') || pDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, ''))) {
-          return true;
-        }
-        if (rDigits && (rDigits === cleanDigits || rDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, ''))) {
-          return true;
-        }
-      }
-      return false;
-    });
+      });
+    }
 
     // 2. If not found in loaded products, query backend API with tenant isolation
     if (!product) {
@@ -2658,24 +2858,67 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     if (product) {
+      this.posAudio.playScanSuccess();
       soundEffects.playScannerBeep();
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { (navigator as any).vibrate([60, 40, 60]); } catch {}
+      }
+
       this.addProductToCart(product);
+
+      const prodName = product.description || 'Producto';
+      const prodPrice = Number(product.price || product.priceList || 0);
+      const scanTimeStr = formatTimeInRD(new Date());
 
       this.cameraBurstScannedCount.update((c) => c + 1);
       this.cameraLastScannedItem.set({
-        name: product.description || 'Producto',
-        price: Number(product.cost) || 100,
-        time: formatTimeInRD(new Date()),
+        name: prodName,
+        price: prodPrice,
+        time: scanTimeStr,
       });
 
-      this.cameraScanFlash.set(true);
-      setTimeout(() => this.cameraScanFlash.set(false), 250);
+      this.cameraLastScanAlert.set({
+        code: raw,
+        name: prodName,
+        price: prodPrice,
+        time: scanTimeStr,
+        status: 'success',
+      });
+      if (this.cameraAlertTimeoutId) {
+        clearTimeout(this.cameraAlertTimeoutId);
+      }
+      this.cameraAlertTimeoutId = setTimeout(() => {
+        this.cameraLastScanAlert.set(null);
+      }, 3500);
 
-      this.notificationService.success(`+1 "${product.description || 'Producto'}" agregado.`);
+      this.cameraScanFlash.set(true);
+      setTimeout(() => this.cameraScanFlash.set(false), 300);
+
+      this.notificationService.success(`¡Código leído con éxito! +1 "${prodName}" agregado.`);
       this.focusCatalogSearch();
     } else {
+      this.posAudio.playScanError();
       soundEffects.playErrorBeep();
-      this.notificationService.warning(`Código "${raw}" no encontrado en el catálogo de esta empresa.`);
+
+      // Alerta visual inmediata en el visor indicando que la lectura sí se produjo
+      this.cameraLastScanAlert.set({
+        code: raw,
+        name: 'Código leído (No registrado)',
+        price: 0,
+        time: formatTimeInRD(new Date()),
+        status: 'not_found',
+      });
+      if (this.cameraAlertTimeoutId) {
+        clearTimeout(this.cameraAlertTimeoutId);
+      }
+      this.cameraAlertTimeoutId = setTimeout(() => {
+        this.cameraLastScanAlert.set(null);
+      }, 3500);
+
+      this.cameraScanFlash.set(true);
+      setTimeout(() => this.cameraScanFlash.set(false), 300);
+
+      this.notificationService.warning(`Código "${raw}" leído correctamente, pero no está registrado en el catálogo.`);
       this.focusCatalogSearch();
     }
   }
@@ -2779,8 +3022,10 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     if (event.key === 'Enter') {
       event.preventDefault();
       event.stopPropagation();
-      const rawTerm = (this.catalogSearchTerm() || '').trim();
+      const inputEl = event.target as HTMLInputElement;
+      const rawTerm = (inputEl?.value || this.catalogSearchTerm() || '').trim();
       if (!rawTerm) return;
+      if (inputEl) inputEl.value = '';
       this.catalogSearchTerm.set('');
       void this.handleScannedBarcode(rawTerm, false);
     }
@@ -3015,6 +3260,10 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     if (step === 2) {
+      if (!this.canConfigureNcf()) {
+        this.goToStep(3);
+        return;
+      }
       this.checkoutStep.set(2);
       return;
     }

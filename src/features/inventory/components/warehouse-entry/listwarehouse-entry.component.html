@@ -138,45 +138,73 @@
                   </td>
                 </tr>
 
-                <!-- Detail Row Expandible (Subtabla de Productos Ingresados) -->
+                <!-- Detail Row Expandible (Subtabla de Productos Ingresados - Diseño Unificado Captura 3) -->
                 @if (isEntryExpanded(e.id)) {
                   <tr class="detail-row">
-                    <td colspan="9">
-                      <div class="card border border-secondary-subtle shadow-xs rounded-3 overflow-hidden">
-                        <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                          <span class="fw-bold small text-secondary text-uppercase d-flex align-items-center gap-2">
-                            Detalle de Productos Ingresados ({{ (e.productDetails.length || 0) }} ítems)
-                          </span>
-                          <div class="small font-monospace">
-                            <span class="text-muted me-3">Total Unidades: <strong>+{{ (e.totalQuantity || 0) | number:'1.0-2' }} uds</strong></span>
-                            <span class="text-success fw-bold">Costo Total: RD$ {{ (e.totalCost || 0) | number:'1.2-2' }}</span>
+                    <td colspan="9" class="p-3 bg-slate-50">
+                      <div class="billing-detail-card" style="border-top-color: #10B981;">
+                        <div class="billing-detail-header">
+                          <div class="d-flex align-items-center gap-2">
+                            <div class="detail-header-icon" style="background: #ECFDF5; color: #059669;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                              </svg>
+                            </div>
+                            <span class="detail-header-title">Detalle de Productos Ingresados</span>
+                            <span class="detail-items-count-badge">
+                              {{ (e.productDetails.length || 0) }} {{ (e.productDetails.length || 0) === 1 ? 'ítem' : 'ítems' }}
+                            </span>
+                          </div>
+
+                          <div class="detail-summary-pills">
+                            <span class="summary-pill">
+                              <span class="pill-label">Total Unidades</span>
+                              <strong class="pill-value">+{{ (e.totalQuantity || 0) | number:'1.0-2' }} uds</strong>
+                            </span>
+                            <span class="summary-pill total-pill">
+                              <span class="pill-label">Costo Total</span>
+                              <strong class="pill-value text-success">RD$ {{ (e.totalCost || 0) | number:'1.2-2' }}</strong>
+                            </span>
                           </div>
                         </div>
-                        <div class="card-body p-0">
-                          <table class="table table-sm table-bordered mb-0 align-middle">
-                            <thead class="table-light text-muted font-size-xs">
-                              <tr>
-                                <th class="ps-3">Código</th>
-                                <th>Descripción del Producto</th>
-                                <th class="text-center">Cant. Ingresada</th>
-                                <th class="text-end">Costo Unitario</th>
-                                <th class="text-end pe-3">Subtotal Costo</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              @for (item of (e.productDetails || []); track $index) {
+
+                        <div class="billing-detail-body">
+                          <div class="table-responsive">
+                            <table class="table billing-subtable mb-0 align-middle">
+                              <thead>
                                 <tr>
-                                  <td class="ps-3 font-monospace small text-secondary">{{ item.barCode || 'PROD-' + item.productId }}</td>
-                                  <td class="fw-semibold text-dark">{{ item.productName }}</td>
-                                  <td class="text-center font-monospace fw-bold text-success">+{{ item.quantity }} uds</td>
-                                  <td class="text-end font-monospace">RD$ {{ (item.cost || item.price || 0) | number:'1.2-2' }}</td>
-                                  <td class="text-end pe-3 font-monospace fw-bold text-dark">
-                                    RD$ {{ (item.quantity * (item.cost || item.price || 0)) | number:'1.2-2' }}
-                                  </td>
+                                  <th class="ps-3" style="width: 140px;">CÓDIGO</th>
+                                  <th>DESCRIPCIÓN DEL PRODUCTO</th>
+                                  <th class="text-center" style="width: 120px;">CANT. INGRESADA</th>
+                                  <th class="text-end" style="width: 130px;">COSTO UNIT.</th>
+                                  <th class="text-end pe-3" style="width: 140px;">SUBTOTAL COSTO</th>
                                 </tr>
-                              }
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                @for (item of (e.productDetails || []); track $index) {
+                                  <tr>
+                                    <td class="ps-3">
+                                      <span class="product-code-pill font-monospace">{{ item.barCode || 'PROD-' + item.productId }}</span>
+                                    </td>
+                                    <td>
+                                      <span class="product-name-text">{{ item.productName }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                      <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace fw-bold px-2 py-1">
+                                        +{{ item.quantity }} uds
+                                      </span>
+                                    </td>
+                                    <td class="text-end font-monospace text-muted">RD$ {{ (item.cost || item.price || 0) | number:'1.2-2' }}</td>
+                                    <td class="text-end pe-3 font-monospace fw-bold text-success">
+                                      RD$ {{ (item.quantity * (item.cost || item.price || 0)) | number:'1.2-2' }}
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -275,73 +303,78 @@
           </div>
         }
 
-        <!-- Tabla de Artículos Ingresados -->
-        <div class="card border-0 shadow-2xs rounded-3 overflow-hidden bg-white mb-2">
-          <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white">
-            <h6 class="fw-bold text-dark mb-0" style="font-size: 0.88rem;">
-              Artículos y Productos Ingresados ({{ (selectedEntry.productDetails || []).length }})
-            </h6>
-            <span class="badge bg-light text-secondary border font-monospace" style="font-size: 0.72rem;">
-              Recepción Confirmada
-            </span>
-          </div>
-
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.84rem;">
-              <thead class="table-light text-secondary" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                <tr>
-                  <th class="ps-3 py-2.5">Producto / Descripción</th>
-                  <th class="py-2.5">Cód. Barra</th>
-                  <th class="text-center py-2.5" style="width: 110px;">Cant.</th>
-                  <th class="text-end py-2.5" style="width: 140px;">Costo Unit.</th>
-                  <th class="text-end pe-3 py-2.5" style="width: 150px;">Importe Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (item of (selectedEntry.productDetails || []); track $index) {
-                  <tr>
-                    <td class="ps-3 py-3">
-                      <div class="fw-bold text-dark">{{ item.productName }}</div>
-                      <div class="text-muted small font-monospace" style="font-size: 0.72rem;">ID: #{{ item.productId }}</div>
-                    </td>
-                    <td class="py-3 font-monospace text-secondary">{{ item.barCode || '—' }}</td>
-                    <td class="text-center py-3">
-                      <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill font-monospace fw-bold">
-                        +{{ item.quantity }} ud.
-                      </span>
-                    </td>
-                    <td class="text-end py-3 font-monospace text-secondary">
-                      RD$ {{ (item.cost || 0) | number:'1.2-2' }}
-                    </td>
-                    <td class="text-end pe-3 py-3 font-monospace fw-bold text-dark">
-                      RD$ {{ (item.quantity * (item.cost || 0)) | number:'1.2-2' }}
-                    </td>
-                  </tr>
-                }
-                @if ((selectedEntry.productDetails || []).length === 0) {
-                  <tr>
-                    <td colspan="5" class="text-center py-4 text-muted">
-                      No hay artículos especificados en este movimiento.
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Total Resumen Card -->
-          <div class="p-3 bg-light border-top d-flex justify-content-between align-items-center">
+        <!-- Detalle de Artículos Ingresados (Diseño Unificado Captura 3) -->
+        <div class="billing-detail-card mb-3" style="border-top-color: #10B981;">
+          <div class="billing-detail-header">
             <div class="d-flex align-items-center gap-2">
-              <span class="text-muted small fw-semibold">Total Unidades:</span>
-              <span class="badge bg-dark text-white font-monospace px-2.5 py-1 rounded-pill">
-                +{{ selectedEntry.totalQuantity }} uds
+              <div class="detail-header-icon" style="background: #ECFDF5; color: #059669;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </div>
+              <span class="detail-header-title">Detalle de Productos Ingresados</span>
+              <span class="detail-items-count-badge">
+                {{ (selectedEntry.productDetails || []).length }} {{ (selectedEntry.productDetails || []).length === 1 ? 'ítem' : 'ítems' }}
               </span>
             </div>
-            <div class="text-end">
-              <div class="text-muted small" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600;">Costo Total Entrada</div>
-              <div class="fs-4 fw-bold text-success font-monospace mb-0">
-                RD$ {{ selectedEntry.totalCost | number:'1.2-2' }}
-              </div>
+
+            <div class="detail-summary-pills">
+              <span class="summary-pill">
+                <span class="pill-label">Total Unidades</span>
+                <strong class="pill-value">+{{ selectedEntry.totalQuantity }} uds</strong>
+              </span>
+              <span class="summary-pill total-pill">
+                <span class="pill-label">Costo Total</span>
+                <strong class="pill-value text-success">RD$ {{ selectedEntry.totalCost | number:'1.2-2' }}</strong>
+              </span>
+            </div>
+          </div>
+
+          <div class="billing-detail-body">
+            <div class="table-responsive">
+              <table class="table billing-subtable mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th class="ps-3" style="width: 140px;">CÓDIGO</th>
+                    <th>DESCRIPCIÓN DEL PRODUCTO</th>
+                    <th class="text-center" style="width: 110px;">CANT.</th>
+                    <th class="text-end" style="width: 130px;">COSTO UNIT.</th>
+                    <th class="text-end pe-3" style="width: 140px;">IMPORTE TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of (selectedEntry.productDetails || []); track $index) {
+                    <tr>
+                      <td class="ps-3">
+                        <span class="product-code-pill font-monospace">{{ item.barCode || 'PROD-' + item.productId }}</span>
+                      </td>
+                      <td>
+                        <span class="product-name-text">{{ item.productName }}</span>
+                      </td>
+                      <td class="text-center">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill font-monospace fw-bold">
+                          +{{ item.quantity }} uds
+                        </span>
+                      </td>
+                      <td class="text-end font-monospace text-muted">
+                        RD$ {{ (item.cost || 0) | number:'1.2-2' }}
+                      </td>
+                      <td class="text-end pe-3 font-monospace fw-bold text-success">
+                        RD$ {{ (item.quantity * (item.cost || 0)) | number:'1.2-2' }}
+                      </td>
+                    </tr>
+                  }
+                  @if ((selectedEntry.productDetails || []).length === 0) {
+                    <tr>
+                      <td colspan="5" class="text-center py-4 text-muted">
+                        No hay artículos especificados en este movimiento.
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
