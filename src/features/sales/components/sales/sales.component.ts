@@ -35,6 +35,7 @@ import {
 import { TableComponent } from '../../../cuadreEnv/components/table/table.component';
 import { ListPaginationComponent } from '../../../cuadreEnv/components/list-pagination/list-pagination.component';
 import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/kt-paginator.component';
+import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 
 @Component({
   selector: 'app-sales',
@@ -66,6 +67,7 @@ export class SalesComponent implements OnInit {
   @ViewChild('creditNoteFormModal') creditNoteFormModal!: CreditNoteFormComponent;
 
   readonly translationService = inject(TranslationService);
+  private readonly notificationService = inject(NotificationService);
 
   sales = signal<SaleResponseDto[]>([]);
   customers = signal<CustomerDto[]>([]);
@@ -531,6 +533,10 @@ export class SalesComponent implements OnInit {
   }
 
   openCreditNoteForSale(sale: SaleResponseDto) {
+    if (sale.status === 4 || (sale as any).isCancelled || sale.notes?.includes('DEVUELTA')) {
+      this.notificationService.warning('Esta factura o venta ya fue devuelta en su totalidad mediante nota de crédito.');
+      return;
+    }
     const formattedId = `VTA-${String(sale.id).padStart(6, '0')}`;
     if (this.creditNoteFormModal) {
       this.creditNoteFormModal.open(formattedId);
