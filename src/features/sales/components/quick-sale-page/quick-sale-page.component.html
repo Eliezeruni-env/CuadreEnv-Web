@@ -920,12 +920,12 @@
                 type="button"
                 class="pos-step-btn"
                 [class.active]="checkoutStep() === 1"
-                [class.completed]="checkoutStep() > 1"
+                [class.completed]="isStep1Completed() && checkoutStep() !== 1"
                 (click)="goToStep(1)"
                 title="Paso 1: Cobrar"
               >
                 <span class="step-circle">
-                  @if (checkoutStep() > 1) {
+                  @if (isStep1Completed() && checkoutStep() !== 1) {
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
@@ -940,18 +940,18 @@
               </button>
 
               @if (canConfigureNcf()) {
-                <div class="step-connector-line" [class.filled]="checkoutStep() > 1"></div>
+                <div class="step-connector-line" [class.filled]="isStep1Completed()"></div>
                 <button
                   type="button"
                   class="pos-step-btn"
                   [class.active]="checkoutStep() === 2"
-                  [class.completed]="checkoutStep() > 2"
+                  [class.completed]="isStep2Completed() && checkoutStep() !== 2"
                   [disabled]="!isStep1Valid()"
                   (click)="goToStep(2)"
                   title="Paso 2: Factura (opcional)"
                 >
                   <span class="step-circle">
-                    @if (checkoutStep() > 2) {
+                    @if (isStep2Completed() && checkoutStep() !== 2) {
                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
@@ -966,17 +966,25 @@
                 </button>
               }
 
-              <div class="step-connector-line" [class.filled]="checkoutStep() === 3"></div>
+              <div class="step-connector-line" [class.filled]="isStep3Completed() || (checkoutStep() === 3 && isStep1Completed())"></div>
               <button
                 type="button"
                 class="pos-step-btn"
                 [class.active]="checkoutStep() === 3"
-                [class.completed]="checkoutStep() === 3"
+                [class.completed]="isStep3Completed()"
                 [disabled]="!isStep1Valid()"
                 (click)="goToStep(3)"
                 [title]="canConfigureNcf() ? 'Paso 3: Comprobante' : 'Paso 2: Comprobante'"
               >
-                <span class="step-circle">{{ canConfigureNcf() ? '3' : '2' }}</span>
+                <span class="step-circle">
+                  @if (isStep3Completed()) {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  } @else {
+                    {{ canConfigureNcf() ? '3' : '2' }}
+                  }
+                </span>
                 <div class="step-info-col">
                   <span class="step-badge-kicker">{{ canConfigureNcf() ? 'PASO 3' : 'PASO 2' }}</span>
                   <span class="step-label">Comprobante</span>
@@ -1253,15 +1261,55 @@
                   </div>
                 }
 
+                <!-- Campos de Transferencia Bancaria (Conciliación y Arqueo) -->
+                <div class="row g-2 mb-2">
+                  <div class="col-6">
+                    <label class="pc-reference-label">Últimos 4 dígitos cuenta origen *</label>
+                    <input
+                      type="text"
+                      class="pc-reference-input font-monospace text-center"
+                      maxlength="4"
+                      placeholder="Ej. 4812"
+                      [ngModel]="transferAccountLastFour()"
+                      (ngModelChange)="transferAccountLastFour.set($event)"
+                    />
+                  </div>
+                  <div class="col-6">
+                    <label class="pc-reference-label">Monto transferido / depositado *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      class="pc-reference-input font-monospace text-end"
+                      [placeholder]="'Mín. ' + (netPayable() | number:'1.2-2')"
+                      [ngModel]="transferAmountDeposited()"
+                      (ngModelChange)="transferAmountDeposited.set(+$event)"
+                    />
+                  </div>
+                </div>
+
                 <!-- Campo de Referencia Bancaria -->
-                <div class="pc-reference-field">
+                <div class="pc-reference-field mb-2">
                   <label class="pc-reference-label">No. Confirmación / Ref Bancaria *</label>
                   <input
                     type="text"
                     class="pc-reference-input"
                     placeholder="Ej. AUT-894120 / Comprobante"
-                    [(ngModel)]="transferReference"
+                    [ngModel]="transferReference()"
+                    (ngModelChange)="transferReference.set($event)"
                   />
+                </div>
+
+                <!-- Nota aclaratoria sobre caja y arqueo -->
+                <div class="p-2 rounded-2 bg-light border text-muted small d-flex align-items-start gap-1.5" style="font-size: 0.76rem; line-height: 1.35;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary mt-0.5 flex-shrink-0">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <span>
+                    El dinero transferido <strong>no entra como efectivo a la gaveta</strong>, pero completa la venta y se audita con comprobante en el <strong>Arqueo de Caja</strong>.
+                  </span>
                 </div>
               </div>
             }

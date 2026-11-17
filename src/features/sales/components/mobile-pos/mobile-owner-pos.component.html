@@ -2194,14 +2194,51 @@
             </div>
           }
 
+          <div class="row g-2 mt-2">
+            <div class="col-6">
+              <label class="cuadre-input-label">Últimos 4 dígitos cuenta origen *</label>
+              <input
+                type="text"
+                class="form-control form-control-sm font-monospace text-center"
+                maxlength="4"
+                placeholder="Ej. 4812"
+                [ngModel]="transferAccountLastFour()"
+                (ngModelChange)="transferAccountLastFour.set($event)"
+              />
+            </div>
+            <div class="col-6">
+              <label class="cuadre-input-label">Monto transferido (RD$) *</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                class="form-control form-control-sm font-monospace text-end"
+                [placeholder]="'Mín. ' + (cartTotal() | number:'1.2-2')"
+                [ngModel]="transferAmountDeposited()"
+                (ngModelChange)="transferAmountDeposited.set(+$event)"
+              />
+            </div>
+          </div>
+
           <div class="transfer-reference-group mt-2">
-            <label class="cuadre-input-label">No. de Confirmación / Referencia (Opcional):</label>
+            <label class="cuadre-input-label">No. de Confirmación / Referencia *</label>
             <input
               type="text"
               class="form-control form-control-sm"
-              placeholder="Ej. REF-9812 o últimos 4 dígitos"
+              placeholder="Ej. REF-9812 / Comprobante"
               [(ngModel)]="transferReferenceNumber"
             />
+          </div>
+
+          <div class="p-2 rounded-2 bg-light border text-muted small mt-2 d-flex align-items-start gap-1.5" style="font-size: 0.74rem; line-height: 1.3;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary mt-0.5 flex-shrink-0">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span>
+              El pago por transferencia completa la venta y se audita en el <strong>Arqueo de Caja</strong> sin mezclarse con el efectivo físico en gaveta.
+            </span>
           </div>
         </div>
       }

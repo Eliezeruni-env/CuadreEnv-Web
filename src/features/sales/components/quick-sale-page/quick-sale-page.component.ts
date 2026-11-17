@@ -572,6 +572,8 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
   transferBank = signal<string>('Banco Popular (792019481)');
   transferReference = signal<string>('');
+  transferAccountLastFour = signal<string>('');
+  transferAmountDeposited = signal<number>(0);
 
   // Pagination & View Mode for catalog (3x3 = 9 products per page in grid/list)
   catalogPage = signal<number>(1);
@@ -589,10 +591,22 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
   // 3-Step Checkout Flow: 1. Cobrar, 2. Factura (opcional), 3. Comprobante
   checkoutStep = signal<1 | 2 | 3>(1);
+  step2ExplicitlyCompleted = signal<boolean>(false);
   invoiceType = signal<'B02' | 'B01' | 'B15' | 'TICKET'>('B02');
   fiscalRnc = signal<string>('');
   fiscalBusinessName = signal<string>('');
   invoiceNotes = signal<string>('');
+
+  isStep1Completed = computed(() => this.isStep1Valid());
+  isStep2Completed = computed(() => {
+    if (!this.canConfigureNcf()) return false;
+    return (
+      this.step2ExplicitlyCompleted() ||
+      this.selectedCustomerId !== null ||
+      (this.fiscalRnc().trim().length >= 9 && this.fiscalBusinessName().trim().length > 0)
+    );
+  });
+  isStep3Completed = computed(() => !!this.lastCompletedSale());
 
   // Interactive Calculator (F3)
   isCalculatorOpen = signal<boolean>(false);
@@ -724,8 +738,13 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       );
     }
     if (method === 'Transferencia') {
+      const four = this.transferAccountLastFour().trim();
+      const dep = Number(this.transferAmountDeposited());
       return (
         this.transferBank().trim().length > 0 &&
+        four.length === 4 &&
+        !isNaN(dep) &&
+        dep >= this.netPayable() &&
         this.transferReference().trim().length > 0
       );
     }
@@ -3135,6 +3154,9 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
   setMethod(m: string) {
     this.selectedMethod.set(m);
+    if (m === 'Transferencia') {
+      this.transferAmountDeposited.set(this.netPayable());
+    }
     if (m !== 'Efectivo') {
       this.amountReceived.set(this.total());
     }
@@ -3166,6 +3188,9 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     this.cardAuthVoucher.set('');
     this.transferBank.set('Banco Popular (792019481)');
     this.transferReference.set('');
+    this.transferAccountLastFour.set('');
+    this.transferAmountDeposited.set(0);
+    this.step2ExplicitlyCompleted.set(false);
     this.fiscalRnc.set('');
     this.fiscalBusinessName.set('');
     this.invoiceNotes.set('');
@@ -3231,6 +3256,29 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
           );
         return false;
       }
+      const four = this.transferAccountLastFour().trim();
+      if (!four || four.length !== 4) {
+        if (notify)
+          this.notificationService.warning(
+            'Debes ingresar los últimos 4 dígitos de la cuenta de origen del cliente.',
+          );
+        return false;
+      }
+      const dep = Number(this.transferAmountDeposited());
+      if (isNaN(dep) || dep <= 0) {
+        if (notify)
+          this.notificationService.warning(
+            'Debes ingresar el monto que el cliente transfirió / depositó.',
+          );
+        return false;
+      }
+      if (dep < this.netPayable()) {
+        if (notify)
+          this.notificationService.warning(
+            `El monto depositado (RD$ ${dep.toFixed(2)}) no cubre el total de la venta (RD$ ${this.netPayable().toFixed(2)}).`,
+          );
+        return false;
+      }
       if (!this.transferReference().trim()) {
         if (notify)
           this.notificationService.warning(
@@ -3287,9 +3335,15 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       if (this.checkoutStep() === 3 && this.lastCompletedSale()) {
         return;
       }
-      // If coming from Step 2, validate fiscal details
-      if (this.checkoutStep() === 2 && !this.validateStep2(true)) {
-        return;
+      // If coming from Step 2, validate fiscal details and mark Step 2 as completed
+      if (this.checkoutStep() === 2) {
+        if (!this.validateStep2(true)) {
+          return;
+        }
+        this.step2ExplicitlyCompleted.set(true);
+      } else {
+        // If coming directly from Step 1, Step 2 was omitted / not performed
+        this.step2ExplicitlyCompleted.set(false);
       }
       // Se aplica la venta inmediatamente
       this.processQuickSale();
@@ -3520,9 +3574,23 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     } else if (this.selectedMethod() === 'Transferencia') {
       const bank = this.transferBank().trim();
       const ref = this.transferReference().trim();
+      const four = this.transferAccountLastFour().trim();
+      const dep = Number(this.transferAmountDeposited()) || this.netPayable();
       if (!bank) {
         this.notificationService.warning(
           'Debes especificar el banco de la transferencia.',
+        );
+        return;
+      }
+      if (!four || four.length !== 4) {
+        this.notificationService.warning(
+          'Debes ingresar los últimos 4 dígitos de la cuenta de origen del cliente.',
+        );
+        return;
+      }
+      if (dep < this.netPayable()) {
+        this.notificationService.warning(
+          `El monto depositado (RD$ ${dep.toFixed(2)}) no cubre el total a cobrar.`,
         );
         return;
       }
@@ -3532,7 +3600,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         );
         return;
       }
-      paymentDetailsNote = `Transferencia ${bank} Ref: ${ref}`;
+      paymentDetailsNote = `Transferencia ${bank} (Cta ****${four}) Depósito: RD$ ${dep.toFixed(2)} Ref: ${ref}`;
     }
 
     // Set submit lock immediately
@@ -3594,11 +3662,13 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       paymentMethod: paymentDetailsNote || this.selectedMethod(),
       paymentReference:
         this.selectedMethod() === 'Transferencia'
-          ? this.transferReference().trim()
+          ? `Ref: ${this.transferReference().trim()} | Cta: ****${this.transferAccountLastFour().trim()} | Depósito: RD$ ${Number(this.transferAmountDeposited() || this.netPayable()).toFixed(2)}`
           : undefined,
       amountReceived:
         this.selectedMethod() === 'Efectivo'
           ? this.effectiveAmountReceivedDop()
+          : this.selectedMethod() === 'Transferencia'
+          ? (Number(this.transferAmountDeposited()) || this.netPayable())
           : this.netPayable(),
       change: this.change(),
       idempotencyKey,

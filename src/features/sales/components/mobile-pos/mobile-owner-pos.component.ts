@@ -794,6 +794,8 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     );
   });
   transferReferenceNumber = signal<string>('');
+  transferAccountLastFour = signal<string>('');
+  transferAmountDeposited = signal<number>(0);
   isBankQrModalOpen = signal<boolean>(false);
   isBankCopied = signal<boolean>(false);
 
@@ -1864,10 +1866,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     this.isServiceSuccessModalOpen.set(false);
     this.isQuickServiceCreateModalOpen.set(false);
     this.isServiceCartDrawerOpen.set(false);
-    this.selectedSaleForDetail.set(null);
     this.selectedFiaoForPayment.set(null);
-    this.selectedFiaoForDetail.set(null);
-    this.selectedFiaoClient.set(null);
     if (this.isCameraScannerOpen()) {
       this.closeCameraScanner();
     }
@@ -2308,6 +2307,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   openCheckout(): void {
     if (this.cart().length === 0) return;
     this.amountReceived.set(this.cartTotal());
+    this.transferAmountDeposited.set(this.cartTotal());
     this.isCartDrawerOpen.set(false);
     this.isPaymentModalOpen.set(true);
   }
@@ -2598,7 +2598,28 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     const customerId = this.selectedCustomerId();
     const phone = this.customerPhone().trim();
     const method = this.selectedMethod();
-    const amountRec = this.amountReceived() || total;
+
+    if (method === 'Transferencia') {
+      const four = this.transferAccountLastFour().trim();
+      const dep = Number(this.transferAmountDeposited()) || total;
+      if (!four || four.length !== 4) {
+        this.notificationService.warning('Debes ingresar los últimos 4 dígitos de la cuenta de origen del cliente.');
+        this.isSubmitting.set(false);
+        return;
+      }
+      if (dep < total) {
+        this.notificationService.warning(`El monto transferido (RD$ ${dep.toFixed(2)}) no cubre el total de la venta.`);
+        this.isSubmitting.set(false);
+        return;
+      }
+      if (!this.transferReferenceNumber().trim()) {
+        this.notificationService.warning('Debes ingresar el número de confirmación o referencia de la transferencia.');
+        this.isSubmitting.set(false);
+        return;
+      }
+    }
+
+    const amountRec = method === 'Transferencia' ? (Number(this.transferAmountDeposited()) || total) : (this.amountReceived() || total);
     const change = this.changeDue();
     const idempotencyKey =
       typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -2717,9 +2738,12 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     // B) MODO ONLINE: Registrar venta mediante CashRegisterService
     try {
       // 1. Registrar venta rápida asociada a la sesión de caja activa
+      const four = this.transferAccountLastFour().trim();
+      const dep = Number(this.transferAmountDeposited()) || total;
+      const ref = this.transferReferenceNumber().trim();
       const finalPaymentMethod =
-        method === 'Transferencia' && this.transferReferenceNumber().trim()
-          ? `Transferencia (Ref: ${this.transferReferenceNumber().trim()})`
+        method === 'Transferencia'
+          ? `Transferencia ${this.activeBankAccount().bankName} (Cta ****${four}) Depósito: RD$ ${dep.toFixed(2)} Ref: ${ref}`
           : method;
 
       const quickSaleRes = await this.cashRegisterService.registerQuickSale({
@@ -3890,8 +3914,8 @@ ${itemsList}
         startDate: this.fiaoDueDate(),
         frequency: this.fiaoFrequency(),
         items: this.fiaoSelectedProducts().map((it) => ({
-          productId: it.product.id!,
-          productName: it.product.description,
+          productId: it.product.id || 0,
+          productName: it.product.description || 'Producto',
           quantity: it.quantity,
           unitPrice: it.price,
           subtotal: it.quantity * it.price,

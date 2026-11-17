@@ -48,7 +48,7 @@
               <c-col md="6" class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                   <label class="small fw-semibold text-secondary mb-0">{{ translationService.t('products.modal.barcodeLabel') }}</label>
-                  <div class="d-flex align-items-center gap-1">
+                  <div class="d-flex align-items-center">
                     <input
                       #barcodeImageInput
                       type="file"
@@ -56,53 +56,58 @@
                       style="display: none;"
                       (change)="onBarcodeImageSelected($event)"
                     />
-                    <button
-                      type="button"
-                      class="btn btn-xs btn-outline-primary d-inline-flex align-items-center gap-1 py-0 px-2 rounded-pill font-size-xs"
-                      (click)="barcodeImageInput.click()"
-                      [disabled]="isDecodingBarcodeImage()"
-                      title="Subir foto o captura de código de barras para decodificar (estilo Minifier)"
-                    >
-                      @if (isDecodingBarcodeImage()) {
-                        <span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;"></span>
-                      } @else {
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Herramientas de código de barras">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 py-0 px-2 text-nowrap fw-medium"
+                        style="height: 26px; font-size: 0.75rem;"
+                        (click)="barcodeImageInput.click()"
+                        [disabled]="isDecodingBarcodeImage()"
+                        title="Subir imagen con código de barras"
+                      >
+                        @if (isDecodingBarcodeImage()) {
+                          <span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;"></span>
+                        } @else {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                            <circle cx="9" cy="9" r="2"/>
+                            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                          </svg>
+                        }
+                        <span>Foto</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 py-0 px-2 text-nowrap fw-medium"
+                        style="height: 26px; font-size: 0.75rem;"
+                        (click)="openCameraScanner()"
+                        title="Abrir cámara para escanear"
+                      >
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-                          <circle cx="9" cy="9" r="2"/>
-                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                          <circle cx="12" cy="13" r="4"/>
                         </svg>
-                      }
-                      <span>Subir Foto</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-xs btn-outline-success d-inline-flex align-items-center gap-1 py-0 px-2 rounded-pill font-size-xs"
-                      (click)="openCameraScanner()"
-                      title="Abrir cámara para escanear código de barras"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                        <circle cx="12" cy="13" r="4"/>
-                      </svg>
-                      <span>Cámara</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-xs btn-outline-info d-inline-flex align-items-center gap-1 py-0 px-2 rounded-pill font-size-xs"
-                      (click)="lookupGlobalBarcode()"
-                      [disabled]="isLookingUpBarcode() || !productForm.get('barcode')?.value"
-                      title="Buscar información comercial del producto en Base de Datos Global (OpenFoodFacts / UPC)"
-                    >
-                      @if (isLookingUpBarcode()) {
-                        <span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;"></span>
-                      } @else {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <circle cx="11" cy="11" r="8"/>
-                          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                        </svg>
-                      }
-                      <span>Buscar Global</span>
-                    </button>
+                        <span>Cámara</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 py-0 px-2 text-nowrap fw-medium"
+                        style="height: 26px; font-size: 0.75rem;"
+                        (click)="lookupGlobalBarcode()"
+                        [disabled]="isLookingUpBarcode() || !productForm.get('barcode')?.value"
+                        title="Buscar en base de datos global (OpenFoodFacts / UPC)"
+                      >
+                        @if (isLookingUpBarcode()) {
+                          <span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;"></span>
+                        } @else {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                          </svg>
+                        }
+                        <span>Buscar Global</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 

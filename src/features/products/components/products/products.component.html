@@ -153,7 +153,7 @@
           <table class="table table-hover align-middle mb-0 master-detail-table">
             <thead class="table-light text-secondary text-uppercase font-size-xs">
               <tr>
-                <th class="ps-3">{{ translationService.t('products.table.description') }}</th>
+                <th class="ps-3">{{ translationService.t('products.table.description') || 'Descripción' }}</th>
                 <th>{{ translationService.t('products.table.reference') }}</th>
                 <th>{{ translationService.t('products.table.barcode') }}</th>
                 <th class="text-end">{{ translationService.t('products.table.cost') }}</th>
