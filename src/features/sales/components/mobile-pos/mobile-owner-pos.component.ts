@@ -163,7 +163,6 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     return formatPaymentMethodLabel(method);
   }
 
-
   readonly Math = Math;
   private readonly sanitizer = inject(DomSanitizer);
   private readonly productService = inject(ProductService);
@@ -192,7 +191,8 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   readonly moduleAccess = inject(ModuleAccessService);
   readonly isDarkMode = computed(() => this.themeService.isDark);
   readonly draftStorageService = inject(PosDraftStorageService);
-  private readonly barcodeLookupService: BarcodeLookupService = inject(BarcodeLookupService);
+  private readonly barcodeLookupService: BarcodeLookupService =
+    inject(BarcodeLookupService);
   private readonly warehouseService = inject(WarehouseService);
   isHeldSalesModalOpen = signal<boolean>(false);
 
@@ -201,13 +201,17 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   selectedWarehouseId = signal<number>(1);
 
   getSelectedWarehouseName(): string {
-    const found = this.warehouses().find((w) => w.id === this.selectedWarehouseId());
+    const found = this.warehouses().find(
+      (w) => w.id === this.selectedWarehouseId(),
+    );
     return found?.name || 'Almacén Principal';
   }
 
   onWarehouseChange(id: number): void {
     this.selectedWarehouseId.set(Number(id) || 1);
-    this.notificationService.info(`Almacén activo: ${this.getSelectedWarehouseName()}`);
+    this.notificationService.info(
+      `Almacén activo: ${this.getSelectedWarehouseName()}`,
+    );
   }
 
   async loadWarehouses(): Promise<void> {
@@ -309,13 +313,13 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
 
   readonly pendingFiaoList = computed(() => {
     return this.fiaoList().filter(
-      (item) => (item.pendingAmount || 0) > 0 && item.status !== 'Pagado'
+      (item) => (item.pendingAmount || 0) > 0 && item.status !== 'Pagado',
     );
   });
 
   readonly paidFiaoList = computed(() => {
     return this.fiaoList().filter(
-      (item) => item.status === 'Pagado' || (item.pendingAmount || 0) <= 0
+      (item) => item.status === 'Pagado' || (item.pendingAmount || 0) <= 0,
     );
   });
 
@@ -327,9 +331,13 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     let list = this.fiaoList();
 
     if (filter === 'pending') {
-      list = list.filter((item) => (item.pendingAmount || 0) > 0 && item.status !== 'Pagado');
+      list = list.filter(
+        (item) => (item.pendingAmount || 0) > 0 && item.status !== 'Pagado',
+      );
     } else if (filter === 'paid') {
-      list = list.filter((item) => item.status === 'Pagado' || (item.pendingAmount || 0) <= 0);
+      list = list.filter(
+        (item) => item.status === 'Pagado' || (item.pendingAmount || 0) <= 0,
+      );
     }
 
     if (!term) return list;
@@ -510,9 +518,13 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   fiaoDueDate = signal<string>(
     new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   );
-  fiaoFrequency = signal<'Semanal' | 'Quincenal' | 'Mensual' | 'Diaria'>('Quincenal');
+  fiaoFrequency = signal<'Semanal' | 'Quincenal' | 'Mensual' | 'Diaria'>(
+    'Quincenal',
+  );
   fiaoInstallments = signal<number>(1);
-  fiaoSelectedProducts = signal<{ product: ProductDto; quantity: number; price: number }[]>([]);
+  fiaoSelectedProducts = signal<
+    { product: ProductDto; quantity: number; price: number }[]
+  >([]);
   isSubmittingFiao = signal<boolean>(false);
   fiaoRemainingBalance = computed(() => {
     const tot = Number(this.fiaoTotalAmount()) || 0;
@@ -940,7 +952,11 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     }
   };
   private onVisibilityChangeHandler = () => {
-    if (typeof document !== 'undefined' && document.visibilityState === 'visible' && this.authService.isAuthenticated()) {
+    if (
+      typeof document !== 'undefined' &&
+      document.visibilityState === 'visible' &&
+      this.authService.isAuthenticated()
+    ) {
       void this.loadExecutiveData();
     }
   };
@@ -983,8 +999,14 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     }
     const draftItems: PosDraftItem[] = items.map((i) => ({
       productId: Number(i.product.id || 0),
-      productCode: String(i.product.barcode || (i.product as any).code || i.product.reference || ''),
-      productName: i.product.description || (i.product as any).name || 'Producto',
+      productCode: String(
+        i.product.barcode ||
+          (i.product as any).code ||
+          i.product.reference ||
+          '',
+      ),
+      productName:
+        i.product.description || (i.product as any).name || 'Producto',
       unitPrice: i.unitPrice,
       quantity: i.quantity,
       total: i.total,
@@ -1007,7 +1029,10 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
       window.addEventListener('online', () => this.isOnline.set(true));
       window.addEventListener('offline', () => this.isOnline.set(false));
       window.addEventListener('focus', this.onWindowFocusHandler);
-      window.addEventListener('cuadre_cash_register_changed', this.onCashRegisterChangedHandler);
+      window.addEventListener(
+        'cuadre_cash_register_changed',
+        this.onCashRegisterChangedHandler,
+      );
       // Sincronización continua de caja y sesión entre PC y móvil cada 15s
       this.syncInterval = setInterval(() => {
         if (this.authService.isAuthenticated()) {
@@ -1019,7 +1044,10 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
       document.addEventListener('fullscreenchange', () => {
         this.isFullscreen.set(!!document.fullscreenElement);
       });
-      document.addEventListener('visibilitychange', this.onVisibilityChangeHandler);
+      document.addEventListener(
+        'visibilitychange',
+        this.onVisibilityChangeHandler,
+      );
     }
     if (this.authService.isAuthenticated()) {
       this.companyService.getCompanySettings().catch(() => {});
@@ -1038,10 +1066,16 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     }
     if (typeof window !== 'undefined') {
       window.removeEventListener('focus', this.onWindowFocusHandler);
-      window.removeEventListener('cuadre_cash_register_changed', this.onCashRegisterChangedHandler);
+      window.removeEventListener(
+        'cuadre_cash_register_changed',
+        this.onCashRegisterChangedHandler,
+      );
     }
     if (typeof document !== 'undefined') {
-      document.removeEventListener('visibilitychange', this.onVisibilityChangeHandler);
+      document.removeEventListener(
+        'visibilitychange',
+        this.onVisibilityChangeHandler,
+      );
     }
   }
 
@@ -1140,7 +1174,9 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   async submitMobileForgotPassword(): Promise<void> {
     const email = (this.mobileForgotEmail() || '').trim();
     if (!email || !email.includes('@')) {
-      this.mobileForgotError.set('Por favor ingresa un correo electrónico válido.');
+      this.mobileForgotError.set(
+        'Por favor ingresa un correo electrónico válido.',
+      );
       return;
     }
     this.isMobileForgotSubmitting.set(true);
@@ -1149,12 +1185,18 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     try {
       const res = await this.authService.forgotPassword(email);
       this.mobileForgotSuccess.set(
-        res.message || 'Hemos enviado las instrucciones para restablecer tu contraseña a tu correo.'
+        res.message ||
+          'Hemos enviado las instrucciones para restablecer tu contraseña a tu correo.',
       );
-      this.notificationService.success('Instrucciones de recuperación enviadas.');
+      this.notificationService.success(
+        'Instrucciones de recuperación enviadas.',
+      );
       triggerHaptic(25);
     } catch (err: any) {
-      const msg = err?.error?.message || err?.message || 'No se pudo procesar la solicitud. Verifica el correo.';
+      const msg =
+        err?.error?.message ||
+        err?.message ||
+        'No se pudo procesar la solicitud. Verifica el correo.';
       this.mobileForgotError.set(msg);
     } finally {
       this.isMobileForgotSubmitting.set(false);
@@ -1178,7 +1220,9 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     const reasons: string[] = [];
     const cartCount = this.totalCartItemsCount();
     if (cartCount > 0) {
-      reasons.push(`${cartCount} artículo(s) sin facturar en el carrito de ventas`);
+      reasons.push(
+        `${cartCount} artículo(s) sin facturar en el carrito de ventas`,
+      );
     }
     const serviceCount = this.totalServiceCartCount();
     if (serviceCount > 0) {
@@ -1190,7 +1234,9 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     }
     const openCash = this.activeSessions().find((s) => s.isOpen);
     if (openCash) {
-      reasons.push(`El turno de caja registradora #${openCash.id} continúa abierto sin cuadre`);
+      reasons.push(
+        `El turno de caja registradora #${openCash.id} continúa abierto sin cuadre`,
+      );
     }
     return reasons;
   });
@@ -1226,10 +1272,15 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     if (!this.authService.isAuthenticated()) return;
     try {
       // 1. Cargar sesión activa real de caja (con fallback silencioso)
-      const sessionRes = await this.cashRegisterService.getActiveSession().catch(() => null);
+      const sessionRes = await this.cashRegisterService
+        .getActiveSession()
+        .catch(() => null);
       if (sessionRes?.data && sessionRes.data.isOpen) {
         this.activeSessions.set([sessionRes.data]);
-      } else if (sessionRes !== null && (!sessionRes.data || sessionRes.data.isOpen === false)) {
+      } else if (
+        sessionRes !== null &&
+        (!sessionRes.data || sessionRes.data.isOpen === false)
+      ) {
         // Solo vaciar si el servidor respondió explícitamente que la sesión está cerrada
         this.activeSessions.set([]);
       }
@@ -1262,7 +1313,11 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
 
               let amt = 0;
               if (isOpening) {
-                amt = Number(m.inAmount) || Number((m as any).amount) || Number(this.activeSession()?.initialAmount) || 0;
+                amt =
+                  Number(m.inAmount) ||
+                  Number((m as any).amount) ||
+                  Number(this.activeSession()?.initialAmount) ||
+                  0;
               } else if (isIncoming) {
                 amt = Number(m.inAmount) || Number((m as any).amount) || 0;
               } else {
@@ -1430,8 +1485,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
         },
         ...realCustomers
           .filter(
-            (c) =>
-              c.name && c.name.toLowerCase().trim() !== 'consumidor final',
+            (c) => c.name && c.name.toLowerCase().trim() !== 'consumidor final',
           )
           .map((c) => ({
             id: c.id || 1,
@@ -1810,7 +1864,10 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     this.isServiceSuccessModalOpen.set(false);
     this.isQuickServiceCreateModalOpen.set(false);
     this.isServiceCartDrawerOpen.set(false);
+    this.selectedSaleForDetail.set(null);
     this.selectedFiaoForPayment.set(null);
+    this.selectedFiaoForDetail.set(null);
+    this.selectedFiaoClient.set(null);
     if (this.isCameraScannerOpen()) {
       this.closeCameraScanner();
     }
@@ -2001,7 +2058,11 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
         i.product.id === product.id &&
         (isGeneric ? i.product.description === product.description : true),
     );
-    const price = Number(product.price != null && product.price > 0 ? product.price : (product as any).priceList || 0);
+    const price = Number(
+      product.price != null && product.price > 0
+        ? product.price
+        : (product as any).priceList || 0,
+    );
     const itbisRate = product.taxRate ?? 0.18;
     const unitSymbol = this.getProductUnitSymbol(product);
     const allowsDecimals = this.isProductMeasurable(product);
@@ -2105,16 +2166,20 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     const draft = this.draftStorageService.getActiveDraft();
     if (!draft || !draft.items || draft.items.length === 0) return;
     const restoredCart: MobileCartItem[] = draft.items.map((it) => {
-      const matchingProd = this.products().find((p) => Number(p.id) === it.productId);
-      const prod: ProductDto = matchingProd || ({
-        id: it.productId,
-        description: it.productName,
-        price: it.unitPrice,
-        barcode: it.productCode,
-        reference: it.productCode,
-        taxRate: 0.18,
-        stock: 999,
-      } as any);
+      const matchingProd = this.products().find(
+        (p) => Number(p.id) === it.productId,
+      );
+      const prod: ProductDto =
+        matchingProd ||
+        ({
+          id: it.productId,
+          description: it.productName,
+          price: it.unitPrice,
+          barcode: it.productCode,
+          reference: it.productCode,
+          taxRate: 0.18,
+          stock: 999,
+        } as any);
       const subtotal = Math.round(it.quantity * it.unitPrice * 100) / 100;
       const itbis = Math.round(subtotal * (prod.taxRate ?? 0.18) * 100) / 100;
       const total = Math.round((subtotal + itbis) * 100) / 100;
@@ -2518,7 +2583,9 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     this.isSubmitting.set(true);
     const companyId = this.authService.companyId();
     if (!companyId) {
-      this.notificationService.error('Se requiere seleccionar una empresa activa para registrar ventas.');
+      this.notificationService.error(
+        'Se requiere seleccionar una empresa activa para registrar ventas.',
+      );
       this.isSubmitting.set(false);
       return;
     }
@@ -3589,7 +3656,9 @@ ${itemsList}
   async saveNewCustomer(): Promise<void> {
     const name = this.newCustomerName().trim();
     if (!name) {
-      this.notificationService.warning('Por favor ingresa el nombre o razón social del cliente.');
+      this.notificationService.warning(
+        'Por favor ingresa el nombre o razón social del cliente.',
+      );
       return;
     }
 
@@ -3613,7 +3682,9 @@ ${itemsList}
       const res = await this.customerService.createCustomer(payload);
       const created = res?.data || (res as any);
 
-      this.notificationService.success(`¡Cliente "${name}" registrado exitosamente!`);
+      this.notificationService.success(
+        `¡Cliente "${name}" registrado exitosamente!`,
+      );
       soundEffects.playKaChing();
       triggerHapticSuccess();
 
@@ -3657,7 +3728,9 @@ ${itemsList}
     this.fiaoInitialAmount.set(0);
     this.fiaoSelectedProducts.set([]);
     this.fiaoDueDate.set(
-      new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0],
     );
     this.fiaoFrequency.set('Quincenal');
     this.fiaoInstallments.set(1);
@@ -3684,7 +3757,7 @@ ${itemsList}
   addFiaoProduct(prod: ProductDto): void {
     const list = [...this.fiaoSelectedProducts()];
     const idx = list.findIndex((i) => i.product.id === prod.id);
-    const unitPrice = Number(prod.price || (prod.priceList || 0));
+    const unitPrice = Number(prod.price || prod.priceList || 0);
     if (idx > -1) {
       list[idx].quantity += 1;
     } else {
@@ -3710,7 +3783,9 @@ ${itemsList}
   }
 
   removeFiaoProduct(productId: number): void {
-    const list = this.fiaoSelectedProducts().filter((i) => i.product.id !== productId);
+    const list = this.fiaoSelectedProducts().filter(
+      (i) => i.product.id !== productId,
+    );
     this.fiaoSelectedProducts.set(list);
     this.recomputeFiaoTotalFromProducts();
     triggerHaptic(10);
@@ -3719,9 +3794,11 @@ ${itemsList}
   private recomputeFiaoTotalFromProducts(): void {
     const list = this.fiaoSelectedProducts();
     if (list.length > 0) {
-      const sum = list.reduce((acc, it) => acc + (it.quantity * it.price), 0);
+      const sum = list.reduce((acc, it) => acc + it.quantity * it.price, 0);
       this.fiaoTotalAmount.set(sum);
-      const desc = list.map((it) => `${it.quantity}x ${it.product.description}`).join(', ');
+      const desc = list
+        .map((it) => `${it.quantity}x ${it.product.description}`)
+        .join(', ');
       this.fiaoDescription.set(desc);
     }
   }
@@ -3747,7 +3824,9 @@ ${itemsList}
 
   setFiaoDueDays(days: number): void {
     this.fiaoDueDate.set(
-      new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0],
     );
     triggerHaptic(10);
   }
@@ -3794,7 +3873,8 @@ ${itemsList}
     const desc = this.fiaoDescription().trim() || 'Venta a crédito / Fiao';
     const installments = Math.max(1, Number(this.fiaoInstallments()) || 1);
     const pendingAmount = total - initial;
-    const installmentAmount = Math.round((pendingAmount / installments) * 100) / 100;
+    const installmentAmount =
+      Math.round((pendingAmount / installments) * 100) / 100;
 
     this.isSubmittingFiao.set(true);
     try {
@@ -3810,8 +3890,8 @@ ${itemsList}
         startDate: this.fiaoDueDate(),
         frequency: this.fiaoFrequency(),
         items: this.fiaoSelectedProducts().map((it) => ({
-          productId: it.product.id || 0,
-          productName: it.product.description || 'Producto',
+          productId: it.product.id!,
+          productName: it.product.description,
           quantity: it.quantity,
           unitPrice: it.price,
           subtotal: it.quantity * it.price,
@@ -3871,7 +3951,9 @@ ${itemsList}
 
     const price = Number(this.newProductPrice()) || 0;
     if (price <= 0) {
-      this.notificationService.warning('El precio de venta debe ser mayor a RD$ 0.');
+      this.notificationService.warning(
+        'El precio de venta debe ser mayor a RD$ 0.',
+      );
       return;
     }
 
@@ -3951,16 +4033,16 @@ ${itemsList}
 
         const found = this.findProductByCode(code);
         if (this.scannerMode() === 'new_product') {
-      this.newProductBarcode.set(code);
-      this.closeCameraScanner();
-      this.isCreateProductModalOpen.set(true);
-      this.notificationService.success(`Código de barra asignado: ${code}`);
-      soundEffects.playScannerBeep();
-      triggerHapticSuccess();
-      return;
-    }
+          this.newProductBarcode.set(code);
+          this.closeCameraScanner();
+          this.isCreateProductModalOpen.set(true);
+          this.notificationService.success(`Código de barra asignado: ${code}`);
+          soundEffects.playScannerBeep();
+          triggerHapticSuccess();
+          return;
+        }
 
-    if (found) {
+        if (found) {
           event.preventDefault();
           event.stopPropagation();
           this.addToCart(found);
@@ -4188,7 +4270,9 @@ ${itemsList}
     triggerHaptic(15);
   }
 
-  async openCameraScanner(mode: 'pos' | 'stock_entry' | 'new_product' = 'pos'): Promise<void> {
+  async openCameraScanner(
+    mode: 'pos' | 'stock_entry' | 'new_product' = 'pos',
+  ): Promise<void> {
     this.scannerMode.set(mode);
     if (
       typeof window !== 'undefined' &&
@@ -4377,7 +4461,9 @@ ${itemsList}
       hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
       hints.set(DecodeHintType.TRY_HARDER, true);
 
-      this.zxingReader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 120 });
+      this.zxingReader = new BrowserMultiFormatReader(hints, {
+        delayBetweenScanAttempts: 120,
+      });
     }
     return this.zxingReader;
   }
@@ -4526,7 +4612,8 @@ ${itemsList}
                 (cleanDigits.length >= 4 &&
                   bDigits &&
                   (bDigits === cleanDigits ||
-                    bDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, '')))
+                    bDigits.replace(/^0+/, '') ===
+                      cleanDigits.replace(/^0+/, '')))
               );
             }) || searchRes.data[0];
 
@@ -4589,7 +4676,7 @@ ${itemsList}
         this.isStockEntryModalOpen.set(true);
         const unitSym = this.getProductUnitSymbol(found);
         this.notificationService.success(
-          `📦 "${found.description}" seleccionado para Entrada de Almacén (Existencia actual: ${found.stock || 0} ${unitSym})`
+          `📦 "${found.description}" seleccionado para Entrada de Almacén (Existencia actual: ${found.stock || 0} ${unitSym})`,
         );
         return;
       }
@@ -4620,27 +4707,30 @@ ${itemsList}
     } else {
       soundEffects.playErrorBeep();
       triggerHaptic([30, 40, 30]);
-      void (this.barcodeLookupService as any).lookupUniversalProduct(barcode).then((meta: any) => {
-        if (meta) {
-          this.notificationService.info(
-            `✨ Identificado globalmente: "${meta.name}" (${meta.brand || 'General'}). Abriendo registro rápido...`
-          );
-          this.closeCameraScanner();
-          this.openCreateProductModal(barcode, meta.name);
-        } else {
+      void (this.barcodeLookupService as any)
+        .lookupUniversalProduct(barcode)
+        .then((meta: any) => {
+          if (meta) {
+            this.notificationService.info(
+              `✨ Identificado globalmente: "${meta.name}" (${meta.brand || 'General'}). Abriendo registro rápido...`,
+            );
+            this.closeCameraScanner();
+            this.openCreateProductModal(barcode, meta.name);
+          } else {
+            this.notificationService.warning(
+              `Código "${barcode}" no registrado en el catálogo. Abriendo registro rápido...`,
+            );
+            this.closeCameraScanner();
+            this.openCreateProductModal(barcode);
+          }
+        })
+        .catch(() => {
           this.notificationService.warning(
-            `Código "${barcode}" no registrado en el catálogo. Abriendo registro rápido...`
+            `Código "${barcode}" no registrado en el catálogo. Abriendo registro rápido...`,
           );
           this.closeCameraScanner();
           this.openCreateProductModal(barcode);
-        }
-      }).catch(() => {
-        this.notificationService.warning(
-          `Código "${barcode}" no registrado en el catálogo. Abriendo registro rápido...`
-        );
-        this.closeCameraScanner();
-        this.openCreateProductModal(barcode);
-      });
+        });
       if (!isFromCamera) {
         this.searchTerm.set(barcode);
         this.closeCameraScanner();
