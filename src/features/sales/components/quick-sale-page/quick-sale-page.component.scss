@@ -738,13 +738,140 @@ select.pos-category-select {
         }
       }
     }
+
+    .catalog-view-toggle {
+      display: inline-flex;
+      align-items: center;
+      background: var(--cuadre-bg-canvas, #F1F5F9);
+      padding: 3px;
+      border-radius: 10px;
+      border: 1px solid var(--cuadre-border-color, #E2E8F0);
+
+      .btn-view-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 32px;
+        border-radius: 8px;
+        border: none;
+        background: transparent;
+        color: var(--cuadre-text-muted, #64748B);
+        cursor: pointer;
+        transition: all 0.15s ease;
+
+        &:hover {
+          color: var(--cuadre-text-main, #0F172A);
+        }
+
+        &.active {
+          background: #FFFFFF;
+          color: var(--cuadre-color-primary, #2563EB);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+      }
+    }
   }
 
   .catalog-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
     min-height: 220px;
+
+    @media (max-width: 1200px) {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+  }
+
+  /* Catalog List View */
+  .catalog-list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 220px;
+
+    .product-list-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: #FFFFFF;
+      border: 1px solid var(--cuadre-border-color, #E2E8F0);
+      border-radius: var(--cuadre-radius-card, 12px);
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        border-color: var(--cuadre-color-primary-border, #BFDBFE);
+        background-color: var(--cuadre-bg-canvas, #F8FAFC);
+      }
+
+      .product-list-thumb {
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #F1F5F9;
+        border: 1px solid #E2E8F0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .product-list-thumb-placeholder {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #94A3B8;
+        }
+      }
+
+      .product-list-details {
+        flex: 1;
+        min-width: 0;
+
+        .product-list-name {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--cuadre-text-main, #0F172A);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .product-list-meta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 2px;
+        }
+      }
+
+      .product-list-pricing {
+        text-align: right;
+        margin-right: 8px;
+
+        .product-price {
+          font-size: 15px;
+          font-weight: 700;
+          color: var(--cuadre-text-main, #0F172A);
+        }
+
+        .product-unit {
+          font-size: 12px;
+          color: var(--cuadre-text-muted, #64748B);
+        }
+      }
+    }
   }
 }
 
@@ -754,14 +881,43 @@ select.pos-category-select {
   background-color: #FFFFFF;
   border: 1px solid var(--cuadre-border-color, #E2E8F0);
   border-radius: var(--cuadre-radius-card, 14px);
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
   overflow: hidden;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  .product-card-img-container {
+    width: 100%;
+    height: 96px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #F8FAFC;
+    border: 1px solid #F1F5F9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+
+    .product-card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .product-card-img-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #CBD5E1;
+      background: #F8FAFC;
+    }
+  }
 
   &:hover {
     border-color: var(--cuadre-color-primary-border, #BFDBFE);

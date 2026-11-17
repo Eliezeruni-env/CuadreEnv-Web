@@ -241,10 +241,10 @@ export class CashRegisterService {
             cashierName: data.cashierName || stored?.cashierName || 'Cajero',
             cashierId: data.cashierUserId || data.cashierId || stored?.cashierId || null,
             openedAt: data.openedAt || data.creationDate || stored?.openedAt || formatDateTimeInRD(),
-            initialAmount: data.openingAmount ?? data.initialAmount ?? (stored?.initialAmount || 0),
-            currentBalance: data.currentBalance ?? data.declaredCash ?? (data.openingAmount || data.initialAmount || 0),
-            totalIn: data.totalIn || 0,
-            totalOut: data.totalOut || 0,
+            initialAmount: Number(data.openingAmount ?? data.initialAmount ?? stored?.initialAmount ?? 0),
+            currentBalance: Number(data.currentBalance ?? data.declaredCash ?? data.openingAmount ?? data.initialAmount ?? stored?.currentBalance ?? 0),
+            totalIn: Number(data.totalIn) || 0,
+            totalOut: Number(data.totalOut) || 0,
             isOpen: true,
             status: 'OPEN',
             pauseReason: data.pauseReason || null,
@@ -936,7 +936,8 @@ export class CashRegisterService {
         }
       }
 
-      let runningBalance = session.initialAmount;
+      const initAmt = Number(session.initialAmount) || 0;
+      let runningBalance = initAmt;
       const items: CashRegisterMovementItem[] = [];
 
       // Initial opening movement
@@ -947,9 +948,9 @@ export class CashRegisterService {
         type: 'Saldo inicial',
         category: 'Apertura',
         description: 'Apertura de caja - Fondo Inicial',
-        inAmount: session.initialAmount,
+        inAmount: initAmt,
         outAmount: null,
-        balance: session.initialAmount,
+        balance: initAmt,
         paymentMethod: 'Efectivo',
       });
 

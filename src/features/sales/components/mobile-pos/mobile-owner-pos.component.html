@@ -691,25 +691,36 @@
                 [class.out-of-stock]="(prod.stock || 0) <= 0"
                 (click)="onProductClick(prod)"
               >
+                <!-- Thumbnail de Imagen con fallback elegante -->
+                <div class="product-thumb-box" (click)="$event.stopPropagation(); (prod.imageUrl || prod.photoUrl) ? openProductPhotoPreviewModal(prod) : onProductClick(prod)">
+                  @if (prod.imageUrl || prod.photoUrl) {
+                    <img
+                      [src]="prod.imageUrl || prod.photoUrl"
+                      [alt]="prod.description"
+                      loading="lazy"
+                      (error)="$any($event.target).style.display='none'; $any($event.target).nextElementSibling.style.display='flex'"
+                    />
+                    <div class="product-thumb-box-placeholder" style="display: none;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                      </svg>
+                    </div>
+                  } @else {
+                    <div class="product-thumb-box-placeholder">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                      </svg>
+                    </div>
+                  }
+                </div>
+
                 <div class="product-info-col">
                   <div class="d-flex align-items-center gap-1">
                     <span class="product-row-name">{{ prod.description }}</span>
-                    @if (prod.imageUrl || prod.photoUrl) {
-                      <button
-                        type="button"
-                        class="btn-pos-photo-preview btn-mobile-photo"
-                        (click)="$event.stopPropagation(); openProductPhotoPreviewModal(prod)"
-                        title="Ver foto y código de barras del producto"
-                        aria-label="Ver foto"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                          <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                          <polyline points="21 15 16 10 5 21"></polyline>
-                        </svg>
-                        <span>Foto</span>
-                      </button>
-                    }
                   </div>
                   <div class="product-row-meta">
                     <span class="product-row-price">RD$ {{ (prod.price || (prod.priceList || 0)) | number:'1.2-2' }}</span>
@@ -2286,7 +2297,13 @@
 
         <!-- TELÉFONO WHATSAPP Y BOTÓN 1-TOQUE -->
         <div class="cuadre-money-input-group mb-1">
-          <div class="money-prefix" style="font-size: 13px;">📱 +1</div>
+          <div class="money-prefix d-flex align-items-center gap-1" style="font-size: 13px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+            <span>+1</span>
+          </div>
           <input
             type="tel"
             class="money-input-field"
@@ -3357,7 +3374,13 @@
       <div class="mb-3 text-start">
         <label class="cuadre-input-label mb-1">Enviar al WhatsApp del Cliente:</label>
         <div class="cuadre-money-input-group">
-          <div class="money-prefix">📱 +1</div>
+          <div class="money-prefix d-flex align-items-center gap-1" style="font-size: 13px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+            <span>+1</span>
+          </div>
           <input
             type="tel"
             class="money-input-field"
@@ -4182,7 +4205,12 @@
       <div class="mb-3">
         <label class="cuadre-input-label">Teléfono / WhatsApp: <span class="text-muted small fw-normal">(Para recordatorios y cobros)</span></label>
         <div class="cuadre-money-input-group">
-          <span class="money-prefix">📱</span>
+          <span class="money-prefix d-flex align-items-center justify-content-center text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+          </span>
           <input
             type="tel"
             class="money-input-field"
@@ -4196,7 +4224,15 @@
       <div class="mb-3">
         <label class="cuadre-input-label">Cédula o RNC: <span class="text-muted small fw-normal">(Opcional)</span></label>
         <div class="cuadre-money-input-group">
-          <span class="money-prefix">🆔</span>
+          <span class="money-prefix d-flex align-items-center justify-content-center text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+              <circle cx="9" cy="10" r="2"></circle>
+              <line x1="15" y1="8" x2="17" y2="8"></line>
+              <line x1="15" y1="12" x2="17" y2="12"></line>
+              <line x1="7" y1="16" x2="17" y2="16"></line>
+            </svg>
+          </span>
           <input
             type="text"
             class="money-input-field"
@@ -4210,7 +4246,9 @@
       <div class="mb-3">
         <label class="cuadre-input-label">Límite de crédito autorizado:</label>
         <div class="cuadre-money-input-group">
-          <span class="money-prefix">RD$</span>
+          <span class="money-prefix d-flex align-items-center justify-content-center fw-semibold text-muted" style="font-size: 13px;">
+            RD$
+          </span>
           <input
             type="number"
             class="money-input-field"
@@ -4224,7 +4262,12 @@
       <div class="mb-4">
         <label class="cuadre-input-label">Correo electrónico: <span class="text-muted small fw-normal">(Opcional)</span></label>
         <div class="cuadre-money-input-group">
-          <span class="money-prefix">✉️</span>
+          <span class="money-prefix d-flex align-items-center justify-content-center text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+              <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+          </span>
           <input
             type="email"
             class="money-input-field"
@@ -4317,6 +4360,73 @@
             }
           </select>
         </div>
+      </div>
+
+      <!-- Asignar Productos de la Sesión al Fiao -->
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <label class="cuadre-input-label mb-0">Asignar productos fiados: <span class="text-muted small fw-normal">(Opcional)</span></label>
+          @if (fiaoSelectedProducts().length > 0) {
+            <span class="badge bg-light text-primary border" style="font-size: 11px;">
+              {{ fiaoSelectedProducts().length }} producto(s)
+            </span>
+          }
+        </div>
+
+        <div class="cuadre-money-input-group mb-2">
+          <select
+            class="money-input-field"
+            (change)="onFiaoProductSelect($event)"
+          >
+            <option value="" selected>+ Toca para agregar un producto...</option>
+            @for (prod of products(); track prod.id) {
+              <option [value]="prod.id">
+                {{ prod.description }} · RD$ {{ (prod.price || prod.priceList || 0) | number:'1.2-2' }} (Stock: {{ prod.stock || 0 }})
+              </option>
+            }
+          </select>
+        </div>
+
+        @if (fiaoSelectedProducts().length > 0) {
+          <div class="d-flex flex-column gap-2 p-2 bg-light rounded-3 border mb-2">
+            @for (item of fiaoSelectedProducts(); track item.product.id) {
+              <div class="d-flex justify-content-between align-items-center bg-white p-2 rounded-2 border">
+                <div style="flex: 1; min-width: 0;">
+                  <div class="fw-semibold text-truncate" style="font-size: 13px;">{{ item.product.description }}</div>
+                  <div class="text-muted small">
+                    RD$ {{ item.price | number:'1.2-2' }} c/u · Subtotal: <strong class="text-dark">RD$ {{ (item.quantity * item.price) | number:'1.2-2' }}</strong>
+                  </div>
+                </div>
+                <div class="d-flex align-items-center gap-1 ms-2">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary py-0 px-2 fw-bold"
+                    style="height: 28px; min-width: 28px;"
+                    (click)="updateFiaoProductQty(item.product.id!, -1)"
+                  >−</button>
+                  <span class="fw-bold px-1" style="font-size: 13px;">{{ item.quantity }}</span>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold"
+                    style="height: 28px; min-width: 28px;"
+                    (click)="updateFiaoProductQty(item.product.id!, 1)"
+                  >+</button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-link text-danger p-0 ms-1"
+                    (click)="removeFiaoProduct(item.product.id!)"
+                    title="Quitar"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
       </div>
 
       <!-- Concepto / Descripción -->

@@ -312,7 +312,8 @@
   &.btn-56 { height: 56px; }
 }
 
-.btn-cuadre-outline {
+.btn-cuadre-outline,
+.btn-cuadre-secondary {
   height: 44px;
   border-radius: var(--cuadre-radius-btn, 12px);
   font-size: 14px;
@@ -328,10 +329,20 @@
   padding: 0 16px;
   transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.1s ease;
 
-  &:active {
+  &:hover {
     background-color: var(--cuadre-bg-canvas, #F8FAFC);
     border-color: #94A3B8;
+  }
+
+  &:active {
+    background-color: #F1F5F9;
+    border-color: #64748B;
     transform: scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 
   &.btn-48 { height: 48px; }
@@ -691,6 +702,22 @@
   }
 }
 
+.stats-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @media (min-width: 480px) {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    margin-bottom: 0;
+  }
+}
+
 .stat-cards-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -935,6 +962,34 @@
   cursor: pointer;
   background-color: #FFFFFF;
   transition: background-color 0.1s ease;
+
+  .product-thumb-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #F1F5F9;
+    border: 1px solid #E2E8F0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .product-thumb-box-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94A3B8;
+    }
+  }
 
   &:active {
     background-color: var(--cuadre-bg-canvas, #F8FAFC);

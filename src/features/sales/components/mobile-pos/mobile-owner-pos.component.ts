@@ -512,6 +512,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   );
   fiaoFrequency = signal<'Semanal' | 'Quincenal' | 'Mensual' | 'Diaria'>('Quincenal');
   fiaoInstallments = signal<number>(1);
+  fiaoSelectedProducts = signal<{ product: ProductDto; quantity: number; price: number }[]>([]);
   isSubmittingFiao = signal<boolean>(false);
   fiaoRemainingBalance = computed(() => {
     const tot = Number(this.fiaoTotalAmount()) || 0;
@@ -1244,18 +1245,43 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
           const mapped = movRes.data
             .slice(-10)
             .reverse()
-            .map((m) => ({
-              type:
-                m.type === 'Entrada'
-                  ? 'VENTA'
-                  : m.category === 'Retiro'
-                    ? 'RETIRO'
-                    : 'SALIDA',
-              description: m.description,
-              amount:
-                m.type === 'Entrada' ? m.inAmount || 0 : -(m.outAmount || 0),
-              time: m.date || 'Hoy',
-            }));
+            .map((m) => {
+              const desc = m.description || '';
+              const isOpening =
+                m.type === 'Saldo inicial' ||
+                m.category === 'Apertura' ||
+                desc.toLowerCase().includes('apertura');
+              const isIncoming =
+                isOpening ||
+                m.type === 'Entrada' ||
+                (m as any).type === 'In' ||
+                m.category === 'Ingresos' ||
+                m.category === 'Ventas' ||
+                m.category === 'Cobros' ||
+                (m.inAmount != null && Number(m.inAmount) > 0);
+
+              let amt = 0;
+              if (isOpening) {
+                amt = Number(m.inAmount) || Number((m as any).amount) || Number(this.activeSession()?.initialAmount) || 0;
+              } else if (isIncoming) {
+                amt = Number(m.inAmount) || Number((m as any).amount) || 0;
+              } else {
+                amt = -(Number(m.outAmount) || Number((m as any).amount) || 0);
+              }
+
+              return {
+                type: isOpening
+                  ? 'APERTURA'
+                  : isIncoming
+                    ? 'VENTA'
+                    : m.category === 'Retiro'
+                      ? 'RETIRO'
+                      : 'SALIDA',
+                description: desc,
+                amount: amt,
+                time: m.date || 'Hoy',
+              };
+            });
           this.recentMovements.set(mapped);
         } else {
           this.recentMovements.set([]);
@@ -1446,12 +1472,17 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
         }
       }
 
-      if (activeCid > 0 && items && items.length > 0) {
+      if (items && items.length > 0) {
         items = items.filter((p: any) => {
-          const pCid = p.companyId ?? p.CompanyId;
-          return (
-            pCid == null || Number(pCid) === 0 || Number(pCid) === activeCid
-          );
+          // REGLA: Los servicios no deben ser contados como productos ni los productos como servicios
+          if (this.isServiceItem(p)) return false;
+          if (activeCid > 0) {
+            const pCid = p.companyId ?? p.CompanyId;
+            return (
+              pCid == null || Number(pCid) === 0 || Number(pCid) === activeCid
+            );
+          }
+          return true;
         });
       }
 
@@ -1758,7 +1789,35 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     this.themeService.toggle();
   }
 
+  closeAllMobileModals(): void {
+    this.isCreateCustomerModalOpen.set(false);
+    this.isCreateFiaoModalOpen.set(false);
+    this.isCreateProductModalOpen.set(false);
+    this.isMobileOpenRegisterModalOpen.set(false);
+    this.isMobileMovementModalOpen.set(false);
+    this.isMobileCloseRegisterModalOpen.set(false);
+    this.isClientsModalOpen.set(false);
+    this.isCloseModalOpen.set(false);
+    this.isSideMenuOpen.set(false);
+    this.isPaymentModalOpen.set(false);
+    this.isHeldSalesModalOpen.set(false);
+    this.isStockEntryModalOpen.set(false);
+    this.isMeasurementModalOpen.set(false);
+    this.isQuickAmountModalOpen.set(false);
+    this.isBankQrModalOpen.set(false);
+    this.isFiaoPaymentModalOpen.set(false);
+    this.isServicePaymentModalOpen.set(false);
+    this.isServiceSuccessModalOpen.set(false);
+    this.isQuickServiceCreateModalOpen.set(false);
+    this.isServiceCartDrawerOpen.set(false);
+    this.selectedFiaoForPayment.set(null);
+    if (this.isCameraScannerOpen()) {
+      this.closeCameraScanner();
+    }
+  }
+
   setTab(tab: 'inicio' | 'ventas' | 'caja' | 'fiao' | 'mas'): void {
+    this.closeAllMobileModals();
     this.activeTab.set(tab);
     if (tab === 'ventas') {
       if (
@@ -3596,6 +3655,7 @@ ${itemsList}
     this.fiaoDescription.set('');
     this.fiaoTotalAmount.set(0);
     this.fiaoInitialAmount.set(0);
+    this.fiaoSelectedProducts.set([]);
     this.fiaoDueDate.set(
       new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     );
@@ -3607,6 +3667,63 @@ ${itemsList}
 
   closeCreateFiaoModal(): void {
     this.isCreateFiaoModalOpen.set(false);
+    this.fiaoSelectedProducts.set([]);
+  }
+
+  onFiaoProductSelect(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    if (!target || !target.value) return;
+    const prodId = Number(target.value);
+    const prod = this.products().find((p) => p.id === prodId);
+    if (prod) {
+      this.addFiaoProduct(prod);
+    }
+    target.value = '';
+  }
+
+  addFiaoProduct(prod: ProductDto): void {
+    const list = [...this.fiaoSelectedProducts()];
+    const idx = list.findIndex((i) => i.product.id === prod.id);
+    const unitPrice = Number(prod.price || (prod.priceList || 0));
+    if (idx > -1) {
+      list[idx].quantity += 1;
+    } else {
+      list.push({ product: prod, quantity: 1, price: unitPrice });
+    }
+    this.fiaoSelectedProducts.set(list);
+    this.recomputeFiaoTotalFromProducts();
+    triggerHaptic(10);
+  }
+
+  updateFiaoProductQty(productId: number, delta: number): void {
+    let list = [...this.fiaoSelectedProducts()];
+    const idx = list.findIndex((i) => i.product.id === productId);
+    if (idx > -1) {
+      list[idx].quantity += delta;
+      if (list[idx].quantity <= 0) {
+        list.splice(idx, 1);
+      }
+    }
+    this.fiaoSelectedProducts.set(list);
+    this.recomputeFiaoTotalFromProducts();
+    triggerHaptic(10);
+  }
+
+  removeFiaoProduct(productId: number): void {
+    const list = this.fiaoSelectedProducts().filter((i) => i.product.id !== productId);
+    this.fiaoSelectedProducts.set(list);
+    this.recomputeFiaoTotalFromProducts();
+    triggerHaptic(10);
+  }
+
+  private recomputeFiaoTotalFromProducts(): void {
+    const list = this.fiaoSelectedProducts();
+    if (list.length > 0) {
+      const sum = list.reduce((acc, it) => acc + (it.quantity * it.price), 0);
+      this.fiaoTotalAmount.set(sum);
+      const desc = list.map((it) => `${it.quantity}x ${it.product.description}`).join(', ');
+      this.fiaoDescription.set(desc);
+    }
   }
 
   onFiaoCustomerChange(selectedId: number | null): void {
@@ -3692,6 +3809,13 @@ ${itemsList}
         totalInstallments: installments,
         startDate: this.fiaoDueDate(),
         frequency: this.fiaoFrequency(),
+        items: this.fiaoSelectedProducts().map((it) => ({
+          productId: it.product.id || 0,
+          productName: it.product.description || 'Producto',
+          quantity: it.quantity,
+          unitPrice: it.price,
+          subtotal: it.quantity * it.price,
+        })),
       });
 
       if (res?.success) {

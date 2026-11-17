@@ -573,9 +573,10 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   transferBank = signal<string>('Banco Popular (792019481)');
   transferReference = signal<string>('');
 
-  // Pagination for catalog
+  // Pagination & View Mode for catalog (3x3 = 9 products per page in grid/list)
   catalogPage = signal<number>(1);
-  catalogPageSize = 8;
+  catalogPageSize = 9;
+  catalogViewMode = signal<'grid' | 'list'>('grid');
 
   categories = signal<{ id: number | null; label: string }[]>([
     { id: null, label: 'Todos' },
