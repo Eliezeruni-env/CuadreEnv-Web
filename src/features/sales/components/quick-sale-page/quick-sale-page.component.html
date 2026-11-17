@@ -921,6 +921,7 @@
                 class="pos-step-btn"
                 [class.active]="checkoutStep() === 1"
                 [class.completed]="isStep1Completed() && checkoutStep() !== 1"
+                [class.step-unperformed]="!isStep1Completed() && checkoutStep() !== 1"
                 (click)="goToStep(1)"
                 title="Paso 1: Cobrar"
               >
@@ -940,12 +941,13 @@
               </button>
 
               @if (canConfigureNcf()) {
-                <div class="step-connector-line" [class.filled]="isStep1Completed()"></div>
+                <div class="step-connector-line" [class.filled]="isStep1Completed() && isStep2Completed()"></div>
                 <button
                   type="button"
                   class="pos-step-btn"
                   [class.active]="checkoutStep() === 2"
                   [class.completed]="isStep2Completed() && checkoutStep() !== 2"
+                  [class.step-unperformed]="!isStep2Completed() && checkoutStep() !== 2"
                   [disabled]="!isStep1Valid()"
                   (click)="goToStep(2)"
                   title="Paso 2: Factura (opcional)"
@@ -972,6 +974,7 @@
                 class="pos-step-btn"
                 [class.active]="checkoutStep() === 3"
                 [class.completed]="isStep3Completed()"
+                [class.step-unperformed]="!isStep3Completed() && checkoutStep() !== 3"
                 [disabled]="!isStep1Valid()"
                 (click)="goToStep(3)"
                 [title]="canConfigureNcf() ? 'Paso 3: Comprobante' : 'Paso 2: Comprobante'"
@@ -2744,64 +2747,132 @@
 
 <!-- MODAL DE DETALLE DE PRODUCTO CON FOTO Y CÓDIGO DE BARRA LITERAL -->
 @if (selectedProductForPhotoModal(); as prodPhoto) {
-  <div class="custom-modal-backdrop" (click)="closeProductPhotoPreviewModal()">
-    <div class="custom-modal-content" style="max-width: 480px;" (click)="$event.stopPropagation()">
-      <div class="custom-modal-header" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white;">
-        <div class="d-flex align-items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-            <polyline points="21 15 16 10 5 21"></polyline>
-          </svg>
-          <h4 style="margin: 0; font-size: 15px; font-weight: 700;">Detalle Visual del Producto</h4>
+  <div class="custom-modal-backdrop fade-in" (click)="closeProductPhotoPreviewModal()" style="backdrop-filter: blur(4px); background: rgba(15, 23, 42, 0.65); z-index: 9999;">
+    <div class="custom-modal-content shadow-2xl rounded-4 overflow-hidden border-0" style="max-width: 490px; background: #FFFFFF;" (click)="$event.stopPropagation()">
+      <!-- Header con gradiente profesional y botón de cierre elegante -->
+      <div class="px-4 py-3 d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color: #FFFFFF;">
+        <div class="d-flex align-items-center gap-2.5">
+          <div class="d-flex align-items-center justify-content-center rounded-3 bg-white bg-opacity-10 p-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </div>
+          <div>
+            <span class="d-block text-white fw-bold" style="font-size: 15px; letter-spacing: -0.01em;">Ficha Visual del Producto</span>
+            <span class="text-white-50 small" style="font-size: 11px;">Identificación oficial y disponibilidad en mostrador</span>
+          </div>
         </div>
-        <button type="button" class="btn-close btn-close-white" (click)="closeProductPhotoPreviewModal()" aria-label="Cerrar"></button>
+        <button
+          type="button"
+          class="btn-close btn-close-white p-2 rounded-circle"
+          style="opacity: 0.8; transition: opacity 0.15s ease;"
+          (click)="closeProductPhotoPreviewModal()"
+          aria-label="Cerrar"
+        ></button>
       </div>
 
-      <div class="custom-modal-body p-3 text-center">
-        <!-- Foto en alta resolución -->
+      <div class="custom-modal-body p-4 text-center">
+        <!-- Vitrina Hero de la Fotografía -->
         @if (prodPhoto.imageUrl || prodPhoto.photoUrl) {
-          <div class="mb-3 rounded-3 overflow-hidden border shadow-sm bg-white p-2 d-flex justify-content-center align-items-center" style="max-height: 240px;">
-            <img [src]="prodPhoto.imageUrl || prodPhoto.photoUrl" [alt]="prodPhoto.description" style="max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 6px;" />
+          <div class="mb-3.5 rounded-4 overflow-hidden border p-3 d-flex justify-content-center align-items-center position-relative" style="background: radial-gradient(circle at center, #FFFFFF 0%, #F8FAFC 100%); max-height: 250px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+            <img
+              [src]="prodPhoto.imageUrl || prodPhoto.photoUrl"
+              [alt]="prodPhoto.description"
+              style="max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 10px; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.08));"
+            />
+            <span class="position-absolute top-0 end-0 m-2.5 badge bg-dark bg-opacity-75 text-white fw-medium px-2 py-1 rounded-pill" style="font-size: 10px; backdrop-filter: blur(4px);">
+              HD Preview
+            </span>
           </div>
         }
 
-        <h5 class="fw-bold text-dark mb-1">{{ prodPhoto.description }}</h5>
-        <div class="badge bg-light text-secondary border font-monospace mb-3">
-          SKU / Ref: {{ prodPhoto.barcode || prodPhoto.reference || ('PROD-' + prodPhoto.id) }}
+        <!-- Nombre e Identificador Principal -->
+        <h4 class="fw-bold text-dark mb-1 tracking-tight" style="font-size: 1.15rem; color: #0F172A;">
+          {{ prodPhoto.description }}
+        </h4>
+        
+        <div class="d-flex align-items-center justify-content-center gap-1.5 flex-wrap mb-3.5">
+          <span class="badge bg-light text-secondary border font-monospace px-2.5 py-1 rounded-pill" style="font-size: 11.5px;">
+            SKU: {{ prodPhoto.barcode || prodPhoto.reference || ('PROD-' + prodPhoto.id) }}
+          </span>
+          @if (getProductAvailableStock(prodPhoto.id!) <= 0) {
+            <span class="cuadre-badge badge-bad px-2.5 py-1"><span class="badge-dot"></span> Agotado</span>
+          } @else if (getProductAvailableStock(prodPhoto.id!) <= 5) {
+            <span class="cuadre-badge badge-warn px-2.5 py-1"><span class="badge-dot"></span> Stock Bajo</span>
+          } @else {
+            <span class="cuadre-badge badge-ok px-2.5 py-1"><span class="badge-dot"></span> En Existencia</span>
+          }
         </div>
 
-        <!-- Código de barras literal (SVG) -->
-        <div class="p-3 mb-3 rounded-3 bg-white border d-flex flex-column align-items-center">
-          <div class="small fw-bold text-uppercase text-secondary mb-2" style="font-size: 11px; letter-spacing: 0.05em;">Código de Barras Oficial (EAN / Code128)</div>
-          <div class="p-2 bg-light rounded-3 border border-dashed mb-2 w-100 d-flex justify-content-center overflow-hidden">
+        <!-- Tarjeta de Código de Barras Vectorial Oficial -->
+        <div class="p-3 mb-3.5 rounded-3 bg-light bg-opacity-60 border d-flex flex-column align-items-center shadow-2xs">
+          <div class="d-flex align-items-center gap-1.5 text-uppercase fw-bold text-secondary mb-2" style="font-size: 10.5px; letter-spacing: 0.06em;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 5v14M8 5v14M12 5v14M17 5v14M21 5v14"/>
+            </svg>
+            <span>Código de Barras Oficial (EAN / CODE128)</span>
+          </div>
+          
+          <div class="p-2.5 bg-white rounded-3 border w-100 d-flex justify-content-center overflow-hidden shadow-2xs mb-2">
             <div [innerHTML]="getBarcodeSvgForProduct(prodPhoto.barcode || prodPhoto.reference || ('PROD-' + prodPhoto.id))"></div>
           </div>
-          <div class="font-monospace fw-bold text-dark" style="letter-spacing: 0.18em; font-size: 13px;">
+          
+          <div class="font-monospace fw-bold text-dark px-2.5 py-0.5 rounded bg-white border" style="letter-spacing: 0.22em; font-size: 13px;">
             {{ prodPhoto.barcode || prodPhoto.reference || ('PROD-' + prodPhoto.id) }}
           </div>
         </div>
 
-        <!-- Ficha técnica rápida para el cajero/dependiente -->
-        <div class="row g-2 text-start small">
+        <!-- Métricas Rápidas: Precio y Stock -->
+        <div class="row g-2 text-start">
           <div class="col-6">
-            <div class="p-2 rounded bg-light border">
-              <span class="text-secondary d-block">Precio al Público:</span>
-              <strong class="text-primary fs-6 font-monospace">RD$ {{ (prodPhoto.price || prodPhoto.priceList || 0) | number:'1.2-2' }}</strong>
+            <div class="p-2.5 rounded-3 border bg-white shadow-2xs h-100 d-flex flex-column justify-content-between">
+              <span class="text-secondary small fw-medium d-block mb-1" style="font-size: 11px;">Precio al Público</span>
+              <div class="d-flex align-items-baseline gap-1">
+                <strong class="text-primary fs-5 fw-bold font-monospace" style="letter-spacing: -0.02em;">
+                  RD$ {{ (prodPhoto.price || prodPhoto.priceList || 0) | number:'1.2-2' }}
+                </strong>
+                <span class="text-muted small">/ {{ getProductUnitSymbol(prodPhoto) }}</span>
+              </div>
             </div>
           </div>
           <div class="col-6">
-            <div class="p-2 rounded bg-light border">
-              <span class="text-secondary d-block">Stock en Almacén:</span>
-              <strong class="text-dark fs-6 font-monospace">{{ getProductAvailableStock(prodPhoto.id!) }} {{ getProductUnitSymbol(prodPhoto) }}</strong>
+            <div class="p-2.5 rounded-3 border bg-white shadow-2xs h-100 d-flex flex-column justify-content-between">
+              <span class="text-secondary small fw-medium d-block mb-1" style="font-size: 11px;">Stock en Almacén</span>
+              <div class="d-flex align-items-baseline gap-1">
+                <strong class="text-dark fs-5 fw-bold font-monospace" style="letter-spacing: -0.02em;">
+                  {{ getProductAvailableStock(prodPhoto.id!) }}
+                </strong>
+                <span class="text-muted small">{{ getProductUnitSymbol(prodPhoto) }}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="custom-modal-footer">
-        <button type="button" class="btn btn-outline-secondary w-100" (click)="closeProductPhotoPreviewModal()">
-          Entendido / Cerrar
+      <!-- Footer de Acciones con Botón Directo para Agregar al Carrito -->
+      <div class="px-4 py-3 bg-light border-top d-flex gap-2">
+        <button
+          type="button"
+          class="btn btn-outline-secondary px-3 py-2 fw-medium rounded-3"
+          style="min-width: 90px; font-size: 13px;"
+          (click)="closeProductPhotoPreviewModal()"
+        >
+          Cerrar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary px-3 py-2 fw-bold rounded-3 flex-grow-1 d-inline-flex align-items-center justify-content-center gap-1.5 shadow-sm"
+          style="font-size: 13px;"
+          [disabled]="getProductAvailableStock(prodPhoto.id!) <= 0"
+          (click)="addProductToCart(prodPhoto); closeProductPhotoPreviewModal()"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Agregar al Carrito (RD$ {{ (prodPhoto.price || prodPhoto.priceList || 0) | number:'1.2-2' }})</span>
         </button>
       </div>
     </div>

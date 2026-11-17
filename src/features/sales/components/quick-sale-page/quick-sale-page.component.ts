@@ -602,7 +602,6 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     if (!this.canConfigureNcf()) return false;
     return (
       this.step2ExplicitlyCompleted() ||
-      this.selectedCustomerId !== null ||
       (this.fiscalRnc().trim().length >= 9 && this.fiscalBusinessName().trim().length > 0)
     );
   });
