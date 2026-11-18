@@ -1,24 +1,6 @@
 export function parseUserModules(user: any): string[] {
   if (!user) return [];
 
-  const role = String(user.role || '').toLowerCase();
-  const isAdminRole =
-    user.isSuperUser === true ||
-    role === 'superadmin' ||
-    role === 'superuser' ||
-    role === 'sysadmin' ||
-    role === 'admin' ||
-    role === 'administrador' ||
-    role === 'owner' ||
-    role === 'dueño' ||
-    role === 'dueno' ||
-    role === 'gerente';
-
-  // Administrador / Owner siempre tiene acceso total
-  if (isAdminRole) {
-    return ['*'];
-  }
-
   const raw =
     user.allowedModules ??
     user.AllowedModules ??
@@ -37,12 +19,34 @@ export function parseUserModules(user: any): string[] {
         list = [...new Set(parsed.map((m) => String(m).trim()).filter(Boolean))];
       }
     } catch {
-      list = [];
+      list = trimmed.includes(',') ? trimmed.split(',').map((s) => s.trim()).filter(Boolean) : [trimmed];
     }
   }
 
-  if (list.length > 0) {
+  // Si el usuario tiene una lista explícita configurada desde el USM, respetarla estrictamente
+  if (raw !== undefined && raw !== null) {
+    if (list.includes('*') || list.includes('all') || list.includes('ALL')) {
+      return ['*'];
+    }
     return list;
+  }
+
+  // Fallback únicamente si el usuario nunca ha tenido módulos asignados en la base de datos
+  const role = String(user.role || '').toLowerCase();
+  const isAdminRole =
+    user.isSuperUser === true ||
+    role === 'superadmin' ||
+    role === 'superuser' ||
+    role === 'sysadmin' ||
+    role === 'admin' ||
+    role === 'administrador' ||
+    role === 'owner' ||
+    role === 'dueño' ||
+    role === 'dueno' ||
+    role === 'gerente';
+
+  if (isAdminRole) {
+    return ['*'];
   }
 
   // Fallback si no tiene módulos explícitos configurados según su rol

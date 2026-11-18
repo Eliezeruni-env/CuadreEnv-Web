@@ -550,7 +550,7 @@ export class AuthService {
       ...new Set(parsedModules.map((m) => String(m).trim()).filter(Boolean)),
     ];
 
-    if (literalModules.length === 0) {
+    if (literalModules.length === 0 && !responseHasAllowedModules && !this.hasExplicitModuleClaims()) {
       const roleLower = String(rawRole || '').toLowerCase();
       if (
         this.isPlatformSuperUser() ||
