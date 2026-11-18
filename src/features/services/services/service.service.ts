@@ -69,8 +69,21 @@ export class ServiceService {
 
       backendServices = items
         .filter((p) => {
-          const ref = (p.reference || p.barcode || '').toUpperCase();
-          return ref.startsWith('SERV-') || p.productTypeId === 2 || p.invoiceWithoutStock === true;
+          const ref = (p.reference || p.barcode || '').toUpperCase().trim();
+          const catName = (p.categoryId ? catMap.get(p.categoryId) || '' : '').toLowerCase();
+          const typeName = String((p as any).productTypeName || (p as any).productType?.name || '').toLowerCase();
+          // REGLA ESTRICTA: Los productos son productos y los servicios son servicios. Jamás ligarlos por invoiceWithoutStock.
+          return (
+            (p as any).isService === true ||
+            (p as any).type === 'service' ||
+            (p as any).type === 'Servicio' ||
+            p.productTypeId === 2 ||
+            (p as any).ProductTypeId === 2 ||
+            ref.startsWith('SERV-') ||
+            ref.startsWith('SERV') ||
+            catName.includes('serv') ||
+            typeName.includes('serv')
+          );
         })
         .map((p) => {
           const code = p.reference || p.barcode || `SERV-${p.id}`;
@@ -79,8 +92,8 @@ export class ServiceService {
             code: code.startsWith('SERV-') ? code : `SERV-${code}`,
             name: p.description || p.shortDescription || 'Servicio Profesional',
             description: (p.shortDescription && p.shortDescription !== p.description) ? p.shortDescription : (p.description || null),
-            price: Number(p.cost || 0),
-            cost: Number(p.minimumQuantity || 0), // fallback representation
+            price: Number(p.price != null && p.price > 0 ? p.price : (p.priceList || p.cost || 0)),
+            cost: Number(p.cost || 0),
             categoryId: p.categoryId,
             categoryName: p.categoryId ? catMap.get(p.categoryId) : undefined,
             productTypeId: p.productTypeId || 2,
