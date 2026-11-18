@@ -13,10 +13,8 @@ import {
   Validators,
   ReactiveFormsModule,
 } from '@angular/forms';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { NotificationService } from '../../../../features/cuadreEnv/services/notification.service';
 import { SaleService } from '../../../../features/sales/services/sale.service';
-import { TestmailService, TestmailEmail, TestmailConfig } from '../../../../features/cuadreEnv/services/testmail.service';
 import { SpinnerComponent } from '@coreui/angular';
 import type { SendInvoiceEmailRequest } from '../../../../features/cuadreEnv/types/api';
 
@@ -70,8 +68,6 @@ export class SendInvoiceEmailModalComponent {
   private readonly fb: FormBuilder;
   private readonly notificationService: NotificationService;
   private readonly saleService: SaleService;
-  public readonly testmailService: TestmailService;
-  private readonly sanitizer = inject(DomSanitizer);
 
   @Input() visible = false;
   @Output() visibleChange = new EventEmitter<boolean>();
@@ -93,11 +89,6 @@ export class SendInvoiceEmailModalComponent {
   }
 
   isSending = signal<boolean>(false);
-  isTestmailChecking = signal<boolean>(false);
-  testmailConfig = signal<TestmailConfig>({ apiKey: '', namespace: '', sandboxEnabled: true });
-  lastVerifiedEmail = signal<TestmailEmail | null>(null);
-  showHtmlPreviewModal = signal<boolean>(false);
-  safePreviewHtml = signal<SafeHtml>('');
 
   emailForm: FormGroup;
 
@@ -105,17 +96,12 @@ export class SendInvoiceEmailModalComponent {
     fb?: FormBuilder,
     notificationService?: NotificationService,
     saleService?: SaleService,
-    testmailService?: TestmailService,
   ) {
     this.fb = fb ?? inject(FormBuilder, { optional: true }) ?? new FormBuilder();
     this.notificationService =
       notificationService ?? inject(NotificationService, { optional: true })!;
     this.saleService =
       saleService ?? inject(SaleService, { optional: true })!;
-    this.testmailService =
-      testmailService ?? inject(TestmailService, { optional: true })!;
-
-    this.testmailConfig.set(this.testmailService.getConfig());
 
     this.emailForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -123,60 +109,6 @@ export class SendInvoiceEmailModalComponent {
       message: [''],
       attachPdf: [true],
     });
-  }
-
-  useTestmailInbox() {
-    const inv = this._invoiceData();
-    const tag = inv?.invoiceNumber || 'vta';
-    const address = this.testmailService.generateEmailAddress(tag);
-    this.emailForm.patchValue({ email: address });
-    this.notificationService.info(`Buzón Testmail asignado: ${address}`);
-  }
-
-  async checkDeliveryInTestmail() {
-    const inv = this._invoiceData();
-    const tag = inv?.invoiceNumber || 'factura';
-    this.isTestmailChecking.set(true);
-
-    try {
-      // 1. Intentar buscar por tag de la factura
-      const email = await this.testmailService.getLatestEmail(tag);
-      if (email) {
-        this.lastVerifiedEmail.set(email);
-        this.safePreviewHtml.set(this.sanitizer.bypassSecurityTrustHtml(email.html || `<pre>${email.text}</pre>`));
-        this.notificationService.success(`¡Comprobante verificado en Testmail! Asunto: "${email.subject}"`);
-        return;
-      }
-
-      // 2. Fallback: buscar últimos correos generales en el namespace
-      const generalRes = await this.testmailService.fetchEmails({ limit: 5 });
-      if (generalRes.emails && generalRes.emails.length > 0) {
-        this.lastVerifiedEmail.set(generalRes.emails[0]);
-        this.safePreviewHtml.set(this.sanitizer.bypassSecurityTrustHtml(generalRes.emails[0].html || `<pre>${generalRes.emails[0].text}</pre>`));
-        this.notificationService.info(`Correo más reciente en Testmail: "${generalRes.emails[0].subject}"`);
-      } else {
-        this.notificationService.warning(`No se han detectado correos en el buzón tf6cj.${this.testmailService.sanitizeTag(tag)} aún.`);
-      }
-    } catch (err: any) {
-      this.notificationService.error(`Error al consultar Testmail: ${err?.message || 'Fallo de red'}`);
-    } finally {
-      this.isTestmailChecking.set(false);
-    }
-  }
-
-  openHtmlPreview() {
-    const email = this.lastVerifiedEmail();
-    if (email?.html) {
-      this.safePreviewHtml.set(this.sanitizer.bypassSecurityTrustHtml(email.html));
-    } else {
-      const fallbackHtml = this.buildInvoiceHtml(this._invoiceData());
-      this.safePreviewHtml.set(this.sanitizer.bypassSecurityTrustHtml(fallbackHtml));
-    }
-    this.showHtmlPreviewModal.set(true);
-  }
-
-  closeHtmlPreview() {
-    this.showHtmlPreviewModal.set(false);
   }
 
   private populateForm(data: InvoiceEmailData) {

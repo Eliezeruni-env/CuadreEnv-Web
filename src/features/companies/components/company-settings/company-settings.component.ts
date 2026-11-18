@@ -1,19 +1,17 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CompanyService } from '../../services/company.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
-import { TestmailService } from '../../../cuadreEnv/services/testmail.service';
 import { PhoneMaskDirective, RncMaskDirective } from '../../../../app/shared/directives';
 import type { CompanySettingsDto, CompanyBankAccountDto } from '../../../cuadreEnv/types/api';
 
 @Component({
   selector: 'app-company-settings',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, PhoneMaskDirective, RncMaskDirective],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PhoneMaskDirective, RncMaskDirective],
   templateUrl: './company-settings.component.html',
   styleUrls: ['./company-settings.component.scss'],
 })
@@ -22,7 +20,6 @@ export class CompanySettingsComponent implements OnInit {
   private companyService = inject(CompanyService);
   private notificationService = inject(NotificationService);
   public authService = inject(AuthService);
-  public testmailService = inject(TestmailService);
   readonly translationService = inject(TranslationService);
 
   form!: FormGroup;

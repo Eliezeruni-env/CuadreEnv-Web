@@ -576,25 +576,6 @@ export const routes: Routes = [
         data: { module: 'company-settings', title: 'Configuración de Empresa' },
       },
       {
-        path: 'settings/email-audit',
-        loadComponent: () =>
-          import('../features/settings/components/email-sandbox/email-sandbox.component').then(
-            (m) => m.EmailSandboxComponent,
-          ),
-        canActivate: [moduleAccessGuard('company-settings')],
-        data: { module: 'company-settings', title: 'Auditoría de Correos & Testmail' },
-      },
-      {
-        path: 'company/email-sandbox',
-        redirectTo: 'settings/email-audit',
-        pathMatch: 'full',
-      },
-      {
-        path: 'settings/email-sandbox',
-        redirectTo: 'settings/email-audit',
-        pathMatch: 'full',
-      },
-      {
         path: 'companies/settings',
         redirectTo: 'company/settings',
         pathMatch: 'full',
