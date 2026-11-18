@@ -109,7 +109,9 @@ export class BankReconciliationComponent implements OnInit {
       this.records.set(data);
     } catch (e) {
       console.error('Error cargando transferencias para conciliación:', e);
-      this.notificationService.error('No se pudieron cargar los registros de transferencias.');
+      this.notificationService.error(
+        'No se pudieron cargar los registros de transferencias.',
+      );
     } finally {
       this.isLoading.set(false);
     }
@@ -118,7 +120,11 @@ export class BankReconciliationComponent implements OnInit {
   markAsVerified(record: BankTransferRecord): void {
     const user = this.authService.currentUser() as any;
     const supervisor = user?.name || user?.fullName || 'Supervisor / Admin';
-    this.reconciliationService.saveAuditState(record.id, 'VERIFIED', supervisor);
+    this.reconciliationService.saveAuditState(
+      record.id,
+      'VERIFIED',
+      supervisor,
+    );
 
     // Actualizar localmente el registro
     this.records.update((list) =>
@@ -136,7 +142,9 @@ export class BankReconciliationComponent implements OnInit {
       }),
     );
 
-    this.notificationService.success(`Transferencia ${record.confirmationNumber} verificada y conciliada.`);
+    this.notificationService.success(
+      `Transferencia ${record.confirmationNumber} verificada y conciliada.`,
+    );
   }
 
   openDiscrepancyModal(record: BankTransferRecord): void {
@@ -155,10 +163,16 @@ export class BankReconciliationComponent implements OnInit {
     const record = this.activeRecordForDiscrepancy();
     if (!record) return;
 
-    const reason = this.discrepancyReasonText().trim() || 'No figura en extracto bancario';
+    const reason =
+      this.discrepancyReasonText().trim() || 'No figura en extracto bancario';
     const user = this.authService.currentUser() as any;
     const supervisor = user?.name || user?.fullName || 'Supervisor / Auditor';
-    this.reconciliationService.saveAuditState(record.id, 'DISCREPANT', supervisor, reason);
+    this.reconciliationService.saveAuditState(
+      record.id,
+      'DISCREPANT',
+      supervisor,
+      reason,
+    );
 
     this.records.update((list) =>
       list.map((r) => {
@@ -175,18 +189,34 @@ export class BankReconciliationComponent implements OnInit {
       }),
     );
 
-    this.notificationService.warning(`Transferencia ${record.confirmationNumber} marcada con discrepancia.`);
+    this.notificationService.warning(
+      `Transferencia ${record.confirmationNumber} marcada con discrepancia.`,
+    );
     this.closeDiscrepancyModal();
   }
 
   exportToCsv(): void {
     const list = this.filteredRecords();
     if (list.length === 0) {
-      this.notificationService.info('No hay registros para exportar con los filtros actuales.');
+      this.notificationService.info(
+        'No hay registros para exportar con los filtros actuales.',
+      );
       return;
     }
 
-    const headers = ['Factura', 'Fecha', 'Cliente', 'Banco', 'Ultimos 4 Digitos', 'No. Confirmacion', 'Monto (RD$)', 'Estado', 'Verificado Por', 'Fecha Verificacion', 'Motivo Discrepancia'];
+    const headers = [
+      'Factura',
+      'Fecha',
+      'Cliente',
+      'Banco',
+      'Ultimos 4 Digitos',
+      'No. Confirmacion',
+      'Monto (RD$)',
+      'Estado',
+      'Verificado Por',
+      'Fecha Verificacion',
+      'Motivo Discrepancia',
+    ];
     const rows = list.map((r) => [
       `"${r.invoiceNumber}"`,
       `"${r.date}"`,
@@ -201,12 +231,17 @@ export class BankReconciliationComponent implements OnInit {
       `"${(r.discrepancyReason || '').replace(/"/g, '""')}"`,
     ]);
 
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((row) => row.join(','))].join('\r\n');
+    const csvContent =
+      '\uFEFF' +
+      [headers.join(','), ...rows.map((row) => row.join(','))].join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `conciliacion_bancaria_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute(
+      'download',
+      `conciliacion_bancaria_${new Date().toISOString().slice(0, 10)}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
