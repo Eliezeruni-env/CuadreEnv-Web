@@ -91,6 +91,7 @@ export interface QuickSaleItem {
   unitPrice: number;
   quantity: number;
   total: number;
+  costPrice?: number;
   taxRate?: number; // 18, 16, 0
   unitSymbol?: string;
   allowsDecimals?: boolean;
@@ -658,9 +659,38 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     );
   });
 
+  readonly netSubtotal = computed(() => {
+    return Math.max(0, this.subtotal() - this.discountAmount());
+  });
+
+  readonly cartTotalCost = computed(() => {
+    return (
+      Math.round(
+        this.cartItems().reduce((acc, item) => {
+          const itemCost = Number(item.costPrice || 0);
+          return acc + itemCost * item.quantity;
+        }, 0) * 100,
+      ) / 100
+    );
+  });
+
+  readonly isSaleBelowCost = computed(() => {
+    const totalCost = this.cartTotalCost();
+    if (totalCost <= 0 || this.cartItems().length === 0) return false;
+    return this.netSubtotal() < totalCost;
+  });
+
+  readonly belowCostDeficit = computed(() => {
+    if (!this.isSaleBelowCost()) return 0;
+    return Math.max(
+      0,
+      Math.round((this.cartTotalCost() - this.netSubtotal()) * 100) / 100,
+    );
+  });
+
   readonly legalTipAmount = computed(() => {
     return this.applyLegalTip()
-      ? Math.round(this.subtotal() * 0.1 * 100) / 100
+      ? Math.round(this.netSubtotal() * 0.1 * 100) / 100
       : 0;
   });
 
@@ -672,12 +702,12 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   readonly retentionIsrAmount = computed(() => {
     const rate = this.retentionIsrRate();
     return rate > 0
-      ? Math.round(this.subtotal() * (rate / 100) * 100) / 100
+      ? Math.round(this.netSubtotal() * (rate / 100) * 100) / 100
       : 0;
   });
 
   readonly total = computed(() => {
-    return Math.max(0, this.subtotal() - this.discountAmount() + this.itbis());
+    return Math.max(0, this.netSubtotal() + this.itbis());
   });
 
   readonly netPayable = computed(() => {
@@ -707,11 +737,28 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     return Number(this.amountReceived()) || 0;
   });
 
-  readonly change = computed(() => {
+  // Redondeo Dominicano (favorece al cliente para evitar desfase de centavos físicos en gaveta)
+  enableCashRounding = signal<boolean>(true);
+
+  readonly exactChange = computed(() => {
     if (this.selectedMethod() !== 'Efectivo') return 0;
     const received = this.effectiveAmountReceivedDop();
     const tot = this.netPayable();
     return Math.max(0, Math.round((received - tot) * 100) / 100);
+  });
+
+  readonly change = computed(() => {
+    const raw = this.exactChange();
+    if (this.enableCashRounding() && this.cashCurrency() === 'DOP' && raw > 0) {
+      return Math.ceil(raw);
+    }
+    return raw;
+  });
+
+  readonly cashRoundingAdjustment = computed(() => {
+    const rounded = this.change();
+    const exact = this.exactChange();
+    return Math.max(0, Math.round((rounded - exact) * 100) / 100);
   });
 
   readonly cashShortage = computed(() => {
@@ -2290,6 +2337,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     const name = prod.description || prod.shortDescription || 'Producto';
     const taxRate =
       (prod as any).taxRate !== undefined ? Number((prod as any).taxRate) : 18;
+    const cost = Number(prod.cost || 0);
 
     const newItem: QuickSaleItem = {
       productId: prod.id ?? 0,
@@ -2298,6 +2346,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       unitPrice,
       quantity: qty,
       total: subtotal,
+      costPrice: cost,
       taxRate,
       unitSymbol: baseSymbol,
       allowsDecimals: mode === 'detail' && this.isProductMeasurable(prod),
@@ -2411,6 +2460,8 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         ? Number((product as any).taxRate)
         : 18;
 
+    const cost = Number(product.cost || 0);
+
     const existingIdx = this.cartItems().findIndex(
       (i) => i.productId === product.id,
     );
@@ -2419,6 +2470,9 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       items[existingIdx].quantity += 1;
       items[existingIdx].total =
         items[existingIdx].quantity * items[existingIdx].unitPrice;
+      if (!items[existingIdx].costPrice && cost > 0) {
+        items[existingIdx].costPrice = cost;
+      }
       this.cartItems.set(items);
       this.selectedCartIndex.set(existingIdx);
     } else {
@@ -2431,6 +2485,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
           unitPrice: price,
           quantity: 1,
           total: price,
+          costPrice: cost,
           taxRate: taxRate,
         },
       ]);

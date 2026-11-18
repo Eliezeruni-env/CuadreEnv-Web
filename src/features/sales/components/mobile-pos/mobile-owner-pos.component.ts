@@ -531,6 +531,21 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     const ini = Number(this.fiaoInitialAmount()) || 0;
     return Math.max(0, tot - ini);
   });
+  fiaoInstallmentBreakdown = computed(() => {
+    const pending = this.fiaoRemainingBalance();
+    const count = Math.max(1, Number(this.fiaoInstallments()) || 1);
+    if (pending <= 0 || count <= 1) {
+      return { count: 1, baseAmount: pending, lastAmount: pending, hasRemainder: false };
+    }
+    const baseAmount = Math.floor((pending / count) * 100) / 100;
+    const lastAmount = Math.round((pending - (baseAmount * (count - 1))) * 100) / 100;
+    return {
+      count,
+      baseAmount,
+      lastAmount,
+      hasRemainder: lastAmount !== baseAmount,
+    };
+  });
 
   // Modal Crear Producto
   isCreateProductModalOpen = signal<boolean>(false);
@@ -3894,11 +3909,16 @@ ${itemsList}
       return;
     }
 
-    const desc = this.fiaoDescription().trim() || 'Venta a crédito / Fiao';
     const installments = Math.max(1, Number(this.fiaoInstallments()) || 1);
-    const pendingAmount = total - initial;
-    const installmentAmount =
-      Math.round((pendingAmount / installments) * 100) / 100;
+    const pendingAmount = Math.max(0, Math.round((total - initial) * 100) / 100);
+    const baseInstallment = Math.floor((pendingAmount / installments) * 100) / 100;
+    const lastInstallment = Math.round((pendingAmount - (baseInstallment * (installments - 1))) * 100) / 100;
+    const installmentAmount = baseInstallment;
+
+    let desc = this.fiaoDescription().trim() || 'Venta a crédito / Fiao';
+    if (installments > 1 && lastInstallment !== baseInstallment) {
+      desc += ` (${installments - 1} cuotas de RD$ ${baseInstallment.toFixed(2)} y última cuota de RD$ ${lastInstallment.toFixed(2)})`;
+    }
 
     this.isSubmittingFiao.set(true);
     try {

@@ -53,6 +53,9 @@ export interface CloseAuditResult {
   retainedFloat?: number;
   depositedCash?: number;
   depositDestination?: string;
+  declaredCashUsd?: number;
+  usdExchangeRate?: number;
+  usdEquivalentDop?: number;
 }
 
 @Component({
@@ -150,12 +153,28 @@ export class CloseRegisterModalComponent {
 
   countedAmount = signal<number>(0);
 
+  // Cobro y Conteo de Efectivo en Dólares (USD)
+  declaredCashUsd = signal<number>(0);
+  usdExchangeRate = signal<number>(60.50);
+
+  readonly usdCashEquivalentInDop = computed(() => {
+    const usd = Number(this.declaredCashUsd()) || 0;
+    const rate = Number(this.usdExchangeRate()) || 60.50;
+    return Math.round(usd * rate * 100) / 100;
+  });
+
+  readonly totalPhysicalCashCounted = computed(() => {
+    const dop = Number(this.countedAmount()) || 0;
+    const usdDop = this.usdCashEquivalentInDop();
+    return Math.round((dop + usdDop) * 100) / 100;
+  });
+
   // Regla 1: Alerta y Confirmación de Cierre en Cero o Descuadre Abrupto
   confirmZeroCashCount = signal<boolean>(false);
   readonly theoreticalBalance = computed(() => Number(this.session?.currentBalance) || 0);
 
   readonly isZeroOrAbruptShortage = computed(() => {
-    const counted = Number(this.countedAmount()) || 0;
+    const counted = this.totalPhysicalCashCounted();
     const theoretical = this.theoreticalBalance();
     if (theoretical > 0 && counted === 0) return true;
     if (theoretical > 0 && (theoretical - counted) > (theoretical * 0.5)) return true;
@@ -164,7 +183,7 @@ export class CloseRegisterModalComponent {
 
   // Regla 2: Justificación Obligatoria ante Descuadre (Diferencia != 0)
   readonly currentDifference = computed(() => {
-    const counted = Number(this.countedAmount()) || 0;
+    const counted = this.totalPhysicalCashCounted();
     return Math.round((counted - this.theoreticalBalance()) * 100) / 100;
   });
   readonly hasDiscrepancy = computed(() => Math.abs(this.currentDifference()) > 0.01);
@@ -172,7 +191,7 @@ export class CloseRegisterModalComponent {
   // Regla 5: Definición del "Destino del Dinero" (Retiro a Bóveda vs. Fondo Siguiente)
   retainedFloat = signal<number>(0);
   readonly cashToDeposit = computed(() => {
-    const counted = Number(this.countedAmount()) || 0;
+    const counted = this.totalPhysicalCashCounted();
     const retained = Number(this.retainedFloat()) || 0;
     return Math.max(0, Math.round((counted - retained) * 100) / 100);
   });
@@ -187,6 +206,8 @@ export class CloseRegisterModalComponent {
   constructor() {
     this.form = this.fb.group({
       closingAmount: [0, [Validators.required, Validators.min(0)]],
+      declaredCashUsd: [0, [Validators.min(0)]],
+      usdExchangeRate: [60.50, [Validators.required, Validators.min(1)]],
       // Regla 3: Declaración de Comprobantes de Tarjetas y Transferencias
       declaredCards: [0, [Validators.min(0)]],
       cardBatchNumber: [''],
@@ -197,6 +218,18 @@ export class CloseRegisterModalComponent {
       depositDestination: ['Sobre de depósito a caja fuerte'],
       notes: [''],
     });
+  }
+
+  onUsdCashChange(amountUsd: any, rate?: any) {
+    const usd = Math.max(0, parseFloat(amountUsd) || 0);
+    this.declaredCashUsd.set(usd);
+    if (rate !== undefined && rate !== null && rate !== '') {
+      const r = Math.max(1, parseFloat(rate) || 60.50);
+      this.usdExchangeRate.set(r);
+      this.form.patchValue({ usdExchangeRate: r });
+    }
+    this.form.patchValue({ declaredCashUsd: usd });
+    this.updateNotesValidation();
   }
 
   open(activeSession: CashRegisterSessionDto) {
@@ -224,8 +257,12 @@ export class CloseRegisterModalComponent {
     this.pendingOfflineCount.set(this.offlineService.pendingCount());
 
     this.resetDenominations();
+    this.declaredCashUsd.set(0);
+    this.usdExchangeRate.set(60.50);
     this.form.reset({
       closingAmount: 0,
+      declaredCashUsd: 0,
+      usdExchangeRate: 60.50,
       declaredCards: 0,
       cardBatchNumber: '',
       declaredTransfers: 0,
@@ -414,7 +451,7 @@ export class CloseRegisterModalComponent {
     }
 
     const val = this.form.value;
-    const finalCounted = parseFloat(val.closingAmount) || 0;
+    const finalCounted = this.totalPhysicalCashCounted();
     const theoretical = this.theoreticalBalance();
     const absDiff = Math.abs(Math.round((finalCounted - theoretical) * 100) / 100);
     const isSuperUser = this.authService.isSuperUser();
@@ -432,10 +469,17 @@ export class CloseRegisterModalComponent {
             .reduce((acc, d) => ({ ...acc, [d.value]: d.count }), {})
         : undefined;
 
+      const usdCount = Number(val.declaredCashUsd) || 0;
+      const usdRate = Number(val.usdExchangeRate) || 60.50;
+      const usdEquiv = this.usdCashEquivalentInDop();
+      const usdNote = usdCount > 0
+        ? ` [EFECTIVO USD: US$ ${usdCount.toFixed(2)} @ RD$ ${usdRate.toFixed(2)} = RD$ ${usdEquiv.toFixed(2)}]`
+        : '';
+
       const supervisorNote = (this.isSupervisorPinApproved() || isSuperUser) && absDiff > this.maxTolerance()
         ? ` [SUPERVISOR AUTORIZADO - Descuadre fuera de tolerancia: RD$ ${absDiff.toFixed(2)}]`
         : '';
-      const finalNotes = (val.notes || '') + supervisorNote;
+      const finalNotes = (val.notes || '') + supervisorNote + usdNote;
 
       const res = await this.cashRegisterService.closeSession({
         session: this.session || undefined,
@@ -480,6 +524,9 @@ export class CloseRegisterModalComponent {
           retainedFloat: Number(this.retainedFloat()) || 0,
           depositedCash: this.cashToDeposit(),
           depositDestination: val.depositDestination || 'Bóveda Principal',
+          declaredCashUsd: usdCount,
+          usdExchangeRate: usdRate,
+          usdEquivalentDop: usdEquiv,
         });
         this.closed.emit();
       } else {

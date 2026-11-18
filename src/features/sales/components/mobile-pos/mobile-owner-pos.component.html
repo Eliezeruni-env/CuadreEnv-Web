@@ -4563,6 +4563,35 @@
         </div>
       </div>
 
+      <!-- Número de Cuotas y Desglose Exacto sin Residuos -->
+      <div class="mb-3">
+        <label class="cuadre-input-label">Número de cuotas de pago:</label>
+        <div class="d-flex align-items-center gap-2">
+          <input
+            type="number"
+            min="1"
+            max="48"
+            class="form-control form-control-sm text-center font-monospace fw-bold"
+            style="width: 80px; height: 38px;"
+            [ngModel]="fiaoInstallments()"
+            (ngModelChange)="fiaoInstallments.set(+$event || 1)"
+          />
+          <div class="flex-grow-1 small text-muted">
+            @if (fiaoInstallments() > 1 && fiaoRemainingBalance() > 0) {
+              <div class="p-1.5 rounded-2 bg-light border" style="font-size: 11px; line-height: 1.3;">
+                @if (fiaoInstallmentBreakdown().hasRemainder) {
+                  <span>{{ fiaoInstallmentBreakdown().count - 1 }} cuotas de <strong>RD$ {{ fiaoInstallmentBreakdown().baseAmount | number:'1.2-2' }}</strong> + 1 pago final de <strong class="text-primary">RD$ {{ fiaoInstallmentBreakdown().lastAmount | number:'1.2-2' }}</strong> (sin centavos pendientes)</span>
+                } @else {
+                  <span>{{ fiaoInstallments() }} cuotas iguales de <strong>RD$ {{ fiaoInstallmentBreakdown().baseAmount | number:'1.2-2' }}</strong></span>
+                }
+              </div>
+            } @else {
+              <span style="font-size: 11.5px;">Pago total al vencimiento acordado</span>
+            }
+          </div>
+        </div>
+      </div>
+
       <!-- Frecuencia -->
       <div class="mb-4">
         <label class="cuadre-input-label">Frecuencia de cobro acordada:</label>

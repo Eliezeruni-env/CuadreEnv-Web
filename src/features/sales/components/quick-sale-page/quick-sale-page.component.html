@@ -1317,6 +1317,21 @@
               </div>
             }
 
+            <!-- ALERTA DE VENTA BAJO COSTO (ANTI-PÉRDIDAS) -->
+            @if (isSaleBelowCost()) {
+              <div class="alert alert-warning py-2 px-3 mb-2 d-flex align-items-center gap-2 border-warning text-dark" style="font-size: 0.82rem; border-radius: 8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-danger flex-shrink-0">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <div>
+                  <strong>¡Aviso de Venta Bajo Costo!</strong>
+                  <div class="small">El descuento aplicado genera una pérdida neta estimada de <strong>RD$ {{ belowCostDeficit() | number:'1.2-2' }}</strong> frente al costo de inventario (RD$ {{ cartTotalCost() | number:'1.2-2' }}).</div>
+                </div>
+              </div>
+            }
+
             <!-- TOTALES -->
             <div class="checkout-totals-section">
               <div class="total-line-item">
@@ -1386,7 +1401,14 @@
                     </div>
                     <div class="cambio-text-group">
                       <div class="cambio-label">CAMBIO A ENTREGAR · RD$ {{ change() | number:'1.2-2' }}</div>
-                      <div class="cambio-sub-desc">Devolver al cliente antes de cerrar</div>
+                      <div class="cambio-sub-desc">
+                        Devolver al cliente antes de cerrar
+                        @if (cashRoundingAdjustment() > 0) {
+                          <span class="badge bg-light text-dark border ms-1" title="Redondeo comercial al peso entero sin monedas de centavos físicas">
+                            +RD$ {{ cashRoundingAdjustment() | number:'1.2-2' }} redondeo
+                          </span>
+                        }
+                      </div>
                     </div>
                   </div>
                   <div class="cambio-amount-wrapper">
