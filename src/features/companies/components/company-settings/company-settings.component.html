@@ -510,6 +510,33 @@
                 </div>
               </div>
             </div>
+
+            <!-- Integración de Correo & Auditoría Testmail -->
+            <div class="border-top pt-3 mt-3">
+              <div class="p-3 bg-white border border-success-subtle rounded-3 shadow-2xs">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fs-5">📬</span>
+                    <div>
+                      <h6 class="fw-bold text-dark mb-0 small">Auditoría de Correo (Testmail Sandbox)</h6>
+                      <small class="text-secondary" style="font-size: 0.75rem;">Recepción y prueba de facturas electrónicas</small>
+                    </div>
+                  </div>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace px-2 py-1">ONLINE</span>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between p-2 rounded-2 bg-light mb-2">
+                  <span class="small text-muted font-monospace">Namespace: <strong class="text-dark">{{ testmailService.getConfig().namespace }}</strong></span>
+                  <span class="small text-muted font-monospace">&#64;inbox.testmail.app</span>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                  <a routerLink="/settings/email-audit" class="btn btn-sm btn-outline-success d-flex align-items-center gap-1">
+                    <span>Ver Bandeja de Pruebas ↗</span>
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

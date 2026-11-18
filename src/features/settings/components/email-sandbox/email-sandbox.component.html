@@ -1,0 +1,278 @@
+<div class="container-fluid py-3 email-sandbox-container">
+  <!-- Top Bar -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
+    <div class="d-flex align-items-center gap-3">
+      <div class="sandbox-icon-box bg-success-subtle text-success d-flex align-items-center justify-content-center rounded-3 p-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+          <polyline points="22,6 12,13 2,6"></polyline>
+        </svg>
+      </div>
+      <div>
+        <h4 class="fw-bold mb-0 text-dark">Auditoría de Correos & Bandeja Testmail</h4>
+        <small class="text-secondary">Monitoreo y verificación en tiempo real de facturas y comprobantes emitidos</small>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <button class="btn btn-outline-success d-flex align-items-center gap-1 shadow-xs px-3" (click)="testConnection()" [disabled]="isTesting()">
+        @if (isTesting()) {
+          <span class="spinner-border spinner-border-sm"></span>
+          <span>Probando...</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>Probar Conexión</span>
+        }
+      </button>
+
+      <button class="btn btn-light border d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadEmails()" [disabled]="isLoading()">
+        @if (isLoading()) {
+          <span class="spinner-border spinner-border-sm"></span>
+          <span>Cargando...</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          <span>Recargar</span>
+        }
+      </button>
+
+      <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-1 px-3" (click)="openConfig()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span>Credenciales</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Metric Badges Row -->
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-secondary small fw-semibold">Namespace Activo</span>
+          <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace px-2 py-1">ONLINE</span>
+        </div>
+        <div class="d-flex align-items-center justify-content-between">
+          <h4 class="fw-bold mb-0 font-monospace text-dark">{{ config().namespace }}</h4>
+          <button class="btn btn-sm btn-light border py-1" (click)="copySampleEmail()" title="Copiar dirección de prueba">
+            Copiar buzón
+          </button>
+        </div>
+        <div class="small text-muted mt-2">
+          Formato: <code class="text-success">{{ config().namespace }}.&#123;tag&#125;&#64;inbox.testmail.app</code>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-secondary small fw-semibold">Correos en Bandeja</span>
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">API REST</span>
+        </div>
+        <h4 class="fw-bold mb-0 text-dark">{{ totalCount() }}</h4>
+        <div class="small text-muted mt-2">Capturados y disponibles para inspección</div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-secondary small fw-semibold">Consola Oficial</span>
+          <a href="https://testmail.app/console/" target="_blank" rel="noopener noreferrer" class="small text-decoration-none">
+            testmail.app/console ↗
+          </a>
+        </div>
+        <div class="fw-semibold text-dark">Servicio Cloud Testmail</div>
+        <div class="small text-muted mt-2">Token Bearer verificado y habilitado</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Inbox Layout -->
+  <div class="row g-3">
+    <!-- Left Column: Email List -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden h-100">
+        <div class="p-3 border-bottom bg-light-subtle d-flex align-items-center justify-content-between gap-2">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white border-end-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </span>
+            <input
+              type="text"
+              class="form-control border-start-0"
+              placeholder="Filtrar por tag (ej: vta1001)..."
+              [ngModel]="filterTag()"
+              (ngModelChange)="filterTag.set($event)"
+              (keyup.enter)="loadEmails()"
+            />
+          </div>
+          <button class="btn btn-sm btn-light border" (click)="loadEmails()">Buscar</button>
+        </div>
+
+        <div class="email-list-container" style="max-height: 650px; overflow-y: auto;">
+          @if (isLoading()) {
+            <div class="p-4 text-center text-secondary">
+              <div class="spinner-border spinner-border-sm text-primary mb-2"></div>
+              <div>Consultando API de Testmail...</div>
+            </div>
+          } @else if (emails().length === 0) {
+            <div class="p-4 text-center text-muted">
+              <div class="fs-1 mb-2">📭</div>
+              <h6 class="fw-bold">No hay correos en esta bandeja</h6>
+              <p class="small text-secondary mb-3">
+                Envía una factura de prueba a <code class="text-dark">{{ config().namespace }}.vta1&#64;inbox.testmail.app</code>
+              </p>
+              <button class="btn btn-sm btn-outline-success" (click)="loadEmails()">Recargar ahora</button>
+            </div>
+          } @else {
+            <div class="list-group list-group-flush">
+              @for (em of emails(); track em.id) {
+                <button
+                  type="button"
+                  class="list-group-item list-group-item-action p-3 border-bottom transition-all"
+                  [class.active-item]="selectedEmail()?.id === em.id"
+                  (click)="selectEmail(em)"
+                >
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="badge bg-light text-dark font-monospace border small">
+                      {{ em.tag || 'sin tag' }}
+                    </span>
+                    <small class="text-muted">{{ em.timestamp | date:'short' }}</small>
+                  </div>
+                  <div class="fw-bold text-dark text-truncate mb-1">{{ em.subject }}</div>
+                  <div class="small text-secondary text-truncate">
+                    <strong>De:</strong> {{ em.from }}
+                  </div>
+                  <div class="small text-muted text-truncate">
+                    <strong>Para:</strong> {{ em.to }}
+                  </div>
+                  @if (em.attachments && em.attachments.length > 0) {
+                    <div class="mt-2">
+                      <span class="badge bg-danger-subtle text-danger font-monospace border border-danger-subtle small">
+                        📎 {{ em.attachments.length }} adjunto(s)
+                      </span>
+                    </div>
+                  }
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Email Inspector & HTML Viewer -->
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden h-100">
+        @if (selectedEmail()) {
+          <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <h6 class="fw-bold text-dark mb-0">{{ selectedEmail()?.subject }}</h6>
+              <div class="small text-secondary font-monospace">
+                <span>{{ selectedEmail()?.from }}</span> → <span>{{ selectedEmail()?.to }}</span>
+              </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="btn-group btn-group-sm" role="group">
+              <button type="button" class="btn" [class.btn-primary]="activeTab() === 'html'" [class.btn-light]="activeTab() !== 'html'" (click)="activeTab.set('html')">
+                HTML Renderizado
+              </button>
+              <button type="button" class="btn" [class.btn-primary]="activeTab() === 'text'" [class.btn-light]="activeTab() !== 'text'" (click)="activeTab.set('text')">
+                Texto Plano
+              </button>
+              <button type="button" class="btn" [class.btn-primary]="activeTab() === 'json'" [class.btn-light]="activeTab() !== 'json'" (click)="activeTab.set('json')">
+                JSON API
+              </button>
+            </div>
+          </div>
+
+          <!-- Attachments Bar -->
+          @if (selectedEmail()?.attachments && (selectedEmail()?.attachments)!.length > 0) {
+            <div class="p-2 px-3 bg-light-subtle border-bottom d-flex align-items-center gap-2 flex-wrap">
+              <span class="small fw-bold text-secondary">Adjuntos:</span>
+              @for (att of selectedEmail()?.attachments; track att.filename) {
+                <span class="badge bg-white text-dark border p-2 d-flex align-items-center gap-1 font-monospace">
+                  <span>📄 {{ att.filename }}</span>
+                  <span class="text-muted">({{ (att.size / 1024) | number:'1.1-1' }} KB)</span>
+                  @if (att.downloadUrl) {
+                    <a [href]="att.downloadUrl" target="_blank" class="text-primary ms-1 text-decoration-none">⬇</a>
+                  }
+                </span>
+              }
+            </div>
+          }
+
+          <!-- Tab Content -->
+          <div class="p-3 p-md-4" style="max-height: 650px; overflow-y: auto;">
+            @if (activeTab() === 'html') {
+              <div class="email-preview-frame p-3 bg-light-subtle rounded-3 border" [innerHTML]="selectedEmailHtml()"></div>
+            } @else if (activeTab() === 'text') {
+              <pre class="p-3 bg-light rounded-3 border font-monospace small" style="white-space: pre-wrap;">{{ selectedEmail()?.text }}</pre>
+            } @else {
+              <pre class="p-3 bg-dark text-white rounded-3 small font-monospace" style="max-height: 500px; overflow: auto;">{{ selectedEmail() | json }}</pre>
+            }
+          </div>
+        } @else {
+          <div class="p-5 text-center text-muted my-auto">
+            <div class="fs-1 mb-2">👈</div>
+            <h6 class="fw-bold">Selecciona un correo para previsualizar</h6>
+            <p class="small text-secondary">Podrás inspeccionar el comprobante DGII en su formato HTML real.</p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Config Modal -->
+@if (showConfigModal()) {
+  <div class="custom-modal-backdrop" (click)="closeConfig()">
+    <div class="custom-modal-content rounded-4 bg-white shadow-lg border p-4" style="max-width: 520px;" (click)="$event.stopPropagation()">
+      <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+        <h5 class="fw-bold mb-0 text-dark">Credenciales de Testmail.app</h5>
+        <button type="button" class="btn-close" (click)="closeConfig()" aria-label="Close"></button>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label small fw-semibold text-secondary">Namespace de Testmail</label>
+        <input type="text" class="form-control font-monospace" [ngModel]="editNamespace()" (ngModelChange)="editNamespace.set($event)" placeholder="tf6cj" />
+        <small class="text-muted">Aparece en tu consola de Testmail (ej: <code>tf6cj</code>)</small>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label small fw-semibold text-secondary">API Key (Bearer)</label>
+        <input type="password" class="form-control font-monospace" [ngModel]="editApiKey()" (ngModelChange)="editApiKey.set($event)" placeholder="1aa16f10-..." />
+        <small class="text-muted">Clave de autenticación para consultar la API de correos</small>
+      </div>
+
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" id="enableSandboxSwitch" [ngModel]="editEnabled()" (ngModelChange)="editEnabled.set($event)" />
+        <label class="form-check-label small fw-semibold text-dark" for="enableSandboxSwitch">
+          Habilitar Sandbox de Testmail en CuadreEnv
+        </label>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="resetToDefaults()">
+          Restablecer Valores
+        </button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-light border px-3" (click)="closeConfig()">Cancelar</button>
+          <button type="button" class="btn btn-cuadre-primary px-4 fw-bold" (click)="saveConfig()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -223,6 +223,13 @@ export const navItems: ModuleNavItem[] = [
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
+    name: 'Auditoría de Correos (Testmail)',
+    url: '/settings/email-audit',
+    moduleCode: 'company-settings',
+    iconComponent: { name: 'cil-envelope-open' },
+    linkProps: { routerLinkActiveOptions: { exact: true } },
+  },
+  {
     title: true,
     name: 'Auditoría & Inteligencia',
   },

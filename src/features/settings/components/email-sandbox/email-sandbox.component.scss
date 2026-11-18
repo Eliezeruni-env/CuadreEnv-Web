@@ -1,0 +1,49 @@
+.email-sandbox-container {
+  min-height: calc(100vh - 120px);
+}
+
+.sandbox-icon-box {
+  width: 46px;
+  height: 46px;
+}
+
+.shadow-xs {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.transition-all {
+  transition: all 0.15s ease-in-out;
+}
+
+.active-item {
+  background-color: #f0fdf4 !important;
+  border-left: 4px solid #16a34a !important;
+}
+
+.custom-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1080;
+  backdrop-filter: blur(4px);
+  padding: 1rem;
+}
+
+.btn-cuadre-primary {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+
+  &:hover {
+    background-color: #1d4ed8;
+    color: #ffffff;
+  }
+}
+
+.email-preview-frame {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
