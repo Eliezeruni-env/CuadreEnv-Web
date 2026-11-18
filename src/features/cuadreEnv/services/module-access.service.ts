@@ -33,8 +33,11 @@ export class ModuleAccessService {
     'customers': ['customers', 'clientes', 'prj-crm', 'crm'],
     'products': ['products', 'productos', 'catalogo', 'prj-almacen', 'almacen'],
     'products-settings': ['products-settings', 'categories', 'category', 'configuracion-productos'],
-    'inventory-stock': ['inventory-stock', 'stock', 'prj-almacen'],
+    'inventory-stock': ['inventory-stock', 'stock', 'prj-almacen', 'inventory-intelligence', 'inventory-lot-expiration'],
     'inventory-entries': ['inventory-entries', 'entries'],
+    'inventory-intelligence': ['inventory-intelligence', 'inventory_intelligence', 'intelligence', 'reorder-suggestions', 'reorder'],
+    'inventory-lot-expiration': ['inventory-lot-expiration', 'lot-expiration', 'fefo', 'vencimientos'],
+    'bank-reconciliation': ['bank-reconciliation', 'bank_reconciliation', 'conciliacion', 'conciliacion-bancaria', 'sales'],
     'purchases': ['purchases', 'compras'],
     'purchases-orders': ['purchases-orders', 'orders'],
     'purchases-receipts': ['purchases-receipts', 'receipts'],
@@ -75,6 +78,11 @@ export class ModuleAccessService {
     'pos-open-drawer': ['pos-open-drawer', 'pos_open_drawer', 'open-drawer', 'drawer'],
     'pos-clear-cart': ['pos-clear-cart', 'pos_clear_cart', 'clear-cart'],
     'pos-configure-ncf': ['pos-configure-ncf', 'pos_configure_ncf', 'configure-ncf', 'ncf-step2'],
+    'pos-quick-receivables': ['pos-quick-receivables', 'pos_quick_receivables', 'quick-receivables', 'abonos'],
+    'pos-supervisor-pin': ['pos-supervisor-pin', 'pos_supervisor_pin', 'supervisor-pin', 'antifraude'],
+    'pos-global-scanner': ['pos-global-scanner', 'pos_global_scanner', 'global-scanner'],
+    'pos-quotations': ['pos-quotations', 'pos_quotations', 'quotations', 'cotizaciones'],
+    'pos-digital-signature': ['pos-digital-signature', 'pos_digital_signature', 'digital-signature', 'firma'],
     // Preferencias de UI Global
     'system-language': ['system-language', 'system_language', 'language', 'idioma'],
     'system-theme': ['system-theme', 'system_theme', 'theme', 'dark-mode', 'color-mode']
@@ -292,7 +300,7 @@ export class ModuleAccessService {
 
     // Acceso a contenedor padre de inventario o compras si tiene algún submódulo
     if (targetCode === 'inventory' || targetCode === 'inventario') {
-      const inventoryCodes = ['inventory', 'inventario', 'inventory-stock', 'inventory-entries', 'inventory-outlets', 'inventory-transfers', 'inventory-warehouses', 'inventory-manage-requests', 'stock'];
+      const inventoryCodes = ['inventory', 'inventario', 'inventory-stock', 'inventory-entries', 'inventory-outlets', 'inventory-transfers', 'inventory-warehouses', 'inventory-manage-requests', 'inventory-intelligence', 'inventory-lot-expiration', 'stock'];
       return currentModules.some(m => inventoryCodes.includes(m));
     }
 

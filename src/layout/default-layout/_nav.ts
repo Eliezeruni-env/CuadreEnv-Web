@@ -99,6 +99,13 @@ export const navItems: ModuleNavItem[] = [
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
+    name: 'Conciliación Bancaria',
+    url: '/sales/bank-reconciliation',
+    moduleCode: 'bank-reconciliation',
+    iconComponent: { name: 'cil-bank' },
+    linkProps: { routerLinkActiveOptions: { exact: true } },
+  },
+  {
     name: 'Reportes Financieros',
     url: '/reports',
     moduleCode: 'reports',
@@ -155,6 +162,18 @@ export const navItems: ModuleNavItem[] = [
         url: '/inventory/manage-requests',
         moduleCode: 'inventory-manage-requests',
         iconComponent: { name: 'cil-check-circle' },
+      },
+      {
+        name: 'Punto de Reorden (ROP)',
+        url: '/inventory/intelligence',
+        moduleCode: 'inventory-intelligence',
+        iconComponent: { name: 'cil-chart' },
+      },
+      {
+        name: 'Vencimiento de Lotes (FEFO)',
+        url: '/inventory/lot-expiration',
+        moduleCode: 'inventory-lot-expiration',
+        iconComponent: { name: 'cil-calendar' },
       },
     ],
   },

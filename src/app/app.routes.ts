@@ -403,9 +403,9 @@ export const routes: Routes = [
           import('../features/sales/components/bank-reconciliation/bank-reconciliation.component').then(
             (m) => m.BankReconciliationComponent,
           ),
-        canActivate: [moduleGuard('sales')],
+        canActivate: [moduleGuard('bank-reconciliation')],
         data: {
-          module: 'sales',
+          module: 'bank-reconciliation',
           title: 'Conciliación Bancaria de Transferencias',
         },
       },
