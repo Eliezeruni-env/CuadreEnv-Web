@@ -51,6 +51,7 @@ import {
 } from '../../../companies/services/company.service';
 import { CloseRegisterModalComponent } from '../../../cash-register/components/cash-register/close-register-modal.component';
 import { PwaControlBarComponent } from '../../../cuadreEnv/components/pwa-control-bar/pwa-control-bar.component';
+import { DigitalSignatureModalComponent } from '../digital-signature-modal/digital-signature-modal.component';
 import { ServiceService } from '../../../services/services/service.service';
 import {
   ReceivableService,
@@ -156,6 +157,7 @@ function getStableDeviceId(): string {
     RouterModule,
     CloseRegisterModalComponent,
     PwaControlBarComponent,
+    DigitalSignatureModalComponent,
   ],
 })
 export class MobileOwnerPosComponent implements OnInit, OnDestroy {
@@ -195,6 +197,26 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     inject(BarcodeLookupService);
   private readonly warehouseService = inject(WarehouseService);
   isHeldSalesModalOpen = signal<boolean>(false);
+
+  // Firma Digital Táctil de Conduce / Entrega
+  isSignatureModalOpen = signal<boolean>(false);
+  capturedSignatureDataUrl = signal<string | null>(null);
+
+  getSelectedCustomerName(): string {
+    const id = this.selectedCustomerId();
+    if (!id) return 'Consumidor Final';
+    const client = this.clientsList().find((c) => c.id === id);
+    return client?.name || 'Cliente Mostrador';
+  }
+
+  openDigitalSignatureModal(): void {
+    this.isSignatureModalOpen.set(true);
+  }
+
+  onSignatureCaptured(dataUrl: string): void {
+    this.capturedSignatureDataUrl.set(dataUrl);
+    this.notificationService.success('✍️ Firma del cliente capturada con éxito.');
+  }
 
   // Almacenes
   warehouses = signal<any[]>([]);

@@ -74,6 +74,12 @@ export const ADMIN_NAV_ITEMS: ModuleNavItem[] = [
     iconComponent: { name: 'cil-chart-line' },
   },
   {
+    name: 'Lotes y Vencimientos FEFO',
+    url: '/inventory/lot-expiration',
+    moduleCode: 'inventory-stock',
+    iconComponent: { name: 'cil-calendar' },
+  },
+  {
     name: 'Productos',
     url: '/products',
     moduleCode: 'products',

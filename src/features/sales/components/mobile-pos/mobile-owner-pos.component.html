@@ -2251,6 +2251,16 @@
         </div>
       </div>
 
+      <!-- Botón Firma Digital Táctil -->
+      <button
+        type="button"
+        class="btn btn-outline-secondary w-100 mb-2.5 py-2 d-flex align-items-center justify-content-center gap-1.5"
+        style="border-radius: 10px; font-size: 13px; font-weight: 600; border-color: #cbd5e1;"
+        (click)="openDigitalSignatureModal()"
+      >
+        <span>✍️ {{ capturedSignatureDataUrl() ? 'Firma del Cliente Capturada ✓' : 'Capturar Firma Digital' }}</span>
+      </button>
+
       <!-- BOTÓN AZUL FIJO ABAJO: COBRAR RD$ X (52PX) -->
       <button
         type="button"
@@ -3934,6 +3944,13 @@
     [session]="activeSession()"
     (closed)="onRegisterClosed()"
   ></app-close-register-modal>
+
+  <!-- MODAL: FIRMA DIGITAL TÁCTIL DE CONDUCE / ENTREGA -->
+  <app-digital-signature-modal
+    [(visible)]="isSignatureModalOpen"
+    [signerName]="getSelectedCustomerName()"
+    (signatureSaved)="onSignatureCaptured($event)"
+  ></app-digital-signature-modal>
 
   } <!-- FIN @else isMobileAuthenticated -->
 

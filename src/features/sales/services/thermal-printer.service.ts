@@ -227,9 +227,37 @@ export class ThermalPrinterService {
   /**
    * Imprimir ticket a través de Bluetooth o diálogo de impresión térmica
    */
-  async printTicket(data: TicketData, paperSize: '58mm' | '80mm' = '58mm'): Promise<boolean> {
+  /**
+   * Enviar comando ESC/POS para apertura eléctrica inmediata de gaveta portamonedas
+   */
+  async openCashDrawer(): Promise<boolean> {
+    const drawerKick = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA, 0x1B, 0x70, 0x01, 0x19, 0xFA]);
+
+    if (this.serialWriter) {
+      try {
+        await this.serialWriter.write(drawerKick);
+        return true;
+      } catch (e) {
+        console.warn('[ThermalPrinter] Error abriendo gaveta por USB Serial:', e);
+      }
+    }
+
+    if (this.characteristic) {
+      try {
+        await this.characteristic.writeValue(drawerKick);
+        return true;
+      } catch (e) {
+        console.warn('[ThermalPrinter] Error abriendo gaveta por Bluetooth:', e);
+      }
+    }
+
+    return false;
+  }
+
+  async printTicket(data: TicketData, paperSize: '58mm' | '80mm' = '58mm', kickDrawer = false): Promise<boolean> {
     const width = paperSize === '80mm' ? 42 : 32;
     const rawText = this.generatePlainTextTicket(data, width);
+    const shouldKickDrawer = kickDrawer || (data.paymentMethod || '').toLowerCase().includes('efectivo');
 
     // 0. Intentar impresión directa USB Serial si está conectado
     if (this.serialWriter) {
@@ -238,7 +266,12 @@ export class ThermalPrinterService {
         const encoder = new TextEncoder();
         const escInit = new Uint8Array([0x1B, 0x40]); // ESC @ (Reset)
         const cutPaper = new Uint8Array([0x1D, 0x56, 0x41, 0x10]); // Cut paper
+        const drawerKick = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA, 0x1B, 0x70, 0x01, 0x19, 0xFA]);
+
         await this.serialWriter.write(escInit);
+        if (shouldKickDrawer) {
+          await this.serialWriter.write(drawerKick);
+        }
         const bytes = encoder.encode(rawText);
         await this.serialWriter.write(bytes);
         await this.serialWriter.write(cutPaper);
@@ -257,9 +290,13 @@ export class ThermalPrinterService {
         const encoder = new TextEncoder();
         const escInit = new Uint8Array([0x1B, 0x40]); // ESC @ (Reset)
         const cutPaper = new Uint8Array([0x1D, 0x56, 0x41, 0x10]); // Cut paper
-        
+        const drawerKick = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA, 0x1B, 0x70, 0x01, 0x19, 0xFA]);
+
         await this.characteristic.writeValue(escInit);
-        
+        if (shouldKickDrawer) {
+          await this.characteristic.writeValue(drawerKick);
+        }
+
         // Enviar en bloques de 100 bytes para evitar buffer overflow en Bluetooth
         const bytes = encoder.encode(rawText);
         const chunkSize = 100;

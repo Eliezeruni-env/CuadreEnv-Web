@@ -1,0 +1,101 @@
+.modal-backdrop-custom {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1060;
+  padding: 1rem;
+
+  .modal-dialog-custom {
+    background: #ffffff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+
+    .modal-header-custom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 1.25rem;
+      border-bottom: 1px solid #e2e8f0;
+
+      .badge-tag {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #0d6efd;
+        background: rgba(13, 110, 253, 0.1);
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        display: inline-block;
+        margin-bottom: 0.25rem;
+      }
+
+      .modal-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+      }
+    }
+
+    .modal-body-custom {
+      padding: 1.25rem;
+      overflow-y: auto;
+
+      .search-input-wrapper {
+        position: relative;
+
+        .search-icon {
+          position: absolute;
+          left: 0.85rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #94a3b8;
+        }
+
+        input {
+          padding-left: 2.3rem;
+        }
+      }
+
+      .receivables-list-container {
+        max-height: 380px;
+        overflow-y: auto;
+
+        .receivable-item-card {
+          border-left: 4px solid #ef4444;
+          padding: 0.85rem 1rem;
+          margin-bottom: 0.4rem;
+          border-radius: 6px;
+          transition: transform 0.15s ease, background 0.15s ease;
+
+          &:hover {
+            transform: translateX(2px);
+            background: #f8fafc;
+          }
+        }
+      }
+    }
+
+    .modal-footer-custom {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+    }
+  }
+}

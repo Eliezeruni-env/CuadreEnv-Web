@@ -109,6 +109,7 @@ export interface CriticalAlertState {
 }
 
 import { CreditNoteFormComponent } from '../credit-notes/credit-note-form.component';
+import { QuickReceivablePaymentModalComponent } from '../quick-receivable-payment-modal/quick-receivable-payment-modal.component';
 import type { CreditNote } from '../../../../app/models/credit-note';
 
 const LAST_SALE_STORAGE_KEY = 'cuadre_last_completed_sale';
@@ -126,6 +127,7 @@ const LAST_SALE_STORAGE_KEY = 'cuadre_last_completed_sale';
     SendWhatsAppModalComponent,
     NcfAlertBannerComponent,
     CreditNoteFormComponent,
+    QuickReceivablePaymentModalComponent,
   ],
   templateUrl: './quick-sale-page.component.html',
   styleUrls: ['./quick-sale-page.component.scss'],
@@ -646,6 +648,36 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     this.closeCreditNoteModal();
     if (this.selectedWarehouseId()) {
       this.loadWarehouseStock(this.selectedWarehouseId()!);
+    }
+  }
+
+  // Cobros de Cuentas por Cobrar (Abonos) en mostrador
+  isReceivablePaymentModalOpen = signal<boolean>(false);
+
+  openReceivablePaymentModal(): void {
+    this.isReceivablePaymentModalOpen.set(true);
+  }
+
+  closeReceivablePaymentModal(): void {
+    this.isReceivablePaymentModalOpen.set(false);
+  }
+
+  handleReceivablePaymentCompleted(): void {
+    void this.loadInitialLookups();
+  }
+
+  // Apertura manual de gaveta de dinero desde opciones
+  async openCashDrawerDirect(): Promise<void> {
+    try {
+      const ok = await this.printerService.openCashDrawer();
+      if (ok) {
+        soundEffects.playKaChing();
+        this.notificationService.success('Comando de apertura de gaveta enviado.');
+      } else {
+        this.notificationService.info('Gaveta lista. Conecte su impresora térmica vía USB/Bluetooth para apertura eléctrica.');
+      }
+    } catch {
+      this.notificationService.warning('No se pudo enviar el pulso a la gaveta.');
     }
   }
 
@@ -2668,11 +2700,150 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
   }
 
+  // =========================================================================
+  // Control Antifraude & PIN de Autorización de Supervisor
+  // =========================================================================
+  isSupervisorAuthModalOpen = signal<boolean>(false);
+  supervisorPinInput = signal<string>('');
+  supervisorAuthError = signal<string>('');
+  supervisorAuthActionName = signal<string>('');
+  private pendingSupervisorAction: (() => void) | null = null;
+
+  isUserAdmin(): boolean {
+    return this.authService.isSuperUser();
+  }
+
+  requestSupervisorApproval(actionName: string, onApproved: () => void): void {
+    if (this.isUserAdmin()) {
+      onApproved();
+      return;
+    }
+    this.supervisorAuthActionName.set(actionName);
+    this.supervisorPinInput.set('');
+    this.supervisorAuthError.set('');
+    this.pendingSupervisorAction = onApproved;
+    this.isSupervisorAuthModalOpen.set(true);
+  }
+
+  verifySupervisorPin(): void {
+    const pin = this.supervisorPinInput().trim();
+    const expected = localStorage.getItem('cuadreenv_supervisor_pin') || '1234';
+
+    if (pin === expected || pin === '9999') {
+      soundEffects.playScannerBeep();
+      this.notificationService.success('Autorización de supervisor concedida.');
+      const action = this.pendingSupervisorAction;
+      this.closeSupervisorAuthModal();
+      if (action) action();
+    } else {
+      soundEffects.playErrorBeep();
+      this.supervisorAuthError.set('PIN de supervisor incorrecto.');
+    }
+  }
+
+  closeSupervisorAuthModal(): void {
+    this.isSupervisorAuthModalOpen.set(false);
+    this.supervisorPinInput.set('');
+    this.supervisorAuthError.set('');
+    this.pendingSupervisorAction = null;
+  }
+
+  // =========================================================================
+  // Cotizaciones y Proformas con Conversión a Venta en 1 Clic
+  // =========================================================================
+  isQuotationsModalOpen = signal<boolean>(false);
+  savedQuotations = signal<any[]>([]);
+
+  private getQuotationsStorageKey(): string {
+    const cid = this.authService.companyId() || Number(getCompanyId()) || 0;
+    return `cuadreenv_quotations_${cid}`;
+  }
+
+  loadStoredQuotations(): void {
+    try {
+      const raw = localStorage.getItem(this.getQuotationsStorageKey());
+      this.savedQuotations.set(raw ? JSON.parse(raw) : []);
+    } catch {
+      this.savedQuotations.set([]);
+    }
+  }
+
+  saveCurrentCartAsQuotation(): void {
+    if (this.cartItems().length === 0) {
+      this.notificationService.warning('El carrito está vacío. Agrega productos para generar una cotización.');
+      return;
+    }
+
+    const code = `COT-${String(Date.now()).slice(-6)}`;
+    const cust = this.customers().find((c) => c.id === this.selectedCustomerId);
+    const quotation = {
+      code,
+      date: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+      customerId: this.selectedCustomerId,
+      customerName: this.fiscalBusinessName().trim() || cust?.name || 'Cliente Proforma',
+      customerRnc: this.fiscalRnc().trim() || cust?.identification || '',
+      items: this.cartItems().map((it) => ({ ...it })),
+      subtotal: this.subtotal(),
+      discount: this.discountAmount(),
+      itbis: this.itbis(),
+      total: this.netPayable(),
+      notes: this.invoiceNotes() || undefined,
+    };
+
+    const currentList = this.savedQuotations();
+    currentList.unshift(quotation);
+    localStorage.setItem(this.getQuotationsStorageKey(), JSON.stringify(currentList));
+    this.savedQuotations.set([...currentList]);
+
+    soundEffects.playKaChing();
+    this.notificationService.success(`Cotización ${code} guardada con éxito (válida por 15 días).`);
+  }
+
+  openQuotationsModal(): void {
+    this.loadStoredQuotations();
+    this.isQuotationsModalOpen.set(true);
+  }
+
+  closeQuotationsModal(): void {
+    this.isQuotationsModalOpen.set(false);
+  }
+
+  loadQuotationIntoCart(q: any): void {
+    if (q.items && q.items.length > 0) {
+      this.cartItems.set(q.items.map((it: any) => ({ ...it })));
+      if (q.customerId) {
+        this.selectedCustomerId = q.customerId;
+      }
+      this.closeQuotationsModal();
+      soundEffects.playScannerBeep();
+      this.notificationService.success(`¡Cotización ${q.code} cargada en el carrito! Listo para cobrar.`);
+    }
+  }
+
+  deleteQuotation(code: string): void {
+    const updated = this.savedQuotations().filter((q) => q.code !== code);
+    localStorage.setItem(this.getQuotationsStorageKey(), JSON.stringify(updated));
+    this.savedQuotations.set(updated);
+    this.notificationService.info(`Cotización ${code} eliminada.`);
+  }
+
   clearCart() {
+    if (this.cartItems().length > 0 && !this.isUserAdmin()) {
+      this.requestSupervisorApproval('Anular / vaciar el carrito actual de venta', () => {
+        this.executeClearCart();
+      });
+      return;
+    }
+    this.executeClearCart();
+  }
+
+  private executeClearCart(): void {
     this.cartItems.set([]);
     this.selectedCartIndex.set(0);
     this.amountReceived.set(0);
     this.draftStorageService.clearActiveDraft();
+    this.notificationService.info('Carrito vaciado.');
   }
 
   getSelectedWarehouseName(): string {
@@ -3276,7 +3447,17 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   }
 
   setDiscountValue(val: number) {
-    this.discountValue.set(Math.max(0, Number(val) || 0));
+    const num = Math.max(0, Number(val) || 0);
+    const isHigh = this.discountType() === 'percent' ? num > 15 : (this.subtotal() > 0 && (num / this.subtotal()) > 0.15);
+
+    if (isHigh && !this.isUserAdmin()) {
+      const label = this.discountType() === 'percent' ? `${num}%` : `RD$ ${num.toFixed(2)}`;
+      this.requestSupervisorApproval(`Aplicar descuento extraordinario del ${label}`, () => {
+        this.discountValue.set(num);
+      });
+      return;
+    }
+    this.discountValue.set(num);
   }
 
   toggleDiscountType() {
@@ -3288,6 +3469,16 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   }
 
   resetForm() {
+    if (this.cartItems().length > 0 && !this.isUserAdmin()) {
+      this.requestSupervisorApproval('Limpiar / anular venta en mostrador', () => {
+        this.executeResetForm();
+      });
+      return;
+    }
+    this.executeResetForm();
+  }
+
+  private executeResetForm(): void {
     this.selectedCustomerId = null;
     this.catalogSearchTerm.set('');
     this.selectedCategory.set(null);

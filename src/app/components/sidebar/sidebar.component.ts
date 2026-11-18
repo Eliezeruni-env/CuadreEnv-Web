@@ -168,6 +168,13 @@ export const ROUTES: RouteInfo[] = [
     class: '',
   },
   {
+    path: '/inventory/lot-expiration',
+    moduleCode: 'inventory-stock',
+    title: 'Lotes y Vencimientos',
+    icon: 'cilCalendar',
+    class: '',
+  },
+  {
     title: 'Catálogo de Productos',
     icon: 'cilTags',
     class: '',

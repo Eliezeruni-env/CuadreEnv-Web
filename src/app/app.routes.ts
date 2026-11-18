@@ -193,6 +193,18 @@ export const routes: Routes = [
         pathMatch: 'full',
       },
       {
+        path: 'inventory/lot-expiration',
+        loadComponent: () =>
+          import('../features/inventory/components/lot-expiration-tracker/lot-expiration-tracker.component').then(
+            (m) => m.LotExpirationTrackerComponent,
+          ),
+        canActivate: [moduleGuard('inventory-stock')],
+        data: {
+          module: 'inventory-stock',
+          title: 'Control de Lotes y Vencimientos FEFO',
+        },
+      },
+      {
         path: 'inventory/manage-requests',
         loadComponent: () =>
           import('../features/inventory/components/manage-request/manage-request-list.component').then(

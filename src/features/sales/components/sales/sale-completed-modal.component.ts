@@ -7,6 +7,8 @@ import {
   inject,
   ViewChild,
   signal,
+  OnChanges,
+  SimpleChanges,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
@@ -55,7 +57,7 @@ export interface CompletedSaleDto {
   templateUrl: './sale-completed-modal.component.html',
   styleUrls: ['./sale-completed-modal.component.scss'],
 })
-export class SaleCompletedModalComponent {
+export class SaleCompletedModalComponent implements OnChanges {
   formatPaymentMethod(method?: string | null): string {
     return formatPaymentMethodLabel(method);
   }
@@ -77,6 +79,15 @@ export class SaleCompletedModalComponent {
 
   isEmailModalOpen = false;
   isTicketMode = signal<boolean>(false);
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['visible']?.currentValue === true && this.saleData) {
+      const pm = (this.saleData.paymentMethod || '').toLowerCase();
+      if (pm.includes('efectivo') || pm.includes('cash')) {
+        void this.thermalPrinterService.openCashDrawer();
+      }
+    }
+  }
 
   get formattedDate(): string {
     return formatInvoiceDateTime(this.saleData?.date || new Date());

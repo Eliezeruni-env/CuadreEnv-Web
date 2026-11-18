@@ -1,0 +1,71 @@
+@if (visible) {
+  <div class="modal-backdrop-custom" (click)="close()">
+    <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
+      <div class="modal-header-custom">
+        <div class="header-titles">
+          <div class="badge-tag">Conduce / Constancia Digital</div>
+          <h5 class="modal-title">✍️ {{ title }}</h5>
+        </div>
+        <button type="button" class="btn-close" (click)="close()" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body-custom">
+        <div class="signer-info-box mb-2.5">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="small text-muted d-block">Receptor de la Mercancía:</span>
+              <strong class="text-dark">{{ signerName }}</strong>
+            </div>
+            @if (documentNumber) {
+              <div class="text-end">
+                <span class="small text-muted d-block">Documento:</span>
+                <span class="badge bg-secondary font-monospace">{{ documentNumber }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <p class="signature-instruction text-secondary small mb-2 text-center">
+          Dibuja la firma del cliente con el dedo o puntero en el recuadro a continuación:
+        </p>
+
+        <!-- Canvas de Firma Digital -->
+        <div class="canvas-wrapper">
+          <canvas
+            #signatureCanvas
+            class="signature-canvas"
+            (touchstart)="startDrawing($event)"
+            (touchmove)="draw($event)"
+            (touchend)="stopDrawing($event)"
+            (pointerdown)="startDrawing($event)"
+            (pointermove)="draw($event)"
+            (pointerup)="stopDrawing($event)"
+            (pointerleave)="stopDrawing($event)"
+          ></canvas>
+          <div class="signature-line">
+            <span>Línea de firma</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer-custom">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="clearCanvas()">
+          🧹 Limpiar
+        </button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-light btn-sm" (click)="close()">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-success btn-sm px-4 fw-bold"
+            [disabled]="!hasDrawn()"
+            (click)="saveSignature()"
+          >
+            ✅ Confirmar y Guardar Firma
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
