@@ -110,7 +110,21 @@
       </button>
       }
 
-      <!-- 3. Reimprimir última venta -->
+      <!-- 3. Devolución / Nota de Crédito B04 -->
+      <button
+        type="button"
+        class="btn-pos-outline btn-40"
+        (click)="openCreditNoteModal()"
+        title="Devolución de mercancía y emisión de Nota de Crédito DGII (B04)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="1 4 1 10 7 10"></polyline>
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+        </svg>
+        <span>Devolución</span>
+      </button>
+
+      <!-- 4. Reimprimir última venta -->
       @if (canAccessFeature('pos-reprint', 'sales')) {
       <button
         type="button"
@@ -128,7 +142,7 @@
       </button>
       }
 
-      <!-- 4. MENÚ DESPLEGABLE DE AJUSTES Y HERRAMIENTAS POS -->
+      <!-- 5. MENÚ DESPLEGABLE DE AJUSTES Y HERRAMIENTAS POS -->
       <div class="pos-options-dropdown-wrapper" style="position: relative;">
         <button
           type="button"
@@ -1795,6 +1809,13 @@
     (closed)="onSaleModalClosed()"
   ></app-sale-completed-modal>
 }
+
+<!-- MODAL DIRECTO: DEVOLUCIÓN Y NOTA DE CRÉDITO (B04) -->
+<app-credit-note-form
+  [visible]="isCreditNoteModalOpen()"
+  (visibleChange)="isCreditNoteModalOpen.set($event)"
+  (creditNoteCreated)="onCreditNoteCreated($event)"
+></app-credit-note-form>
 
 <!-- HELD SALES (VENTAS EN ESPERA) MODAL -->
 @if (isHeldSalesModalOpen()) {

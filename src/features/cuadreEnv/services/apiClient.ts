@@ -482,6 +482,10 @@ export class ApiClientService {
       ...(options.headers || {}),
     };
 
+    if (typeof FormData !== 'undefined' && options.body instanceof FormData) {
+      delete headers['Content-Type'];
+    }
+
     if (method.toUpperCase() === 'POST' && (url.toLowerCase() === '/sale' || url.toLowerCase() === '/v1/sale' || url.toLowerCase().startsWith('/sale'))) {
       if (!headers['X-Idempotency-Key'] || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(headers['X-Idempotency-Key'])) {
         headers['X-Idempotency-Key'] = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {

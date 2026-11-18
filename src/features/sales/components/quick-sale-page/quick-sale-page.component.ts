@@ -108,6 +108,9 @@ export interface CriticalAlertState {
   rawPayload?: any;
 }
 
+import { CreditNoteFormComponent } from '../credit-notes/credit-note-form.component';
+import type { CreditNote } from '../../../../app/models/credit-note';
+
 const LAST_SALE_STORAGE_KEY = 'cuadre_last_completed_sale';
 
 @Component({
@@ -122,6 +125,7 @@ const LAST_SALE_STORAGE_KEY = 'cuadre_last_completed_sale';
     SaleCompletedModalComponent,
     SendWhatsAppModalComponent,
     NcfAlertBannerComponent,
+    CreditNoteFormComponent,
   ],
   templateUrl: './quick-sale-page.component.html',
   styleUrls: ['./quick-sale-page.component.scss'],
@@ -619,6 +623,30 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
   // Held Carts (Ventas en espera) Modal
   isHeldSalesModalOpen = signal<boolean>(false);
+
+  // Devoluciones y Notas de Crédito (B04) en mostrador
+  isCreditNoteModalOpen = signal<boolean>(false);
+  preloadedInvoiceForCreditNote = signal<string>('');
+
+  openCreditNoteModal(invoiceIdOrNum?: string): void {
+    this.preloadedInvoiceForCreditNote.set(invoiceIdOrNum || '');
+    this.isCreditNoteModalOpen.set(true);
+  }
+
+  closeCreditNoteModal(): void {
+    this.isCreditNoteModalOpen.set(false);
+    this.preloadedInvoiceForCreditNote.set('');
+  }
+
+  onCreditNoteCreated(note: CreditNote): void {
+    this.notificationService.success(
+      `Nota de crédito ${note.creditNoteNumber || ''} ${note.ncf ? `(NCF: ${note.ncf})` : ''} generada exitosamente. Mercancía reintegrada al almacén.`,
+    );
+    this.closeCreditNoteModal();
+    if (this.selectedWarehouseId()) {
+      this.loadWarehouseStock(this.selectedWarehouseId()!);
+    }
+  }
 
   // Keyboard Shortcuts Cheatsheet Modal
   isShortcutsModalOpen = signal<boolean>(false);

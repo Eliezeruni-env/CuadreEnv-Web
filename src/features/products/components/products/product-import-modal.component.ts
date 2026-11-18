@@ -6,6 +6,7 @@ import { CategoryService } from '../../services/category.service';
 import { ProductTypeService } from '../../services/product-type.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
+import { ApiClientService } from '../../../cuadreEnv/services/apiClient';
 import type { ProductDto } from '../../../cuadreEnv/types/api';
 
 export interface ParsedImportRow {
@@ -37,6 +38,7 @@ export class ProductImportModalComponent implements OnInit {
   private readonly productTypeService = inject(ProductTypeService);
   private readonly authService = inject(AuthService);
   private readonly notificationService = inject(NotificationService);
+  private readonly api = inject(ApiClientService);
 
   isOpen = signal<boolean>(false);
   activeTab = signal<'preloaded' | 'upload'>('preloaded');
@@ -45,10 +47,14 @@ export class ProductImportModalComponent implements OnInit {
 
   selectedCatalog = signal<PreloadedCatalog | null>(null);
 
-  // File upload state
+  // File upload state & Backend Batch State
   fileName = signal<string>('');
   rawCsvContent = signal<string>('');
   parsedRows = signal<ParsedImportRow[]>([]);
+  backendBatchId = signal<string | null>(null);
+  previewStats = signal<{ total: number; valid: number; invalid: number; duplicates: number } | null>(null);
+  backendErrors = signal<any[]>([]);
+
   isParsing = signal<boolean>(false);
   isImporting = signal<boolean>(false);
   importProgress = signal<number>(0);
@@ -80,6 +86,9 @@ export class ProductImportModalComponent implements OnInit {
     this.importStats.set(null);
     this.parsedRows.set([]);
     this.fileName.set('');
+    this.backendBatchId.set(null);
+    this.previewStats.set(null);
+    this.backendErrors.set([]);
     if (this.catalogs().length === 0) {
       void this.loadCatalogs();
     } else if (!this.selectedCatalog()) {
@@ -163,10 +172,63 @@ export class ProductImportModalComponent implements OnInit {
     event.preventDefault();
   }
 
-  private processFile(file: File): void {
+  private async processFile(file: File): Promise<void> {
     this.fileName.set(file.name);
     this.isParsing.set(true);
+    this.backendBatchId.set(null);
+    this.previewStats.set(null);
+    this.backendErrors.set([]);
 
+    // 1. Intentar previsualización transaccional en backend (/api/import/preview/products)
+    try {
+      const formData = new FormData();
+      formData.append('file', file, file.name);
+      formData.append('mode', '1'); // CreateAndUpdate
+
+      const previewRes = await this.api.post<any, any>('/api/import/preview/products', formData);
+      const data = previewRes?.data || previewRes;
+
+      if (data && data.batchId) {
+        this.backendBatchId.set(data.batchId);
+        this.previewStats.set({
+          total: data.totalRows || 0,
+          valid: data.validRows || 0,
+          invalid: data.invalidRows || 0,
+          duplicates: data.duplicatesCount || 0,
+        });
+
+        if (Array.isArray(data.errors) && data.errors.length > 0) {
+          this.backendErrors.set(data.errors);
+        }
+
+        if (Array.isArray(data.previewRows) && data.previewRows.length > 0) {
+          const mapped: ParsedImportRow[] = data.previewRows.map((r: any, idx: number) => ({
+            rowNumber: r.rowNumber || idx + 1,
+            barcode: r.barcode || r.barCode || '',
+            reference: r.reference || '',
+            description: r.description || 'Producto',
+            categoryName: r.categoryName || r.category || 'General',
+            cost: Number(r.cost || 0),
+            price: Number(r.price || 0),
+            stock: Number(r.stock || 0),
+            minQuantity: Number(r.minQuantity || r.minimumQuantity || 5),
+            isValid: !r.hasError,
+            validationError: r.errorMessage || undefined,
+          }));
+
+          this.parsedRows.set(mapped);
+          this.isParsing.set(false);
+          this.notificationService.success(
+            `Archivo verificado en servidor: ${data.validRows || mapped.length} productos listos para importación atómica.`,
+          );
+          return;
+        }
+      }
+    } catch (apiErr) {
+      console.warn('Previsualización en servidor no disponible, usando analizador local:', apiErr);
+    }
+
+    // 2. Fallback: Análisis local con FileReader
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = String(e.target?.result || '');
@@ -309,12 +371,43 @@ export class ProductImportModalComponent implements OnInit {
   }
 
   /**
-   * Ejecuta la creación por lote de productos consumiendo el ProductService.
+   * Ejecuta la creación por lote de productos consumiendo el ProductService o el commit transaccional del backend.
    */
   async executeBatchImport(rowsToImport?: ParsedImportRow[], sourceLabel?: string): Promise<void> {
+    // Si tenemos un batch transaccional confirmado en backend, ejecutar commit atómico
+    if (this.backendBatchId() && !rowsToImport) {
+      this.isImporting.set(true);
+      this.importProgress.set(50);
+      try {
+        const commitRes = await this.api.post<any, any>(`/api/import/commit/${this.backendBatchId()}`, {});
+        const resData = commitRes?.data || commitRes;
+        const imported = resData?.importedCount ?? resData?.insertedCount ?? 0;
+        const updated = resData?.updatedCount ?? 0;
+        const total = imported + updated;
+
+        this.importProgress.set(100);
+        this.isImporting.set(false);
+        this.importStats.set({
+          total: total + (resData?.errorsCount || 0),
+          success: total,
+          failed: resData?.errorsCount || 0,
+        });
+
+        this.notificationService.success(
+          `¡Importación atómica confirmada! ${imported} productos creados y ${updated} actualizados en base de datos.`,
+        );
+        this.imported.emit();
+        return;
+      } catch (commitErr: any) {
+        console.warn('Error en commit atómico, procesando lote seguro:', commitErr);
+        this.notificationService.warning('Reintentando importación mediante lote seguro...');
+      }
+    }
+
     const rows = (rowsToImport || this.parsedRows()).filter(r => r.isValid);
     if (rows.length === 0) {
       this.notificationService.warning('No hay productos válidos para importar.');
+      this.isImporting.set(false);
       return;
     }
 
