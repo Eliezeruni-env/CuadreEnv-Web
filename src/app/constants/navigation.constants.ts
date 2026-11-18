@@ -46,6 +46,12 @@ export const ADMIN_NAV_ITEMS: ModuleNavItem[] = [
     iconComponent: { name: 'cil-description' },
   },
   {
+    name: 'Conciliación Bancaria',
+    url: '/sales/bank-reconciliation',
+    moduleCode: 'sales',
+    iconComponent: { name: 'cil-bank' },
+  },
+  {
     name: 'Clientes',
     url: '/customers',
     moduleCode: 'customers',
@@ -60,6 +66,12 @@ export const ADMIN_NAV_ITEMS: ModuleNavItem[] = [
     url: '/inventory',
     moduleCode: 'inventory',
     iconComponent: { name: 'cil-swap-horizontal' },
+  },
+  {
+    name: 'Reposición Inteligente',
+    url: '/inventory/intelligence',
+    moduleCode: 'inventory-stock',
+    iconComponent: { name: 'cil-chart-line' },
   },
   {
     name: 'Productos',

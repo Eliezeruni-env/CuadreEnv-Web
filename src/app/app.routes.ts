@@ -176,6 +176,23 @@ export const routes: Routes = [
         },
       },
       {
+        path: 'inventory/intelligence',
+        loadComponent: () =>
+          import('../features/inventory/components/inventory-intelligence/inventory-intelligence.component').then(
+            (m) => m.InventoryIntelligenceComponent,
+          ),
+        canActivate: [moduleGuard('inventory-stock')],
+        data: {
+          module: 'inventory-stock',
+          title: 'Inteligencia de Reposición y Reorden',
+        },
+      },
+      {
+        path: 'inventory/reorder-suggestions',
+        redirectTo: 'inventory/intelligence',
+        pathMatch: 'full',
+      },
+      {
         path: 'inventory/manage-requests',
         loadComponent: () =>
           import('../features/inventory/components/manage-request/manage-request-list.component').then(
@@ -366,6 +383,23 @@ export const routes: Routes = [
       {
         path: 'sales/credit-notes',
         redirectTo: 'credit-notes',
+        pathMatch: 'full',
+      },
+      {
+        path: 'sales/bank-reconciliation',
+        loadComponent: () =>
+          import('../features/sales/components/bank-reconciliation/bank-reconciliation.component').then(
+            (m) => m.BankReconciliationComponent,
+          ),
+        canActivate: [moduleGuard('sales')],
+        data: {
+          module: 'sales',
+          title: 'Conciliación Bancaria de Transferencias',
+        },
+      },
+      {
+        path: 'bank-reconciliation',
+        redirectTo: 'sales/bank-reconciliation',
         pathMatch: 'full',
       },
       {

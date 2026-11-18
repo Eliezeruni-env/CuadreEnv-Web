@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { StockService } from '../../services/stock.service';
 import { WarehouseService } from '../../services/warehouse.service';
 import { ListPaginationComponent } from '../../../cuadreEnv/components/list-pagination/list-pagination.component';
@@ -10,7 +11,7 @@ import type { Warehouse } from '../../../../app/models/warehouse';
 @Component({
   selector: 'app-stock',
   standalone: true,
-  imports: [CommonModule, FormsModule, ListPaginationComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ListPaginationComponent],
   templateUrl: './stock.component.html',
   styleUrls: ['./stock.component.scss'],
 })

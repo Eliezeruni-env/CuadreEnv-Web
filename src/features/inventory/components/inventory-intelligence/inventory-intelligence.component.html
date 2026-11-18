@@ -1,0 +1,363 @@
+<div class="inventory-intelligence-container">
+  <!-- Header con título y selector de período -->
+  <header class="intelligence-header">
+    <div class="header-left">
+      <div class="badge-tag">Business Intelligence & Compras</div>
+      <h1 class="page-title">Reposición Automática & Análisis de Inventario</h1>
+      <p class="page-subtitle">
+        Predicción de demanda por velocidad de venta, puntos de reorden preventivos y capital inmovilizado en productos de baja rotación.
+      </p>
+    </div>
+    <div class="header-right">
+      <div class="period-selector">
+        <label>Período Base:</label>
+        <div class="btn-group btn-group-sm">
+          <button
+            type="button"
+            class="btn"
+            [class.btn-primary]="analysisDays() === 15"
+            [class.btn-outline-secondary]="analysisDays() !== 15"
+            (click)="onPeriodChange(15)"
+          >
+            15 días
+          </button>
+          <button
+            type="button"
+            class="btn"
+            [class.btn-primary]="analysisDays() === 30"
+            [class.btn-outline-secondary]="analysisDays() !== 30"
+            (click)="onPeriodChange(30)"
+          >
+            30 días
+          </button>
+          <button
+            type="button"
+            class="btn"
+            [class.btn-primary]="analysisDays() === 60"
+            [class.btn-outline-secondary]="analysisDays() !== 60"
+            (click)="onPeriodChange(60)"
+          >
+            60 días
+          </button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="runAnalysis()" [disabled]="isLoading()">
+        🔄 Recalcular
+      </button>
+    </div>
+  </header>
+
+  <!-- KPI Cards -->
+  <div class="metrics-grid">
+    <div class="metric-card purchases">
+      <div class="card-icon">🛒</div>
+      <div class="card-content">
+        <span class="card-label">Inversión Sugerida en Compras</span>
+        <div class="card-value">RD$ {{ totalPurchaseInvestment() | number:'1.2-2' }}</div>
+        <span class="card-sub">{{ reorderSuggestions().length }} productos requieren reposición</span>
+      </div>
+    </div>
+
+    <div class="metric-card critical">
+      <div class="card-icon">🚨</div>
+      <div class="card-content">
+        <span class="card-label">Quiebre de Stock Inminente</span>
+        <div class="card-value text-danger-custom">{{ criticalProductsCount() }} productos</div>
+        <span class="card-sub">Stock en 0 o cobertura &le; 2 días</span>
+      </div>
+    </div>
+
+    <div class="metric-card dead-stock">
+      <div class="card-icon">🧊</div>
+      <div class="card-content">
+        <span class="card-label">Capital en "Productos Hueso"</span>
+        <div class="card-value text-warning-custom">RD$ {{ totalImmobilizedCapital() | number:'1.2-2' }}</div>
+        <span class="card-sub">{{ deadStockItems().length }} artículos sin rotación</span>
+      </div>
+    </div>
+
+    <div class="metric-card profit">
+      <div class="card-icon">📈</div>
+      <div class="card-content">
+        <span class="card-label">Margen Bruto Real (COGS)</span>
+        <div class="card-value text-success-custom">{{ profitMetrics().grossMarginPercent | number:'1.1-1' }}%</div>
+        <span class="card-sub">Ganancia: RD$ {{ profitMetrics().grossProfit | number:'1.0-0' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div class="nav-tabs-custom">
+    <button
+      type="button"
+      class="tab-btn"
+      [class.active]="selectedTab() === 'REORDER'"
+      (click)="selectedTab.set('REORDER')"
+    >
+      <span class="tab-icon">📦</span> Punto de Reorden y Sugerencia de Compras
+      <span class="tab-badge">{{ reorderSuggestions().length }}</span>
+    </button>
+    <button
+      type="button"
+      class="tab-btn"
+      [class.active]="selectedTab() === 'DEAD_STOCK'"
+      (click)="selectedTab.set('DEAD_STOCK')"
+    >
+      <span class="tab-icon">🧊</span> Productos "Hueso" (Capital Estancado)
+      <span class="tab-badge">{{ deadStockItems().length }}</span>
+    </button>
+    <button
+      type="button"
+      class="tab-btn"
+      [class.active]="selectedTab() === 'PROFIT'"
+      (click)="selectedTab.set('PROFIT')"
+    >
+      <span class="tab-icon">📊</span> Análisis de Rentabilidad Neta
+    </button>
+  </div>
+
+  <!-- CONTENIDO TAB 1: PUNTO DE REORDEN & COMPRAS -->
+  @if (selectedTab() === 'REORDER') {
+    <div class="tab-content-card">
+      <div class="content-toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            placeholder="Buscar producto por nombre, código o proveedor..."
+            [ngModel]="searchTerm()"
+            (ngModelChange)="searchTerm.set($event)"
+          />
+        </div>
+        <div class="toolbar-actions">
+          <select
+            class="form-select form-select-sm"
+            [ngModel]="urgencyFilter()"
+            (ngModelChange)="urgencyFilter.set($event)"
+          >
+            <option value="ALL">Todas las Urgencias</option>
+            <option value="CRITICAL">🚨 Crítico (Agotado o &le;2 días)</option>
+            <option value="WARNING">⚠️ Advertencia (&le;7 días)</option>
+            <option value="HEALTHY">✅ Normal</option>
+          </select>
+
+          <button type="button" class="btn btn-outline-primary btn-sm" (click)="copyPurchaseOrderList()">
+            📋 Copiar Lista de Pedido
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" (click)="goToCreatePurchaseReceipt()">
+            🛒 Generar Entrada / Compra
+          </button>
+        </div>
+      </div>
+
+      @if (isLoading()) {
+        <div class="loading-state">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p>Calculando velocidad de rotación y puntos de reorden...</p>
+        </div>
+      } @else if (filteredReorderSuggestions().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon">🎉</div>
+          <h5>¡Inventario en equilibrio óptimo!</h5>
+          <p>No se encontraron productos por debajo de su punto de reorden en este momento.</p>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table modern-table align-middle">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th class="text-center">Stock Actual</th>
+                <th class="text-center">Venta Diaria</th>
+                <th class="text-center">Días de Cobertura</th>
+                <th class="text-center">Punto Reorden</th>
+                <th class="text-center">Sugerencia Compra</th>
+                <th class="text-end">Costo Unit.</th>
+                <th class="text-end">Inversión Est.</th>
+                <th class="text-center">Nivel Urgencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of filteredReorderSuggestions(); track row.productId) {
+                <tr [class.row-critical]="row.urgency === 'CRITICAL'" [class.row-warning]="row.urgency === 'WARNING'">
+                  <td>
+                    <div class="prod-name fw-bold">{{ row.productName }}</div>
+                    @if (row.barcode) {
+                      <small class="text-muted font-monospace">{{ row.barcode }}</small>
+                    }
+                  </td>
+                  <td class="text-center">
+                    <span class="stock-pill" [class.zero]="row.currentStock <= 0">{{ row.currentStock }} un.</span>
+                  </td>
+                  <td class="text-center font-monospace">
+                    {{ row.dailyVelocity | number:'1.2-2' }} un/día
+                  </td>
+                  <td class="text-center">
+                    @if (row.daysOfCover === 999) {
+                      <span class="badge bg-light text-dark">N/A</span>
+                    } @else {
+                      <span
+                        class="badge"
+                        [class.bg-danger]="row.daysOfCover <= 2"
+                        [class.bg-warning]="row.daysOfCover > 2 && row.daysOfCover <= 7"
+                        [class.bg-success]="row.daysOfCover > 7"
+                      >
+                        {{ row.daysOfCover }} días
+                      </span>
+                    }
+                  </td>
+                  <td class="text-center font-monospace text-muted">
+                    {{ row.reorderPoint }} un.
+                  </td>
+                  <td class="text-center">
+                    <span class="suggested-badge">+{{ row.suggestedPurchaseQty }} un.</span>
+                  </td>
+                  <td class="text-end">
+                    RD$ {{ row.unitCost | number:'1.2-2' }}
+                  </td>
+                  <td class="text-end fw-bold">
+                    RD$ {{ row.estimatedInvestment | number:'1.2-2' }}
+                  </td>
+                  <td class="text-center">
+                    @if (row.urgency === 'CRITICAL') {
+                      <span class="status-pill critical">🚨 Crítico</span>
+                    } @else if (row.urgency === 'WARNING') {
+                      <span class="status-pill warning">⚠️ Pedir Hoy</span>
+                    } @else {
+                      <span class="status-pill healthy">✅ Estable</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- CONTENIDO TAB 2: PRODUCTOS HUESO (BAJA ROTACIÓN) -->
+  @if (selectedTab() === 'DEAD_STOCK') {
+    <div class="tab-content-card">
+      <div class="content-toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            placeholder="Buscar producto estancado..."
+            [ngModel]="searchTerm()"
+            (ngModelChange)="searchTerm.set($event)"
+          />
+        </div>
+        <div class="alert-info-pill">
+          💡 <strong>Recomendación:</strong> Aplica ofertas o combos para liquidar mercancía con más de 60 días sin ventas y liberar liquidez.
+        </div>
+      </div>
+
+      @if (filteredDeadStock().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon">✨</div>
+          <h5>¡Cero inventario inmovilizado!</h5>
+          <p>Todos tus productos presentan rotación continua dentro de los parámetros analizados.</p>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table modern-table align-middle">
+            <thead>
+              <tr>
+                <th>Producto Inmovilizado</th>
+                <th class="text-center">Stock Estancado</th>
+                <th class="text-center">Días Sin Venta</th>
+                <th class="text-end">Costo Unit.</th>
+                <th class="text-end">Capital Inmovilizado</th>
+                <th class="text-center">Oferta Sugerida</th>
+                <th class="text-end">Precio Liquidación</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of filteredDeadStock(); track row.productId) {
+                <tr>
+                  <td>
+                    <div class="prod-name fw-bold">{{ row.productName }}</div>
+                    @if (row.barcode) {
+                      <small class="text-muted font-monospace">{{ row.barcode }}</small>
+                    }
+                  </td>
+                  <td class="text-center">
+                    <span class="badge bg-secondary">{{ row.currentStock }} un.</span>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge bg-light text-danger border border-danger">
+                      {{ row.daysInactive }}+ días
+                    </span>
+                  </td>
+                  <td class="text-end">RD$ {{ row.unitCost | number:'1.2-2' }}</td>
+                  <td class="text-end text-danger fw-bold">
+                    RD$ {{ row.immobilizedCapital | number:'1.2-2' }}
+                  </td>
+                  <td class="text-center">
+                    <span class="discount-pill">-{{ row.suggestedDiscountPercent }}%</span>
+                  </td>
+                  <td class="text-end text-success fw-bold">
+                    RD$ {{ row.suggestedSalePrice | number:'1.2-2' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- CONTENIDO TAB 3: ANÁLISIS DE RENTABILIDAD REAL (COGS) -->
+  @if (selectedTab() === 'PROFIT') {
+    <div class="tab-content-card">
+      <div class="profit-summary-grid">
+        <div class="profit-box">
+          <span class="p-label">Ventas Netas Totales (Período {{ analysisDays() }}d)</span>
+          <div class="p-value">RD$ {{ profitMetrics().totalSalesNet | number:'1.2-2' }}</div>
+          <span class="p-sub">Subtotal sin impuestos ITBIS</span>
+        </div>
+        <div class="profit-box">
+          <span class="p-label">Costo de Mercancía Vendida (COGS)</span>
+          <div class="p-value text-muted">RD$ {{ profitMetrics().totalCogs | number:'1.2-2' }}</div>
+          <span class="p-sub">Costo unitario de los productos despachados</span>
+        </div>
+        <div class="profit-box highlight">
+          <span class="p-label">Ganancia Bruta Real Neta</span>
+          <div class="p-value text-success-custom">RD$ {{ profitMetrics().grossProfit | number:'1.2-2' }}</div>
+          <span class="p-sub">Margen Bruto Real: {{ profitMetrics().grossMarginPercent | number:'1.1-1' }}%</span>
+        </div>
+      </div>
+
+      <!-- Barra de distribución visual -->
+      <div class="margin-bar-container mt-4">
+        <div class="d-flex justify-content-between mb-1">
+          <span class="fw-semibold">Distribución del Ingreso:</span>
+          <span class="text-muted">Costo: {{ (100 - profitMetrics().grossMarginPercent) | number:'1.1-1' }}% | Ganancia: {{ profitMetrics().grossMarginPercent | number:'1.1-1' }}%</span>
+        </div>
+        <div class="progress" style="height: 24px;">
+          <div
+            class="progress-bar bg-secondary"
+            role="progressbar"
+            [style.width.%]="100 - profitMetrics().grossMarginPercent"
+            title="Costo de mercancía"
+          >
+            Costo ({{ (100 - profitMetrics().grossMarginPercent) | number:'1.0-0' }}%)
+          </div>
+          <div
+            class="progress-bar bg-success"
+            role="progressbar"
+            [style.width.%]="profitMetrics().grossMarginPercent"
+            title="Ganancia real"
+          >
+            Ganancia ({{ profitMetrics().grossMarginPercent | number:'1.0-0' }}%)
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

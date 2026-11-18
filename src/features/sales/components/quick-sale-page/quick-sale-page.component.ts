@@ -297,6 +297,7 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   private barcodeTimeoutId: any = null;
   private barcodeBuffer = '';
   private barcodeLastCharTime = 0;
+  private barcodeTimestamps: number[] = [];
 
   // Cart & Active Item Selection (Keyboard Shortcuts)
   cartItems = signal<QuickSaleItem[]>([]);
@@ -986,34 +987,64 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     // Buffer de detección de pistola lectora de código de barras USB/Bluetooth física
     const isCatalogSearch = activeEl === this.catalogSearchInputRef?.nativeElement;
     const now = Date.now();
-    const timeDelta = now - this.barcodeLastCharTime;
+    const timeDelta = this.barcodeLastCharTime > 0 ? now - this.barcodeLastCharTime : 0;
     this.barcodeLastCharTime = now;
 
     if (event.key === 'Enter') {
-      if (this.barcodeBuffer.length >= 2) {
-        event.preventDefault();
-        event.stopPropagation();
-        const scannedCode = this.barcodeBuffer.trim();
-        this.barcodeBuffer = '';
-        if (scannedCode) {
-          void this.handleScannedBarcode(scannedCode, false);
+      if (this.barcodeBuffer.length >= 3) {
+        // Calcular cadencia promedio del burst
+        let avgDelta = 999;
+        if (this.barcodeTimestamps.length > 1) {
+          const totalDuration = this.barcodeTimestamps[this.barcodeTimestamps.length - 1] - this.barcodeTimestamps[0];
+          avgDelta = totalDuration / (this.barcodeTimestamps.length - 1);
         }
-        return;
+
+        // Una pistola física dispara caracteres a menos de 70ms entre cada tecla (o si no está en un input de texto, se acepta como barcode directo)
+        const isHardwareBurst = avgDelta <= 75 || (!isTextInput && this.barcodeBuffer.length >= 3);
+
+        if (isHardwareBurst) {
+          event.preventDefault();
+          event.stopPropagation();
+          const scannedCode = this.barcodeBuffer.trim();
+          this.barcodeBuffer = '';
+          this.barcodeTimestamps = [];
+
+          // Si el cursor estaba en un input ajeno (ej: notas o campo secundario), retirar los caracteres inyectados por la ráfaga
+          if (isTextInput && !isCatalogSearch && activeEl && 'value' in activeEl) {
+            const inputEl = activeEl as HTMLInputElement;
+            if (inputEl.value && inputEl.value.endsWith(scannedCode)) {
+              inputEl.value = inputEl.value.slice(0, -scannedCode.length).trim();
+              inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          }
+
+          if (scannedCode) {
+            this.notificationService.info(`🔫 Pistola de barras detectada: ${scannedCode}`);
+            void this.handleScannedBarcode(scannedCode, false);
+          }
+          return;
+        }
       }
       this.barcodeBuffer = '';
+      this.barcodeTimestamps = [];
     } else if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
-      if (isTextInput && !isCatalogSearch && timeDelta > 120) {
+      if (isTextInput && !isCatalogSearch && timeDelta > 75) {
+        // Tipeo manual humano lento dentro de un campo de texto: no es pistola de barras
         this.barcodeBuffer = '';
+        this.barcodeTimestamps = [];
       } else {
-        if (timeDelta < 140 || this.barcodeBuffer.length === 0) {
+        if (timeDelta < 85 || this.barcodeBuffer.length === 0) {
           this.barcodeBuffer += event.key;
+          this.barcodeTimestamps.push(now);
         } else {
           this.barcodeBuffer = event.key;
+          this.barcodeTimestamps = [now];
         }
         clearTimeout(this.barcodeTimeoutId);
         this.barcodeTimeoutId = setTimeout(() => {
           this.barcodeBuffer = '';
-        }, 350);
+          this.barcodeTimestamps = [];
+        }, 280);
       }
     }
 

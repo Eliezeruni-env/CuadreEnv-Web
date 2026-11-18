@@ -1,0 +1,245 @@
+<div class="bank-reconciliation-container">
+  <!-- Header con título y acciones principales -->
+  <header class="reconciliation-header">
+    <div class="header-left">
+      <div class="badge-tag">Auditoría Financiera & Caja</div>
+      <h1 class="page-title">Conciliación Bancaria de Transferencias</h1>
+      <p class="page-subtitle">
+        Coteja los pagos por transferencia registrados en los puntos de venta contra el extracto bancario real.
+      </p>
+    </div>
+    <div class="header-right">
+      <button type="button" class="btn btn-outline-secondary me-2" (click)="loadRecords()" [disabled]="isLoading()">
+        <span class="btn-icon">🔄</span> Actualizar
+      </button>
+      <button type="button" class="btn btn-success" (click)="exportToCsv()" [disabled]="filteredRecords().length === 0">
+        <span class="btn-icon">📥</span> Exportar CSV
+      </button>
+    </div>
+  </header>
+
+  <!-- Métricas / KPI Cards -->
+  <div class="metrics-grid">
+    <div class="metric-card total">
+      <div class="card-icon">🏦</div>
+      <div class="card-content">
+        <span class="card-label">Total en Transferencias</span>
+        <div class="card-value">RD$ {{ totalTransferredAmount() | number:'1.2-2' }}</div>
+        <span class="card-sub">{{ records().length }} pagos registrados</span>
+      </div>
+    </div>
+
+    <div class="metric-card verified">
+      <div class="card-icon">✅</div>
+      <div class="card-content">
+        <span class="card-label">Conciliadas / Verificadas</span>
+        <div class="card-value">RD$ {{ verifiedAmount() | number:'1.2-2' }}</div>
+        <span class="card-sub">{{ verifiedCount() }} validadas en banco</span>
+      </div>
+    </div>
+
+    <div class="metric-card pending">
+      <div class="card-icon">⏳</div>
+      <div class="card-content">
+        <span class="card-label">Pendientes de Cotejo</span>
+        <div class="card-value">RD$ {{ pendingAmount() | number:'1.2-2' }}</div>
+        <span class="card-sub text-warning-custom">{{ pendingCount() }} por verificar</span>
+      </div>
+    </div>
+
+    <div class="metric-card discrepant">
+      <div class="card-icon">⚠️</div>
+      <div class="card-content">
+        <span class="card-label">Con Discrepancia / Rechazadas</span>
+        <div class="card-value">RD$ {{ discrepantAmount() | number:'1.2-2' }}</div>
+        <span class="card-sub text-danger-custom">{{ discrepantCount() }} observadas</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de Filtros y Búsqueda -->
+  <div class="filters-card">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        class="form-control form-control-sm"
+        placeholder="Buscar por cliente, No. de confirmación, factura..."
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+      />
+    </div>
+
+    <div class="filter-controls">
+      <div class="filter-item">
+        <label>Banco:</label>
+        <select
+          class="form-select form-select-sm"
+          [ngModel]="selectedBank()"
+          (ngModelChange)="selectedBank.set($event)"
+        >
+          <option value="ALL">Todos los Bancos</option>
+          @for (bank of availableBanks(); track bank) {
+            <option [value]="bank">{{ bank }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label>Estado:</label>
+        <select
+          class="form-select form-select-sm"
+          [ngModel]="selectedStatus()"
+          (ngModelChange)="selectedStatus.set($event)"
+        >
+          <option value="ALL">Todos los Estados</option>
+          <option value="PENDING">⏳ Pendientes</option>
+          <option value="VERIFIED">✅ Verificadas</option>
+          <option value="DISCREPANT">⚠️ Con Discrepancia</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de Transferencias -->
+  <div class="table-responsive-container">
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="spinner-border text-primary" role="status"></div>
+        <span>Cargando transacciones y cotejo bancario...</span>
+      </div>
+    } @else if (filteredRecords().length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">📂</div>
+        <h5>No se encontraron transferencias</h5>
+        <p>No hay transferencias que coincidan con los criterios de búsqueda seleccionados.</p>
+      </div>
+    } @else {
+      <table class="table modern-table align-middle">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Factura / NCF</th>
+            <th>Cliente</th>
+            <th>Banco & Cuenta</th>
+            <th>No. Confirmación</th>
+            <th class="text-end">Monto Recibido</th>
+            <th class="text-center">Estado Auditoría</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of filteredRecords(); track row.id) {
+            <tr [class.row-verified]="row.status === 'VERIFIED'" [class.row-discrepant]="row.status === 'DISCREPANT'">
+              <td>
+                <div class="date-text">{{ row.date | date:'dd/MM/yyyy' }}</div>
+                <small class="time-text">{{ row.date | date:'shortTime' }}</small>
+              </td>
+              <td>
+                <span class="invoice-badge">{{ row.invoiceNumber }}</span>
+              </td>
+              <td>
+                <div class="customer-name fw-semibold">{{ row.customerName }}</div>
+              </td>
+              <td>
+                <div class="bank-pill">
+                  <span class="bank-title">{{ row.bankName }}</span>
+                  @if (row.accountLastFour) {
+                    <span class="account-tag">****{{ row.accountLastFour }}</span>
+                  }
+                </div>
+              </td>
+              <td>
+                <span class="ref-badge font-monospace">{{ row.confirmationNumber }}</span>
+              </td>
+              <td class="text-end">
+                <span class="amount-val fw-bold">RD$ {{ row.amount | number:'1.2-2' }}</span>
+              </td>
+              <td class="text-center">
+                @if (row.status === 'VERIFIED') {
+                  <span class="status-pill verified" title="Verificado por: {{ row.verifiedBy }} el {{ row.verifiedAt | date:'short' }}">
+                    ✅ Conciliada
+                  </span>
+                  @if (row.verifiedBy) {
+                    <div class="audit-subtext">{{ row.verifiedBy }}</div>
+                  }
+                } @else if (row.status === 'DISCREPANT') {
+                  <span class="status-pill discrepant" title="{{ row.discrepancyReason }}">
+                    ⚠️ Discrepancia
+                  </span>
+                  @if (row.discrepancyReason) {
+                    <div class="discrepancy-subtext" [title]="row.discrepancyReason">
+                      {{ row.discrepancyReason }}
+                    </div>
+                  }
+                } @else {
+                  <span class="status-pill pending">
+                    ⏳ Pendiente
+                  </span>
+                }
+              </td>
+              <td class="text-center">
+                <div class="action-buttons">
+                  @if (row.status !== 'VERIFIED') {
+                    <button
+                      type="button"
+                      class="btn-action btn-verify"
+                      (click)="markAsVerified(row)"
+                      title="Marcar como verificada en cuenta bancaria"
+                    >
+                      ✅ Validar
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="btn-action btn-discrepancy"
+                    (click)="openDiscrepancyModal(row)"
+                    title="Observar discrepancia o rechazar"
+                  >
+                    ⚠️ Observar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+  <!-- Modal para Asignar Discrepancia -->
+  @if (isDiscrepancyModalOpen()) {
+    <div class="modal-backdrop-custom" (click)="closeDiscrepancyModal()">
+      <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
+        <div class="modal-header-custom">
+          <h5>⚠️ Registrar Discrepancia en Transferencia</h5>
+          <button type="button" class="btn-close" (click)="closeDiscrepancyModal()"></button>
+        </div>
+        <div class="modal-body-custom">
+          @if (activeRecordForDiscrepancy(); as rec) {
+            <div class="alert alert-secondary py-2 mb-3">
+              <div><strong>Factura:</strong> {{ rec.invoiceNumber }} · <strong>Monto:</strong> RD$ {{ rec.amount | number:'1.2-2' }}</div>
+              <div><strong>Banco:</strong> {{ rec.bankName }} · <strong>Ref:</strong> {{ rec.confirmationNumber }}</div>
+            </div>
+          }
+          <label class="form-label fw-semibold">Motivo de la Observación / Rechazo:</label>
+          <textarea
+            class="form-control"
+            rows="3"
+            placeholder="Ej: El depósito no aparece en el extracto del banco Popular, o el monto real fue menor..."
+            [ngModel]="discrepancyReasonText()"
+            (ngModelChange)="discrepancyReasonText.set($event)"
+          ></textarea>
+        </div>
+        <div class="modal-footer-custom">
+          <button type="button" class="btn btn-outline-secondary" (click)="closeDiscrepancyModal()">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-danger" (click)="confirmDiscrepancy()">
+            Guardar Discrepancia
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

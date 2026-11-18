@@ -73,6 +73,13 @@ export const ROUTES: RouteInfo[] = [
     class: '',
   },
   {
+    path: '/sales/bank-reconciliation',
+    moduleCode: 'sales',
+    title: 'Conciliación Bancaria',
+    icon: 'cilBank',
+    class: '',
+  },
+  {
     path: '/cash-register',
     moduleCode: 'cashregister',
     title: 'Caja y Cuadres',
@@ -151,6 +158,13 @@ export const ROUTES: RouteInfo[] = [
     moduleCode: 'inventory-stock',
     title: 'Existencias',
     icon: 'cilListNumbered',
+    class: '',
+  },
+  {
+    path: '/inventory/intelligence',
+    moduleCode: 'inventory-stock',
+    title: 'Reposición Inteligente',
+    icon: 'cilChartLine',
     class: '',
   },
   {
