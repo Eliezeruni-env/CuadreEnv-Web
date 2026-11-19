@@ -21,10 +21,12 @@
       <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadProducts()">
         Recargar
       </button>
-      @if (authService.hasRole(['Admin', 'Manager', 'Employee'])) {
+      @if (permissionService.canEdit('products')) {
         <a routerLink="/products/settings" class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" title="Configurar Categorías y Tipos">
           <span>Categorías</span>
         </a>
+      }
+      @if (permissionService.canExport('products')) {
         <div class="dropdown d-inline-block position-relative">
           <button class="btn btn-outline-secondary d-flex align-items-center gap-2 shadow-xs px-3 fw-bold" type="button" (click)="toggleExportMenu()">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -51,6 +53,8 @@
             </ul>
           }
         </div>
+      }
+      @if (permissionService.canCreate('products')) {
         <button class="btn btn-outline-success d-flex align-items-center gap-2 shadow-xs px-3 fw-bold" (click)="openDataExchangeModal()">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -221,18 +225,20 @@
                   </td>
                   <td class="text-center pe-3">
                     <div class="action-btn-group justify-content-center">
-                      <button
-                        class="btn-action-icon btn-action-view"
-                        type="button"
-                        (click)="openDetailModal(p)"
-                        title="Ver Detalle y Código de Barras Generado"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                      </button>
-                      @if (authService.hasRole(['Admin', 'Manager', 'Employee'])) {
+                      @if (permissionService.canView('products')) {
+                        <button
+                          class="btn-action-icon btn-action-view"
+                          type="button"
+                          (click)="openDetailModal(p)"
+                          title="Ver Detalle y Código de Barras Generado"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                        </button>
+                      }
+                      @if (permissionService.canEdit('products')) {
                         <button
                           class="btn-action-icon btn-action-edit"
                           type="button"
@@ -245,7 +251,7 @@
                           </svg>
                         </button>
                       }
-                      @if (authService.hasRole(['Admin'])) {
+                      @if (permissionService.canDelete('products')) {
                         <button
                           class="btn-action-icon btn-action-delete"
                           type="button"

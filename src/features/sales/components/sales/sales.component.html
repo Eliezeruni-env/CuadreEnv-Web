@@ -17,7 +17,7 @@
       <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadData()">
         Recargar
       </button>
-      @if (authService.hasRole(['Admin', 'Manager', 'Employee'])) {
+      @if (permissionService.canCreate('sales')) {
         <button class="btn btn-outline-success fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openQuickSaleDirect()">
           <span>Venta Rápida (POS)</span>
         </button>
@@ -49,9 +49,11 @@
         <div class="py-5 text-center px-4">
           <h5 class="fw-bold text-dark">{{ translationService.t('sales.emptyTitle') }}</h5>
           <p class="text-secondary small max-width-320 mx-auto">{{ translationService.t('sales.emptyBody') }}</p>
-          <button class="btn btn-cuadre-primary mt-2 px-4" (click)="openCreateModal()">
-            {{ translationService.t('sales.first') }}
-          </button>
+          @if (permissionService.canCreate('sales')) {
+            <button class="btn btn-cuadre-primary mt-2 px-4" (click)="openCreateModal()">
+              {{ translationService.t('sales.first') }}
+            </button>
+          }
         </div>
       } @else {
         <!-- Master-Detail Table -->
@@ -197,44 +199,48 @@
                     <td class="text-center pe-3">
                       <div class="action-btn-group justify-content-center">
                         <!-- Imprimir Factura / Ticket -->
-                        <button
-                          class="btn-action-icon btn-action-print"
-                          type="button"
-                          (click)="openInvoiceForSale(sale)"
-                          title="Imprimir / Ver Comprobante"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                            <rect x="6" y="14" width="12" height="8"></rect>
-                          </svg>
-                        </button>
-                        <!-- Ver Detalle Modal -->
-                        <button
-                          class="btn-action-icon btn-action-view"
-                          type="button"
-                          (click)="openDetailModal(sale)"
-                          [title]="translationService.t('sales.viewDetails')"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
-                          </svg>
-                        </button>
+                        @if (permissionService.canView('sales')) {
+                          <button
+                            class="btn-action-icon btn-action-print"
+                            type="button"
+                            (click)="openInvoiceForSale(sale)"
+                            title="Imprimir / Ver Comprobante"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                              <rect x="6" y="14" width="12" height="8"></rect>
+                            </svg>
+                          </button>
+                          <!-- Ver Detalle Modal -->
+                          <button
+                            class="btn-action-icon btn-action-view"
+                            type="button"
+                            (click)="openDetailModal(sale)"
+                            [title]="translationService.t('sales.viewDetails')"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                              <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                          </button>
+                        }
                         <!-- Devolución / Nota de Crédito -->
-                        <button
-                          class="btn-action-icon btn-action-void"
-                          type="button"
-                          [disabled]="sale.status === 4 || sale.isCancelled || sale.notes?.includes('DEVUELTA')"
-                          [class.opacity-50]="sale.status === 4 || sale.isCancelled || sale.notes?.includes('DEVUELTA')"
-                          (click)="openCreditNoteForSale(sale)"
-                          [title]="(sale.status === 4 || sale.isCancelled || sale.notes?.includes('DEVUELTA')) ? 'Factura ya devuelta en su totalidad' : 'Emitir Nota de Crédito / Devolución'"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 14 4 9 9 4"></polyline>
-                            <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
-                          </svg>
-                        </button>
+                        @if (permissionService.canEdit('sales') || permissionService.canDelete('sales')) {
+                          <button
+                            class="btn-action-icon btn-action-void"
+                            type="button"
+                            [disabled]="sale.status === 4 || sale.isCancelled || sale.notes?.includes('DEVUELTA')"
+                            [class.opacity-50]="sale.status === 4 || sale.isCancelled || sale.notes?.includes('DEVUELTA')"
+                            (click)="openCreditNoteForSale(sale)"
+                            [title]="(sale.status === 4 || sale.isCancelled || sale.notes?.includes('DEVUELTA')) ? 'Factura ya devuelta en su totalidad' : 'Emitir Nota de Crédito / Devolución'"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <polyline points="9 14 4 9 9 4"></polyline>
+                              <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+                            </svg>
+                          </button>
+                        }
                       </div>
                     </td>
                   </tr>

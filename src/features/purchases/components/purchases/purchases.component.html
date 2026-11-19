@@ -17,7 +17,7 @@
       <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadData()">
         Recargar
       </button>
-      @if (authService.hasRole(['Admin'])) {
+      @if (permissionService.canCreate('purchases')) {
         <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openCreateModal()">
           <span>+ {{ translationService.t('purchases.new') }}</span>
         </button>
@@ -91,18 +91,20 @@
                   </td>
                   <td class="text-center pe-3">
                     <div class="action-btn-group justify-content-center gap-1">
-                      <button
-                        type="button"
-                        class="btn-action-icon btn-action-view"
-                        (click)="viewPurchaseDetail(p)"
-                        title="Ver Detalle de Compra"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                      </button>
-                      @if (canManualReceive()) {
+                      @if (permissionService.canView('purchases')) {
+                        <button
+                          type="button"
+                          class="btn-action-icon btn-action-view"
+                          (click)="viewPurchaseDetail(p)"
+                          title="Ver Detalle de Compra"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                        </button>
+                      }
+                      @if (canManualReceive() && permissionService.canEdit('purchases')) {
                         <button
                           type="button"
                           class="btn btn-sm btn-outline-success py-0 px-2 fw-semibold"

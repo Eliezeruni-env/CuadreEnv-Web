@@ -9,6 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { ProductService } from '../../services/product.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
+import { PermissionService } from '../../../roles/services/permission.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog.service';
@@ -58,6 +59,7 @@ export class ProductsComponent implements OnInit {
 
   readonly translationService = inject(TranslationService);
   readonly authService = inject(AuthService);
+  readonly permissionService = inject(PermissionService);
   private confirmService = inject(ConfirmDialogService);
   private notificationService = inject(NotificationService);
   private readonly dataExchangeService = inject(DataExchangeService);

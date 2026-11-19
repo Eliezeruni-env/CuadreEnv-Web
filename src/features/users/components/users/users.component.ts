@@ -2,6 +2,7 @@ import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular
 import { CommonModule } from '@angular/common';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
+import { PermissionService } from '../../../roles/services/permission.service';
 import { CompanyService } from '../../../companies/services/company.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog.service';
@@ -120,6 +121,7 @@ export class UsersComponent implements OnInit {
   constructor(
     private userService: UserService,
     public authService: AuthService,
+    public permissionService: PermissionService,
     private notificationService: NotificationService,
   ) {}
 

@@ -18,36 +18,46 @@ export class ModuleAccessService {
 
   /**
    * Mapeo Canónico de Módulos y Submódulos según la especificación del SaaS & USM.
+   * Cada módulo contiene ÚNICAMENTE sus propios alias directos (variantes de escritura,
+   * guion/punto y traducción ES/EN). NUNCA alias cruzados de otros módulos independientes.
    */
   private readonly MODULE_MAP: Record<string, string[]> = {
     'dashboard': ['dashboard', 'inicio'],
-    'sales': ['sales', 'ventas', 'quick-sale', 'pos', 'prj-pos', 'prj_pos'],
+    'pos': ['pos', 'quick-sale', 'prj-pos', 'prj_pos', 'ventas-rapidas'],
+    'sales': ['sales', 'ventas', 'ventas-mostrador'],
     'mobile-pos': ['mobile-pos', 'mobilepos', 'mobile', 'pos-mobile'],
     'sales.corporate': ['sales.corporate', 'sales-corporate', 'corporate'],
+    'sales-corporate': ['sales.corporate', 'sales-corporate', 'corporate'],
     'sales.distribution': ['sales.distribution', 'sales-distribution', 'distribution'],
+    'sales-distribution': ['sales.distribution', 'sales-distribution', 'distribution'],
     'products.detail_sales': ['products.detail_sales', 'products-detail-sales', 'detail-sales', 'detail_sales', 'ventasfraccionadas', 'menudeo'],
+    'products-detail-sales': ['products.detail_sales', 'products-detail-sales', 'detail-sales', 'detail_sales', 'ventasfraccionadas', 'menudeo'],
     'cash-register': ['cash-register', 'cashregister', 'caja', 'prj-cuadre', 'cuadre'],
     'billing': ['billing', 'facturacion', 'prj-factura', 'factura'],
     'credit-notes': ['credit-notes', 'creditnotes', 'notas-de-credito'],
     'receivables': ['receivables', 'cobros'],
     'customers': ['customers', 'clientes', 'prj-crm', 'crm'],
-    'products': ['products', 'productos', 'catalogo', 'prj-almacen', 'almacen'],
+    'products': ['products', 'productos', 'catalogo'],
     'products-settings': ['products-settings', 'categories', 'category', 'configuracion-productos'],
-    'inventory-stock': ['inventory-stock', 'stock', 'prj-almacen', 'inventory-intelligence', 'inventory-lot-expiration'],
+    'inventory-stock': ['inventory-stock', 'stock', 'inventorystock'],
     'inventory-entries': ['inventory-entries', 'entries'],
-    'inventory-intelligence': ['inventory-intelligence', 'inventory_intelligence', 'intelligence', 'reorder-suggestions', 'reorder'],
+    'inventory-intelligence': ['inventory-intelligence', 'inventory_intelligence', 'intelligence', 'reorder-suggestions', 'reorder', 'rop'],
     'inventory-lot-expiration': ['inventory-lot-expiration', 'lot-expiration', 'fefo', 'vencimientos'],
-    'bank-reconciliation': ['bank-reconciliation', 'bank_reconciliation', 'conciliacion', 'conciliacion-bancaria', 'sales'],
-    'purchases': ['purchases', 'compras'],
-    'purchases-orders': ['purchases-orders', 'orders'],
+    'bank-reconciliation': ['bank-reconciliation', 'bank_reconciliation', 'conciliacion', 'conciliacion-bancaria'],
+    'purchases': ['purchases', 'compras', 'purchases-orders', 'orders'],
+    'purchases-orders': ['purchases-orders', 'purchases', 'orders'],
     'purchases-receipts': ['purchases-receipts', 'receipts'],
-    'reports': ['reports', 'metricas', 'metrics', 'billing-reports-dgii'],
-    'metrics': ['metrics', 'metricas', 'reports', 'billing-reports-dgii'],
-    'billing-reports-dgii': ['billing-reports-dgii', 'reports', 'metricas', 'metrics'],
-    'audit': ['audit', 'fraud-guardian'],
-    'fraud-guardian': ['fraud-guardian', 'audit'],
+    'purchases-suppliers': ['purchases-suppliers', 'suppliers', 'proveedores'],
+    'payments': ['payments', 'pagos'],
+    'services': ['services', 'servicios'],
+    'reports': ['reports', 'reportes', 'reportes-financieros'],
+    'metrics': ['metrics', 'metricas', 'kpis'],
+    'billing-reports-dgii': ['billing-reports-dgii', 'dgii', 'reportes-dgii', 'reportes-fiscales'],
+    'audit': ['audit', 'auditoria'],
+    'fraud-guardian': ['fraud-guardian', 'fraudguardian', 'guardian-antirrobo', 'audit'],
     'users': ['users', 'usuarios'],
-    'admin-roles': ['admin-roles', 'roles'],
+    'admin-roles': ['admin-roles', 'roles', 'admin-roles-matrix'],
+    'admin-approvals': ['admin-approvals', 'aprobaciones'],
     'company-settings': ['company-settings', 'company', 'empresa']
   };
 
@@ -286,27 +296,15 @@ export class ModuleAccessService {
       return true;
     }
 
-    // 3.5 Soporte especial y retrocompatible para Terminal Móvil (mobile-pos)
+    // 3.5 Soporte para Terminal Móvil (mobile-pos)
     if (targetCode === 'mobile-pos' || targetCode === 'mobile' || targetCode === 'mobilepos' || targetCode === 'pos-mobile') {
-      if (currentModules.includes('mobile-pos') || currentModules.includes('mobile') || currentModules.includes('mobilepos') || currentModules.includes('pos-mobile')) {
-        return true;
-      }
-      if (currentModules.includes('no-mobile') || currentModules.includes('no-mobile-pos')) {
-        return false;
-      }
-      // Usuarios en producción con permiso de ventas o caja acceden a terminal móvil por defecto
-      return this.hasModuleAccess('sales') || this.hasModuleAccess('cashregister');
+      return currentModules.some(m => ['mobile-pos', 'mobile', 'mobilepos', 'pos-mobile'].includes(m));
     }
 
-    // Acceso a contenedor padre de inventario o compras si tiene algún submódulo
+    // Acceso a ruta contenedora padre de inventario si tiene algún submódulo activo
     if (targetCode === 'inventory' || targetCode === 'inventario') {
-      const inventoryCodes = ['inventory', 'inventario', 'inventory-stock', 'inventory-entries', 'inventory-outlets', 'inventory-transfers', 'inventory-warehouses', 'inventory-manage-requests', 'inventory-intelligence', 'inventory-lot-expiration', 'stock'];
+      const inventoryCodes = ['inventory', 'inventario', 'inventory-stock', 'inventory-entries', 'inventory-outlets', 'inventory-transfers', 'inventory-warehouses', 'inventory-manage-requests', 'inventory-intelligence', 'inventory-lot-expiration', 'stock', 'products'];
       return currentModules.some(m => inventoryCodes.includes(m));
-    }
-
-    if (targetCode === 'purchases' || targetCode === 'compras') {
-      const purchaseCodes = ['purchases', 'compras', 'purchases-orders', 'purchases-receipts', 'purchases-suppliers'];
-      return currentModules.some(m => purchaseCodes.includes(m));
     }
 
     // 4. Mapeo Canónico de Módulos y Submódulos (MODULE_MAP)

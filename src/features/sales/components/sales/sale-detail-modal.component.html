@@ -219,7 +219,7 @@
           @if (
             sale &&
             !sale.isCancelled &&
-            authService.hasRole(['Admin', 'Manager'])
+            permissionService.canDelete('sales')
           ) {
             <button
               cButton

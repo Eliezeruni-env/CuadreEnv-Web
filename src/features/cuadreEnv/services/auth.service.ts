@@ -916,6 +916,10 @@ export class AuthService {
     const hasWildcard = assigned.includes('*') || assigned.includes('all');
     if (hasWildcard) return true;
 
+    if (this.hasExplicitModuleClaims() && assigned.length === 0) {
+      return false;
+    }
+
     if (assigned.length > 0) {
       // Si el usuario tiene una lista taxativa de módulos asignados desde el USM, se respeta estrictamente
       return this.moduleAccessService.hasModuleAccess(moduleCode);

@@ -5,6 +5,7 @@ import { SaleService } from '../../services/sale.service';
 import { CustomerService } from '../../../customers/services/customer.service';
 import { ProductService } from '../../../products/services/product.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
+import { PermissionService } from '../../../roles/services/permission.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import type { SaleResponseDto, CustomerDto } from '../../../cuadreEnv/types/api';
 import { IconDirective } from '@coreui/icons-angular';
@@ -138,6 +139,7 @@ export class SalesComponent implements OnInit {
     private customerService: CustomerService,
     private productService: ProductService,
     public authService: AuthService,
+    public permissionService: PermissionService,
     private router: Router,
   ) {}
 

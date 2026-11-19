@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { PurchaseService } from '../../services/purchase.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
+import { PermissionService } from '../../../roles/services/permission.service';
 import { ModuleAccessService } from '../../../cuadreEnv/services/module-access.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import type { PurchaseDto } from '../../../cuadreEnv/types/api';
@@ -83,6 +84,7 @@ export class PurchasesComponent implements OnInit {
   constructor(
     private purchaseService: PurchaseService,
     public authService: AuthService,
+    public permissionService: PermissionService,
   ) {}
 
   ngOnInit() {

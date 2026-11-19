@@ -20,6 +20,7 @@ import {
 import { SaleService } from '../../services/sale.service';
 import { ProductService } from '../../../products/services/product.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
+import { PermissionService } from '../../../roles/services/permission.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import type { SaleResponseDto, ProductDto } from '../../../cuadreEnv/types/api';
@@ -85,6 +86,7 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
     private saleService: SaleService,
     private productService: ProductService,
     public authService: AuthService,
+    public permissionService: PermissionService,
     private notificationService: NotificationService,
     private fb: FormBuilder,
   ) {

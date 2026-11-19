@@ -2,6 +2,7 @@ import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular
 import { CommonModule } from '@angular/common';
 import { CustomerService } from '../../services/customer.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
+import { PermissionService } from '../../../roles/services/permission.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
@@ -112,6 +113,7 @@ export class CustomersComponent implements OnInit {
   constructor(
     private customerService: CustomerService,
     public authService: AuthService,
+    public permissionService: PermissionService,
     private notificationService: NotificationService,
   ) {}
 
