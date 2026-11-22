@@ -197,11 +197,8 @@ export class PurchasesComponent implements OnInit {
         this.products.set(prodRes.data.items);
       }
 
-      if (whList) {
-        const whs = Array.isArray(whList) ? whList : ((whList as any)?.data || []);
-        if (whs.length > 0) {
-          this.warehouses.set(whs);
-        }
+      if (whList && whList.length > 0) {
+        this.warehouses.set(whList);
       }
     } catch {}
   }
