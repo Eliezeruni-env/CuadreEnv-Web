@@ -7,19 +7,20 @@
   }
 
   <!-- Header & Date Filter Bar -->
-  <div class="dashboard-header-card card border-0 rounded-4 p-4 mb-4">
+  <div class="dashboard-header-card card border-0 rounded-4 p-3.5 mb-4 bg-white shadow-sm">
     <div class="d-flex flex-column flex-xl-row justify-content-between align-items-start align-items-xl-center gap-3">
       <div class="d-flex align-items-center gap-3">
-        <div class="header-icon-box text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 52px; height: 52px;">
-          <svg cIcon name="cilSpeedometer" style="width: 26px; height: 26px;"></svg>
+        <div class="header-icon-box text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px; background: #0f172a; border-radius: 12px;">
+          <svg cIcon name="cilSpeedometer" style="width: 24px; height: 24px; color: #ffffff;"></svg>
         </div>
         <div>
-          <div class="d-inline-flex align-items-center gap-1.5 px-2.5 py-0.5 rounded-pill fw-bold text-uppercase mb-1" style="font-size: 0.68rem; letter-spacing: 0.5px; background: rgba(15, 23, 42, 0.08); color: #0f172a; border: 1px solid rgba(15, 23, 42, 0.12);">
-            <span class="live-dot-pulse"></span>
-            <span>MONITOREO EN VIVO • CUADRE OPERATIVO</span>
+          <div class="d-flex align-items-center gap-2">
+            <h4 class="fw-bold text-dark mb-0" style="letter-spacing: -0.02em;">Centro de control operativo</h4>
+            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-0.5 fw-semibold d-inline-flex align-items-center gap-1" style="font-size: 0.72rem;">
+              <span class="live-dot-pulse"></span> En vivo
+            </span>
           </div>
-          <h4 class="fw-bold text-dark mb-1" style="letter-spacing: -0.02em;">Centro de Control Operativo</h4>
-          <p class="text-secondary mb-0 small">
+          <p class="text-secondary mb-0 small mt-1">
             Supervisión continua de ventas en caja, arqueos estimados, stock crítico y alertas de cobranza del día.
           </p>
         </div>
@@ -27,14 +28,15 @@
 
       <div class="d-flex align-items-center flex-wrap gap-2">
         <!-- Date Range Filter Box -->
-        <div class="date-filter-dropdown d-flex align-items-center gap-2 px-3 py-2 bg-white rounded-3 shadow-2xs">
-          <svg cIcon name="cilCalendar" class="text-dark" style="width: 16px; height: 16px;"></svg>
+        <div class="date-filter-dropdown d-flex align-items-center gap-2 px-3 py-1.5 bg-white rounded-3 shadow-2xs border">
+          <svg cIcon name="cilCalendar" class="text-secondary" style="width: 15px; height: 15px;"></svg>
           <span class="small fw-semibold text-secondary">Rango:</span>
           <div class="d-flex align-items-center text-dark" style="font-size: 0.8rem;">
             <input type="date" class="border-0 bg-transparent p-0 m-0" style="width: 105px;" [ngModel]="startDate()" (ngModelChange)="startDate.set($event); onDateChange()" />
             <span class="mx-1 text-muted">-</span>
             <input type="date" class="border-0 bg-transparent p-0 m-0" style="width: 105px;" [ngModel]="endDate()" (ngModelChange)="endDate.set($event); onDateChange()" />
           </div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-muted"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
 
         <!-- Quick Presets Pill Group -->
@@ -42,19 +44,12 @@
           <button type="button" class="btn" [class.active-preset]="selectedPreset() === 'today'" (click)="setPreset('today')">Hoy</button>
           <button type="button" class="btn" [class.active-preset]="selectedPreset() === '7days'" (click)="setPreset('7days')">7 días</button>
           <button type="button" class="btn" [class.active-preset]="selectedPreset() === 'thisMonth'" (click)="setPreset('thisMonth')">30 días</button>
-          <button type="button" class="btn" [class.active-preset]="selectedPreset() === 'all'" (click)="setPreset('all')">Todo</button>
         </div>
 
         <!-- Refresh Button -->
         <button type="button" class="btn btn-white border d-flex align-items-center justify-content-center p-2 rounded-3 shadow-2xs text-dark btn-reload-animated" title="Refrescar datos en vivo" (click)="loadDashboardData()">
           <svg cIcon name="cilReload" style="width: 16px; height: 16px;"></svg>
         </button>
-
-        <!-- Access to Detailed Global Metrics -->
-        <a *hasModule="'Reports'" routerLink="/metrics" class="btn btn-outline-dark border-secondary-subtle d-flex align-items-center gap-1.5 px-3 py-2 rounded-3 shadow-2xs fw-semibold small text-decoration-none" title="Ver análisis histórico y financiero">
-          <svg cIcon name="cilChartPie" style="width: 15px; height: 15px;"></svg>
-          <span>Métricas Globales →</span>
-        </a>
       </div>
     </div>
   </div>
@@ -68,485 +63,222 @@
       </div>
     </div>
   } @else {
-    <!-- Main Operational KPIs Row (6 Cards Grid - Modern Fintech Style) -->
+    <!-- Main Operational KPIs Row (6 Cards Grid) -->
     <div class="row g-3 mb-4">
-      
-      <!-- 1. Ventas del Día -->
-      <div *hasModule="'Sales'" class="col-12 col-sm-6 col-md-4 col-xxl-2">
-        <div class="card p-3 kpi-grid-card kpi-accent-success h-100 rounded-4">
+      <!-- 1. Ventas -->
+      <div *hasModule="'Sales'" class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <div class="card p-3 kpi-grid-card h-100 rounded-4 bg-white border">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="kpi-icon-glow kpi-icon-success">
-              <svg cIcon name="cilDollar" style="width: 20px; height: 20px;"></svg>
+            <div class="d-flex align-items-center gap-1.5 text-secondary">
+              <span class="kpi-mini-icon-circle bg-success-subtle text-success fw-bold">$</span>
+              <span class="fw-semibold text-secondary font-size-xs">Ventas</span>
             </div>
             <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5" style="font-size: 0.68rem; font-weight: 600;">
               {{ todaySalesCount() }} tickets
             </span>
           </div>
-          <div class="text-uppercase text-secondary fw-bold text-truncate mb-1" style="font-size: 0.65rem; letter-spacing: 0.6px;">VENTAS DE HOY</div>
-          <div class="kpi-amount text-dark mb-1" title="RD$ {{ todaySalesTotal() | number:'1.2-2' }}">
+          <div class="kpi-amount text-dark fw-bold mb-2 fs-5" title="RD$ {{ todaySalesTotal() | number:'1.2-2' }}">
             RD$ {{ todaySalesTotal() | number:'1.2-2' }}
           </div>
-          <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
-            <span class="text-secondary" style="font-size: 0.72rem;">Facturado en turno</span>
-            <small class="text-success fw-bold" style="font-size: 0.7rem;">● En vivo</small>
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-1">
+            <span class="text-muted font-size-xs">Facturado en turno</span>
+            <span class="text-success font-size-xs fw-semibold">● En vivo</span>
           </div>
         </div>
       </div>
 
       <!-- 2. Ticket Promedio -->
-      <div *hasModule="'Sales'" class="col-12 col-sm-6 col-md-4 col-xxl-2">
-        <div class="card p-3 kpi-grid-card kpi-accent-info h-100 rounded-4">
+      <div *hasModule="'Sales'" class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <div class="card p-3 kpi-grid-card h-100 rounded-4 bg-white border">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="kpi-icon-glow kpi-icon-info">
-              <svg cIcon name="cilTags" style="width: 20px; height: 20px;"></svg>
+            <div class="d-flex align-items-center gap-1.5 text-secondary">
+              <span class="kpi-mini-icon-circle bg-info-subtle text-info">
+                <svg cIcon name="cilTags" style="width: 12px; height: 12px;"></svg>
+              </span>
+              <span class="fw-semibold text-secondary font-size-xs">Ticket promedio</span>
             </div>
-            <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2 py-0.5" style="font-size: 0.68rem; font-weight: 600;">
-              Promedio
-            </span>
           </div>
-          <div class="text-uppercase text-secondary fw-bold text-truncate mb-1" style="font-size: 0.65rem; letter-spacing: 0.6px;">TICKET PROMEDIO</div>
-          <div class="kpi-amount text-dark mb-1" title="RD$ {{ todayAverageTicket() | number:'1.2-2' }}">
+          <div class="kpi-amount text-dark fw-bold mb-2 fs-5" title="RD$ {{ todayAverageTicket() | number:'1.2-2' }}">
             RD$ {{ todayAverageTicket() | number:'1.2-2' }}
           </div>
-          <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
-            <span class="text-secondary" style="font-size: 0.72rem;">Por compra del día</span>
-            <small class="text-muted" style="font-size: 0.7rem;">Eficiencia</small>
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-1">
+            <span class="text-muted font-size-xs">Por compra del día</span>
           </div>
         </div>
       </div>
 
-      <!-- 3. Cajas Activas -->
-      <div *hasModule="'CashRegister'" class="col-12 col-sm-6 col-md-4 col-xxl-2">
-        <div class="card p-3 kpi-grid-card kpi-accent-purple h-100 rounded-4">
+      <!-- 3. Cajas Abiertas -->
+      <div *hasModule="'CashRegister'" class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <div class="card p-3 kpi-grid-card h-100 rounded-4 bg-white border">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="kpi-icon-glow kpi-icon-purple">
-              <svg cIcon name="cilCalculator" style="width: 20px; height: 20px;"></svg>
+            <div class="d-flex align-items-center gap-1.5 text-secondary">
+              <span class="kpi-mini-icon-circle bg-purple-subtle text-purple">
+                <svg cIcon name="cilCalculator" style="width: 12px; height: 12px;"></svg>
+              </span>
+              <span class="fw-semibold text-secondary font-size-xs">Cajas abiertas</span>
             </div>
-            <span class="badge rounded-pill px-2 py-0.5 border" [ngClass]="activeCashRegistersCount() > 0 ? 'bg-success-subtle text-success border-success-subtle' : 'bg-warning-subtle text-warning border-warning-subtle'" style="font-size: 0.68rem; font-weight: 600;">
-              {{ activeCashRegistersCount() > 0 ? 'Turno en curso' : 'Sin turnos' }}
-            </span>
           </div>
-          <div class="text-uppercase text-secondary fw-bold text-truncate mb-1" style="font-size: 0.65rem; letter-spacing: 0.6px;">CAJAS ABIERTAS</div>
-          <div class="kpi-amount text-dark mb-1">
+          <div class="kpi-amount text-dark fw-bold mb-2 fs-5">
             {{ activeCashRegistersCount() }}
           </div>
-          <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
-            <span class="text-secondary" style="font-size: 0.72rem;">Terminales POS</span>
-            <a routerLink="/cash-register" class="text-decoration-none small text-primary fw-semibold" style="font-size: 0.72rem;">Turnos →</a>
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-1">
+            <span class="text-muted font-size-xs">Terminales POS activas</span>
           </div>
         </div>
       </div>
 
-      <!-- 4. Efectivo en Gaveta Estimado -->
-      <div *hasModule="'CashRegister'" class="col-12 col-sm-6 col-md-4 col-xxl-2">
-        <div class="card p-3 kpi-grid-card kpi-accent-primary h-100 rounded-4">
+      <!-- 4. Efectivo en Gaveta -->
+      <div *hasModule="'CashRegister'" class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <div class="card p-3 kpi-grid-card h-100 rounded-4 bg-white border">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="kpi-icon-glow kpi-icon-primary">
-              <svg cIcon name="cilCreditCard" style="width: 20px; height: 20px;"></svg>
+            <div class="d-flex align-items-center gap-1.5 text-secondary">
+              <span class="kpi-mini-icon-circle bg-success-subtle text-success">
+                <svg cIcon name="cilMoney" style="width: 12px; height: 12px;"></svg>
+              </span>
+              <span class="fw-semibold text-secondary font-size-xs">Efectivo en gaveta</span>
             </div>
-            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0.5" style="font-size: 0.68rem; font-weight: 600;">
-              Arqueo
-            </span>
           </div>
-          <div class="text-uppercase text-secondary fw-bold text-truncate mb-1" style="font-size: 0.65rem; letter-spacing: 0.6px;">EFECTIVO EN GAVETA</div>
-          <div class="kpi-amount text-dark mb-1" title="RD$ {{ activeCashEstimatedCash() | number:'1.2-2' }}">
+          <div class="kpi-amount text-dark fw-bold mb-2 fs-5" title="RD$ {{ activeCashEstimatedCash() | number:'1.2-2' }}">
             RD$ {{ activeCashEstimatedCash() | number:'1.2-2' }}
           </div>
-          <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
-            <span class="text-secondary" style="font-size: 0.72rem;">Saldo estimado</span>
-            <small class="text-primary fw-bold" style="font-size: 0.7rem;">Gaveta</small>
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-1">
+            <span class="text-muted font-size-xs">Saldo actual en caja</span>
           </div>
         </div>
       </div>
 
-      <!-- 5. Cobros Vencidos (CxC) -->
-      <div *hasModule="'Receivables'" class="col-12 col-sm-6 col-md-4 col-xxl-2">
-        <div class="card p-3 kpi-grid-card kpi-accent-danger h-100 rounded-4">
+      <!-- 5. Cobros Pendientes -->
+      <div *hasModule="'Receivables'" class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <div class="card p-3 kpi-grid-card h-100 rounded-4 bg-white border">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="kpi-icon-glow" [ngClass]="overdueAccountsCount() > 0 ? 'kpi-icon-danger' : 'kpi-icon-success'">
-              <svg cIcon name="cilWarning" style="width: 20px; height: 20px;"></svg>
+            <div class="d-flex align-items-center gap-1.5 text-secondary">
+              <span class="kpi-mini-icon-circle bg-warning-subtle text-warning">
+                <svg cIcon name="cilDollar" style="width: 12px; height: 12px;"></svg>
+              </span>
+              <span class="fw-semibold text-secondary font-size-xs">Cobros pendientes</span>
             </div>
-            <span class="badge rounded-pill px-2 py-0.5 border" [ngClass]="overdueAccountsCount() > 0 ? 'bg-danger-subtle text-danger border-danger-subtle' : 'bg-success-subtle text-success border-success-subtle'" style="font-size: 0.68rem; font-weight: 600;">
-              {{ overdueAccountsCount() > 0 ? 'Por cobrar' : 'Al día' }}
-            </span>
           </div>
-          <div class="text-uppercase text-secondary fw-bold text-truncate mb-1" style="font-size: 0.65rem; letter-spacing: 0.6px;">COBROS VENCIDOS</div>
-          <div class="kpi-amount mb-1" [ngClass]="overdueAccountsCount() > 0 ? 'text-danger' : 'text-dark'">
-            {{ overdueAccountsCount() }}
+          <div class="kpi-amount fw-bold mb-2 fs-5 text-danger" title="RD$ {{ overdueAccountsTotal() | number:'1.2-2' }}">
+            RD$ {{ overdueAccountsTotal() | number:'1.2-2' }}
           </div>
-          <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
-            <span class="text-danger small fw-semibold text-truncate" style="font-size: 0.72rem;" title="RD$ {{ overdueAccountsTotal() | number:'1.2-2' }}">
-              RD$ {{ overdueAccountsTotal() | number:'1.0-0' }}
-            </span>
-            <a routerLink="/receivables" class="text-decoration-none small text-danger fw-semibold" style="font-size: 0.72rem;">Cobrar →</a>
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-1">
+            <span class="text-muted font-size-xs">{{ overdueAccountsCount() }} factura{{ overdueAccountsCount() === 1 ? '' : 's' }} por cobrar</span>
           </div>
         </div>
       </div>
 
-      <!-- 6. Alertas de Stock Bajo -->
-      <div *hasModule="'Inventory'" class="col-12 col-sm-6 col-md-4 col-xxl-2">
-        <div class="card p-3 kpi-grid-card kpi-accent-warning h-100 rounded-4">
+      <!-- 6. Stock Crítico -->
+      <div *hasModule="'Inventory'" class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <div class="card p-3 kpi-grid-card h-100 rounded-4 bg-white border">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="kpi-icon-glow" [ngClass]="lowStockCount() > 0 ? 'kpi-icon-warning' : 'kpi-icon-success'">
-              <svg cIcon name="cilStorage" style="width: 20px; height: 20px;"></svg>
+            <div class="d-flex align-items-center gap-1.5 text-secondary">
+              <span class="kpi-mini-icon-circle bg-warning-subtle text-warning">
+                <svg cIcon name="cilWarning" style="width: 12px; height: 12px;"></svg>
+              </span>
+              <span class="fw-semibold text-secondary font-size-xs">Stock crítico</span>
             </div>
-            <span class="badge rounded-pill px-2 py-0.5 border" [ngClass]="lowStockCount() > 0 ? 'bg-warning-subtle text-warning border-warning-subtle' : 'bg-success-subtle text-success border-success-subtle'" style="font-size: 0.68rem; font-weight: 600;">
-              {{ lowStockCount() > 0 ? 'Por reponer' : 'Al día' }}
-            </span>
           </div>
-          <div class="text-uppercase text-secondary fw-bold text-truncate mb-1" style="font-size: 0.65rem; letter-spacing: 0.6px;">STOCK CRÍTICO</div>
-          <div class="kpi-amount mb-1" [ngClass]="lowStockCount() > 0 ? 'text-warning' : 'text-dark'">
+          <div class="kpi-amount text-dark fw-bold mb-2 fs-5">
             {{ lowStockCount() }}
           </div>
-          <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
-            <span class="text-secondary small" style="font-size: 0.72rem;">Catálogo</span>
-            <a routerLink="/inventory" class="text-decoration-none small text-primary fw-semibold" style="font-size: 0.72rem;">Stock →</a>
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-1">
+            <span class="text-muted font-size-xs">Inventario en nivel crítico</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Quick Operations Toolbar (Carousel with Nav Arrows) -->
-    <div class="card border-0 rounded-4 p-2.5 px-3 mb-4 quick-actions-toolbar">
-      <div class="d-flex align-items-center gap-2">
-        <!-- Title / Icon Label -->
-        <div class="d-flex align-items-center gap-2 flex-shrink-0 pe-3 border-end">
-          <div class="rounded-2 p-1 d-flex align-items-center justify-content-center" style="background: #0f172a; color: #38bdf8;">
-            <svg cIcon name="cilBolt" style="width: 18px; height: 18px;"></svg>
-          </div>
-          <span class="fw-bold text-dark small text-uppercase tracking-wider text-nowrap d-none d-sm-inline" style="font-size: 0.72rem; letter-spacing: 0.5px;">
-            Accesos Rápidos:
-          </span>
+    <!-- Quick Operations Toolbar -->
+    <div class="card border-0 rounded-4 p-3 mb-4 bg-white shadow-sm">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="d-flex align-items-center gap-2 me-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-primary">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+          <span class="fw-bold text-dark font-size-sm">Accesos rápidos:</span>
         </div>
 
-        <!-- Left Arrow Button -->
-        <button
-          type="button"
-          class="btn rounded-circle p-0 carousel-nav-btn shadow-2xs"
-          (click)="scrollQuickActions(-240)"
-          title="Ver opciones anteriores"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m15 18-6-6 6-6"/>
-          </svg>
-        </button>
+        <a *hasModule="'Sales'" routerLink="/pos" class="btn btn-dark text-white d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-semibold small text-decoration-none shadow-sm" style="background-color: #0f172a; border-color: #0f172a;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Nueva venta</span>
+          <span class="badge bg-white text-dark rounded-pill px-1.5 py-0.5 font-monospace" style="font-size: 0.65rem;">F2</span>
+        </a>
 
-        <!-- Scrollable Button Row (No wrap, hidden scrollbar, smooth scroll) -->
-        <div #quickActionsContainer class="quick-actions-scroll-container flex-grow-1 py-1">
-          <!-- 1. Nueva Venta POS (Hero button with glow) -->
-          <a *hasModule="'Sales'" routerLink="/pos" class="btn btn-quick-sale-hero d-flex align-items-center gap-2 px-3.5 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
-            <svg cIcon name="cilDollar" style="width: 16px; height: 16px;"></svg>
-            <span>Nueva Venta</span>
-            <span class="badge bg-white text-primary rounded-pill px-1.5 py-0.5" style="font-size: 0.65rem; font-weight: 700;">F2</span>
-          </a>
+        <a *hasModule="'CashRegister'" routerLink="/cash-register" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs">
+          <svg cIcon name="cilCalculator" style="width: 14px; height: 14px;" class="text-secondary"></svg>
+          <span>Turno de caja</span>
+        </a>
 
-          <!-- 2. Turno de Caja -->
-          <a *hasModule="'CashRegister'" routerLink="/cash-register" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
-            <svg cIcon name="cilCalculator" class="text-primary" style="width: 16px; height: 16px;"></svg>
-            <span>Turno de Caja</span>
-          </a>
+        <a *hasModule="'Inventory'" routerLink="/inventory/entries" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs">
+          <svg cIcon name="cilStorage" style="width: 14px; height: 14px;" class="text-secondary"></svg>
+          <span>Entrada de mercancía</span>
+        </a>
 
-          <!-- 3. Entrada Rápida Almacén -->
-          <a *hasModule="'Inventory'" routerLink="/inventory/entries" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
-            <svg cIcon name="cilStorage" class="text-info" style="width: 16px; height: 16px;"></svg>
-            <span>Entrada de Mercancía</span>
-          </a>
+        <a *hasModule="'Inventory'" routerLink="/products" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs">
+          <svg cIcon name="cilLayers" style="width: 14px; height: 14px;" class="text-secondary"></svg>
+          <span>Productos</span>
+        </a>
 
-          <!-- 4. Catálogo de Productos -->
-          <a *hasModule="'Inventory'" routerLink="/products" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
-            <svg cIcon name="cilLayers" class="text-secondary" style="width: 16px; height: 16px;"></svg>
-            <span>Productos</span>
-          </a>
+        <a *hasModule="'Customers'" routerLink="/customers" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs">
+          <svg cIcon name="cilPeople" style="width: 14px; height: 14px;" class="text-secondary"></svg>
+          <span>Clientes</span>
+        </a>
 
-          <!-- 5. Clientes -->
-          <a *hasModule="'Customers'" routerLink="/customers" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
-            <svg cIcon name="cilPeople" class="text-secondary" style="width: 16px; height: 16px;"></svg>
-            <span>Clientes</span>
-          </a>
+        <a *hasModule="'Receivables'" routerLink="/receivables" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs">
+          <svg cIcon name="cilCreditCard" style="width: 14px; height: 14px;" class="text-secondary"></svg>
+          <span>Cuentas por cobrar</span>
+        </a>
 
-          <!-- 6. Cuentas por Cobrar -->
-          <a *hasModule="'Receivables'" routerLink="/receivables" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
-            <svg cIcon name="cilCreditCard" class="text-danger" style="width: 16px; height: 16px;"></svg>
-            <span>Cuentas por Cobrar</span>
-          </a>
-
-          <!-- 7. POS Móvil -->
-          <a *hasModule="'mobile-pos'" routerLink="/mobile" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
-            <svg cIcon name="cilMobile" class="text-success" style="width: 16px; height: 16px;"></svg>
-            <span>POS Móvil</span>
-          </a>
-
-          <!-- 8. Transferencias -->
-          <a *hasModule="'Inventory'" routerLink="/inventory/transfers" class="btn btn-quick-item d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold small text-decoration-none flex-shrink-0 text-nowrap">
-            <svg cIcon name="cilSwapHorizontal" class="text-warning" style="width: 16px; height: 16px;"></svg>
-            <span>Transferencias</span>
-          </a>
-        </div>
-
-        <!-- Right Arrow Button -->
-        <button
-          type="button"
-          class="btn rounded-circle p-0 carousel-nav-btn shadow-2xs"
-          (click)="scrollQuickActions(240)"
-          title="Ver más opciones"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m9 18 6-6-6-6"/>
-          </svg>
-        </button>
+        <a *hasModule="'mobile-pos'" routerLink="/mobile" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs">
+          <svg cIcon name="cilMobile" style="width: 14px; height: 14px;" class="text-secondary"></svg>
+          <span>POS móvil</span>
+        </a>
       </div>
     </div>
 
-    <!-- Main Content Layout (Left: Critical Stock & Debt Alarms | Right: Live Activity Stream) -->
+    <!-- Main Content 2-Column Layout -->
     <div class="row g-4">
-      
-      <!-- Left Column: Critical Alarms (Stock Agotado & CxC Vencidas) -->
-      <div class="col-lg-4 col-xl-4 d-flex flex-column gap-4">
-        
-        <!-- Stock Crítico Panel -->
-        <div *hasModule="'Inventory'" class="card border-0 rounded-4 p-4 alarm-panel-card bg-white">
-          <div class="d-flex justify-content-between align-items-center mb-3">
+      <!-- Left Column: Actividad reciente + Estado de operación -->
+      <div class="col-lg-8 col-xl-8 d-flex flex-column gap-4">
+        <!-- 1. Card: Actividad reciente -->
+        <div class="card border-0 rounded-4 p-4 bg-white shadow-sm">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
             <div class="d-flex align-items-center gap-2">
-              <div class="rounded-circle p-1.5 bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
-                <svg cIcon name="cilWarning" style="width: 16px; height: 16px;"></svg>
-              </div>
-              <h6 class="fw-bold text-dark mb-0">Stock Crítico o Agotado</h6>
-            </div>
-            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
-              {{ lowStockCount() }} Alertas
-            </span>
-          </div>
-
-          @if (lowStockCount() === 0) {
-            <div class="text-center text-success small py-4 my-auto">
-              <svg cIcon name="cilCheck" class="mb-2 text-success" style="width: 28px; height: 28px;"></svg>
-              <div class="fw-semibold">Todos los productos cuentan con inventario</div>
-              <p class="text-muted small mb-0">No hay productos en nivel crítico.</p>
-            </div>
-          } @else {
-            <div class="d-flex flex-column gap-2.5" style="max-height: 290px; overflow-y: auto;">
-              @for (prod of lowStockProducts(); track prod.id) {
-                <div class="d-flex align-items-center justify-content-between p-2.5 rounded-3 alarm-item-row">
-                  <div class="d-flex align-items-center gap-2 text-truncate" style="max-width: 65%;">
-                    <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 24px; height: 24px; font-size: 0.7rem; font-weight: bold;">
-                      !
-                    </div>
-                    <div class="text-truncate">
-                      <div class="fw-semibold text-dark text-truncate" style="font-size: 0.82rem;">{{ prod.description }}</div>
-                      <small class="text-danger fw-bold" style="font-size: 0.72rem;">Quedan: {{ prod.stock != null ? prod.stock : ($any(prod).quantity || 0) }} unds.</small>
-                    </div>
-                  </div>
-                  <a routerLink="/inventory/entries" class="btn btn-sm btn-outline-primary py-1 px-2.5 rounded-pill fw-semibold text-nowrap shadow-2xs" style="font-size: 0.72rem;">
-                    + Reponer
-                  </a>
-                </div>
-              }
-            </div>
-            <div class="text-end mt-3">
-              <a routerLink="/inventory/stock" class="text-decoration-none small fw-semibold" style="color: #0f172a;">Ver catálogo completo →</a>
-            </div>
-          }
-        </div>
-
-        <!-- Cuentas por Cobrar Vencidas Panel -->
-        <div *hasModule="'Receivables'" class="card border-0 rounded-4 p-4 alarm-panel-card bg-white">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="d-flex align-items-center gap-2">
-              <div class="rounded-circle p-1.5 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; background: rgba(245, 158, 11, 0.12); color: #d97706;">
-                <svg cIcon name="cilDollar" style="width: 16px; height: 16px;"></svg>
-              </div>
-              <h6 class="fw-bold text-dark mb-0">Cobros Pendientes Hoy</h6>
-            </div>
-            <span class="badge rounded-pill px-2.5 py-1 border" [ngClass]="overdueAccountsCount() > 0 ? 'bg-danger-subtle text-danger border-danger-subtle' : 'bg-success-subtle text-success border-success-subtle'" style="font-size: 0.72rem; font-weight: 600;">
-              {{ overdueAccountsCount() }} Facturas
-            </span>
-          </div>
-
-          @if (overdueAccountsCount() === 0) {
-            <div class="text-center text-success small py-3">
-              <svg cIcon name="cilCheck" class="mb-2 text-success" style="width: 24px; height: 24px;"></svg>
-              <div class="fw-semibold">Sin facturas vencidas</div>
-              <p class="text-muted small mb-0">La cartera de clientes está al día.</p>
-            </div>
-          } @else {
-            <div class="p-3 rounded-3 mb-3 border" style="background-color: #fff1f2; border-color: #fecdd3 !important;">
-              <div class="small fw-bold mb-1" style="color: #9f1239;">Monto Pendiente por Cobrar:</div>
-              <h5 class="fw-bold mb-0 font-monospace" style="color: #9f1239; letter-spacing: -0.02em;">RD$ {{ overdueAccountsTotal() | number:'1.2-2' }}</h5>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-dark">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+              <h5 class="fw-bold text-dark mb-0">Actividad reciente</h5>
             </div>
 
-            <div class="d-flex flex-column gap-2 mb-3" style="max-height: 180px; overflow-y: auto;">
-              @for (acc of overdueAccountsList().slice(0, 4); track acc.id) {
-                <div class="d-flex align-items-center justify-content-between p-2 rounded-2 border bg-light">
-                  <div class="text-truncate me-2" style="font-size: 0.8rem;">
-                    <div class="fw-semibold text-dark text-truncate">{{ acc.customerName || acc.description || ('Cliente #' + acc.id) }}</div>
-                    <small class="text-muted font-monospace">{{ acc.invoiceNumber || ('DOC-' + acc.id) }}</small>
-                  </div>
-                  <strong class="text-danger font-monospace text-nowrap" style="font-size: 0.82rem;">
-                    RD$ {{ (acc.pendingAmount != null ? acc.pendingAmount : (acc.totalAmount - (acc.paidAmount || 0))) | number:'1.2-2' }}
-                  </strong>
-                </div>
-              }
-            </div>
-
-            <a routerLink="/receivables" class="btn w-100 rounded-3 py-2 fw-semibold small text-white text-decoration-none shadow-sm" style="background: #0f172a; border: 1px solid #0f172a;">
-              Gestionar Cobranzas →
-            </a>
-          }
-        </div>
-
-        <!-- Estado de Turno / Caja del Día (Opción A: Balance y Operación de Caja Activa) -->
-        <div *hasModule="'CashRegister'" class="card border rounded-4 p-4 alarm-panel-card bg-white shadow-sm" style="border-color: #e2e8f0 !important;">
-          <div class="d-flex justify-content-between align-items-center mb-4">
-            <div class="d-flex align-items-center gap-2.5">
-              <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background: rgba(16, 185, 129, 0.12); color: #059669;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2" y="4" width="20" height="16" rx="2"></rect>
-                  <line x1="2" y1="10" x2="22" y2="10"></line>
-                  <circle cx="7" cy="15" r="1"></circle>
-                  <circle cx="12" cy="15" r="1"></circle>
-                  <circle cx="17" cy="15" r="1"></circle>
-                </svg>
-              </div>
-              <h6 class="fw-bold text-dark mb-0" style="font-size: 15.5px; letter-spacing: -0.01em;">Estado de Turno / Caja</h6>
-            </div>
-            @if (activeCashSession()?.isOpen || activeCashRegistersCount() > 0) {
-              <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 d-inline-flex align-items-center gap-1.5" style="font-size: 0.74rem; font-weight: 600;">
-                <span class="pulse-dot"></span> Caja Abierta
-              </span>
-            } @else {
-              <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-3 py-1.5" style="font-size: 0.74rem; font-weight: 600;">
-                Sin Turno Activo
-              </span>
-            }
-          </div>
-
-          @if (activeCashSession(); as session) {
-            <!-- Info Box Pulido y con Espaciado Generoso -->
-            <div class="px-4 py-3 rounded-3 mb-4 border bg-light-subtle shadow-2xs" style="border-color: #e2e8f0 !important; background-color: #f8fafc;">
-              <div class="d-flex justify-content-between align-items-center py-3 border-bottom" style="border-color: #edf2f7 !important;">
-                <span class="text-secondary small fw-medium" style="font-size: 13px;">Caja Registradora</span>
-                <span class="fw-bold text-dark small" style="font-size: 13.5px;">{{ session.name || 'Caja Principal' }}</span>
-              </div>
-              <div class="d-flex justify-content-between align-items-center py-3 border-bottom" style="border-color: #edf2f7 !important;">
-                <span class="text-secondary small fw-medium" style="font-size: 13px;">Cajero Responsable</span>
-                <span class="fw-semibold text-dark small" style="font-size: 13.5px;">{{ session.cashierName || 'Usuario Actual' }}</span>
-              </div>
-              <div class="d-flex justify-content-between align-items-center py-3">
-                <span class="text-secondary small fw-medium" style="font-size: 13px;">Fondo de Apertura</span>
-                <span class="text-dark small fw-bold font-monospace" style="font-size: 13.5px;">RD$ {{ session.initialAmount | number:'1.2-2' }}</span>
-              </div>
-            </div>
-
-            <!-- Destacado Efectivo en Gaveta -->
-            <div class="p-3.5 px-4 rounded-3 mb-4 border shadow-2xs" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border-color: #a7f3d0 !important;">
-              <div class="d-flex justify-content-between align-items-center mb-1.5">
-                <div class="small fw-bold text-uppercase" style="color: #065f46; font-size: 11.5px; letter-spacing: 0.7px;">Efectivo en Gaveta</div>
-                <span class="badge rounded-pill bg-white border border-success-subtle fw-semibold px-2.5 py-1" style="color: #047857; font-size: 11px;">
-                  Balance auditado
-                </span>
-              </div>
-              <div class="d-flex align-items-baseline gap-1.5 mt-2">
-                <span class="font-monospace fw-bold" style="color: #047857; font-size: 1.15rem;">RD$</span>
-                <span class="fw-bold font-monospace" style="color: #047857; font-size: 1.65rem; letter-spacing: -0.02em; line-height: 1.2;">
-                  {{ activeCashEstimatedCash() | number:'1.2-2' }}
-                </span>
-              </div>
-            </div>
-
-            <div class="d-flex gap-3">
-              <a routerLink="/cash-register" class="btn btn-outline-secondary w-50 rounded-3 py-2 fw-semibold small text-decoration-none d-flex align-items-center justify-content-center gap-2 shadow-2xs" style="height: 46px; border-color: #cbd5e1; color: #1e293b; background-color: #ffffff;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                </svg>
-                <span>Arqueo / Turno</span>
-              </a>
-              <a routerLink="/pos" class="btn rounded-3 py-2 fw-semibold small text-white text-decoration-none shadow-sm d-flex align-items-center justify-content-center gap-2 w-50" style="background-color: #1e293b; border-color: #1e293b; height: 46px;">
-                <span>Cobrar POS</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-              </a>
-            </div>
-          } @else {
-            <div class="text-center py-3">
-              <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 44px; height: 44px; background: #f1f5f9; color: #64748b;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2" y="4" width="20" height="16" rx="2"></rect>
-                  <line x1="6" y1="12" x2="10" y2="12"></line>
-                  <line x1="8" y1="10" x2="8" y2="14"></line>
-                  <line x1="15" y1="13" x2="18" y2="13"></line>
-                </svg>
-              </div>
-              <p class="text-muted small mb-3">No hay un turno de caja aperturado actualmente en esta estación.</p>
-              <a routerLink="/cash-register" class="btn w-100 rounded-3 py-2 fw-semibold small text-white text-decoration-none shadow-sm d-flex align-items-center justify-content-center gap-2" style="background-color: #0f172a; border-color: #0f172a; height: 42px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                <span>Abrir Turno de Caja</span>
-              </a>
-            </div>
-          }
-        </div>
-      </div>
-
-      <!-- Right Column: Live Activity Feed (Ventas de Hoy vs Movimientos de Almacén) -->
-      <div class="col-lg-8 col-xl-8">
-        <div class="card border-0 rounded-4 p-4 bg-white alarm-panel-card h-100">
-          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4 pb-3 border-bottom">
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-              <div class="rounded-circle p-1.5 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; background: rgba(15, 23, 42, 0.08); color: #0f172a;">
-                <svg cIcon name="cilList" style="width: 16px; height: 16px;"></svg>
-              </div>
-              <h5 class="fw-bold text-dark mb-0">Actividad en Vivo de Hoy</h5>
-              <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1.5 ms-1" style="font-size: 0.72rem; font-weight: 600;">
-                <span class="pulse-dot"></span> EN VIVO
-              </span>
-              @if (liveEventsCount() > 0) {
-                <span class="badge text-white rounded-pill px-2 py-0.5" style="font-size: 0.68rem; background-color: #0f172a !important;">
-                  +{{ liveEventsCount() }} en vivo
-                </span>
-              }
-            </div>
-
-            <!-- Tab Switcher (Ventas vs Inventario) & Quick Refresh -->
-            <div class="d-flex align-items-center gap-2">
-              <button
-                type="button"
-                class="btn btn-sm btn-light border rounded-pill px-2.5 py-1 text-muted d-flex align-items-center gap-1 shadow-2xs"
-                (click)="refreshLiveFeed()"
-                title="Actualizar actividad en tiempo real"
+            <!-- Tabs: Ventas vs Movimientos de stock -->
+            <div class="btn-group btn-group-sm p-1 bg-light rounded-pill border" role="group">
+              <button 
+                type="button" 
+                class="btn rounded-pill border-0 px-3 fw-semibold"
+                [class.btn-dark]="activeActivityTab() === 'sales'"
+                [class.btn-light]="activeActivityTab() !== 'sales'"
+                (click)="activeActivityTab.set('sales')"
               >
-                <span>🔄</span>
-                <span class="small font-size-xs d-none d-md-inline">Sincronizar</span>
+                Ventas
               </button>
-
-              <div class="btn-group btn-group-sm p-1 bg-light rounded-pill border" role="group">
-                <button 
-                  type="button" 
-                  class="btn rounded-pill border-0 px-3 fw-semibold"
-                  [class.btn-dark]="activeActivityTab() === 'sales'"
-                  [class.btn-light]="activeActivityTab() !== 'sales'"
-                  (click)="activeActivityTab.set('sales')"
-                >
-                  Ventas Emitidas
-                </button>
-                <button 
-                  type="button" 
-                  class="btn rounded-pill border-0 px-3 fw-semibold"
-                  [class.btn-dark]="activeActivityTab() === 'inventory'"
-                  [class.btn-light]="activeActivityTab() !== 'inventory'"
-                  (click)="activeActivityTab.set('inventory')"
-                >
-                  Movimientos Stock
-                </button>
-              </div>
+              <button 
+                type="button" 
+                class="btn rounded-pill border-0 px-3 fw-semibold"
+                [class.btn-dark]="activeActivityTab() === 'inventory'"
+                [class.btn-light]="activeActivityTab() !== 'inventory'"
+                (click)="activeActivityTab.set('inventory')"
+              >
+                Movimientos de stock
+              </button>
             </div>
           </div>
 
-          <!-- TAB 1: Ventas Emitidas Hoy -->
+          <!-- TAB 1: Ventas -->
           @if (activeActivityTab() === 'sales') {
             @if (todayRecentSales().length === 0) {
               <div class="py-5 text-center px-4 my-auto">
@@ -559,7 +291,7 @@
               </div>
             } @else {
               <div class="table-responsive">
-                <table class="table table-hover table-borderless align-middle mb-0 table-activity">
+                <table class="table table-hover table-borderless align-middle mb-0">
                   <thead class="text-secondary small border-bottom">
                     <tr>
                       <th scope="col" class="pb-2 fw-semibold">Comprobante / ID</th>
@@ -569,33 +301,28 @@
                     </tr>
                   </thead>
                   <tbody>
-                    @for (sale of todayRecentSales(); track sale.id) {
-                      <tr class="border-bottom" [class.live-feed-highlight]="$any(sale).isLiveEvent">
-                        <td class="py-3">
+                    @for (sale of todayRecentSales().slice(0, 8); track sale.id) {
+                      <tr class="border-bottom">
+                        <td class="py-2.5">
                           <div class="d-flex align-items-center gap-2">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 28px; height: 28px; font-size: 0.75rem; background: rgba(15, 23, 42, 0.08); color: #0f172a;">
+                            <span class="badge bg-light text-secondary border font-monospace px-2 py-1">
                               #{{ sale.id }}
-                            </div>
+                            </span>
                             <div>
-                              <div class="d-flex align-items-center gap-1.5">
-                                <span class="fw-semibold text-dark small d-block">Venta #{{ sale.id }}</span>
-                                @if ($any(sale).isLiveEvent) {
-                                  <span class="badge bg-success text-white rounded-pill font-monospace" style="font-size: 0.6rem;">NUEVO</span>
-                                }
-                              </div>
-                              <small class="text-secondary" style="font-size: 0.72rem;">{{ sale.details.length || 1 }} artículo(s) · {{ $any(sale).customerName || 'Consumidor Final' }}</small>
+                              <span class="fw-bold text-dark small d-block">Venta #{{ sale.id }}</span>
+                              <small class="text-muted" style="font-size: 0.72rem;">{{ sale.details.length || 1 }} artículo(s) · {{ $any(sale).customerName || 'Consumidor Final' }}</small>
                             </div>
                           </div>
                         </td>
-                        <td class="py-3">
-                          <span class="badge rounded-pill px-2.5 py-1" [ngClass]="getPaymentMethodBadgeClass($any(sale).paymentMethod || 'Efectivo')" style="font-size: 0.72rem;">
+                        <td class="py-2.5">
+                          <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">
                             {{ formatPaymentMethod($any(sale).paymentMethod) }}
                           </span>
                         </td>
-                        <td class="py-3 text-end font-monospace fw-bold text-dark">
+                        <td class="py-2.5 text-end font-monospace fw-bold text-dark">
                           RD$ {{ (sale.total || $any(sale).totalAmount || 0) | number:'1.2-2' }}
                         </td>
-                        <td class="py-3 text-end text-secondary small">
+                        <td class="py-2.5 text-end text-muted small">
                           {{ formatSaleTime(sale) }}
                         </td>
                       </tr>
@@ -603,14 +330,13 @@
                   </tbody>
                 </table>
               </div>
-              <div class="d-flex justify-content-between align-items-center mt-3 pt-2">
-                <small class="text-muted">Mostrando las últimas 10 ventas del día</small>
-                <a routerLink="/sales" class="text-decoration-none small fw-semibold" style="color: #0f172a;">Ver todas las ventas →</a>
+              <div class="text-end mt-3">
+                <a routerLink="/sales" class="text-decoration-none small fw-semibold text-dark">Ver todas las ventas →</a>
               </div>
             }
           }
 
-          <!-- TAB 2: Movimientos de Inventario -->
+          <!-- TAB 2: Movimientos de stock -->
           @if (activeActivityTab() === 'inventory') {
             @if (recentMovements().length === 0 && auditMovements().length === 0) {
               <div class="py-5 text-center px-4 my-auto">
@@ -630,22 +356,22 @@
                     </tr>
                   </thead>
                   <tbody>
-                    @for (m of (recentMovements().length > 0 ? recentMovements() : auditMovements()); track m.id) {
+                    @for (m of (recentMovements().length > 0 ? recentMovements() : auditMovements()).slice(0, 8); track m.id) {
                       <tr class="border-bottom">
-                        <td class="py-3">
+                        <td class="py-2.5">
                           <span class="badge bg-light text-dark border rounded-pill px-2 py-0.5" style="font-size: 0.72rem;">
                             {{ getMovementTypeLabel(m.type) }}
                           </span>
                         </td>
-                        <td class="py-3">
+                        <td class="py-2.5">
                           <span class="text-dark small fw-medium text-truncate d-block" style="max-width: 240px;">
                             {{ getProductName(m.productId) }}
                           </span>
                         </td>
-                        <td class="py-3 text-end font-monospace fw-bold text-dark">
+                        <td class="py-2.5 text-end font-monospace fw-bold text-dark">
                           {{ m.quantity }}
                         </td>
-                        <td class="py-3 text-end text-secondary small">
+                        <td class="py-2.5 text-end text-muted small">
                           {{ formatMovementTime(m) }}
                         </td>
                       </tr>
@@ -653,15 +379,173 @@
                   </tbody>
                 </table>
               </div>
-              <div class="d-flex justify-content-between align-items-center mt-3 pt-2">
-                <small class="text-muted">Movimientos recientes del almacén</small>
-                <a routerLink="/inventory" class="text-decoration-none small fw-semibold" style="color: #0f172a;">Ver inventario completo →</a>
+              <div class="text-end mt-3">
+                <a routerLink="/inventory" class="text-decoration-none small fw-semibold text-dark">Ver inventario completo →</a>
               </div>
             }
           }
+        </div>
+
+        <!-- 2. Card: Estado de operación (4 columns) -->
+        <div class="card border-0 rounded-4 p-4 bg-white shadow-sm">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            <h6 class="fw-bold text-dark mb-0">Estado de operación</h6>
+          </div>
+
+          <div class="row g-3">
+            <!-- 1. Ventas del día -->
+            <div class="col-6 col-md-3">
+              <div class="d-flex align-items-start gap-2">
+                <div class="p-1 bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 22px; height: 22px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <div>
+                  <div class="text-muted font-size-xs">Ventas del día</div>
+                  <div class="fw-bold text-dark font-size-sm">RD$ {{ todaySalesTotal() | number:'1.2-2' }}</div>
+                  <div class="text-muted font-size-xs">{{ todaySalesCount() }} tickets</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Cajas abiertas -->
+            <div class="col-6 col-md-3">
+              <div class="d-flex align-items-start gap-2">
+                <div class="p-1 bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 22px; height: 22px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <div>
+                  <div class="text-muted font-size-xs">Cajas abiertas</div>
+                  <div class="fw-bold text-dark font-size-sm">{{ activeCashRegistersCount() }}</div>
+                  <div class="text-muted font-size-xs">{{ activeCashRegistersCount() > 0 ? 'Operando' : 'Sin turnos' }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Inventario -->
+            <div class="col-6 col-md-3">
+              <div class="d-flex align-items-start gap-2">
+                <div class="p-1 bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 22px; height: 22px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <div>
+                  <div class="text-muted font-size-xs">Inventario</div>
+                  <div class="fw-bold text-dark font-size-sm">{{ lowStockCount() === 0 ? 'Sin stock crítico' : lowStockCount() + ' en alerta' }}</div>
+                  <div class="text-muted font-size-xs">{{ lowStockCount() === 0 ? 'Todos los productos con inventario' : lowStockCount() + ' productos con bajo stock' }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. Cobranza -->
+            <div class="col-6 col-md-3">
+              <div class="d-flex align-items-start gap-2">
+                <div class="p-1 bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 22px; height: 22px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </div>
+                <div>
+                  <div class="text-muted font-size-xs">Cobranza</div>
+                  <div class="fw-bold text-dark font-size-sm">
+                    {{ overdueAccountsCount() > 0 ? overdueAccountsCount() + ' factura' + (overdueAccountsCount() === 1 ? '' : 's') + ' pendiente' + (overdueAccountsCount() === 1 ? '' : 's') : 'Al día' }}
+                  </div>
+                  <div class="text-muted font-size-xs">RD$ {{ overdueAccountsTotal() | number:'1.2-2' }} por cobrar</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Atención requerida (Cobros pendientes, Stock crítico, Caja abierta) -->
+      <div class="col-lg-4 col-xl-4 d-flex flex-column gap-3">
+        <div class="card border-0 rounded-4 p-4 bg-white shadow-sm">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-warning">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <h6 class="fw-bold text-dark mb-0">Atención requerida</h6>
+          </div>
+
+          <div class="d-flex flex-column gap-3">
+            <!-- 1. Cobros pendientes Card -->
+            <div class="p-3 rounded-3 border" style="background-color: #fff1f2; border-color: #fecdd3 !important;">
+              <div class="d-flex justify-content-between align-items-start mb-1">
+                <div class="d-flex align-items-center gap-1.5 text-danger fw-semibold font-size-sm">
+                  <span class="p-1 bg-danger-subtle text-danger rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 20px; height: 20px;">
+                    <svg cIcon name="cilDollar" style="width: 12px; height: 12px;"></svg>
+                  </span>
+                  <span>Cobros pendientes</span>
+                </div>
+                <small class="text-secondary font-size-xs">
+                  {{ overdueAccountsList().length > 0 ? (overdueAccountsList()[0].customerName || ('Cliente #' + overdueAccountsList()[0].id)) : 'Cliente #9' }}
+                </small>
+              </div>
+              <div class="text-muted font-size-xs mb-1">
+                {{ overdueAccountsCount() }} factura{{ overdueAccountsCount() === 1 ? '' : 's' }} por cobrar
+              </div>
+              <div class="d-flex justify-content-between align-items-center mt-2">
+                <div class="fw-bold text-danger fs-5 font-monospace">
+                  RD$ {{ overdueAccountsTotal() | number:'1.2-2' }}
+                </div>
+                <a routerLink="/receivables" class="btn btn-sm text-white px-3 py-1.5 rounded-3 fw-semibold text-decoration-none shadow-sm" style="background-color: #0f172a; border-color: #0f172a; font-size: 0.78rem;">
+                  Gestionar cobranza →
+                </a>
+              </div>
+            </div>
+
+            <!-- 2. Stock crítico Card -->
+            <div class="p-3 rounded-3 border" [ngStyle]="{'background-color': lowStockCount() === 0 ? '#f0fdf4' : '#fffbeb', 'border-color': lowStockCount() === 0 ? '#a7f3d0' : '#fde68a'}">
+              <div class="d-flex align-items-center gap-1.5" [ngClass]="lowStockCount() === 0 ? 'text-success' : 'text-warning'">
+                <span class="p-1 rounded-circle d-inline-flex align-items-center justify-content-center" [ngClass]="lowStockCount() === 0 ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'" style="width: 20px; height: 20px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </span>
+                <span class="fw-semibold font-size-sm">Stock crítico</span>
+              </div>
+              <div class="text-muted font-size-xs mt-1">
+                {{ lowStockCount() }} productos en nivel crítico
+              </div>
+              <div class="mt-1 font-size-xs fw-semibold" [ngClass]="lowStockCount() === 0 ? 'text-success' : 'text-danger'">
+                ● {{ lowStockCount() === 0 ? 'Inventario saludable' : 'Reponer inventario requerido' }}
+              </div>
+            </div>
+
+            <!-- 3. Caja abierta Card -->
+            <div class="p-3 rounded-3 border bg-white shadow-2xs">
+              <div class="d-flex justify-content-between align-items-center mb-2.5">
+                <div class="d-flex align-items-center gap-1.5 text-dark fw-semibold font-size-sm">
+                  <svg cIcon name="cilCalculator" style="width: 15px; height: 15px;" class="text-secondary"></svg>
+                  <span>Caja abierta</span>
+                </div>
+                <span class="badge bg-light text-secondary border font-monospace px-2 py-0.5" style="font-size: 0.72rem;">
+                  Caja #{{ activeCashSession()?.id || activeCashSession()?.cashRegisterId || '54' }}
+                </span>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center py-1 font-size-xs border-bottom">
+                <span class="text-muted">Cajero</span>
+                <span class="text-dark fw-semibold">{{ activeCashSession()?.cashierName || 'Cajero' }}</span>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center py-1 font-size-xs border-bottom">
+                <span class="text-muted">Fondo de apertura</span>
+                <span class="text-dark font-monospace fw-semibold">RD$ {{ (activeCashSession()?.initialAmount || 10000) | number:'1.2-2' }}</span>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center py-1 font-size-xs mt-1">
+                <span class="text-muted">Efectivo en gaveta</span>
+                <span class="text-success font-monospace fw-bold fs-6">RD$ {{ activeCashEstimatedCash() | number:'1.2-2' }}</span>
+              </div>
+
+              <a routerLink="/cash-register" class="btn btn-outline-secondary w-100 mt-2 py-1.5 fw-semibold small text-decoration-none shadow-2xs text-center d-block rounded-3" style="font-size: 0.8rem;">
+                Ver turno →
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   }
 </div>
-
