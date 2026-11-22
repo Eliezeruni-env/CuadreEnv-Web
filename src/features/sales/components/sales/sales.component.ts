@@ -1,5 +1,6 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SaleService } from '../../services/sale.service';
 import { CustomerService } from '../../../customers/services/customer.service';
@@ -35,15 +36,16 @@ import {
 } from '@coreui/angular';
 import { TableComponent } from '../../../cuadreEnv/components/table/table.component';
 import { ListPaginationComponent } from '../../../cuadreEnv/components/list-pagination/list-pagination.component';
-import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/kt-paginator.component';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 
 @Component({
   selector: 'app-sales',
   templateUrl: './sales.component.html',
+  styleUrls: ['./sales.component.scss'],
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     AlertComponent,
     SpinnerComponent,
     CreateSaleModalComponent,
@@ -55,10 +57,10 @@ import { NotificationService } from '../../../cuadreEnv/services/notification.se
     SaleCompletedModalComponent,
     CreditNoteFormComponent,
     FilterPanelComponent,
-    KtPaginatorComponent,
   ],
 })
 export class SalesComponent implements OnInit {
+  readonly Math = Math;
   @ViewChild('newSaleChoiceModal') newSaleChoiceModal!: NewSaleChoiceModalComponent;
   @ViewChild('quickSaleModal') quickSaleModal!: QuickSaleModalComponent;
   @ViewChild('createReceivableModal') createReceivableModal!: CreateReceivableModalComponent;
@@ -438,6 +440,31 @@ export class SalesComponent implements OnInit {
     if (!customerId) return this.translationService.t('sales.table.unknownCustomer');
     const customer = this.customers().find((c) => c.id === customerId);
     return customer ? customer.name : this.translationService.t('sales.table.unknownCustomer');
+  }
+
+  getInvoiceCode(sale: SaleResponseDto): string {
+    if (sale.invoiceNumber && sale.invoiceNumber.trim() && !sale.invoiceNumber.startsWith('#')) {
+      return sale.invoiceNumber;
+    }
+    return `FAC-${String(sale.id).padStart(6, '0')}`;
+  }
+
+  getCustomerDisplay(sale: SaleResponseDto): string {
+    const name = this.getCustomerName(sale.customerId);
+    if (!name || name === this.translationService.t('sales.table.unknownCustomer') || name === 'Cliente Desconocido') {
+      return `Cliente #${sale.customerId || 1}`;
+    }
+    return name;
+  }
+
+  getOriginLabel(sale: SaleResponseDto): string {
+    if (sale.originChannel === 'POS_PRESENCIAL' || (!sale.originChannel && sale.cashRegisterId)) {
+      return 'POS';
+    }
+    if (sale.originChannel === 'CREDITO') {
+      return 'Crédito';
+    }
+    return 'Contado';
   }
 
   openQuickSaleDirect() {
