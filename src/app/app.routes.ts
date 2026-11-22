@@ -268,6 +268,29 @@ export const routes: Routes = [
         data: { module: 'sales', title: 'Sales Register' },
       },
       {
+        path: 'sales/quotations',
+        loadComponent: () =>
+          import('../features/sales/components/quotations/quotation-list/quotation-list.component').then(
+            (m) => m.QuotationListComponent,
+          ),
+        canActivate: [moduleGuard('sales')],
+        data: { module: 'sales', title: 'Cotizaciones' },
+      },
+      {
+        path: 'sales/quotations/create',
+        loadComponent: () =>
+          import('../features/sales/components/quotations/create-quotation/create-quotation.component').then(
+            (m) => m.CreateQuotationComponent,
+          ),
+        canActivate: [moduleGuard('sales')],
+        data: { module: 'sales', title: 'Nueva Cotización' },
+      },
+      {
+        path: 'quotations',
+        redirectTo: 'sales/quotations',
+        pathMatch: 'full',
+      },
+      {
         path: 'sales/corporate',
         loadComponent: () =>
           import('../features/sales/components/corporate-sales/corporate-sales.component').then(

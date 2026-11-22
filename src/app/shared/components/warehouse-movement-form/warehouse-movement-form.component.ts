@@ -19,6 +19,10 @@ import { WarehouseTransferService } from '../../../../features/inventory/service
 import { NotificationService } from '../../../../features/cuadreEnv/services/notification.service';
 import { BarcodeLookupService } from '../../../../features/products/services/barcode-lookup.service';
 import { CameraBarcodeModalComponent } from '../camera-barcode-modal/camera-barcode-modal.component';
+import {
+  WarehouseMovementReceiptModalComponent,
+  type MovementReceiptData,
+} from '../warehouse-movement-receipt-modal/warehouse-movement-receipt-modal.component';
 import type { Warehouse, WarehouseConcept } from '../../../models/warehouse';
 import type { ProductMovementDetail, WarehouseMovementHeader } from '../../../models/movement';
 import type { Product } from '../../../models/product';
@@ -30,7 +34,13 @@ export interface MovementLineItem extends ProductMovementDetail {
 @Component({
   selector: 'app-warehouse-movement-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, CameraBarcodeModalComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    CameraBarcodeModalComponent,
+    WarehouseMovementReceiptModalComponent,
+  ],
   templateUrl: './warehouse-movement-form.component.html',
   styleUrls: ['./warehouse-movement-form.component.scss'],
 })
@@ -49,6 +59,10 @@ export class WarehouseMovementFormComponent implements OnInit {
 
   @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
   @ViewChild('barcodeImageInput') barcodeImageInput?: ElementRef<HTMLInputElement>;
+
+  // Receipt Modal State
+  isReceiptModalOpen = signal<boolean>(false);
+  receiptData: MovementReceiptData | null = null;
 
   // Catalogs
   warehouses: Warehouse[] = [];
@@ -445,7 +459,35 @@ export class WarehouseMovementFormComponent implements OnInit {
             ? 'Salida procesada exitosamente.'
             : 'Transferencia completada exitosamente.');
         this.notificationService.success(msg);
-        this.cancel();
+
+        const targetWhId = this.mode === 'transfer' ? this.destinationWarehouseId : this.warehouseId;
+        const wh = this.warehouses.find((w) => w.id === targetWhId);
+        const conc = this.concepts.find((c) => c.id === this.conceptId);
+        const prefix = this.mode === 'entry' ? 'ENT' : this.mode === 'outlet' ? 'SAL' : 'TRF';
+        const movId = res?.data?.id || 19;
+
+        this.receiptData = {
+          movementCode: `${prefix}-${movId}`,
+          movementType: this.mode,
+          statusLabel: 'Aplicado',
+          warehouseName: wh?.name || 'Almacén Principal',
+          warehouseLocation: (wh as any)?.description || (wh as any)?.address || 'Bodega Central',
+          conceptName: conc?.name || (this.mode === 'entry' ? 'Entrada de almacén' : this.mode === 'outlet' ? 'Salida de almacén' : 'Transferencia'),
+          conceptDescription: conc?.description || 'Recepción de stock',
+          date: new Date().toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+          time: new Date().toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: true }),
+          items: this.productDetails.map((d: any) => ({
+            code: d.productCode || d.barcode || `PROD-${d.productId}`,
+            name: d.productName || 'Producto',
+            description: d.description || '',
+            quantity: Number(d.quantity) || 1,
+            unitCost: Number(d.cost) || 0,
+            totalCost: (Number(d.cost) || 0) * (Number(d.quantity) || 1),
+          })),
+          totalUnits: this.totalUnits,
+          totalCost: this.totalCost,
+        };
+        this.isReceiptModalOpen.set(true);
       } else {
         this.notificationService.error(res?.message || 'Error al procesar el movimiento.');
       }
@@ -454,6 +496,11 @@ export class WarehouseMovementFormComponent implements OnInit {
     } finally {
       this.isSaving.set(false);
     }
+  }
+
+  onReceiptClosed(): void {
+    this.isReceiptModalOpen.set(false);
+    this.cancel();
   }
 
   cancel() {

@@ -1,0 +1,433 @@
+<div class="quotations-page-container">
+  <!-- Breadcrumb -->
+  <div class="page-breadcrumb">
+    <span>Ventas</span>
+    <span class="separator">/</span>
+    <span class="active">Cotizaciones</span>
+  </div>
+
+  <!-- Header -->
+  <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+      <h1 class="page-title">Cotizaciones</h1>
+      <p class="page-subtitle">Gestiona propuestas comerciales y conviértelas en ventas.</p>
+    </div>
+    <div class="header-actions d-flex align-items-center gap-2">
+      <button class="btn btn-primary-custom d-flex align-items-center gap-2" (click)="goToNew()">
+        <span class="fs-5 lh-1">+</span>
+        <span>Nueva cotización</span>
+      </button>
+      <button class="btn btn-outline-secondary d-flex align-items-center gap-1.5" (click)="loadQuotations()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+        </svg>
+        <span>Actualizar</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 4 Top KPI Cards -->
+  <div class="kpi-grid">
+    <!-- Card 1: Cotizaciones -->
+    <div class="kpi-card">
+      <div class="kpi-icon-box icon-blue">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Cotizaciones</span>
+        <h3 class="kpi-value">{{ totalCount() }}</h3>
+      </div>
+    </div>
+
+    <!-- Card 2: Pendientes -->
+    <div class="kpi-card">
+      <div class="kpi-icon-box icon-amber">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Pendientes</span>
+        <h3 class="kpi-value">{{ pendingCount() }}</h3>
+      </div>
+    </div>
+
+    <!-- Card 3: Aprobadas -->
+    <div class="kpi-card">
+      <div class="kpi-icon-box icon-green">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Aprobadas</span>
+        <h3 class="kpi-value">{{ approvedCount() }}</h3>
+      </div>
+    </div>
+
+    <!-- Card 4: Convertidas -->
+    <div class="kpi-card">
+      <div class="kpi-icon-box icon-purple">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Convertidas</span>
+        <h3 class="kpi-value">{{ convertedCount() }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="tabs-segment">
+    <button class="tab-pill" [class.active]="selectedTab() === 'ALL'" (click)="setTab('ALL')">
+      Todas ({{ totalCount() }})
+    </button>
+    <button class="tab-pill" [class.active]="selectedTab() === 'DRAFT'" (click)="setTab('DRAFT')">
+      Borradores ({{ draftCount() }})
+    </button>
+    <button class="tab-pill" [class.active]="selectedTab() === 'SENT'" (click)="setTab('SENT')">
+      Enviadas ({{ sentCount() }})
+    </button>
+    <button class="tab-pill" [class.active]="selectedTab() === 'APPROVED'" (click)="setTab('APPROVED')">
+      Aprobadas ({{ approvedCount() }})
+    </button>
+    <button class="tab-pill" [class.active]="selectedTab() === 'CONVERTED'" (click)="setTab('CONVERTED')">
+      Convertidas ({{ convertedCount() }})
+    </button>
+    <button class="tab-pill" [class.active]="selectedTab() === 'EXPIRED'" (click)="setTab('EXPIRED')">
+      Vencidas ({{ expiredCount() }})
+    </button>
+  </div>
+
+  <!-- Filter Toolbar -->
+  <div class="toolbar-box">
+    <div class="search-input-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Buscar cotización o cliente..."
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+      />
+    </div>
+
+    <div class="dropdown-filter">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="filter-icon">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </svg>
+      <select class="form-select filter-select" [ngModel]="dateRangeFilter()" (ngModelChange)="dateRangeFilter.set($event)">
+        <option value="ALL">Rango de fechas</option>
+        <option value="TODAY">Hoy</option>
+        <option value="THIS_WEEK">Esta semana</option>
+        <option value="THIS_MONTH">Este mes</option>
+      </select>
+    </div>
+
+    <div class="dropdown-filter">
+      <select class="form-select filter-select" [ngModel]="selectedStatusFilter()" (ngModelChange)="selectedStatusFilter.set($event)">
+        <option value="ALL">Estado</option>
+        <option value="DRAFT">Borrador</option>
+        <option value="SENT">Enviada</option>
+        <option value="APPROVED">Aprobada</option>
+        <option value="CONVERTED">Convertida</option>
+        <option value="EXPIRED">Vencida</option>
+      </select>
+    </div>
+
+    <button class="btn btn-filter-more">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+      </svg>
+      <span>Más filtros</span>
+    </button>
+
+    <div class="toolbar-spacer"></div>
+
+    <button class="btn btn-export">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      <span>Exportar</span>
+    </button>
+
+    <button class="btn btn-columns">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"></line>
+        <line x1="12" y1="20" x2="12" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="14"></line>
+      </svg>
+      <span>Columnas</span>
+    </button>
+  </div>
+
+  <!-- Table Card -->
+  <div class="table-card">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0 quotes-table">
+        <thead>
+          <tr>
+            <th style="width: 40px;"></th>
+            <th>Cotización <span>↕</span></th>
+            <th>Cliente <span>↕</span></th>
+            <th>Emisión <span>↕</span></th>
+            <th>Vigencia <span>↕</span></th>
+            <th class="text-end">Total <span>↕</span></th>
+            <th>Estado <span>↕</span></th>
+            <th class="text-end pe-3">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading()) {
+            <tr>
+              <td colspan="8" class="text-center py-5 text-muted">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                Cargando cotizaciones...
+              </td>
+            </tr>
+          } @else if (pagedQuotations().length === 0) {
+            <tr>
+              <td colspan="8" class="text-center py-5 text-muted">
+                No se encontraron cotizaciones con los criterios seleccionados.
+              </td>
+            </tr>
+          } @else {
+            @for (quote of pagedQuotations(); track quote.id) {
+              <!-- Row Master -->
+              <tr class="quote-row" [class.expanded-row-active]="isExpanded(quote.id)">
+                <td class="text-center ps-3">
+                  <button class="btn-expand-row" (click)="toggleExpand(quote.id)">
+                    @if (isExpanded(quote.id)) {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    } @else {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    }
+                  </button>
+                </td>
+                <td class="fw-bold text-primary font-monospace quotation-code">
+                  {{ quote.quotationNumber }}
+                </td>
+                <td class="fw-medium text-dark customer-name">
+                  {{ quote.customerName }}
+                </td>
+                <td class="text-secondary small">
+                  {{ quote.issueDate | date:'dd/MM/yyyy' }}
+                </td>
+                <td class="text-secondary small">
+                  {{ quote.expirationDate | date:'dd/MM/yyyy' }}
+                </td>
+                <td class="text-end fw-bold text-dark font-monospace">
+                  RD${{ quote.total | number:'1.2-2' }}
+                </td>
+                <td>
+                  <div class="d-inline-flex align-items-center gap-1.5">
+                    <span class="status-badge" [ngClass]="getStatusBadgeClass(quote.status)">
+                      @if (quote.status === 'SENT') {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="22" y1="2" x2="11" y2="13"></line>
+                          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                      } @else if (quote.status === 'APPROVED') {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      } @else if (quote.status === 'CONVERTED') {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="17 1 21 5 17 9"></polyline>
+                          <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                          <polyline points="7 23 3 19 7 15"></polyline>
+                          <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                        </svg>
+                      } @else if (quote.status === 'EXPIRED') {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        </svg>
+                      }
+                      <span>{{ getStatusLabel(quote.status) }}</span>
+                    </span>
+
+                    @if (quote.status === 'CONVERTED' && (quote.convertedSaleCode || quote.convertedSaleId)) {
+                      <span class="sale-link-pill">
+                        Venta: <strong>{{ quote.convertedSaleCode || ('VTA-00' + quote.convertedSaleId) }}</strong>
+                      </span>
+                    }
+                  </div>
+                </td>
+                <td class="text-end pe-3">
+                  <div class="d-inline-flex align-items-center gap-1.5 justify-content-end">
+                    @if (quote.status === 'APPROVED') {
+                      <button class="btn btn-action-invoice" (click)="convertToSale(quote, $event)">
+                        <span>→ Facturar</span>
+                      </button>
+                    }
+                    <button class="btn btn-icon-square" (click)="viewQuotation(quote)" title="Ver cotización">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    </button>
+                    <button class="btn btn-icon-square" title="Más opciones">
+                      <span>···</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Master-Detail Expanded Card -->
+              @if (isExpanded(quote.id)) {
+                <tr class="detail-container-row">
+                  <td colspan="8" class="p-0">
+                    <div class="quotation-detail-panel">
+                      <div class="row g-3">
+                        <!-- Left: Info -->
+                        <div class="col-lg-3 col-md-4">
+                          <h6 class="detail-section-title">Detalle de la cotización</h6>
+                          <div class="detail-info-list">
+                            <div class="info-item">
+                              <span class="info-label">Cotización:</span>
+                              <span class="info-value font-monospace fw-bold">{{ quote.quotationNumber }}</span>
+                            </div>
+                            <div class="info-item">
+                              <span class="info-label">Cliente:</span>
+                              <span class="info-value fw-medium">{{ quote.customerName }}</span>
+                            </div>
+                            <div class="info-item">
+                              <span class="info-label">Emisión:</span>
+                              <span class="info-value">{{ quote.issueDate | date:'dd/MM/yyyy' }}</span>
+                            </div>
+                            <div class="info-item">
+                              <span class="info-label">Vigencia:</span>
+                              <span class="info-value">{{ quote.expirationDate | date:'dd/MM/yyyy' }} ({{ getDaysRemaining(quote.expirationDate) }} días)</span>
+                            </div>
+                            <div class="info-item align-items-center">
+                              <span class="info-label">Estado:</span>
+                              <span class="status-badge" [ngClass]="getStatusBadgeClass(quote.status)">
+                                {{ getStatusLabel(quote.status) }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Center: Items Table -->
+                        <div class="col-lg-6 col-md-8">
+                          <h6 class="detail-section-title">
+                            Ítems cotizados ({{ quote.details.length || quote.totalItems || 0 }})
+                          </h6>
+                          <div class="table-responsive">
+                            <table class="table table-sm subitems-table mb-0">
+                              <thead>
+                                <tr>
+                                  <th style="width: 30px;">#</th>
+                                  <th>Descripción</th>
+                                  <th class="text-center" style="width: 80px;">Cantidad</th>
+                                  <th class="text-end" style="width: 100px;">Precio unitario</th>
+                                  <th class="text-end" style="width: 100px;">Subtotal</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (item of quote.details; track item.id; let idx = $index) {
+                                  <tr>
+                                    <td class="text-muted">{{ idx + 1 }}</td>
+                                    <td class="fw-medium text-dark">{{ item.productName }}</td>
+                                    <td class="text-center font-monospace">{{ item.quantity | number:'1.2-2' }} und</td>
+                                    <td class="text-end font-monospace">RD${{ item.unitPrice | number:'1.2-2' }}</td>
+                                    <td class="text-end font-monospace fw-semibold">RD${{ item.subtotal | number:'1.2-2' }}</td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        <!-- Right: Actions & Total -->
+                        <div class="col-lg-3 col-md-12 d-flex flex-column justify-content-between align-items-end text-end action-panel-box">
+                          <div class="w-100">
+                            @if (quote.status === 'APPROVED') {
+                              <button class="btn btn-send-billing w-100 mb-2" (click)="convertToSale(quote)">
+                                <span>→ Enviar a facturación</span>
+                              </button>
+                              <p class="billing-hint-text">Se creará una venta a partir de esta cotización.</p>
+                            } @else if (quote.status === 'CONVERTED') {
+                              <div class="alert alert-success py-2 px-3 small w-100 text-start mb-2">
+                                ✓ Convertida en venta <strong>{{ quote.convertedSaleCode || ('VTA-00' + quote.convertedSaleId) }}</strong>
+                              </div>
+                            } @else {
+                              <button class="btn btn-outline-primary w-100 mb-2" (click)="viewQuotation(quote)">
+                                <span>Editar / Gestionar</span>
+                              </button>
+                            }
+                          </div>
+
+                          <div class="total-quote-row pt-3">
+                            <span class="total-label">Total de la cotización:</span>
+                            <span class="total-amount font-monospace">RD${{ quote.total | number:'1.2-2' }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Footer -->
+    <div class="pagination-footer d-flex flex-wrap align-items-center justify-content-between gap-3 p-3 border-top">
+      <div class="text-muted small">
+        Mostrando {{ (currentPage() - 1) * pageSize() + 1 }} – {{ (currentPage() - 1) * pageSize() + pagedQuotations().length }} de {{ filteredQuotations().length }} cotizaciones
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center gap-1.5 small text-secondary">
+          <span>Filas por página:</span>
+          <select class="form-select form-select-sm page-size-select" [value]="pageSize()" (change)="onPageSizeChange($event)">
+            <option [value]="5">5</option>
+            <option [value]="10">10</option>
+            <option [value]="25">25</option>
+          </select>
+        </div>
+
+        <div class="pagination-nav-group d-flex align-items-center gap-1">
+          <button class="btn-page-nav" [disabled]="currentPage() === 1" (click)="onPageChange(1)">«</button>
+          <button class="btn-page-nav" [disabled]="currentPage() === 1" (click)="onPageChange(currentPage() - 1)">‹</button>
+          <button class="btn-page-nav active">{{ currentPage() }}</button>
+          @if (totalPages() > 1 && currentPage() < totalPages()) {
+            <button class="btn-page-nav" (click)="onPageChange(currentPage() + 1)">{{ currentPage() + 1 }}</button>
+          }
+          <button class="btn-page-nav" [disabled]="currentPage() >= totalPages()" (click)="onPageChange(currentPage() + 1)">›</button>
+          <button class="btn-page-nav" [disabled]="currentPage() >= totalPages()" (click)="onPageChange(totalPages())">»</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

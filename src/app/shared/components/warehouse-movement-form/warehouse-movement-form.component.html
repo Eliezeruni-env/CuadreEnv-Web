@@ -550,3 +550,10 @@
   (codeDetected)="onCameraBarcodeScanned($event)"
   (closed)="isCameraScannerOpen.set(false)"
 ></app-camera-barcode-modal>
+
+<!-- Receipt Modal -->
+<app-warehouse-movement-receipt-modal
+  [isOpen]="isReceiptModalOpen()"
+  [data]="receiptData"
+  (close)="onReceiptClosed()"
+></app-warehouse-movement-receipt-modal>

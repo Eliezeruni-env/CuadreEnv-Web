@@ -32,10 +32,7 @@ import { WhatsAppShareService } from '../../services/whatsapp-share.service';
   standalone: true,
   imports: [
     CommonModule,
-    ContainerComponent,
-    ButtonDirective,
     SpinnerComponent,
-    IconDirective,
     CreateReceivableModalComponent,
     ReceivableDetailModalComponent,
     ListPaginationComponent,
@@ -56,6 +53,42 @@ export class ReceivablesComponent implements OnInit {
 
   // Tab Segment: 'pending' (Pendientes) vs 'paid' (Saldadas por completo)
   selectedTab = signal<'pending' | 'paid'>('pending');
+
+  // View Mode: 'table' (default, matching design) vs 'cards'
+  viewMode = signal<'table' | 'cards'>('table');
+
+  // KPI Calculations
+  readonly totalPendingBalance = computed(() =>
+    this.receivables().reduce((sum, r) => sum + (Number(r.pendingAmount) || 0), 0)
+  );
+
+  readonly overdueBalance = computed(() =>
+    this.receivables()
+      .filter((r) => {
+        if (r.pendingAmount <= 0) return false;
+        if (r.status === 'Vencido') return true;
+        if (r.dueDate) {
+          return new Date(r.dueDate).getTime() < new Date().setHours(0, 0, 0, 0);
+        }
+        return false;
+      })
+      .reduce((sum, r) => sum + (Number(r.pendingAmount) || 0), 0)
+  );
+
+  readonly expiringIn7DaysCount = computed(() =>
+    this.receivables().filter((r) => {
+      if (r.pendingAmount <= 0) return false;
+      if (!r.dueDate) return false;
+      const due = new Date(r.dueDate).getTime();
+      const now = new Date().setHours(0, 0, 0, 0);
+      const diff = Math.ceil((due - now) / (1000 * 3600 * 24));
+      return diff >= 0 && diff <= 7;
+    }).length
+  );
+
+  readonly settledCount = computed(() =>
+    this.receivables().filter((r) => r.pendingAmount <= 0 || r.status === 'Pagado').length
+  );
 
   // Counts for tabs
   readonly pendingCount = computed(() =>
@@ -308,6 +341,13 @@ export class ReceivablesComponent implements OnInit {
     }
 
     return { color: 'green', label: 'Al Día', isBlocked: false };
+  }
+
+  getDaysRemaining(dueDate?: string | null): number | null {
+    if (!dueDate) return null;
+    const due = new Date(dueDate).getTime();
+    const now = new Date().setHours(0, 0, 0, 0);
+    return Math.ceil((due - now) / (1000 * 3600 * 24));
   }
 
   sendWhatsAppReminder(item: ReceivableDto): void {

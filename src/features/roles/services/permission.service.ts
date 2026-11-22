@@ -336,6 +336,7 @@ export class PermissionService {
     { prefix: '/metrics', module: 'metrics' },
     { prefix: '/mobile', module: 'mobile-pos' },
     { prefix: '/sales', module: 'sales' },
+    { prefix: '/quotations', module: 'sales' },
     { prefix: '/services', module: 'services' },
     { prefix: '/billing/reports', module: 'billing-reports-dgii' },
     { prefix: '/billing', module: 'billing' },

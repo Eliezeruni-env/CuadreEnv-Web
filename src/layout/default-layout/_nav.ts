@@ -32,6 +32,13 @@ export const navItems: ModuleNavItem[] = [
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
+    name: 'Cotizaciones',
+    url: '/sales/quotations',
+    moduleCode: 'sales',
+    iconComponent: { name: 'cil-description' },
+    linkProps: { routerLinkActiveOptions: { exact: true } },
+  },
+  {
     name: 'Ventas Corporativas B2B',
     url: '/sales/corporate',
     moduleCode: 'sales-corporate',

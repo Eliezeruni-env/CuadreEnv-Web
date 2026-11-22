@@ -1,154 +1,200 @@
-<c-container fluid class="px-4 py-4 receivables-page-container">
+<div class="receivables-page-container">
+  <!-- Breadcrumbs -->
+  <div class="page-breadcrumb">
+    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon">
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+      <polyline points="9 22 9 12 15 12 15 22"></polyline>
+    </svg>
+    <span class="separator">/</span>
+    <span>Ventas</span>
+    <span class="separator">/</span>
+    <span class="active">Ventas por cobrar</span>
+  </div>
+
   <!-- Page Header -->
-  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
     <div>
-      <h2 class="fw-bold tracking-tight text-body mb-1">Ventas por Cobrar</h2>
-      <p class="text-secondary mb-0 small">
-        Gestiona y da seguimiento a las ventas pendientes de pago de tus clientes.
-      </p>
+      <h1 class="page-title">Ventas por cobrar</h1>
+      <p class="page-subtitle">Gestiona los saldos pendientes y el seguimiento de tus clientes.</p>
     </div>
     <div>
-      <button
-        cButton
-        class="btn-primary-custom d-flex align-items-center gap-2 px-3 py-2 shadow-sm"
-        (click)="openCreateModal()"
-      >
-        <span class="fs-5 lh-1 fw-bold">+</span>
-        <span>Nueva Venta por Cobrar</span>
+      <button class="btn btn-primary-custom d-flex align-items-center gap-2" (click)="openCreateModal()">
+        <span class="fs-5 lh-1">+</span>
+        <span>Nueva venta por cobrar</span>
       </button>
     </div>
   </div>
 
-  <!-- Navigation Tabs (Pendientes vs Saldadas por completo) -->
-  <div class="d-flex align-items-center gap-2 mb-3">
+  <!-- 4 Top KPI Cards -->
+  <div class="kpi-grid">
+    <!-- Card 1: Saldo pendiente -->
+    <div class="kpi-card">
+      <div class="kpi-icon-box icon-blue">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+        </svg>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Saldo pendiente</span>
+        <h3 class="kpi-value">RD$ {{ totalPendingBalance() | number:'1.2-2' }}</h3>
+      </div>
+    </div>
+
+    <!-- Card 2: Cuentas vencidas -->
+    <div class="kpi-card">
+      <div class="kpi-icon-box icon-red">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Cuentas vencidas</span>
+        <h3 class="kpi-value">RD$ {{ overdueBalance() | number:'1.2-2' }}</h3>
+      </div>
+    </div>
+
+    <!-- Card 3: Por vencer en 7 días -->
+    <div class="kpi-card">
+      <div class="kpi-icon-box icon-amber">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Por vencer en 7 días</span>
+        <h3 class="kpi-value">{{ expiringIn7DaysCount() }}</h3>
+      </div>
+    </div>
+
+    <!-- Card 4: Ventas saldadas -->
+    <div class="kpi-card">
+      <div class="kpi-icon-box icon-green">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Ventas saldadas</span>
+        <h3 class="kpi-value">{{ settledCount() }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section Title -->
+  <div class="mb-3">
+    <h3 class="section-heading mb-0">Cartera de clientes</h3>
+  </div>
+
+  <!-- Tabs: Pendientes vs Saldadas -->
+  <div class="tabs-segment mb-3">
     <button
-      type="button"
-      class="btn px-3 py-2 fw-semibold rounded-pill d-flex align-items-center gap-2"
-      [ngClass]="selectedTab() === 'pending' ? 'btn-primary shadow-sm text-white' : 'btn-light border text-secondary'"
+      class="tab-pill"
+      [class.active]="selectedTab() === 'pending'"
       (click)="setTab('pending')"
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
         <polyline points="12 6 12 12 16 14"></polyline>
       </svg>
-      <span>Pendientes de Cobro</span>
-      <span class="badge" [ngClass]="selectedTab() === 'pending' ? 'bg-white text-primary' : 'bg-secondary-subtle text-secondary'">
-        {{ pendingCount() }}
-      </span>
+      <span>Pendientes ({{ pendingCount() }})</span>
     </button>
-
     <button
-      type="button"
-      class="btn px-3 py-2 fw-semibold rounded-pill d-flex align-items-center gap-2"
-      [ngClass]="selectedTab() === 'paid' ? 'btn-success shadow-sm text-white' : 'btn-light border text-secondary'"
+      class="tab-pill"
+      [class.active]="selectedTab() === 'paid'"
       (click)="setTab('paid')"
     >
-      <span>✓ Saldadas por Completo</span>
-      <span class="badge" [ngClass]="selectedTab() === 'paid' ? 'bg-white text-success' : 'bg-success-subtle text-success'">
-        {{ paidCount() }}
-      </span>
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span>Saldadas ({{ paidCount() }})</span>
     </button>
   </div>
 
-  <!-- Search & Toolbar Row -->
-  <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 filter-toolbar-card">
-    <div class="row g-3 align-items-center">
-      <!-- Search Input -->
-      <div class="col-lg-6 col-md-5">
-        <div class="search-input-wrapper">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="search-icon"
-          >
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input
-            type="text"
-            class="form-control search-input"
-            placeholder="Buscar cliente o factura..."
-            [value]="searchQuery()"
-            (input)="onSearchChange($event)"
-          />
-        </div>
-      </div>
+  <!-- Filter Toolbar -->
+  <div class="toolbar-box mb-4">
+    <div class="search-input-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Buscar cliente o factura..."
+        [value]="searchQuery()"
+        (input)="onSearchChange($event)"
+      />
+    </div>
 
-      <!-- Filter Dropdown Button -->
-      <div class="col-lg-3 col-md-3 col-6">
-        <div class="dropdown-filter-wrapper">
-          <div class="input-group">
-            <span class="input-group-text bg-transparent border-end-0 text-muted">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-              </svg>
-            </span>
-            <select
-              class="form-select border-start-0 filter-select"
-              [value]="selectedStatus()"
-              (change)="onStatusChange($event)"
-            >
-              <option value="">Filtrar: Todos</option>
-              <option value="Pendiente">Filtrar: Pendiente</option>
-              <option value="Parcial">Filtrar: Parcial</option>
-              <option value="Pagado">Filtrar: Pagado</option>
-              <option value="Vencido">Filtrar: Vencido</option>
-            </select>
-          </div>
-        </div>
-      </div>
+    <div class="dropdown-filter">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="filter-icon">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+      </svg>
+      <select class="form-select filter-select" [value]="selectedStatus()" (change)="onStatusChange($event)">
+        <option value="">Estado: Todos</option>
+        <option value="Pendiente">Estado: Pendiente</option>
+        <option value="Parcial">Estado: Parcial</option>
+        <option value="Pagado">Estado: Pagado</option>
+        <option value="Vencido">Estado: Vencido</option>
+      </select>
+    </div>
 
-      <!-- Sort Dropdown -->
-      <div class="col-lg-3 col-md-4 col-6">
-        <div class="input-group">
-          <span class="input-group-text bg-transparent border-end-0 text-muted">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <line x1="21" y1="10" x2="3" y2="10"></line>
-              <line x1="21" y1="6" x2="3" y2="6"></line>
-              <line x1="21" y1="14" x2="3" y2="14"></line>
-              <line x1="21" y1="18" x2="3" y2="18"></line>
-            </svg>
-          </span>
-          <select
-            class="form-select border-start-0 filter-select"
-            [value]="selectedSort()"
-            (change)="onSortChange($event)"
-          >
-            <option value="newest">Ordenar por: Más reciente</option>
-            <option value="oldest">Ordenar por: Más antiguo</option>
-            <option value="amount-desc">Ordenar por: Mayor monto</option>
-            <option value="amount-asc">Ordenar por: Menor monto</option>
-            <option value="name-asc">Ordenar por: Cliente (A-Z)</option>
-          </select>
-        </div>
-      </div>
+    <div class="dropdown-filter">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="filter-icon">
+        <line x1="21" y1="10" x2="3" y2="10"></line>
+        <line x1="21" y1="6" x2="3" y2="6"></line>
+        <line x1="21" y1="14" x2="3" y2="14"></line>
+        <line x1="21" y1="18" x2="3" y2="18"></line>
+      </svg>
+      <select class="form-select filter-select" [value]="selectedSort()" (change)="onSortChange($event)">
+        <option value="newest">Ordenar por: Más reciente</option>
+        <option value="oldest">Ordenar por: Más antiguo</option>
+        <option value="amount-desc">Ordenar por: Mayor monto</option>
+        <option value="amount-asc">Ordenar por: Menor monto</option>
+        <option value="name-asc">Ordenar por: Cliente (A-Z)</option>
+      </select>
+    </div>
+
+    <div class="toolbar-spacer"></div>
+
+    <!-- Table/Grid View Switcher -->
+    <div class="view-mode-toggle d-flex align-items-center">
+      <button
+        class="btn-view-toggle"
+        [class.active]="viewMode() === 'table'"
+        (click)="viewMode.set('table')"
+        title="Vista en tabla"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"></line>
+          <line x1="8" y1="12" x2="21" y2="12"></line>
+          <line x1="8" y1="18" x2="21" y2="18"></line>
+          <line x1="3" y1="6" x2="3.01" y2="6"></line>
+          <line x1="3" y1="12" x2="3.01" y2="12"></line>
+          <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+      </button>
+      <button
+        class="btn-view-toggle"
+        [class.active]="viewMode() === 'cards'"
+        (click)="viewMode.set('cards')"
+        title="Vista en tarjetas"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+      </button>
     </div>
   </div>
 
@@ -158,252 +204,200 @@
       <c-spinner color="primary"></c-spinner>
       <span class="ms-3 text-secondary">Cargando ventas por cobrar...</span>
     </div>
-  }
+  } @else if (filteredReceivables().length === 0) {
+    <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+      <h5 class="fw-bold text-dark mb-1">No hay registros</h5>
+      <p class="text-secondary small mb-3">No se encontraron ventas por cobrar en este criterio.</p>
+      <button class="btn btn-primary-custom mx-auto" (click)="openCreateModal()">
+        + Crear nueva venta por cobrar
+      </button>
+    </div>
+  } @else if (viewMode() === 'table') {
+    <!-- Table View (Image 2) -->
+    <div class="table-card mb-3">
+      <div class="table-responsive">
+        <table class="table align-middle mb-0 receivables-table">
+          <thead>
+            <tr>
+              <th class="ps-4">Cliente / Factura</th>
+              <th>Saldo pendiente</th>
+              <th>Vencimiento</th>
+              <th>Estado</th>
+              <th class="text-end pe-4">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of pagedReceivables(); track item.id) {
+              <tr class="receivable-table-row">
+                <!-- Cliente / Factura -->
+                <td class="ps-4">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="client-avatar-circle" [style.background-color]="item.avatarColor || '#f1f5f9'">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="fw-bold text-dark client-name-text">{{ item.customerName }}</div>
+                      <span class="text-muted small font-monospace">{{ item.invoiceNumber }}</span>
+                    </div>
+                  </div>
+                </td>
 
-  <!-- Cards Grid -->
-  @if (!isLoading()) {
+                <!-- Saldo pendiente -->
+                <td class="fw-bold text-dark font-monospace fs-6">
+                  RD$ {{ item.pendingAmount | number:'1.2-2' }}
+                </td>
+
+                <!-- Vencimiento -->
+                <td>
+                  <div class="d-flex align-items-center gap-1.5 text-secondary small">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span>{{ item.dueDate | date:'dd MMM yyyy' }}</span>
+                  </div>
+                </td>
+
+                <!-- Estado -->
+                <td>
+                  <div class="d-inline-flex align-items-center gap-2">
+                    @let sem = getCreditTrafficLight(item);
+                    @if (item.pendingAmount <= 0 || item.status === 'Pagado') {
+                      <span class="status-badge-settled">
+                        ✓ Saldada
+                      </span>
+                    } @else if (sem.color === 'red') {
+                      <span class="status-badge-overdue">
+                        ⚠ Vencida
+                      </span>
+                      @let days = getDaysRemaining(item.dueDate);
+                      @if (days !== null) {
+                        <span class="days-remaining-badge text-danger">
+                          {{ days < 0 ? (days * -1) + ' días vencida' : 'Hoy' }}
+                        </span>
+                      }
+                    } @else {
+                      <span class="status-badge-ontrack">
+                        ✓ Al día
+                      </span>
+                      @let days = getDaysRemaining(item.dueDate);
+                      @if (days !== null) {
+                        <span class="days-remaining-badge">
+                          {{ days }} días restantes
+                        </span>
+                      }
+                    }
+                  </div>
+                </td>
+
+                <!-- Acciones -->
+                <td class="text-end pe-4">
+                  <div class="d-inline-flex align-items-center gap-2 justify-content-end">
+                    <button class="btn btn-link-detail" (click)="openDetailModal(item)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="7" r="3"></circle>
+                      </svg>
+                      <span>Ver detalle</span>
+                    </button>
+
+                    <button class="btn btn-whatsapp-reminder" (click)="sendWhatsAppReminder(item)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                      </svg>
+                      <span>Recordar por WhatsApp</span>
+                    </button>
+
+                    <button class="btn btn-icon-more" (click)="openDetailModal(item)" title="Más opciones">
+                      <span>···</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  } @else {
+    <!-- Cards Grid View -->
     <div class="row g-4 mb-4">
       @for (item of pagedReceivables(); track item.id) {
         <div class="col-lg-4 col-md-6 col-12">
           <div class="card receivable-card h-100 border-0 shadow-sm rounded-4" [class.border-success-subtle]="item.pendingAmount <= 0">
-            <!-- Card Body -->
             <div class="card-body p-4">
-              <!-- Top Row: Avatar, Name, Invoice & Status -->
               <div class="d-flex align-items-start justify-content-between mb-4">
                 <div class="d-flex align-items-center gap-3">
-                  <!-- Pastel Avatar Circle -->
-                  <div
-                    class="receivable-avatar flex-shrink-0"
-                    [style.background-color]="item.avatarColor || '#ede9fe'"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="avatar-icon"
-                    >
+                  <div class="receivable-avatar flex-shrink-0" [style.background-color]="item.avatarColor || '#ede9fe'">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                       <circle cx="12" cy="7" r="4"></circle>
                     </svg>
                   </div>
-                  <!-- Client Info -->
                   <div>
-                    <h5 class="fw-bold text-body mb-0 client-title text-truncate">
-                      {{ item.customerName }}
-                    </h5>
+                    <h5 class="fw-bold text-body mb-0 client-title text-truncate">{{ item.customerName }}</h5>
                     <span class="text-muted small invoice-code">{{ item.invoiceNumber }}</span>
                   </div>
                 </div>
 
-                <!-- Status Badge & Semáforo de Crédito ("El Fiado Organizado") -->
                 <div class="d-flex flex-column align-items-end gap-1">
                   @if (item.pendingAmount <= 0 || item.status === 'Pagado') {
-                    <div class="status-pill status-paid">
-                      <span class="status-dot"></span>
-                      <span>Saldada por completo</span>
+                    <div class="status-badge-settled">
+                      <span>✓ Saldada</span>
                     </div>
                   } @else {
                     @let sem = getCreditTrafficLight(item);
-                    <div
-                      class="status-pill"
-                      [ngClass]="{
-                        'status-pending': sem.color === 'green',
-                        'status-partial': sem.color === 'yellow',
-                        'status-overdue': sem.color === 'red'
-                      }"
-                    >
-                      <span class="status-dot"></span>
-                      <span>{{ sem.label }}</span>
-                    </div>
-                    @if (sem.isBlocked) {
-                      <span class="badge bg-danger text-white font-monospace" style="font-size: 0.65rem;">
-                        🚫 VENTAS BLOQUEADAS
-                      </span>
-                    }
-                  }
-                </div>
-              </div>
-
-              <!-- Middle Section: Monto a deber -->
-              <div class="amount-section my-3">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                  <span class="amount-label text-muted">
-                    {{ item.pendingAmount <= 0 ? 'Estado de Balance' : 'Monto a deber' }}
-                  </span>
-                  @if (item.dueDate) {
-                    <span class="small font-monospace text-secondary" style="font-size: 0.72rem;">
-                      Vence: {{ item.dueDate | date:'mediumDate' }}
+                    <span [class]="sem.color === 'red' ? 'status-badge-overdue' : 'status-badge-ontrack'">
+                      {{ sem.color === 'red' ? '⚠ Vencida' : '✓ Al día' }}
                     </span>
                   }
                 </div>
-                @if (item.pendingAmount <= 0) {
-                  <div class="amount-value text-success fw-bold fs-5">
-                    ✓ Totalmente Saldado (RD$ {{ item.totalAmount | number:'1.2-2' }})
-                  </div>
-                  <div class="progress mt-2" style="height: 6px;">
-                    <div class="progress-bar bg-success" style="width: 100%;"></div>
-                  </div>
-                } @else {
-                  <div class="amount-value text-body fw-bold">
-                    RD$ {{ item.pendingAmount | number: '1.2-2' }}
-                  </div>
-                  <div class="progress mt-2" style="height: 6px;">
-                    <div
-                      class="progress-bar bg-primary"
-                      [style.width.%]="(item.paidAmount / (item.totalAmount || 1)) * 100"
-                    ></div>
-                  </div>
-                }
               </div>
-            </div>
 
-            <!-- Card Footer: Actions Row & WhatsApp Reminder -->
-            <div class="card-footer bg-transparent border-top p-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
-              <!-- View Detail Action -->
-              <button
-                type="button"
-                class="btn-card-action action-view d-flex align-items-center gap-1"
-                (click)="openDetailModal(item)"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                <span>Ver detalle</span>
-              </button>
+              <div class="balance-container mb-4">
+                <span class="text-secondary small fw-medium">Saldo pendiente</span>
+                <div class="d-flex align-items-baseline gap-1 mt-1">
+                  <span class="fs-4 fw-bolder tracking-tight text-body">
+                    RD$ {{ item.pendingAmount | number:'1.2-2' }}
+                  </span>
+                </div>
+              </div>
 
-              <div class="d-flex align-items-center gap-2">
-                <!-- WhatsApp Reminder Button ("Fiado Organizado") -->
-                @if (item.pendingAmount > 0 && item.status !== 'Pagado') {
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-success text-white d-flex align-items-center gap-1 shadow-xs fw-semibold px-2 py-1"
-                    (click)="sendWhatsAppReminder(item); $event.stopPropagation()"
-                    title="Enviar recordatorio amistoso de cobro por WhatsApp"
-                  >
-                    <svg cIcon name="cilPhone" size="sm" class="me-1"></svg>
-                    <span>Cobro WhatsApp</span>
-                  </button>
-                }
-
-                @if (item.pendingAmount <= 0 || item.status === 'Pagado') {
-                  <!-- Reabrir Action (for settled accounts) -->
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline-warning d-flex align-items-center gap-1 fw-semibold"
-                    (click)="reopenReceivable(item)"
-                    title="Reactivar cuenta en caso de error contable"
-                  >
-                    <span>Reabrir</span>
-                  </button>
-                }
-
-                <!-- Delete Action -->
-                <button
-                  type="button"
-                  class="btn-card-action action-delete d-flex align-items-center p-1"
-                  (click)="deleteReceivable(item)"
-                  title="Eliminar"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  </svg>
+              <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary w-50" (click)="openDetailModal(item)">
+                  Ver detalle
+                </button>
+                <button class="btn btn-success text-white w-50" (click)="sendWhatsAppReminder(item)">
+                  WhatsApp
                 </button>
               </div>
             </div>
           </div>
         </div>
       }
-
-      <!-- Empty State -->
-      @if (filteredReceivables().length === 0) {
-        <div class="col-12">
-          <div class="card border-0 shadow-sm rounded-4 text-center p-5">
-            <div class="empty-icon-box mx-auto mb-3">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="text-muted"
-              >
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-              </svg>
-            </div>
-            <h5 class="fw-bold text-body mb-1">No se encontraron ventas por cobrar</h5>
-            <p class="text-secondary small mb-3">
-              No hay registros que coincidan con los filtros o la búsqueda seleccionada.
-            </p>
-            <div>
-              <button
-                cButton
-                class="btn-primary-custom px-4"
-                (click)="openCreateModal()"
-              >
-                Crear Primera Venta por Cobrar
-              </button>
-            </div>
-          </div>
-        </div>
-      }
     </div>
-
-    <!-- Pagination -->
-    @if (filteredReceivables().length > pageSize) {
-      <app-list-pagination
-        [currentPage]="currentPage()"
-        [pageSize]="pageSize"
-        [totalItems]="filteredReceivables().length"
-        (pageChange)="onPageChange($event)"
-      />
-    }
   }
 
-  <!-- Modals -->
-  <app-create-receivable-modal
-    #createModal
-    [(visible)]="isCreateModalOpen"
-    (saved)="loadReceivables()"
-  />
+  <!-- Footer Info & Pagination -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mt-3">
+    <div class="text-muted small">
+      {{ filteredReceivables().length }} {{ filteredReceivables().length === 1 ? 'registro' : 'registros' }}
+    </div>
 
-  <app-receivable-detail-modal
-    #detailModal
-    [(visible)]="isDetailModalOpen"
-    [receivable]="selectedReceivable"
-    (updated)="loadReceivables()"
-  />
-</c-container>
+    <app-list-pagination
+      [currentPage]="currentPage()"
+      [totalItems]="filteredReceivables().length"
+      [pageSize]="pageSize"
+      (pageChange)="onPageChange($event)"
+    ></app-list-pagination>
+  </div>
+</div>
+
+<!-- Modals -->
+<app-create-receivable-modal #createModal (saved)="loadReceivables()"></app-create-receivable-modal>
+<app-receivable-detail-modal #detailModal (saved)="loadReceivables()"></app-receivable-detail-modal>

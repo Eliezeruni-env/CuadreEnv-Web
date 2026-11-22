@@ -85,13 +85,21 @@
                   <tr [class.table-active]="isSaleExpanded(sale.id)" class="master-row">
                     <td class="ps-3 text-center">
                       <button
-                        class="expand-btn"
+                        class="btn-expand-chevron"
                         [class.expanded]="isSaleExpanded(sale.id)"
                         type="button"
                         (click)="toggleDetail(sale)"
                         [title]="isSaleExpanded(sale.id) ? 'Colapsar detalle' : 'Expandir productos vendidos'"
                       >
-                        {{ isSaleExpanded(sale.id) ? '−' : '+' }}
+                        @if (isSaleExpanded(sale.id)) {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                          </svg>
+                        } @else {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                          </svg>
+                        }
                       </button>
                     </td>
                     <td>
