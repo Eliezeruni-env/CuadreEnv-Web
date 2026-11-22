@@ -41,13 +41,13 @@
 
         <!-- Quick Presets Pill Group -->
         <div class="btn-group preset-pill-group rounded-3 shadow-2xs" role="group">
-          <button type="button" class="btn" [class.active-preset]="selectedPreset() === 'today'" (click)="setPreset('today')">Hoy</button>
-          <button type="button" class="btn" [class.active-preset]="selectedPreset() === '7days'" (click)="setPreset('7days')">7 días</button>
-          <button type="button" class="btn" [class.active-preset]="selectedPreset() === 'thisMonth'" (click)="setPreset('thisMonth')">30 días</button>
+          <button type="button" class="btn" [class.active-preset]="selectedPreset() === 'today'" (click)="setPreset('today')" data-tooltip="Filtrar datos de hoy">Hoy</button>
+          <button type="button" class="btn" [class.active-preset]="selectedPreset() === '7days'" (click)="setPreset('7days')" data-tooltip="Filtrar últimos 7 días">7 días</button>
+          <button type="button" class="btn" [class.active-preset]="selectedPreset() === 'thisMonth'" (click)="setPreset('thisMonth')" data-tooltip="Filtrar últimos 30 días">30 días</button>
         </div>
 
         <!-- Refresh Button -->
-        <button type="button" class="btn btn-white border d-flex align-items-center justify-content-center p-2 rounded-3 shadow-2xs text-dark btn-reload-animated" title="Refrescar datos en vivo" (click)="loadDashboardData()">
+        <button type="button" class="btn btn-white border d-flex align-items-center justify-content-center p-2 rounded-3 shadow-2xs text-dark btn-reload-animated" data-tooltip="Refrescar métricas en vivo" (click)="loadDashboardData()">
           <svg cIcon name="cilReload" style="width: 16px; height: 16px;"></svg>
         </button>
       </div>
@@ -198,38 +198,38 @@
           <span class="fw-bold text-dark font-size-sm">Accesos rápidos:</span>
         </div>
 
-        <a *hasModule="'Sales'" routerLink="/pos" class="btn btn-dark text-white d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-semibold small text-decoration-none shadow-sm" style="background-color: #0f172a; border-color: #0f172a;">
+        <a *hasModule="'Sales'" routerLink="/pos" class="btn btn-dark text-white d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-semibold small text-decoration-none shadow-sm" style="background-color: #0f172a; border-color: #0f172a;" data-tooltip="Abrir punto de venta [F2]">
           <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           <span>Nueva venta</span>
           <span class="badge bg-white text-dark rounded-pill px-1.5 py-0.5 font-monospace" style="font-size: 0.65rem;">F2</span>
         </a>
 
-        <a *hasModule="'CashRegister'" routerLink="/cash-register" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs">
+        <a *hasModule="'CashRegister'" routerLink="/cash-register" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs" data-tooltip="Gestión de caja y turnos">
           <svg cIcon name="cilCalculator" style="width: 14px; height: 14px;" class="text-secondary"></svg>
           <span>Turno de caja</span>
         </a>
 
-        <a *hasModule="'Inventory'" routerLink="/inventory/entries" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs">
+        <a *hasModule="'Inventory'" routerLink="/inventory/entries" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs" data-tooltip="Registrar entradas de mercancía">
           <svg cIcon name="cilStorage" style="width: 14px; height: 14px;" class="text-secondary"></svg>
           <span>Entrada de mercancía</span>
         </a>
 
-        <a *hasModule="'Inventory'" routerLink="/products" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs">
+        <a *hasModule="'Inventory'" routerLink="/products" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs" data-tooltip="Ver catálogo de productos">
           <svg cIcon name="cilLayers" style="width: 14px; height: 14px;" class="text-secondary"></svg>
           <span>Productos</span>
         </a>
 
-        <a *hasModule="'Customers'" routerLink="/customers" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs">
+        <a *hasModule="'Customers'" routerLink="/customers" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs" data-tooltip="Directorio de clientes">
           <svg cIcon name="cilPeople" style="width: 14px; height: 14px;" class="text-secondary"></svg>
           <span>Clientes</span>
         </a>
 
-        <a *hasModule="'Receivables'" routerLink="/receivables" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs">
+        <a *hasModule="'Receivables'" routerLink="/receivables" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs" data-tooltip="Gestionar ventas por cobrar">
           <svg cIcon name="cilCreditCard" style="width: 14px; height: 14px;" class="text-secondary"></svg>
           <span>Cuentas por cobrar</span>
         </a>
 
-        <a *hasModule="'mobile-pos'" routerLink="/mobile" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs">
+        <a *hasModule="'mobile-pos'" routerLink="/mobile" class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 fw-medium small text-decoration-none shadow-2xs" data-tooltip="Punto de venta táctil para móviles">
           <svg cIcon name="cilMobile" style="width: 14px; height: 14px;" class="text-secondary"></svg>
           <span>POS móvil</span>
         </a>

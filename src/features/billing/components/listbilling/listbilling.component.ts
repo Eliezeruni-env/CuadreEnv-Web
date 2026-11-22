@@ -1,16 +1,13 @@
-import {
-  Component,
-  OnInit,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { BillingService } from '../../services/billing.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
-import { GenericFiltersComponent, BillingFilterValues } from '../generic-filters/generic-filters.component';
+import {
+  GenericFiltersComponent,
+  BillingFilterValues,
+} from '../generic-filters/generic-filters.component';
 import { KtPaginatorComponent } from '../kt-paginator/kt-paginator.component';
 import { SendInvoiceEmailModalComponent } from '../../../../app/shared/components/send-invoice-email-modal/send-invoice-email-modal.component';
 import { NcfAlertBannerComponent } from '../ncf-alert-banner/ncf-alert-banner.component';
@@ -82,13 +79,18 @@ export class ListbillingComponent implements OnInit {
 
     const origin = this.selectedOriginFilter();
     if (origin !== 'all') {
-      list = list.filter((b) => (b.billingTypeName || '').toLowerCase().includes(origin.toLowerCase()));
+      list = list.filter((b) =>
+        (b.billingTypeName || '').toLowerCase().includes(origin.toLowerCase()),
+      );
     }
 
     const status = this.selectedStatusFilter();
     if (status !== 'all') {
       if (status === 'pagada') {
-        list = list.filter((b) => b.statusId === 1 || (b.statusName || '').toLowerCase() === 'pagada');
+        list = list.filter(
+          (b) =>
+            b.statusId === 1 || (b.statusName || '').toLowerCase() === 'pagada',
+        );
       }
     }
 
@@ -264,46 +266,77 @@ export class ListbillingComponent implements OnInit {
   }
 
   async openReceiptModal(billing: Billing): Promise<void> {
-    if ((!billing.productDetails || billing.productDetails.length === 0) && (!billing.details || billing.details.length === 0) && billing.id) {
+    if (
+      (!billing.productDetails || billing.productDetails.length === 0) &&
+      (!billing.details || billing.details.length === 0) &&
+      billing.id
+    ) {
       try {
         const res = await this.billingService.getBillingById(billing.id);
         if (res?.success && res.data) {
           const items = res.data.productDetails || res.data.details || [];
           billing.productDetails = items;
           billing.details = items;
-          if (res.data.amountSubTotal) billing.amountSubTotal = res.data.amountSubTotal;
+          if (res.data.amountSubTotal)
+            billing.amountSubTotal = res.data.amountSubTotal;
           if (res.data.amountItbis) billing.amountItbis = res.data.amountItbis;
           if (res.data.amountTotal) billing.amountTotal = res.data.amountTotal;
         }
       } catch {}
     }
     const rawItems = billing.productDetails || billing.details || [];
-    const code = billing.billingNumber || (billing.ncf ? billing.ncf : `#${billing.id}`);
+    const code =
+      billing.billingNumber || (billing.ncf ? billing.ncf : `#${billing.id}`);
     this.selectedReceiptData = {
       movementCode: code,
       movementType: 'sale',
-      statusLabel: billing.statusName || (billing.statusId === 1 ? 'Pagada' : billing.statusId === 3 ? 'Anulada' : 'Emitida'),
+      statusLabel:
+        billing.statusName ||
+        (billing.statusId === 1
+          ? 'Pagada'
+          : billing.statusId === 3
+            ? 'Anulada'
+            : 'Emitida'),
       title: 'Comprobante de venta y facturación',
       firstColumnHeader: 'COMPROBANTE',
       warehouseName: billing.clientName || 'Consumidor Final',
       secondColumnHeader: 'CLIENTE',
-      warehouseLocation: billing.clientRnc ? billing.clientRnc : 'ID Cliente: General',
-      conceptName: billing.billingTypeName || (billing.billingTypeId === 1 ? 'Facturación directa' : 'POS - Caja 54'),
+      warehouseLocation: billing.clientRnc
+        ? billing.clientRnc
+        : 'ID Cliente: General',
+      conceptName:
+        billing.billingTypeName ||
+        (billing.billingTypeId === 1 ? 'Facturación directa' : 'POS - Caja 54'),
       thirdColumnHeader: 'ORIGEN / CONCEPTO',
-      conceptDescription: billing.ncf ? `NCF: ${billing.ncf}` : 'Venta al contado',
+      conceptDescription: billing.ncf
+        ? `NCF: ${billing.ncf}`
+        : 'Venta al contado',
       fourthColumnHeader: 'FECHA Y HORA',
-      date: new Date(billing.creationDate || Date.now()).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-      time: new Date(billing.creationDate || Date.now()).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      date: new Date(billing.creationDate || Date.now()).toLocaleDateString(
+        'es-DO',
+        { day: '2-digit', month: '2-digit', year: 'numeric' },
+      ),
+      time: new Date(billing.creationDate || Date.now()).toLocaleTimeString(
+        'es-DO',
+        { hour: '2-digit', minute: '2-digit', hour12: true },
+      ),
       itemsSectionTitle: 'Artículos vendidos',
       items: rawItems.map((p: any) => ({
-        code: p.barCode || p.barcode || (p.productId ? `PROD-${p.productId}` : '5449000000996'),
+        code:
+          p.barCode ||
+          p.barcode ||
+          (p.productId ? `PROD-${p.productId}` : '5449000000996'),
         name: p.productName || p.description || 'Coca-Cola Original',
         description: p.description || 'COCA-COLA SERVICES SA/NV',
         quantity: Number(p.quantity) || 1,
         unitCost: Number(p.price || p.unitCost) || 0,
-        totalCost: Number(p.totalAmount || (p.quantity * (p.price || 0))) || 0,
+        totalCost: Number(p.totalAmount || p.quantity * (p.price || 0)) || 0,
       })),
-      totalUnits: rawItems.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 1), 0) || 1,
+      totalUnits:
+        rawItems.reduce(
+          (acc: number, item: any) => acc + (Number(item.quantity) || 1),
+          0,
+        ) || 1,
       totalCost: Number(billing.amountTotal) || 0,
       footerNote: 'Venta aplicada al inventario y arqueo de caja',
     };
@@ -321,14 +354,20 @@ export class ListbillingComponent implements OnInit {
 
   async toggleDetail(billing: Billing) {
     billing.showDetail = !billing.showDetail;
-    if (billing.showDetail && (!billing.productDetails || billing.productDetails.length === 0) && (!billing.details || billing.details.length === 0) && billing.id) {
+    if (
+      billing.showDetail &&
+      (!billing.productDetails || billing.productDetails.length === 0) &&
+      (!billing.details || billing.details.length === 0) &&
+      billing.id
+    ) {
       try {
         const res = await this.billingService.getBillingById(billing.id);
         if (res?.success && res.data) {
           const items = res.data.productDetails || res.data.details || [];
           billing.productDetails = items;
           billing.details = items;
-          if (res.data.amountSubTotal) billing.amountSubTotal = res.data.amountSubTotal;
+          if (res.data.amountSubTotal)
+            billing.amountSubTotal = res.data.amountSubTotal;
           if (res.data.amountItbis) billing.amountItbis = res.data.amountItbis;
           if (res.data.amountTotal) billing.amountTotal = res.data.amountTotal;
         }
@@ -343,12 +382,21 @@ export class ListbillingComponent implements OnInit {
   }
 
   createCreditNote(billing: Billing) {
-    if (billing.hasAFullCreditNote || billing.statusId === 3 || (billing as any).notes?.includes('DEVUELTA')) {
-      this.notificationService.warning('Esta factura ya tiene una nota de crédito total aplicada.');
+    if (
+      billing.hasAFullCreditNote ||
+      billing.statusId === 3 ||
+      (billing as any).notes?.includes('DEVUELTA')
+    ) {
+      this.notificationService.warning(
+        'Esta factura ya tiene una nota de crédito total aplicada.',
+      );
       return;
     }
     this.router.navigate(['/credit-notes'], {
-      queryParams: { billingId: billing.id, billingNumber: billing.billingNumber },
+      queryParams: {
+        billingId: billing.id,
+        billingNumber: billing.billingNumber,
+      },
     });
   }
 
@@ -362,7 +410,9 @@ export class ListbillingComponent implements OnInit {
 
   copyNcf(ncf?: string) {
     if (!ncf) {
-      this.notificationService.warning('Esta factura no tiene un NCF asignado.');
+      this.notificationService.warning(
+        'Esta factura no tiene un NCF asignado.',
+      );
       return;
     }
     navigator.clipboard.writeText(ncf);

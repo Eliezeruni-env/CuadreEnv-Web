@@ -18,7 +18,7 @@
       <p class="page-subtitle">Gestiona los saldos pendientes y el seguimiento de tus clientes.</p>
     </div>
     <div>
-      <button class="btn btn-primary-custom d-flex align-items-center gap-2" (click)="openCreateModal()">
+      <button class="btn btn-primary-custom d-flex align-items-center gap-2" (click)="openCreateModal()" data-tooltip="Crear una nueva cuenta o venta por cobrar">
         <span class="fs-5 lh-1">+</span>
         <span>Nueva venta por cobrar</span>
       </button>
@@ -171,7 +171,7 @@
         class="btn-view-toggle"
         [class.active]="viewMode() === 'table'"
         (click)="viewMode.set('table')"
-        title="Vista en tabla"
+        data-tooltip="Vista en tabla"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="8" y1="6" x2="21" y2="6"></line>
@@ -186,7 +186,7 @@
         class="btn-view-toggle"
         [class.active]="viewMode() === 'cards'"
         (click)="viewMode.set('cards')"
-        title="Vista en tarjetas"
+        data-tooltip="Vista en tarjetas"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="7" height="7"></rect>
@@ -298,7 +298,7 @@
                 <!-- Acciones -->
                 <td class="text-end pe-4">
                   <div class="d-inline-flex align-items-center gap-2 justify-content-end">
-                    <button class="btn btn-link-detail" (click)="openDetailModal(item)">
+                    <button class="btn btn-link-detail" (click)="openDetailModal(item)" data-tooltip="Ver detalle y movimientos de la cuenta">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                         <circle cx="12" cy="7" r="3"></circle>
@@ -306,14 +306,14 @@
                       <span>Ver detalle</span>
                     </button>
 
-                    <button class="btn btn-whatsapp-reminder" (click)="sendWhatsAppReminder(item)">
+                    <button class="btn btn-whatsapp-reminder" (click)="sendWhatsAppReminder(item)" data-tooltip="Enviar recordatorio automático de cobro vía WhatsApp">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
                       </svg>
                       <span>Recordar por WhatsApp</span>
                     </button>
 
-                    <button class="btn btn-icon-more" (click)="openDetailModal(item)" title="Más opciones">
+                    <button class="btn btn-icon-more" (click)="openDetailModal(item)" data-tooltip="Más opciones de gestión">
                       <span>···</span>
                     </button>
                   </div>

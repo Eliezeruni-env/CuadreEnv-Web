@@ -19,7 +19,7 @@ export interface CreditNote {
   amountItbis: number;
   amountTotal: number;
   creditNoteDetails: ProductDetails[];
-  refundMethod?: 'CASH' | 'CREDIT' | 'BALANCE';
+  refundMethod?: 'CASH' | 'TRANSFER' | 'CREDIT' | 'BALANCE';
   observations?: string;
   creationDate?: string;
 }

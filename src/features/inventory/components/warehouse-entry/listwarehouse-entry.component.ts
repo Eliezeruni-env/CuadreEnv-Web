@@ -13,7 +13,12 @@ import type { WarehouseEntry } from '../../../../app/models/movement';
 @Component({
   selector: 'app-listwarehouse-entry',
   standalone: true,
-  imports: [CommonModule, FormsModule, KtPaginatorComponent, WarehouseMovementReceiptModalComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    KtPaginatorComponent,
+    WarehouseMovementReceiptModalComponent,
+  ],
   templateUrl: './listwarehouse-entry.component.html',
   styleUrls: ['./listwarehouse-entry.component.scss'],
 })
@@ -130,18 +135,39 @@ export class ListwarehouseEntryComponent implements OnInit {
       thirdColumnHeader: 'CONCEPTO',
       conceptDescription: entry.commentary || 'Recepción de stock',
       fourthColumnHeader: 'FECHA Y HORA',
-      date: new Date(entry.createDate || (entry as any).createdAt || Date.now()).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-      time: new Date(entry.createDate || (entry as any).createdAt || Date.now()).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      date: new Date(
+        entry.createDate || (entry as any).createdAt || Date.now(),
+      ).toLocaleDateString('es-DO', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }),
+      time: new Date(
+        entry.createDate || (entry as any).createdAt || Date.now(),
+      ).toLocaleTimeString('es-DO', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      }),
       itemsSectionTitle: 'Productos ingresados',
       items: rawItems.map((p: any) => ({
-        code: p.productCode || p.barcode || (p.productId ? `PROD-${p.productId}` : 'N/A'),
+        code:
+          p.productCode ||
+          p.barcode ||
+          (p.productId ? `PROD-${p.productId}` : 'N/A'),
         name: p.productName || p.description || 'Producto',
         description: p.description || '',
         quantity: Number(p.quantity) || 1,
         unitCost: Number(p.cost) || 0,
         totalCost: (Number(p.cost) || 0) * (Number(p.quantity) || 1),
       })),
-      totalUnits: Number(entry.totalQuantity) || rawItems.reduce((s: number, i: any) => s + (Number(i.quantity) || 0), 0) || 1,
+      totalUnits:
+        Number(entry.totalQuantity) ||
+        rawItems.reduce(
+          (s: number, i: any) => s + (Number(i.quantity) || 0),
+          0,
+        ) ||
+        1,
       totalCost: Number(entry.totalCost) || 0,
       footerNote: 'Movimiento aplicado al inventario',
     };

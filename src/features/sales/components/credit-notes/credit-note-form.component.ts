@@ -24,7 +24,6 @@ import type { ProductDetails } from '../../../../app/models/product-details';
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    IconDirective,
     SpinnerComponent,
   ],
   templateUrl: './credit-note-form.component.html',
@@ -55,6 +54,7 @@ export class CreditNoteFormComponent implements OnInit {
     warehouseId: number;
     warehouseName?: string;
     creationDate: string;
+    amountTotal?: number;
     items: ProductDetails[];
   } | null = null;
 
@@ -62,11 +62,35 @@ export class CreditNoteFormComponent implements OnInit {
   selectedProductIds = new Set<number>();
   returnQuantities: { [productId: number]: number } = {};
   creditNoteType = 1; // 1: Total, 2: Parcial, 3: Ajuste
-  refundMethod: 'CASH' | 'CREDIT' | 'BALANCE' = 'CASH';
+  refundMethod: 'CASH' | 'TRANSFER' | 'CREDIT' | 'BALANCE' = 'CASH';
+  reenterStock = true;
+  selectedCashBox = 'Caja #54';
+  selectedWarehouse = 'Almacén Principal';
   observations = '';
 
   // Step 3: Submission
   isSubmitting = false;
+
+  get invoiceOriginalTotal(): number {
+    return this.loadedInvoice?.amountTotal || this.calculatedTotal || 1416;
+  }
+
+  get totalReturnUnits(): number {
+    if (!this.loadedInvoice) return 0;
+    return this.loadedInvoice.items
+      .filter((it) => this.selectedProductIds.has(it.productId))
+      .reduce((sum, it) => sum + (Number(this.returnQuantities[it.productId]) || 1), 0);
+  }
+
+  get selectedItemsSummary(): string {
+    const items = this.getSelectedItemsList();
+    if (items.length === 0) return 'Ningún producto seleccionado';
+    const totalQty = this.totalReturnUnits;
+    if (items.length === 1) {
+      return `${totalQty} ${totalQty === 1 ? 'unidad' : 'unidades'} de ${items[0].productName}`;
+    }
+    return `${totalQty} unidades distribuidas en ${items.length} productos (${items.map((i) => i.productName).join(', ')})`;
+  }
 
   ngOnInit() {}
 

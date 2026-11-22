@@ -241,3 +241,289 @@
   }
 }
 
+// ============================================================================
+// UNIVERSAL LUXURY TOOLTIP ENGINE (Informativos y Elegantes)
+// ============================================================================
+[data-tooltip] {
+  position: relative;
+
+  &::before,
+  &::after {
+    position: absolute;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+                visibility 0.18s;
+    z-index: 1090;
+  }
+
+  // Tooltip content bubble
+  &::after {
+    content: attr(data-tooltip);
+    background: #0F172A;
+    color: #F8FAFC;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 11.5px;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: 0.015em;
+    padding: 6px 11px;
+    border-radius: 7px;
+    white-space: nowrap;
+    box-shadow: 0 10px 25px -3px rgba(15, 23, 42, 0.3), 0 4px 6px -2px rgba(15, 23, 42, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+  }
+
+  // Caret arrow
+  &::before {
+    content: '';
+    border: 5px solid transparent;
+  }
+
+  // Default / TOP
+  &:not([data-tooltip-pos])::after,
+  &[data-tooltip-pos="top"]::after {
+    bottom: calc(100% + 7px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+  }
+  &:not([data-tooltip-pos])::before,
+  &[data-tooltip-pos="top"]::before {
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    border-top-color: #0F172A;
+  }
+
+  // BOTTOM
+  &[data-tooltip-pos="bottom"]::after {
+    top: calc(100% + 7px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-4px);
+  }
+  &[data-tooltip-pos="bottom"]::before {
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-4px);
+    border-bottom-color: #0F172A;
+  }
+
+  // LEFT
+  &[data-tooltip-pos="left"]::after {
+    right: calc(100% + 7px);
+    top: 50%;
+    transform: translateY(-50%) translateX(4px);
+  }
+  &[data-tooltip-pos="left"]::before {
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%) translateX(4px);
+    border-left-color: #0F172A;
+  }
+
+  // RIGHT
+  &[data-tooltip-pos="right"]::after {
+    left: calc(100% + 7px);
+    top: 50%;
+    transform: translateY(-50%) translateX(-4px);
+  }
+  &[data-tooltip-pos="right"]::before {
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%) translateX(-4px);
+    border-right-color: #0F172A;
+  }
+
+  // Hover and focus
+  &:hover::before,
+  &:hover::after,
+  &:focus-visible::before,
+  &:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  &:hover:not([data-tooltip-pos])::after,
+  &:hover[data-tooltip-pos="top"]::after,
+  &:focus-visible:not([data-tooltip-pos])::after,
+  &:focus-visible[data-tooltip-pos="top"]::after {
+    transform: translateX(-50%) translateY(0);
+  }
+  &:hover:not([data-tooltip-pos])::before,
+  &:hover[data-tooltip-pos="top"]::before,
+  &:focus-visible:not([data-tooltip-pos])::before,
+  &:focus-visible[data-tooltip-pos="top"]::before {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  &:hover[data-tooltip-pos="bottom"]::after,
+  &:focus-visible[data-tooltip-pos="bottom"]::after {
+    transform: translateX(-50%) translateY(0);
+  }
+  &:hover[data-tooltip-pos="bottom"]::before,
+  &:focus-visible[data-tooltip-pos="bottom"]::before {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  &:hover[data-tooltip-pos="left"]::after,
+  &:focus-visible[data-tooltip-pos="left"]::after {
+    transform: translateY(-50%) translateX(0);
+  }
+  &:hover[data-tooltip-pos="left"]::before,
+  &:focus-visible[data-tooltip-pos="left"]::before {
+    transform: translateY(-50%) translateX(0);
+  }
+
+  &:hover[data-tooltip-pos="right"]::after,
+  &:focus-visible[data-tooltip-pos="right"]::after {
+    transform: translateY(-50%) translateX(0);
+  }
+  &:hover[data-tooltip-pos="right"]::before,
+  &:focus-visible[data-tooltip-pos="right"]::before {
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+// ============================================================================
+// DROPDOWNS Y SELECTS HERMOSOS (GLOBAL LUXURY DROPDOWNS & MENUS)
+// ============================================================================
+select.form-select,
+.custom-select,
+select.filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #FFFFFF;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  background-size: 13px 13px;
+  padding: 8px 34px 8px 13px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #1E293B;
+  border: 1px solid #CBD5E1;
+  border-radius: 9px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+
+  &:hover {
+    border-color: #94A3B8;
+    background-color: #FAFAFC;
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.06);
+  }
+
+  &:focus {
+    border-color: #4F46E5;
+    background-color: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12), 0 1px 2px rgba(0, 0, 0, 0.05);
+    outline: none;
+  }
+
+  &:disabled {
+    background-color: #F8FAFC;
+    color: #94A3B8;
+    border-color: #E2E8F0;
+    cursor: not-allowed;
+    opacity: 0.75;
+  }
+
+  option {
+    padding: 8px 12px;
+    background-color: #FFFFFF;
+    color: #1E293B;
+    font-size: 13.5px;
+    font-weight: 500;
+
+    &:checked {
+      background-color: #EEF2FF;
+      color: #4F46E5;
+      font-weight: 600;
+    }
+  }
+
+  &.form-select-sm {
+    padding: 5px 28px 5px 10px;
+    font-size: 12.5px;
+    border-radius: 7px;
+    background-position: right 8px center;
+    background-size: 11px 11px;
+  }
+
+  &.form-select-lg {
+    padding: 11px 40px 11px 16px;
+    font-size: 15px;
+    border-radius: 11px;
+    background-position: right 14px center;
+    background-size: 15px 15px;
+  }
+}
+
+// Floating Dropdown Menus (Bootstrap / CoreUI dropdown-menu)
+.dropdown-menu {
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 6px;
+  background: #FFFFFF;
+  box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.14), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+  min-width: 180px;
+  animation: dropdownFadeIn 0.15s ease-out;
+
+  .dropdown-item {
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+    border-radius: 8px;
+    padding: 7px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.12s ease;
+
+    &:hover, &:focus {
+      background-color: #F1F5F9;
+      color: #0F172A;
+    }
+
+    &.active, &:active {
+      background-color: #EEF2FF;
+      color: #4F46E5;
+      font-weight: 600;
+    }
+
+    &.text-danger:hover {
+      background-color: #FEF2F2;
+      color: #DC2626;
+    }
+  }
+
+  .dropdown-divider {
+    border-top: 1px solid #F1F5F9;
+    margin: 5px 0;
+  }
+
+  .dropdown-header {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94A3B8;
+    padding: 6px 12px 4px;
+  }
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

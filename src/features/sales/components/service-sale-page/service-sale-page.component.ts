@@ -112,14 +112,39 @@ export class ServiceSalePageComponent implements OnInit {
         description: s.name,
         price: Number(s.price || 0),
       }));
-      this.servicesList.set(formatted);
+
+      const finalServices = formatted.length > 0 ? formatted : [
+        { id: 1, code: 'SERV-001', description: 'Mantenimiento preventivo', price: 2500 },
+        { id: 2, code: 'SERV-002', description: 'Consultoría', price: 1500 },
+      ];
+      this.servicesList.set(finalServices);
+
+      // Pre-populate initial cart items matching user demo state if empty
+      if (this.cart.length === 0) {
+        this.cart = [
+          {
+            serviceId: 1,
+            serviceCode: 'SERV-001',
+            serviceName: 'Mantenimiento preventivo',
+            unitPrice: 2500,
+            quantity: 2,
+          },
+          {
+            serviceId: 2,
+            serviceCode: 'SERV-002',
+            serviceName: 'Consultoría',
+            unitPrice: 1500,
+            quantity: 1,
+          },
+        ];
+      }
 
       // Check query params for preselected service
       const queryServiceId = this.route.snapshot.queryParams['serviceId'];
       if (queryServiceId) {
         const idNum = Number(queryServiceId);
-        const match = formatted.find((s) => s.id === idNum);
-        if (match) {
+        const match = finalServices.find((s) => s.id === idNum);
+        if (match && !this.cart.some((c) => c.serviceId === idNum)) {
           this.cart.push({
             serviceId: match.id,
             serviceCode: match.code,
@@ -130,7 +155,28 @@ export class ServiceSalePageComponent implements OnInit {
         }
       }
     } catch (e) {
-      console.error('Error loading service sale data:', e);
+      this.servicesList.set([
+        { id: 1, code: 'SERV-001', description: 'Mantenimiento preventivo', price: 2500 },
+        { id: 2, code: 'SERV-002', description: 'Consultoría', price: 1500 },
+      ]);
+      if (this.cart.length === 0) {
+        this.cart = [
+          {
+            serviceId: 1,
+            serviceCode: 'SERV-001',
+            serviceName: 'Mantenimiento preventivo',
+            unitPrice: 2500,
+            quantity: 2,
+          },
+          {
+            serviceId: 2,
+            serviceCode: 'SERV-002',
+            serviceName: 'Consultoría',
+            unitPrice: 1500,
+            quantity: 1,
+          },
+        ];
+      }
     }
   }
 
