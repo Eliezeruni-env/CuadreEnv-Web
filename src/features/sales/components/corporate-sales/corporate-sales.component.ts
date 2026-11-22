@@ -1,6 +1,12 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import {
+  FormsModule,
+  ReactiveFormsModule,
+  FormBuilder,
+  FormGroup,
+  Validators,
+} from '@angular/forms';
 import { CustomerService } from '../../../customers/services/customer.service';
 import { SaleService } from '../../services/sale.service';
 import { ProductService } from '../../../products/services/product.service';
@@ -66,7 +72,9 @@ export class CorporateSalesComponent implements OnInit {
   orderWarehouse = signal<string>('Almacén Principal');
   orderIssueDate = signal<string>('2026-01-26');
   orderDueDate = signal<string>('2026-02-25');
-  orderDeliveryNotes = signal<string>('Entregar en andén 3 de recepción, horario matutino.');
+  orderDeliveryNotes = signal<string>(
+    'Entregar en andén 3 de recepción, horario matutino.',
+  );
   productSearchInput = signal<string>('');
 
   orderItems = signal<B2BOrderItem[]>([
@@ -95,15 +103,21 @@ export class CorporateSalesComponent implements OnInit {
   clientForm: FormGroup;
 
   readonly totalCreditAssigned = computed(() =>
-    this.corporateClients().reduce((sum, c) => sum + (c.creditLimit || 0), 0)
+    this.corporateClients().reduce((sum, c) => sum + (c.creditLimit || 0), 0),
   );
 
   readonly totalReceivableBalance = computed(() =>
-    this.corporateClients().reduce((sum, c) => sum + (c.currentBalance || 0), 0)
+    this.corporateClients().reduce(
+      (sum, c) => sum + (c.currentBalance || 0),
+      0,
+    ),
   );
 
   readonly totalAvailableCredit = computed(() =>
-    this.corporateClients().reduce((sum, c) => sum + (c.availableCredit || 0), 0)
+    this.corporateClients().reduce(
+      (sum, c) => sum + (c.availableCredit || 0),
+      0,
+    ),
   );
 
   readonly totalCompaniesCount = computed(() => this.corporateClients().length);
@@ -134,15 +148,17 @@ export class CorporateSalesComponent implements OnInit {
 
   // B2B Order Computeds
   readonly orderSubtotalGross = computed(() =>
-    this.orderItems().reduce((acc, it) => acc + it.subtotal, 0)
+    this.orderItems().reduce((acc, it) => acc + it.subtotal, 0),
   );
 
   readonly orderItbisTotal = computed(() =>
-    this.orderItems().reduce((acc, it) => acc + it.itbis, 0)
+    this.orderItems().reduce((acc, it) => acc + it.itbis, 0),
   );
 
   readonly orderTotalAmount = computed(
-    () => Math.round((this.orderSubtotalGross() + this.orderItbisTotal()) * 100) / 100
+    () =>
+      Math.round((this.orderSubtotalGross() + this.orderItbisTotal()) * 100) /
+      100,
   );
 
   readonly postOrderPendingBalance = computed(() => {
@@ -160,7 +176,10 @@ export class CorporateSalesComponent implements OnInit {
   readonly postOrderCreditPercentage = computed(() => {
     const client = this.selectedClientForSale();
     if (!client || client.creditLimit <= 0) return 0;
-    return Math.min(100, Math.round((this.postOrderPendingBalance() / client.creditLimit) * 100));
+    return Math.min(
+      100,
+      Math.round((this.postOrderPendingBalance() / client.creditLimit) * 100),
+    );
   });
 
   readonly isCreditAvailableSufficient = computed(() => {
@@ -299,13 +318,17 @@ export class CorporateSalesComponent implements OnInit {
     const current = [...this.corporateClients()];
     current.unshift(newClient);
     this.saveCorporateClients(current);
-    this.notificationService.success(`Cliente corporativo "${newClient.companyName}" registrado exitosamente.`);
+    this.notificationService.success(
+      `Cliente corporativo "${newClient.companyName}" registrado exitosamente.`,
+    );
     this.isClientModalOpen.set(false);
   }
 
   openNewOrder(client: CorporateClient): void {
     this.selectedClientForSale.set(client);
-    this.orderPoNumber.set(`OC-CD-2026-0${Math.floor(100 + Math.random() * 900)}`);
+    this.orderPoNumber.set(
+      `OC-CD-2026-0${Math.floor(100 + Math.random() * 900)}`,
+    );
     this.orderItems.set([
       {
         productId: 1,
@@ -354,7 +377,9 @@ export class CorporateSalesComponent implements OnInit {
     if (!term || !term.trim()) return;
     const q = term.trim().toLowerCase();
     const p = this.products().find(
-      (item) => item.description?.toLowerCase().includes(q) || item.barcode?.toLowerCase().includes(q)
+      (item) =>
+        item.description?.toLowerCase().includes(q) ||
+        item.barcode?.toLowerCase().includes(q),
     );
     if (p) {
       const price = Number((p as any).price || (p as any).priceList || 100);
@@ -386,7 +411,7 @@ export class CorporateSalesComponent implements OnInit {
 
     if (total > client.availableCredit) {
       this.notificationService.error(
-        `Límite de crédito excedido: La orden (RD$ ${total.toFixed(2)}) supera el crédito disponible de la empresa (RD$ ${client.availableCredit.toFixed(2)}).`
+        `Límite de crédito excedido: La orden (RD$ ${total.toFixed(2)}) supera el crédito disponible de la empresa (RD$ ${client.availableCredit.toFixed(2)}).`,
       );
       return;
     }
@@ -419,17 +444,22 @@ export class CorporateSalesComponent implements OnInit {
       const idx = clients.findIndex((c) => c.id === client.id);
       if (idx !== -1) {
         clients[idx].currentBalance += total;
-        clients[idx].availableCredit = Math.max(0, clients[idx].creditLimit - clients[idx].currentBalance);
+        clients[idx].availableCredit = Math.max(
+          0,
+          clients[idx].creditLimit - clients[idx].currentBalance,
+        );
         clients[idx].activeOrdersCount += 1;
         this.saveCorporateClients(clients);
       }
 
       this.notificationService.success(
-        `¡Orden comercial B2B aprobada y facturada con NCF B01 para ${client.companyName}! Stock rebajado exitosamente.`
+        `¡Orden comercial B2B aprobada y facturada con NCF B01 para ${client.companyName}! Stock rebajado exitosamente.`,
       );
       this.viewMode.set('list');
     } catch {
-      this.notificationService.error('Error al procesar la orden comercial B2B.');
+      this.notificationService.error(
+        'Error al procesar la orden comercial B2B.',
+      );
     }
   }
 
@@ -446,17 +476,23 @@ export class CorporateSalesComponent implements OnInit {
     }));
     const csvContent =
       'data:text/csv;charset=utf-8,' +
-      ['Empresa,RNC,Contacto,Plazo,Limite,Saldo Pendiente,Credito Disponible,Estado']
+      [
+        'Empresa,RNC,Contacto,Plazo,Limite,Saldo Pendiente,Credito Disponible,Estado',
+      ]
         .concat(
-          rows.map((r) =>
-            `"${r.Empresa}","${r.RNC}","${r.Contacto}","${r.Plazo}",${r.Limite},${r.SaldoPendiente},${r.CreditoDisponible},"${r.Estado}"`
-          )
+          rows.map(
+            (r) =>
+              `"${r.Empresa}","${r.RNC}","${r.Contacto}","${r.Plazo}",${r.Limite},${r.SaldoPendiente},${r.CreditoDisponible},"${r.Estado}"`,
+          ),
         )
         .join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `clientes_corporativos_b2b_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute(
+      'download',
+      `clientes_corporativos_b2b_${new Date().toISOString().slice(0, 10)}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
