@@ -9,13 +9,7 @@ import { applyFieldErrorsToForm } from '../../../cuadreEnv/utils/api-error-mappe
 import type { PaymentDto, SaleResponseDto, PurchaseDto } from '../../../cuadreEnv/types/api';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import {
-  ButtonDirective,
-  ColComponent,
-  FormControlDirective,
-  FormDirective,
-  RowComponent,
-  SpinnerComponent,
-  FormSelectDirective
+  SpinnerComponent
 } from '@coreui/angular';
 
 @Component({
@@ -25,15 +19,10 @@ import {
     CommonModule,
     ReactiveFormsModule,
     FormsModule,
-    ButtonDirective,
-    FormControlDirective,
-    FormDirective,
-    RowComponent,
-    ColComponent,
-    SpinnerComponent,
-    FormSelectDirective
+    SpinnerComponent
   ],
   templateUrl: './payment-modal.component.html',
+  styleUrls: ['./payment-modal.component.scss'],
 })
 export class PaymentModalComponent implements OnInit {
   readonly translationService = inject(TranslationService);
@@ -53,7 +42,12 @@ export class PaymentModalComponent implements OnInit {
   isLoading = signal<boolean>(false);
 
   // Form Fields for specific methods
-  selectedMethod = signal<string>('Transferencia Bancaria');
+  selectedMethod = signal<string>('Transferencia bancaria');
+  paymentDate = signal<string>(new Date().toISOString().split('T')[0]);
+  selectedSupplierName = signal<string>('Distribuidora del Caribe');
+  selectedPurchaseOrderCode = signal<string>('OC-00045');
+  selectedPurchaseTotal = signal<number>(15000);
+  selectedPurchasePaid = signal<number>(5000);
 
   // Card fields
   cardType = signal<string>('Visa');
@@ -61,9 +55,9 @@ export class PaymentModalComponent implements OnInit {
   cardAuthVoucher = signal<string>('');
 
   // Transfer fields
-  transferSenderBank = signal<string>('Banco Popular Dominicano');
+  transferSenderBank = signal<string>('Banco Popular');
   transferReceiverBank = signal<string>('Banco BHD');
-  transferReference = signal<string>('');
+  transferReference = signal<string>('REF-884129');
 
   // Check fields
   checkBank = signal<string>('Banco de Reservas');
@@ -71,6 +65,15 @@ export class PaymentModalComponent implements OnInit {
   checkDate = signal<string>(new Date().toISOString().split('T')[0]);
 
   paymentForm: FormGroup;
+
+  get currentPendingBalance(): number {
+    return Math.max(0, this.selectedPurchaseTotal() - this.selectedPurchasePaid());
+  }
+
+  get balanceAfterPayment(): number {
+    const amount = Number(this.paymentForm.get('amount')?.value) || 0;
+    return Math.max(0, this.currentPendingBalance - amount);
+  }
 
   constructor() {
     this.paymentForm = this.fb.group({
@@ -140,18 +143,23 @@ export class PaymentModalComponent implements OnInit {
 
   openCreate(defaultPurchaseId?: number) {
     this.paymentType.set('purchase');
-    this.selectedMethod.set('Transferencia Bancaria');
+    this.selectedMethod.set('Transferencia bancaria');
     this.cardLastFour.set('');
     this.cardAuthVoucher.set('');
-    this.transferReference.set('');
-    this.checkNumber.set('');
+    this.transferReference.set('REF-884129');
+    this.transferSenderBank.set('Banco Popular');
+    this.transferReceiverBank.set('Banco BHD');
+    this.selectedPurchaseTotal.set(15000);
+    this.selectedPurchasePaid.set(5000);
+    this.selectedSupplierName.set('Distribuidora del Caribe');
+    this.selectedPurchaseOrderCode.set('OC-00045');
 
     this.paymentForm.reset({
       saleId: '',
-      purchaseId: defaultPurchaseId ? String(defaultPurchaseId) : '',
-      amount: 0,
-      method: 'Transferencia Bancaria',
-      reference: '',
+      purchaseId: defaultPurchaseId ? String(defaultPurchaseId) : '45',
+      amount: 4000,
+      method: 'Transferencia bancaria',
+      reference: 'REF-884129',
       notes: '',
     });
 

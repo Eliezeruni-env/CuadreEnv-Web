@@ -11,6 +11,87 @@
   max-height: 92vh;
 }
 
+.supplier-header-icon-box {
+  background: #EFF6FF;
+  border: 1px solid #DBEAFE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-navy {
+  background-color: #1E293B;
+  color: #FFFFFF;
+  border: 1px solid #1E293B;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #0F172A;
+    border-color: #0F172A;
+    color: #FFFFFF;
+  }
+
+  &:disabled {
+    background-color: #94A3B8;
+    border-color: #94A3B8;
+    color: #FFFFFF;
+    opacity: 0.7;
+  }
+}
+
+.comp-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 9px;
+  background: #FFFFFF;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  transition: all 0.15s ease;
+  user-select: none;
+
+  input[type="radio"] {
+    margin-right: 8px;
+    accent-color: #2563EB;
+  }
+
+  &:hover {
+    background: #F8FAFC;
+    border-color: #94A3B8;
+  }
+
+  &.active {
+    border-color: #3B82F6;
+    background: #EFF6FF;
+    color: #1D4ED8;
+  }
+}
+
+.step-num-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #EEF2FF;
+  color: #4F46E5;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.shadow-2xs {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
 .supplier-modal-header {
   color: #fff;
   background: linear-gradient(135deg, #1e293b 0%, #334155 100%);

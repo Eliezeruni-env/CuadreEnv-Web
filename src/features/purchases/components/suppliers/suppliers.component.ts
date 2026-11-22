@@ -74,6 +74,9 @@ export class SuppliersComponent implements OnInit {
   selectedSupplierId = signal<number | null>(null);
   selectedSupplierDetail = signal<SupplierItem | null>(null);
 
+  supplierType = signal<'EMPRESA' | 'PERSONA'>('EMPRESA');
+  isAdditionalContactsExpanded = signal<boolean>(true);
+
   // Dynamic additional contacts in current form
   additionalContacts = signal<SupplierContact[]>([]);
 
@@ -166,7 +169,17 @@ export class SuppliersComponent implements OnInit {
   openCreateModal() {
     this.isEditMode.set(false);
     this.selectedSupplierId.set(null);
-    this.additionalContacts.set([]);
+    this.supplierType.set('EMPRESA');
+    this.isAdditionalContactsExpanded.set(true);
+    this.additionalContacts.set([
+      {
+        id: Date.now(),
+        name: 'Maria Gómez',
+        role: 'Representante de ventas',
+        email: 'maria.gomez@proveedor.com',
+        phone: '809-555-0202',
+      },
+    ]);
     this.supplierForm.reset({
       name: '',
       rnc: '',
