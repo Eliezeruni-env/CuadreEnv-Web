@@ -330,6 +330,50 @@ export class PermissionService {
     return this.hasPermission(module, 'export');
   }
 
+  private static readonly ROUTE_MODULE_MAP: ReadonlyArray<{ prefix: string; exact?: boolean; module: string }> = [
+    { prefix: '/dashboard', module: 'dashboard' },
+    { prefix: '/pos', module: 'pos' },
+    { prefix: '/metrics', module: 'metrics' },
+    { prefix: '/mobile', module: 'mobile-pos' },
+    { prefix: '/sales', module: 'sales' },
+    { prefix: '/services', module: 'services' },
+    { prefix: '/billing/reports', module: 'billing-reports-dgii' },
+    { prefix: '/billing', module: 'billing' },
+    { prefix: '/credit-notes', module: 'credit-notes' },
+    { prefix: '/cash-register/fraud-guardian', module: 'fraud-guardian' },
+    { prefix: '/cash-register', module: 'cash-register' },
+    { prefix: '/receivables', module: 'receivables' },
+    { prefix: '/customers', module: 'customers' },
+    { prefix: '/inventory/entries', module: 'inventory-entries' },
+    { prefix: '/inventory/stock', module: 'inventory-stock' },
+    { prefix: '/inventory/outlets', module: 'inventory-outlets' },
+    { prefix: '/inventory/transfers', module: 'inventory-transfers' },
+    { prefix: '/inventory/warehouses', module: 'inventory-warehouses' },
+    { prefix: '/inventory/manage-requests', module: 'inventory-manage-requests' },
+    { prefix: '/inventory/intelligence', module: 'inventory-intelligence' },
+    { prefix: '/inventory/lot-expiration', module: 'inventory-lot-expiration' },
+    { prefix: '/inventory', module: 'inventory' },
+    { prefix: '/products/settings', module: 'products-settings' },
+    { prefix: '/products/detail-sales', module: 'products-detail-sales' },
+    { prefix: '/products', module: 'products' },
+    { prefix: '/purchases/suppliers', module: 'purchases-suppliers' },
+    { prefix: '/suppliers', module: 'purchases-suppliers' },
+    { prefix: '/purchases/receipts', module: 'purchases-receipts' },
+    { prefix: '/purchases', module: 'purchases' },
+    { prefix: '/payments', module: 'payments' },
+    { prefix: '/admin/approvals', module: 'admin-approvals' },
+    { prefix: '/approvals', module: 'admin-approvals' },
+    { prefix: '/admin/roles/matrix', module: 'admin-roles-matrix' },
+    { prefix: '/admin/roles', module: 'admin-roles' },
+    { prefix: '/roles', module: 'admin-roles' },
+    { prefix: '/company/settings', module: 'company-settings' },
+    { prefix: '/companies/settings', module: 'company-settings' },
+    { prefix: '/users', module: 'users' },
+    { prefix: '/company', module: 'company' },
+    { prefix: '/reports', module: 'reports' },
+    { prefix: '/profile', module: 'profile' },
+  ];
+
   /**
    * Resuelve el módulo funcional correspondiente a una ruta de navegación.
    */
@@ -341,43 +385,14 @@ export class PermissionService {
 
     const p = this.cleanPath(path);
     if (!p) return null;
-    if (p === '/dashboard' || p.startsWith('/dashboard/')) return 'dashboard';
-    if (p === '/pos' || p.startsWith('/pos/')) return 'pos';
-    if (p.startsWith('/metrics')) return 'metrics';
-    if (p.startsWith('/mobile')) return 'mobile-pos';
-    if (p.startsWith('/sales')) return 'sales';
-    if (p.startsWith('/services')) return 'services';
-    if (p.startsWith('/billing/reports')) return 'billing-reports-dgii';
-    if (p.startsWith('/billing')) return 'billing';
-    if (p.startsWith('/credit-notes')) return 'credit-notes';
-    if (p.startsWith('/cash-register/fraud-guardian')) return 'fraud-guardian';
-    if (p.startsWith('/cash-register')) return 'cash-register';
-    if (p.startsWith('/receivables')) return 'receivables';
-    if (p.startsWith('/customers')) return 'customers';
-    if (p.startsWith('/inventory/entries')) return 'inventory-entries';
-    if (p.startsWith('/inventory/stock')) return 'inventory-stock';
-    if (p.startsWith('/inventory/outlets')) return 'inventory-outlets';
-    if (p.startsWith('/inventory/transfers')) return 'inventory-transfers';
-    if (p.startsWith('/inventory/warehouses')) return 'inventory-warehouses';
-    if (p.startsWith('/inventory/manage-requests')) return 'inventory-manage-requests';
-    if (p.startsWith('/inventory/intelligence')) return 'inventory-intelligence';
-    if (p.startsWith('/inventory/lot-expiration')) return 'inventory-lot-expiration';
-    if (p.startsWith('/inventory')) return 'inventory';
-    if (p.startsWith('/products/settings')) return 'products-settings';
-    if (p.startsWith('/products/detail-sales')) return 'products-detail-sales';
-    if (p.startsWith('/products')) return 'products';
-    if (p.startsWith('/purchases/suppliers') || p.startsWith('/suppliers')) return 'purchases-suppliers';
-    if (p.startsWith('/purchases/receipts')) return 'purchases-receipts';
-    if (p.startsWith('/purchases')) return 'purchases';
-    if (p.startsWith('/payments')) return 'payments';
-    if (p.startsWith('/admin/approvals') || p.startsWith('/approvals')) return 'admin-approvals';
-    if (p.startsWith('/admin/roles/matrix')) return 'admin-roles-matrix';
-    if (p.startsWith('/admin/roles') || p.startsWith('/roles')) return 'admin-roles';
-    if (p.startsWith('/company/settings') || p.startsWith('/companies/settings')) return 'company-settings';
-    if (p.startsWith('/users')) return 'users';
-    if (p.startsWith('/company')) return 'company';
-    if (p.startsWith('/reports')) return 'reports';
-    if (p.startsWith('/profile')) return 'profile';
+
+    const matchedRule = PermissionService.ROUTE_MODULE_MAP.find((rule) =>
+      rule.exact ? p === rule.prefix : p === rule.prefix || p.startsWith(`${rule.prefix}/`) || p.startsWith(rule.prefix)
+    );
+    if (matchedRule) {
+      return matchedRule.module;
+    }
+
     if (p.startsWith('/')) return null;
     return this.normalizeModuleCode(p);
   }
