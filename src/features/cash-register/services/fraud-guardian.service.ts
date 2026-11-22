@@ -90,6 +90,48 @@ export class FraudGuardianService {
   async loadInitialForensicData(): Promise<void> {
     this.isLoading.set(true);
     try {
+      try {
+        const resAlerts = await this.api.get<any, any>('/FraudGuardian/alerts');
+        const alertData = Array.isArray(resAlerts) ? resAlerts : resAlerts?.data;
+        if (Array.isArray(alertData) && alertData.length > 0) {
+          this.flags.set(alertData.map((a: any) => ({
+            id: a.id,
+            type: a.type || 'EXCESSIVE_CANCELLATIONS',
+            cashierName: a.operator || 'Cajero',
+            cashierId: a.cashierId || 104,
+            cashRegisterName: a.registerTime || 'Caja Activa',
+            timestamp: new Date().toISOString(),
+            severity: (a.severityCode === 'critical' ? 'CRITICAL' : a.severityCode === 'low' ? 'LOW' : 'MEDIUM') as RiskSeverity,
+            title: a.title,
+            description: a.description,
+            metricValue: a.observedMetric,
+            thresholdLimit: a.thresholdLimit,
+            status: a.status || 'ACTIVE',
+            supervisorNotes: a.supervisorNotes
+          })));
+        }
+
+        const resScores = await this.api.get<any, any>('/FraudGuardian/cashier-scores');
+        const scoreData = Array.isArray(resScores) ? resScores : resScores?.data;
+        if (Array.isArray(scoreData) && scoreData.length > 0) {
+          this.cashierScores.set(scoreData.map((s: any) => ({
+            cashierId: s.cashierId,
+            cashierName: s.cashierName,
+            totalSalesCount: s.totalSales,
+            cancelledSalesCount: Math.round(s.totalSales * (s.cancellationRate / 100)),
+            cancellationRate: s.cancellationRate,
+            noSaleDrawerKicksCount: s.noSaleDrawers,
+            consecutiveDiscountsCount: 0,
+            accumulatedDiscrepancyDop: s.accumulatedDiscrepancyDop || 0,
+            riskStatus: (s.status === 'Por revisar' ? 'MONITORED' : 'TRUSTED') as 'TRUSTED' | 'MONITORED' | 'HIGH_RISK'
+          })));
+        }
+
+        if (Array.isArray(alertData) && alertData.length > 0) {
+          return;
+        }
+      } catch {}
+
       // Datos forenses iniciales simulados con base en historial de caja para alertar de inmediato
       const initialFlags: FraudFlag[] = [
         {
@@ -244,6 +286,11 @@ export class FraudGuardianService {
     this.flags.update(prev =>
       prev.map(f => f.id === flagId ? { ...f, status: 'RESOLVED', supervisorNotes: notes } : f)
     );
+    this.api.post(`/FraudGuardian/alerts/${flagId}/resolve`, {
+      reviewResult: 'Justificada',
+      supervisorNotes: notes,
+      evidenceAttached: false
+    }).catch(() => {});
   }
 
   /**
@@ -253,5 +300,6 @@ export class FraudGuardianService {
     this.flags.update(prev =>
       prev.map(f => f.id === flagId ? { ...f, status: 'DISMISSED', supervisorNotes: reason } : f)
     );
+    this.api.post(`/FraudGuardian/alerts/${flagId}/dismiss`, { reason }).catch(() => {});
   }
 }

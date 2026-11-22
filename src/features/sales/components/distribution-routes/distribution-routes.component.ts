@@ -6,6 +6,7 @@ import { StockService } from '../../../inventory/services/stock.service';
 import { ProductService } from '../../../products/services/product.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { CashRegisterService } from '../../../cash-register/services/cash-register.service';
+import { DistributionRouteService } from '../../services/distribution-route.service';
 import type { ProductDto } from '../../../cuadreEnv/types/api';
 
 export interface RouteLoadItem {
@@ -73,6 +74,7 @@ export class DistributionRoutesComponent implements OnInit {
   private productService = inject(ProductService);
   private notificationService = inject(NotificationService);
   private cashRegisterService = inject(CashRegisterService);
+  private routeService = inject(DistributionRouteService);
   private fb = inject(FormBuilder);
 
   // Active view: 'dashboard' | 'load-stock' | 'route-sale' | 'liquidate'
@@ -213,10 +215,23 @@ export class DistributionRoutesComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     if (this.routes().length > 0) {
       this.activeRoute.set(this.routes()[0]);
     }
+    await this.fetchRoutesFromBackend();
+  }
+
+  async fetchRoutesFromBackend(): Promise<void> {
+    try {
+      const res = await this.routeService.getRoutes();
+      if (res.success && res.data && res.data.length > 0) {
+        this.routes.set(res.data);
+        if (!this.activeRoute() || !res.data.some((r: any) => r.id === this.activeRoute()?.id)) {
+          this.activeRoute.set(res.data[0]);
+        }
+      }
+    } catch {}
   }
 
   private loadRoutes(): DistributionRoute[] {

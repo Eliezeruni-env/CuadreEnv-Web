@@ -49,7 +49,6 @@ export interface PurchaseLineItem {
     SpinnerComponent,
     PurchaseModalComponent,
     FilterPanelComponent,
-    KtPaginatorComponent,
   ],
 })
 export class PurchasesComponent implements OnInit {
@@ -197,8 +196,9 @@ export class PurchasesComponent implements OnInit {
         this.products.set(prodRes.data.items);
       }
 
-      if (whList && whList.length > 0) {
-        this.warehouses.set(whList);
+      const whArray: Warehouse[] = Array.isArray(whList) ? whList : ((whList as any)?.data || []);
+      if (whArray.length > 0) {
+        this.warehouses.set(whArray);
       }
     } catch {}
   }

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { SaleService } from './sale.service';
-import { getCompanyId } from '../../cuadreEnv/services/apiClient';
+import { getCompanyId, ApiClientService } from '../../cuadreEnv/services/apiClient';
 import type { SaleResponseDto } from '../../cuadreEnv/types/api';
 
 export type BankReconciliationStatus = 'PENDING' | 'VERIFIED' | 'DISCREPANT';
@@ -30,6 +30,7 @@ const RECONCILIATION_STORAGE_PREFIX = 'cuadreenv_bank_reconciliation_';
 })
 export class BankReconciliationService {
   private readonly saleService = inject(SaleService);
+  private readonly api = inject(ApiClientService);
 
   private getStorageKey(): string {
     const compId = getCompanyId() || 'default';
@@ -60,6 +61,21 @@ export class BankReconciliationService {
         discrepancyReason: status === 'DISCREPANT' ? discrepancyReason : undefined,
       };
       localStorage.setItem(this.getStorageKey(), JSON.stringify(map));
+
+      // Asynchronously sync with Backend API
+      const numericId = parseInt(recordId, 10);
+      if (!isNaN(numericId) && numericId > 0) {
+        if (status === 'VERIFIED') {
+          this.api.post(`/BankReconciliation/${numericId}/reconcile`, { verifiedBy }).catch(() => {});
+        } else if (status === 'DISCREPANT') {
+          this.api.post(`/BankReconciliation/${numericId}/discrepancy`, {
+            statementAmount: 0,
+            differenceAmount: 0,
+            discrepancyReason: discrepancyReason || 'Discrepancia detectada',
+            verifiedBy,
+          }).catch(() => {});
+        }
+      }
     } catch (e) {
       console.error('Error saving bank reconciliation state:', e);
     }
@@ -69,6 +85,30 @@ export class BankReconciliationService {
    * Extrae y normaliza todas las ventas que contengan transferencias bancarias
    */
   async getTransferRecords(): Promise<BankTransferRecord[]> {
+    try {
+      const res = await this.api.get<any, any>('/BankReconciliation/records');
+      const backendItems = Array.isArray(res) ? res : res?.data;
+      if (Array.isArray(backendItems) && backendItems.length > 0) {
+        return backendItems.map((b: any) => ({
+          id: String(b.id),
+          saleId: b.saleId || b.id,
+          invoiceNumber: b.invoiceNumber || `FAC-${b.id}`,
+          customerName: b.customerName || 'Cliente',
+          date: b.date || new Date().toISOString().split('T')[0],
+          amount: b.registeredAmount || 0,
+          bankName: b.destinationBank || 'Banco Popular',
+          accountLastFour: b.accountLastFour,
+          confirmationNumber: b.bankReference || 'TRF-0000',
+          rawPaymentMethod: 'Transferencia',
+          status: (b.status === 'VERIFIED' ? 'VERIFIED' : b.status === 'DISCREPANT' ? 'DISCREPANT' : 'PENDING') as BankReconciliationStatus,
+          verifiedBy: b.verifiedBy,
+          verifiedAt: b.verifiedAt,
+          discrepancyReason: b.discrepancyReason,
+          notes: b.notes
+        }));
+      }
+    } catch {}
+
     const auditMap = this.getAuditAuditMap();
     const salesRes = await this.saleService.getSales({ pageSize: 150 });
     const sales: SaleResponseDto[] = salesRes.success && salesRes.data ? salesRes.data : [];

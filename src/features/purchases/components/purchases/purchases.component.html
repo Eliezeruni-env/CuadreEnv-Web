@@ -177,13 +177,27 @@
             </table>
           </div>
 
-          <div class="p-3 border-top bg-white">
-            <app-kt-paginator
-              [totalItems]="totalItems()"
-              [pageSize]="pageSize"
-              [currentPage]="currentPage()"
-              (pageChange)="onPageChange($event)"
-            ></app-kt-paginator>
+          <div class="px-4 py-3 bg-white border-top d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="text-secondary small">
+              Mostrando <span class="fw-semibold text-dark">{{ purchases().length }}</span> registros
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-secondary small">Registros por página:</span>
+              <select class="form-select form-select-sm" style="width: 70px; border-radius: 6px;" [(ngModel)]="pageSize">
+                <option [value]="10">10</option>
+                <option [value]="25">25</option>
+                <option [value]="50">50</option>
+              </select>
+              <div class="btn-group ms-2">
+                <button class="btn btn-sm btn-outline-secondary" [disabled]="currentPage() === 1" (click)="onPageChange(currentPage() - 1)">
+                  &lt; Anterior
+                </button>
+                <button class="btn btn-sm btn-primary px-3">{{ currentPage() }}</button>
+                <button class="btn btn-sm btn-outline-secondary" [disabled]="purchases().length < pageSize" (click)="onPageChange(currentPage() + 1)">
+                  Siguiente &gt;
+                </button>
+              </div>
+            </div>
           </div>
         }
       </div>

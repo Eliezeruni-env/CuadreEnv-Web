@@ -202,6 +202,16 @@ export class CorporateSalesComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.loadProducts();
+    await this.fetchCorporateClients();
+  }
+
+  async fetchCorporateClients(): Promise<void> {
+    try {
+      const res = await this.customerService.getCorporateCustomers();
+      if (res.success && res.data && res.data.length > 0) {
+        this.corporateClients.set(res.data);
+      }
+    } catch {}
   }
 
   loadCorporateClients(): CorporateClient[] {

@@ -83,6 +83,22 @@ export class CustomerService {
     }
   }
 
+  async getCorporateCustomers(params?: { search?: string; status?: string }): Promise<ApiResponse<any[]>> {
+    try {
+      const res = await this.api.get<any, any>('/Customer/corporate', { params });
+      const items = Array.isArray(res) ? res : res?.data || [];
+      return { success: true, data: items };
+    } catch {
+      try {
+        const res2 = await this.api.get<any, any>('/customers/corporate', { params });
+        const items2 = Array.isArray(res2) ? res2 : res2?.data || [];
+        return { success: true, data: items2 };
+      } catch (err: any) {
+        return { success: false, data: [], message: err?.message || 'Error al obtener clientes corporativos.' };
+      }
+    }
+  }
+
   async getCustomer(id: number): Promise<ApiResponse<CustomerDto>> {
     try {
       const res = await this.api.get<any, any>(`/Customer/${id}`);
