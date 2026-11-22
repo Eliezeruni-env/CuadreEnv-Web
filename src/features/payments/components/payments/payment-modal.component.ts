@@ -1,15 +1,33 @@
-import { Component, Input, Output, EventEmitter, OnInit, signal, inject } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnInit,
+  signal,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  Validators,
+  ReactiveFormsModule,
+  FormsModule,
+} from '@angular/forms';
 import { PaymentService } from '../../services/payment.service';
 import { SaleService } from '../../../sales/services/sale.service';
 import { PurchaseService } from '../../../purchases/services/purchase.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { applyFieldErrorsToForm } from '../../../cuadreEnv/utils/api-error-mapper';
-import type { PaymentDto, SaleResponseDto, PurchaseDto } from '../../../cuadreEnv/types/api';
+import type {
+  PaymentDto,
+  SaleResponseDto,
+  PurchaseDto,
+} from '../../../cuadreEnv/types/api';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import {
-  SpinnerComponent
+  SpinnerComponent,
 } from '@coreui/angular';
 
 @Component({
@@ -19,7 +37,7 @@ import {
     CommonModule,
     ReactiveFormsModule,
     FormsModule,
-    SpinnerComponent
+    SpinnerComponent,
   ],
   templateUrl: './payment-modal.component.html',
   styleUrls: ['./payment-modal.component.scss'],
@@ -67,7 +85,10 @@ export class PaymentModalComponent implements OnInit {
   paymentForm: FormGroup;
 
   get currentPendingBalance(): number {
-    return Math.max(0, this.selectedPurchaseTotal() - this.selectedPurchasePaid());
+    return Math.max(
+      0,
+      this.selectedPurchaseTotal() - this.selectedPurchasePaid(),
+    );
   }
 
   get balanceAfterPayment(): number {
@@ -90,7 +111,10 @@ export class PaymentModalComponent implements OnInit {
       if (id) {
         const found = this.sales().find((s) => s.id === Number(id));
         if (found) {
-          this.paymentForm.patchValue({ amount: found.total }, { emitEvent: false });
+          this.paymentForm.patchValue(
+            { amount: found.total },
+            { emitEvent: false },
+          );
         }
       }
     });
@@ -100,7 +124,10 @@ export class PaymentModalComponent implements OnInit {
       if (id) {
         const found = this.purchases().find((p) => p.id === Number(id));
         if (found) {
-          this.paymentForm.patchValue({ amount: found.total }, { emitEvent: false });
+          this.paymentForm.patchValue(
+            { amount: found.total },
+            { emitEvent: false },
+          );
         }
       }
     });
@@ -166,7 +193,9 @@ export class PaymentModalComponent implements OnInit {
     this.loadData();
     if (defaultPurchaseId) {
       setTimeout(() => {
-        const found = this.purchases().find((p) => p.id === Number(defaultPurchaseId));
+        const found = this.purchases().find(
+          (p) => p.id === Number(defaultPurchaseId),
+        );
         if (found) {
           this.paymentForm.patchValue({ amount: found.total });
         }
@@ -182,13 +211,17 @@ export class PaymentModalComponent implements OnInit {
     this.visibleChange.emit(false);
   }
 
-  buildPaymentReference(): { methodFormatted: string; referenceFormatted: string } {
+  buildPaymentReference(): {
+    methodFormatted: string;
+    referenceFormatted: string;
+  } {
     const m = this.selectedMethod();
 
     if (m === 'Tarjeta de Crédito / Débito' || m === 'Tarjeta') {
       const four = this.cardLastFour().trim();
       const auth = this.cardAuthVoucher().trim();
-      const ref = `Tarjeta ${this.cardType()} ${four ? '(****' + four + ')' : ''} ${auth ? 'Auth: ' + auth : ''}`.trim();
+      const ref =
+        `Tarjeta ${this.cardType()} ${four ? '(****' + four + ')' : ''} ${auth ? 'Auth: ' + auth : ''}`.trim();
       return { methodFormatted: 'Tarjeta', referenceFormatted: ref };
     }
 
@@ -196,7 +229,8 @@ export class PaymentModalComponent implements OnInit {
       const orig = this.transferSenderBank().trim();
       const dest = this.transferReceiverBank().trim();
       const refNum = this.transferReference().trim();
-      const ref = `Transf. ${orig} -> ${dest} ${refNum ? 'Ref: ' + refNum : ''}`.trim();
+      const ref =
+        `Transf. ${orig} -> ${dest} ${refNum ? 'Ref: ' + refNum : ''}`.trim();
       return { methodFormatted: 'Transferencia', referenceFormatted: ref };
     }
 
@@ -208,7 +242,8 @@ export class PaymentModalComponent implements OnInit {
       return { methodFormatted: 'Cheque', referenceFormatted: ref };
     }
 
-    const customRef = this.paymentForm.get('reference')?.value?.trim() || 'Pago en Efectivo';
+    const customRef =
+      this.paymentForm.get('reference')?.value?.trim() || 'Pago en Efectivo';
     return { methodFormatted: 'Efectivo', referenceFormatted: customRef };
   }
 
@@ -220,11 +255,18 @@ export class PaymentModalComponent implements OnInit {
 
     this.isLoading.set(true);
     const formVal = this.paymentForm.value;
-    const { methodFormatted, referenceFormatted } = this.buildPaymentReference();
+    const { methodFormatted, referenceFormatted } =
+      this.buildPaymentReference();
 
     const payload: PaymentDto = {
-      saleId: this.paymentType() === 'sale' && formVal.saleId ? parseInt(formVal.saleId, 10) : null,
-      purchaseId: this.paymentType() === 'purchase' && formVal.purchaseId ? parseInt(formVal.purchaseId, 10) : null,
+      saleId:
+        this.paymentType() === 'sale' && formVal.saleId
+          ? parseInt(formVal.saleId, 10)
+          : null,
+      purchaseId:
+        this.paymentType() === 'purchase' && formVal.purchaseId
+          ? parseInt(formVal.purchaseId, 10)
+          : null,
       amount: Number(formVal.amount),
       method: methodFormatted,
       reference: referenceFormatted,
@@ -233,11 +275,15 @@ export class PaymentModalComponent implements OnInit {
     try {
       const res = await this.paymentService.createPayment(payload);
       if (res.success) {
-        this.notificationService.success('Pago a proveedor registrado y comprobante emitido exitosamente.');
+        this.notificationService.success(
+          'Pago a proveedor registrado y comprobante emitido exitosamente.',
+        );
         this.saved.emit();
         this.close();
       } else {
-        this.notificationService.error(res.message || 'Error al registrar el pago.');
+        this.notificationService.error(
+          res.message || 'Error al registrar el pago.',
+        );
       }
     } catch (e: any) {
       const mapped = this.notificationService.showApiError(e);

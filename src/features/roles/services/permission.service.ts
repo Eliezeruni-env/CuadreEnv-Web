@@ -335,6 +335,7 @@ export class PermissionService {
     { prefix: '/pos', module: 'pos' },
     { prefix: '/metrics', module: 'metrics' },
     { prefix: '/mobile', module: 'mobile-pos' },
+    { prefix: '/sales/distribution', module: 'sales-distribution' },
     { prefix: '/sales', module: 'sales' },
     { prefix: '/quotations', module: 'sales' },
     { prefix: '/services', module: 'services' },
@@ -544,6 +545,10 @@ export class PermissionService {
       servicios: 'services',
       creditnotes: 'credit-notes',
       mobilepos: 'mobile-pos',
+      salesdistribution: 'sales-distribution',
+      distribution: 'sales-distribution',
+      rutas: 'sales-distribution',
+      rutasdedistribucion: 'sales-distribution',
 
       // Base
       billingreportsdgii: 'billing-reports-dgii',

@@ -305,8 +305,8 @@ export const routes: Routes = [
           import('../features/sales/components/distribution-routes/distribution-routes.component').then(
             (m) => m.DistributionRoutesComponent,
           ),
-        canActivate: [moduleGuard('sales.distribution')],
-        data: { module: 'sales.distribution', title: 'Rutas de Distribución' },
+        canActivate: [moduleGuard('sales-distribution')],
+        data: { module: 'sales-distribution', title: 'Rutas de Distribución' },
       },
       // {
       //   path: 'products/detail-sales',
