@@ -141,13 +141,21 @@
                 <tr [class.table-active]="isNoteExpanded(note.id)" class="master-row">
                   <td class="ps-3 text-center">
                     <button
-                      class="expand-btn"
+                      class="btn-expand-chevron"
                       [class.expanded]="isNoteExpanded(note.id)"
                       type="button"
                       (click)="toggleDetail(note)"
                       [title]="isNoteExpanded(note.id) ? 'Colapsar detalle' : 'Expandir artículos devueltos'"
                     >
-                      {{ isNoteExpanded(note.id) ? '−' : '+' }}
+                      @if (isNoteExpanded(note.id)) {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                      }
                     </button>
                   </td>
                   <td>
@@ -186,15 +194,34 @@
                     <div class="action-btn-group justify-content-center">
                       <button
                         type="button"
-                        class="btn-action-icon btn-action-print"
+                        class="btn-action-icon btn-action-view"
                         (click)="viewNoteDetail(note)"
-                        title="Imprimir / Ver Comprobante"
+                        title="Ver Comprobante de Nota de Crédito"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-action-icon btn-action-print"
+                        (click)="openReceiptModal(note)"
+                        title="Imprimir Comprobante"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <polyline points="6 9 6 2 18 2 18 9"></polyline>
                           <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
                           <rect x="6" y="14" width="12" height="8"></rect>
                         </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-action-icon"
+                        (click)="openReceiptModal(note)"
+                        title="Más opciones"
+                      >
+                        ···
                       </button>
                     </div>
                   </td>
@@ -308,129 +335,9 @@
   (creditNoteCreated)="onCreditNoteCreated($event)"
 ></app-credit-note-form>
 
-<!-- Modal for Viewing & Printing Credit Note Receipt -->
-@if (selectedCreditNote) {
-  <div class="custom-modal-backdrop" (click)="selectedCreditNote = null">
-    <div class="custom-modal-content invoice-print-container" (click)="$event.stopPropagation()">
-      <div class="d-flex justify-content-between align-items-center p-3 border-bottom bg-white">
-        <h5 class="fw-bold mb-0 text-dark">Comprobante Fiscal - Nota de Crédito</h5>
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-light border btn-sm fw-semibold" (click)="printCreditNote()">
-            <svg cIcon name="cilPrint" style="width: 14px; height: 14px;" class="me-1"></svg>
-            Imprimir
-          </button>
-          <button type="button" class="btn-close" (click)="selectedCreditNote = null"></button>
-        </div>
-      </div>
-
-      <div id="creditNotePrintArea" class="p-4 bg-white">
-        <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
-          <div>
-            <h5 class="fw-bold mb-0 text-dark">CuadreEnv, SRL</h5>
-            <div class="small text-secondary">RNC: 1-31-234567-8 · Santo Domingo, Rep. Dom.</div>
-            <div class="small text-secondary">Tel: (809) 123-4567</div>
-          </div>
-          <div class="text-end">
-            <h6 class="fw-bold text-danger mb-0">NOTA DE CRÉDITO</h6>
-            <div class="fw-bold font-monospace text-dark">{{ selectedCreditNote.creditNoteNumber }}</div>
-            <div class="badge ncf-brand-badge font-monospace mt-1">NCF: {{ selectedCreditNote.ncf }}</div>
-          </div>
-        </div>
-
-        <div class="row g-2 small mb-3 border-bottom pb-3 text-secondary">
-          <div class="col-6">
-            <div><b class="text-dark">Cliente:</b> {{ selectedCreditNote.customerName }}</div>
-            <div><b class="text-dark">Factura Afectada:</b> {{ selectedCreditNote.billingNumber }}</div>
-          </div>
-          <div class="col-6 text-end">
-            <div><b class="text-dark">Fecha:</b> {{ selectedCreditNote.creationDate | date:'dd/MM/yyyy hh:mm a' }}</div>
-            <div><b class="text-dark">Tipo:</b> {{ selectedCreditNote.creditNoteType === 1 ? 'Devolución Total' : 'Devolución Parcial' }}</div>
-          </div>
-        </div>
-
-        <!-- Detalle de Artículos Devueltos (Diseño Unificado Captura 3) -->
-        <div class="billing-detail-card mb-3" style="border-top-color: #EF4444;">
-          <div class="billing-detail-header">
-            <div class="d-flex align-items-center gap-2">
-              <div class="detail-header-icon" style="background: #FEE2E2; color: #DC2626;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 14 4 9 9 4"></polyline>
-                  <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
-                </svg>
-              </div>
-              <span class="detail-header-title">Detalle de Artículos Reintegrados</span>
-              <span class="detail-items-count-badge">
-                {{ (selectedCreditNote.creditNoteDetails || []).length }} {{ (selectedCreditNote.creditNoteDetails || []).length === 1 ? 'ítem' : 'ítems' }}
-              </span>
-            </div>
-
-            <div class="detail-summary-pills">
-              <span class="summary-pill">
-                <span class="pill-label">Subtotal</span>
-                <strong class="pill-value">RD$ {{ selectedCreditNote.amountSubTotal | number:'1.2-2' }}</strong>
-              </span>
-              <span class="summary-pill">
-                <span class="pill-label">ITBIS</span>
-                <strong class="pill-value">RD$ {{ selectedCreditNote.amountItbis | number:'1.2-2' }}</strong>
-              </span>
-              <span class="summary-pill danger-pill">
-                <span class="pill-label">Total Reembolso</span>
-                <strong class="pill-value">RD$ {{ selectedCreditNote.amountTotal | number:'1.2-2' }}</strong>
-              </span>
-            </div>
-          </div>
-
-          <div class="billing-detail-body">
-            <div class="table-responsive">
-              <table class="table billing-subtable mb-0 align-middle">
-                <thead>
-                  <tr>
-                    <th class="ps-3" style="width: 130px;">CÓDIGO</th>
-                    <th>DESCRIPCIÓN</th>
-                    <th class="text-center" style="width: 90px;">CANT.</th>
-                    <th class="text-end" style="width: 120px;">PRECIO UNIT.</th>
-                    <th class="text-end" style="width: 120px;">SUBTOTAL</th>
-                    <th class="text-end" style="width: 110px;">ITBIS</th>
-                    <th class="text-end pe-3" style="width: 140px;">IMPORTE TOTAL</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (it of (selectedCreditNote.creditNoteDetails || []); track $index) {
-                    <tr>
-                      <td class="ps-3">
-                        <span class="product-code-pill font-monospace">{{ it.barCode || 'PROD-' + it.productId }}</span>
-                      </td>
-                      <td>
-                        <span class="product-name-text">{{ it.productName }}</span>
-                      </td>
-                      <td class="text-center">
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-monospace fw-bold px-2 py-1">
-                          -{{ it.quantity }}
-                        </span>
-                      </td>
-                      <td class="text-end font-monospace text-muted">RD$ {{ it.price | number:'1.2-2' }}</td>
-                      <td class="text-end font-monospace">RD$ {{ (it.subTotal || (it.quantity * it.price)) | number:'1.2-2' }}</td>
-                      <td class="text-end font-monospace text-muted">RD$ {{ (it.itbisAmount || 0) | number:'1.2-2' }}</td>
-                      <td class="text-end pe-3 font-monospace fw-bold text-danger">RD$ {{ (it.totalAmount || (it.subTotal + (it.itbisAmount || 0))) | number:'1.2-2' }}</td>
-                    </tr>
-                  }
-                  @if ((selectedCreditNote.creditNoteDetails || []).length === 0) {
-                    <tr>
-                      <td colspan="7" class="text-center py-4 text-muted">
-                        No hay artículos registrados en esta nota de crédito.
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <div class="text-center small text-secondary border-top mt-4 pt-2">
-          Este comprobante fiscal modifica los valores de la factura original y restituye las existencias en inventario.
-        </div>
-      </div>
-    </div>
-  </div>
-}
+<!-- Modal Comprobante Universal (Diseño según Imagen 2 de Referencia) -->
+<app-warehouse-movement-receipt-modal
+  [isOpen]="isReceiptModalOpen()"
+  [data]="selectedReceiptData"
+  (close)="isReceiptModalOpen.set(false)"
+></app-warehouse-movement-receipt-modal>

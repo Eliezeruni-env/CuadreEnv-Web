@@ -81,13 +81,21 @@
                 <tr [class.table-active]="isEntryExpanded(e.id)" class="master-row">
                   <td class="ps-3 text-center">
                     <button
-                      class="expand-btn"
+                      class="btn-expand-chevron"
                       [class.expanded]="isEntryExpanded(e.id)"
                       type="button"
                       (click)="toggleDetail(e)"
                       [title]="isEntryExpanded(e.id) ? 'Colapsar detalle' : 'Expandir productos de entrada'"
                     >
-                      {{ isEntryExpanded(e.id) ? '−' : '+' }}
+                      @if (isEntryExpanded(e.id)) {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                      }
                     </button>
                   </td>
                   <td>
@@ -126,13 +134,33 @@
                       <button
                         type="button"
                         class="btn-action-icon btn-action-view"
-                        (click)="viewDetail(e)"
+                        (click)="openReceiptModal(e)"
                         title="Ver Comprobante de Entrada"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                           <circle cx="12" cy="12" r="3"></circle>
                         </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-action-icon btn-action-print"
+                        (click)="openReceiptModal(e)"
+                        title="Imprimir Comprobante de Entrada"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                          <rect x="6" y="14" width="12" height="8"></rect>
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-action-icon"
+                        (click)="openReceiptModal(e)"
+                        title="Más opciones"
+                      >
+                        ···
                       </button>
                     </div>
                   </td>
@@ -227,170 +255,9 @@
   </div>
 </div>
 
-<!-- Modal Detail Voucher -->
-@if (selectedEntry) {
-  <div class="custom-modal-backdrop" (click)="selectedEntry = null">
-    <div class="custom-modal-content modal-lg shadow-lg border-0 rounded-4 overflow-hidden" (click)="$event.stopPropagation()" style="max-width: 760px;">
-      <!-- Header Moderno -->
-      <div class="p-4 bg-white border-bottom d-flex justify-content-between align-items-center d-print-none">
-        <div class="d-flex align-items-center gap-3">
-          <div class="rounded-3 p-2.5 d-flex align-items-center justify-content-center" style="background: rgba(22, 163, 74, 0.1); color: #16a34a; width: 44px; height: 44px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 5v14M5 12l7 7 7-7"/>
-            </svg>
-          </div>
-          <div>
-            <div class="d-flex align-items-center gap-2">
-              <h5 class="fw-bold text-dark mb-0">Comprobante de Entrada de Almacén</h5>
-              <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1" style="font-size: 0.75rem;">
-                {{ selectedEntry.statusName || 'Entrada Aplicada' }}
-              </span>
-            </div>
-            <div class="text-muted small mt-0.5">
-              Movimiento: <span class="fw-semibold text-success font-monospace">{{ selectedEntry.movementNumber }}</span>
-            </div>
-          </div>
-        </div>
-        <button type="button" class="btn-close shadow-none" (click)="selectedEntry = null"></button>
-      </div>
-
-      <div class="p-4 bg-light-subtle" id="entryVoucherPrint">
-        <!-- 4 Metadatos Cards -->
-        <div class="row g-3 mb-4">
-          <div class="col-sm-6 col-md-3">
-            <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white h-100">
-              <div class="text-muted small mb-1" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Comprobante</div>
-              <div class="fw-bold text-success font-monospace" style="font-size: 0.88rem;">{{ selectedEntry.movementNumber }}</div>
-              <div class="text-secondary small" style="font-size: 0.75rem;">Ingreso Físico</div>
-            </div>
-          </div>
-
-          <div class="col-sm-6 col-md-3">
-            <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white h-100">
-              <div class="text-muted small mb-1" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Almacén Destino</div>
-              <div class="fw-bold text-dark text-truncate" style="font-size: 0.88rem;" [title]="selectedEntry.warehouseName">
-                {{ selectedEntry.warehouseName }}
-              </div>
-              <div class="text-secondary small" style="font-size: 0.75rem;">Bodega Central</div>
-            </div>
-          </div>
-
-          <div class="col-sm-6 col-md-3">
-            <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white h-100">
-              <div class="text-muted small mb-1" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Concepto / Motivo</div>
-              <div class="fw-bold text-primary text-truncate" style="font-size: 0.88rem;">
-                {{ selectedEntry.conceptName || 'Entrada de Almacén' }}
-              </div>
-              <div class="text-secondary small" style="font-size: 0.75rem;">Recepción de Stock</div>
-            </div>
-          </div>
-
-          <div class="col-sm-6 col-md-3">
-            <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white h-100">
-              <div class="text-muted small mb-1" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Fecha y Hora</div>
-              <div class="fw-bold text-dark" style="font-size: 0.88rem;">{{ selectedEntry.createDate | date:'dd/MM/yyyy' }}</div>
-              <div class="text-secondary small" style="font-size: 0.75rem;">{{ selectedEntry.createDate | date:'hh:mm a' }}</div>
-            </div>
-          </div>
-        </div>
-
-        @if (selectedEntry.commentary) {
-          <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white mb-3">
-            <div class="d-flex align-items-center gap-2 text-muted small mb-1" style="font-size: 0.75rem; font-weight: 600;">
-              <span>OBSERVACIONES / COMENTARIOS</span>
-            </div>
-            <div class="text-dark small mb-0">{{ selectedEntry.commentary }}</div>
-          </div>
-        }
-
-        <!-- Detalle de Artículos Ingresados (Diseño Unificado Captura 3) -->
-        <div class="billing-detail-card mb-3" style="border-top-color: #10B981;">
-          <div class="billing-detail-header">
-            <div class="d-flex align-items-center gap-2">
-              <div class="detail-header-icon" style="background: #ECFDF5; color: #059669;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-              </div>
-              <span class="detail-header-title">Detalle de Productos Ingresados</span>
-              <span class="detail-items-count-badge">
-                {{ (selectedEntry.productDetails || []).length }} {{ (selectedEntry.productDetails || []).length === 1 ? 'ítem' : 'ítems' }}
-              </span>
-            </div>
-
-            <div class="detail-summary-pills">
-              <span class="summary-pill">
-                <span class="pill-label">Total Unidades</span>
-                <strong class="pill-value">+{{ selectedEntry.totalQuantity }} uds</strong>
-              </span>
-              <span class="summary-pill total-pill">
-                <span class="pill-label">Costo Total</span>
-                <strong class="pill-value text-success">RD$ {{ selectedEntry.totalCost | number:'1.2-2' }}</strong>
-              </span>
-            </div>
-          </div>
-
-          <div class="billing-detail-body">
-            <div class="table-responsive">
-              <table class="table billing-subtable mb-0 align-middle">
-                <thead>
-                  <tr>
-                    <th class="ps-3" style="width: 140px;">CÓDIGO</th>
-                    <th>DESCRIPCIÓN DEL PRODUCTO</th>
-                    <th class="text-center" style="width: 110px;">CANT.</th>
-                    <th class="text-end" style="width: 130px;">COSTO UNIT.</th>
-                    <th class="text-end pe-3" style="width: 140px;">IMPORTE TOTAL</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (item of (selectedEntry.productDetails || []); track $index) {
-                    <tr>
-                      <td class="ps-3">
-                        <span class="product-code-pill font-monospace">{{ item.barCode || 'PROD-' + item.productId }}</span>
-                      </td>
-                      <td>
-                        <span class="product-name-text">{{ item.productName }}</span>
-                      </td>
-                      <td class="text-center">
-                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill font-monospace fw-bold">
-                          +{{ item.quantity }} uds
-                        </span>
-                      </td>
-                      <td class="text-end font-monospace text-muted">
-                        RD$ {{ (item.cost || 0) | number:'1.2-2' }}
-                      </td>
-                      <td class="text-end pe-3 font-monospace fw-bold text-success">
-                        RD$ {{ (item.quantity * (item.cost || 0)) | number:'1.2-2' }}
-                      </td>
-                    </tr>
-                  }
-                  @if ((selectedEntry.productDetails || []).length === 0) {
-                    <tr>
-                      <td colspan="5" class="text-center py-4 text-muted">
-                        No hay artículos especificados en este movimiento.
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-3 bg-white border-top d-flex justify-content-end gap-2 d-print-none">
-        <button type="button" class="btn btn-light border rounded-pill px-4 py-1.5 fw-semibold" style="font-size: 0.84rem;" (click)="selectedEntry = null">Cerrar</button>
-        <button type="button" class="btn btn-primary rounded-pill px-4 py-1.5 fw-semibold" style="font-size: 0.84rem;" (click)="printVoucher()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
-            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-            <rect x="6" y="14" width="12" height="8"></rect>
-          </svg>
-          Imprimir Comprobante
-        </button>
-      </div>
-    </div>
-  </div>
-}
+<!-- Modal Detail Voucher (Diseño Unificado según imagen de referencia) -->
+<app-warehouse-movement-receipt-modal
+  [isOpen]="isReceiptModalOpen()"
+  [data]="selectedReceiptData"
+  (close)="isReceiptModalOpen.set(false)"
+></app-warehouse-movement-receipt-modal>

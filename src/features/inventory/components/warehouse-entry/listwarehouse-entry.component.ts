@@ -4,12 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WarehouseEntryService } from '../../services/warehouse-entry.service';
 import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/kt-paginator.component';
+import {
+  WarehouseMovementReceiptModalComponent,
+  type MovementReceiptData,
+} from '../../../../app/shared/components/warehouse-movement-receipt-modal/warehouse-movement-receipt-modal.component';
 import type { WarehouseEntry } from '../../../../app/models/movement';
 
 @Component({
   selector: 'app-listwarehouse-entry',
   standalone: true,
-  imports: [CommonModule, FormsModule, KtPaginatorComponent],
+  imports: [CommonModule, FormsModule, KtPaginatorComponent, WarehouseMovementReceiptModalComponent],
   templateUrl: './listwarehouse-entry.component.html',
   styleUrls: ['./listwarehouse-entry.component.scss'],
 })
@@ -25,7 +29,9 @@ export class ListwarehouseEntryComponent implements OnInit {
   pageSize = signal<number>(10);
   expandedEntryId = signal<number | null>(null);
 
-  selectedEntry: WarehouseEntry | null = null;
+  // Receipt Modal State (Matching Image 2)
+  isReceiptModalOpen = signal<boolean>(false);
+  selectedReceiptData: MovementReceiptData | null = null;
 
   readonly filteredEntries = computed(() => {
     const q = this.searchTerm.toLowerCase().trim();
@@ -105,12 +111,50 @@ export class ListwarehouseEntryComponent implements OnInit {
   }
 
   viewDetail(entry: WarehouseEntry) {
-    this.selectedEntry = entry;
+    this.openReceiptModal(entry);
   }
 
-  printVoucher() {
-    setTimeout(() => {
-      window.print();
-    }, 150);
+  openReceiptModal(entry: WarehouseEntry): void {
+    const code = entry.movementNumber || `ENT-${entry.id}`;
+    const rawItems = entry.productDetails || [];
+    this.selectedReceiptData = {
+      movementCode: code,
+      movementType: 'entry',
+      statusLabel: 'Aplicado',
+      title: 'Comprobante de entrada de almacén',
+      firstColumnHeader: 'COMPROBANTE',
+      warehouseName: entry.warehouseName || 'Almacén Principal',
+      secondColumnHeader: 'ALMACÉN DESTINO',
+      warehouseLocation: (entry as any).warehouseLocation || 'Bodega Central',
+      conceptName: entry.conceptName || 'Entrada de almacén',
+      thirdColumnHeader: 'CONCEPTO',
+      conceptDescription: entry.commentary || 'Recepción de stock',
+      fourthColumnHeader: 'FECHA Y HORA',
+      date: new Date(entry.createDate || (entry as any).createdAt || Date.now()).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      time: new Date(entry.createDate || (entry as any).createdAt || Date.now()).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      itemsSectionTitle: 'Productos ingresados',
+      items: rawItems.map((p: any) => ({
+        code: p.productCode || p.barcode || (p.productId ? `PROD-${p.productId}` : 'N/A'),
+        name: p.productName || p.description || 'Producto',
+        description: p.description || '',
+        quantity: Number(p.quantity) || 1,
+        unitCost: Number(p.cost) || 0,
+        totalCost: (Number(p.cost) || 0) * (Number(p.quantity) || 1),
+      })),
+      totalUnits: Number(entry.totalQuantity) || rawItems.reduce((s: number, i: any) => s + (Number(i.quantity) || 0), 0) || 1,
+      totalCost: Number(entry.totalCost) || 0,
+      footerNote: 'Movimiento aplicado al inventario',
+    };
+    this.isReceiptModalOpen.set(true);
+  }
+
+  printVoucher(entry?: WarehouseEntry) {
+    if (entry) {
+      this.openReceiptModal(entry);
+    } else {
+      setTimeout(() => {
+        window.print();
+      }, 150);
+    }
   }
 }

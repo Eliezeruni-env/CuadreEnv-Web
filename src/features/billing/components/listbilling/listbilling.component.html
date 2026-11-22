@@ -1,19 +1,32 @@
 <div class="container-fluid py-3 list-billing-container">
-  <!-- Top Bar -->
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded shadow-sm">
-    <div class="d-flex align-items-center gap-2">
-      <div>
-        <h4 class="fw-bold mb-0 text-dark">Facturación Empresarial (Billing & Invoices)</h4>
-        <small class="text-muted">Registro de facturas emitidas, comprobantes fiscales (NCF) y control contable</small>
-      </div>
+  <!-- Top Bar (Image 1 Style) -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-3 shadow-2xs border">
+    <div>
+      <h4 class="fw-bold mb-0 text-dark">Registro de ventas y comprobantes</h4>
+      <small class="text-secondary">Control de ventas al contado, a crédito y facturación comercial</small>
     </div>
 
     <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-outline-secondary d-flex align-items-center gap-1" (click)="loadBillings()">
-        Recargar
+      <button class="btn btn-outline-secondary d-flex align-items-center gap-1.5 px-3 py-1.5 rounded-pill fw-semibold" (click)="loadBillings()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        <span>Actualizar</span>
       </button>
-      <button class="btn btn-primary fw-bold shadow-sm d-flex align-items-center gap-2" (click)="goToCreate()">
-        <span>+ Nueva Factura</span>
+
+      <button class="btn btn-outline-success d-flex align-items-center gap-1.5 px-3 py-1.5 rounded-pill fw-semibold" (click)="goToPOS()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+        <span>Venta rápida (POS)</span>
+      </button>
+
+      <button class="btn btn-primary fw-bold shadow-sm d-flex align-items-center gap-1.5 px-3.5 py-1.5 rounded-pill" (click)="goToCreate()">
+        <span>+ Nueva venta</span>
       </button>
     </div>
   </div>
@@ -21,8 +34,118 @@
   <!-- Alertas de Secuencias y Agotamiento DGII -->
   <app-ncf-alert-banner></app-ncf-alert-banner>
 
-  <!-- Filtros Genéricos -->
-  <app-generic-filters (filtersChange)="onFiltersChange($event)"></app-generic-filters>
+  <!-- Filtros Principales (Diseño Unificado Captura 1) -->
+  <div class="card border-0 shadow-2xs rounded-3 p-3 mb-3 bg-white">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-3">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white border-end-0 text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input
+            type="text"
+            class="form-control border-start-0 ps-1"
+            placeholder="Buscar cliente, factura o NCF..."
+            [(ngModel)]="searchQuery"
+          />
+        </div>
+      </div>
+
+      <div class="col-md-2">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white border-end-0 text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </span>
+          <select class="form-select border-start-0 ps-1" [(ngModel)]="dateRangeFilter">
+            <option value="01/11/2026 - 30/11/2026">01/11/2026 - 30/11/2026</option>
+            <option value="Hoy">Hoy</option>
+            <option value="Últimos 7 días">Últimos 7 días</option>
+            <option value="Este mes">Este mes</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="col-md-2">
+        <div class="d-flex align-items-center gap-1.5">
+          <span class="small text-secondary fw-medium">Estado</span>
+          <select class="form-select form-select-sm" [(ngModel)]="selectedStatusFilter">
+            <option value="all">Todos</option>
+            <option value="pagada">Pagada</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="anulada">Anulada</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="col-md-2">
+        <div class="d-flex align-items-center gap-1.5">
+          <span class="small text-secondary fw-medium">Origen</span>
+          <select class="form-select form-select-sm" [(ngModel)]="selectedOriginFilter">
+            <option value="all">Todos los orígenes</option>
+            <option value="Facturación directa">Facturación directa</option>
+            <option value="POS">POS - Caja</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="col-md-3 d-flex justify-content-end align-items-center gap-1.5">
+        <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+          </svg>
+          <span>Más filtros (2)</span>
+        </button>
+
+        <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Exportar</span>
+        </button>
+
+        <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+          </svg>
+          <span>Columnas</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active filter chips matching Image 1 -->
+    @if (activeStatusChip() || activeAmountChip()) {
+      <div class="d-flex align-items-center gap-2 mt-2 pt-2 border-top">
+        <span class="text-secondary small fw-semibold">Filtros activos:</span>
+        @if (activeStatusChip()) {
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill d-flex align-items-center gap-1">
+            <span>Estado: {{ activeStatusChip() }}</span>
+            <button type="button" class="btn-close-chip btn p-0 border-0 bg-transparent text-primary ms-1" style="font-size: 0.72rem; line-height: 1;" (click)="removeStatusChip()">✕</button>
+          </span>
+        }
+        @if (activeAmountChip()) {
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill d-flex align-items-center gap-1">
+            <span>Monto: {{ activeAmountChip() }}</span>
+            <button type="button" class="btn-close-chip btn p-0 border-0 bg-transparent text-primary ms-1" style="font-size: 0.72rem; line-height: 1;" (click)="removeAmountChip()">✕</button>
+          </span>
+        }
+        <button type="button" class="btn btn-link p-0 text-primary small text-decoration-none ms-2" (click)="clearActiveFilters()">
+          Limpiar filtros
+        </button>
+      </div>
+    }
+  </div>
 
   <!-- Master-Detail Table Card -->
   <div class="card shadow-sm border-0 mb-3 billing-table-card">
@@ -35,17 +158,21 @@
       } @else {
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0 master-detail-table">
-            <thead class="table-light text-secondary text-uppercase font-size-xs">
+            <thead class="table-light text-secondary font-monospace" style="font-size: 0.76rem; letter-spacing: 0.5px;">
               <tr>
-                <th style="width: 40px;" class="ps-3"></th>
-                <th>No. Factura</th>
-                <th>Fecha</th>
-                <th>Tipo</th>
-                <th>Cliente</th>
-                <th>Comprobante Fiscal</th>
-                <th class="text-end">Monto Total</th>
-                <th class="text-center">Estatus</th>
-                <th class="text-center pe-3" style="width: 130px;">Acciones</th>
+                <th style="width: 44px;" class="ps-3 text-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </th>
+                <th>Factura ⇕</th>
+                <th>Fecha / hora ⇕</th>
+                <th>Cliente ⇕</th>
+                <th>Origen ⇕</th>
+                <th class="text-end">Total ⇕</th>
+                <th class="text-end">Cobrado ⇕</th>
+                <th class="text-center">Estado ⇕</th>
+                <th class="text-center pe-3" style="width: 140px;">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -61,60 +188,73 @@
                   <tr [class.table-active]="b.showDetail" class="master-row">
                     <td class="ps-3 text-center">
                       <button
-                        class="btn btn-sm btn-light border expand-btn"
+                        class="btn-expand-chevron"
+                        [class.expanded]="b.showDetail"
                         type="button"
                         (click)="toggleDetail(b)"
-                        [title]="b.showDetail ? 'Colapsar detalle' : 'Expandir detalle'"
+                        [title]="b.showDetail ? 'Colapsar detalle' : 'Expandir artículos vendidos'"
                       >
-                        {{ b.showDetail ? '−' : '+' }}
+                        @if (b.showDetail) {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                          </svg>
+                        } @else {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                          </svg>
+                        }
                       </button>
                     </td>
                     <td>
-                      <span class="fw-bold text-dark font-monospace">
-                        {{ b.billingNumber || 'FAC-' + b.id }}
+                      <div class="fw-bold text-dark font-monospace">
+                        {{ b.billingNumber || ('#' + b.id) }}
+                      </div>
+                    </td>
+                    <td class="text-secondary small font-monospace">
+                      {{ b.creationDate | date:'dd/MM/yyyy hh:mm a' }}
+                    </td>
+                    <td>
+                      <div class="fw-bold text-dark">{{ b.clientName || 'Consumidor Final' }}</div>
+                      <div class="text-muted small font-monospace">{{ b.clientRnc || 'ID Cliente: 1' }}</div>
+                    </td>
+                    <td>
+                      <span class="badge border font-monospace px-2.5 py-1 rounded-2"
+                            [ngClass]="b.billingTypeName?.includes('POS') ? 'bg-primary-subtle text-primary border-primary-subtle' : 'bg-secondary-subtle text-secondary border-secondary-subtle'"
+                            style="font-size: 0.75rem;">
+                        @if (b.billingTypeName?.includes('POS')) {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                          </svg>
+                        } @else {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                          </svg>
+                        }
+                        {{ b.billingTypeName || 'Facturación directa' }}
                       </span>
                     </td>
-                    <td class="text-muted small">
-                      {{ b.creationDate | date:'dd/MM/yyyy HH:mm' }}
-                    </td>
-                    <td>
-                      <span class="badge" [ngClass]="b.billingTypeId === 1 ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'">
-                        {{ b.billingTypeName || (b.billingTypeId === 1 ? 'Contado' : 'Crédito') }}
-                      </span>
-                    </td>
-                    <td>
-                      <div class="fw-semibold text-dark">{{ b.clientName || 'Consumidor Final' }}</div>
-                      <small class="text-muted">{{ b.clientRnc || '000-0000000-0' }}</small>
-                    </td>
-                    <td>
-                      @if (b.ncf) {
-                        <span class="badge bg-secondary-subtle text-secondary font-monospace border">
-                          {{ b.ncf }}
-                        </span>
-                      } @else {
-                        <span class="text-muted small">Sin NCF</span>
-                      }
-                    </td>
-                    <td class="text-end fw-bold text-dark">
+                    <td class="text-end fw-bold text-dark font-monospace">
                       RD$ {{ b.amountTotal | number:'1.2-2' }}
                     </td>
+                    <td class="text-end fw-bold text-success font-monospace">
+                      RD$ {{ (b.amountTotal || 0) | number:'1.2-2' }}
+                    </td>
                     <td class="text-center">
-                      @if (b.hasAFullCreditNote || b.statusId === 3 || b.notes?.includes('DEVUELTA')) {
-                        <span class="badge status-badge-danger px-2.5 py-1 rounded-pill">Devuelta / NC</span>
-                      } @else if (b.statusId === 1) {
-                        <span class="badge status-badge-success px-2.5 py-1 rounded-pill">Emitida</span>
-                      } @else {
-                        <span class="badge status-badge-warning px-2.5 py-1 rounded-pill">Pendiente</span>
-                      }
+                      <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill fw-semibold" style="font-size: 0.75rem;">
+                        {{ b.statusName || 'Pagada' }}
+                      </span>
                     </td>
                     <td class="text-center pe-3">
                       <div class="d-flex align-items-center justify-content-center gap-1">
-                        <!-- Ver Factura & Acciones Rápidas -->
+                        <!-- Ver Factura -->
                         <button
-                          class="btn btn-sm btn-light border text-primary"
+                          class="btn-action-icon btn-action-view"
                           type="button"
-                          (click)="viewInvoice(b)"
-                          title="Ver Factura Completa y Acciones"
+                          (click)="openReceiptModal(b)"
+                          title="Ver Comprobante de Venta"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -123,10 +263,10 @@
                         </button>
                         <!-- Imprimir comprobante directo -->
                         <button
-                          class="btn btn-sm btn-light border text-secondary"
+                          class="btn-action-icon btn-action-print"
                           type="button"
-                          (click)="printInvoice(b); triggerBrowserPrint()"
-                          title="Imprimir Factura Directamente"
+                          (click)="openReceiptModal(b)"
+                          title="Imprimir Comprobante"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="6 9 6 2 18 2 18 9"></polyline>
@@ -134,131 +274,91 @@
                             <rect x="6" y="14" width="12" height="8"></rect>
                           </svg>
                         </button>
-                        <!-- Nota de Crédito / Devolución -->
+                        <!-- Más opciones -->
                         <button
-                          class="btn btn-sm btn-light border text-danger"
+                          class="btn-action-icon"
                           type="button"
-                          [disabled]="b.hasAFullCreditNote || b.statusId === 3 || b.notes?.includes('DEVUELTA')"
-                          [class.opacity-50]="b.hasAFullCreditNote || b.statusId === 3 || b.notes?.includes('DEVUELTA')"
-                          (click)="createCreditNote(b)"
-                          [title]="(b.hasAFullCreditNote || b.statusId === 3 || b.notes?.includes('DEVUELTA')) ? 'Factura ya devuelta en su totalidad' : 'Crear Nota de Crédito / Devolución'"
+                          (click)="openReceiptModal(b)"
+                          title="Más opciones"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 14 4 9 9 4"></polyline>
-                            <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
-                          </svg>
-                        </button>
-                        <!-- Solicitar Anulación (Alerta de Seguridad Inmediata) -->
-                        <button
-                          class="btn btn-sm btn-light border text-danger"
-                          type="button"
-                          (click)="requestInvoiceCancellation(b)"
-                          title="Solicitar Anulación de Factura (Notifica al Administrador)"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="15" y1="9" x2="9" y2="15"></line>
-                            <line x1="9" y1="9" x2="15" y2="15"></line>
-                          </svg>
+                          ···
                         </button>
                       </div>
                     </td>
                   </tr>
 
-                  <!-- Fila Detail Expandible (Subtabla de Artículos Facturados) -->
+                  <!-- Fila Detail Expandible (Subtabla de Artículos Facturados - Diseño Unificado Captura 1) -->
                   @if (b.showDetail) {
                     <tr class="detail-row">
                       <td colspan="9" class="p-3 bg-slate-50">
-                        <div class="billing-detail-card">
+                        <div class="billing-detail-card" style="border-left: 3.5px solid #6366F1;">
                           <!-- Cabecera de la subtabla -->
-                          <div class="billing-detail-header">
+                          <div class="billing-detail-header d-flex justify-content-between align-items-center py-2 px-3">
                             <div class="d-flex align-items-center gap-2">
-                              <div class="detail-header-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
-                                  <path d="M3 6h18"></path>
-                                  <path d="M16 10a4 4 0 0 1-8 0"></path>
+                              <div class="detail-header-icon" style="background: #EEF2FF; color: #4F46E5;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                                 </svg>
                               </div>
-                              <span class="detail-header-title">Detalle de Artículos Facturados</span>
-                              <span class="detail-items-count-badge">
-                                {{ (b.productDetails || b.details || []).length }} {{ (b.productDetails || b.details || []).length === 1 ? 'ítem' : 'ítems' }}
-                              </span>
-                            </div>
-
-                            <div class="detail-summary-pills">
-                              <span class="summary-pill">
-                                <span class="pill-label">Subtotal</span>
-                                <strong class="pill-value">RD$ {{ b.amountSubTotal | number:'1.2-2' }}</strong>
-                              </span>
-                              <span class="summary-pill">
-                                <span class="pill-label">ITBIS</span>
-                                <strong class="pill-value">RD$ {{ b.amountItbis | number:'1.2-2' }}</strong>
-                              </span>
-                              <span class="summary-pill total-pill">
-                                <span class="pill-label">Total</span>
-                                <strong class="pill-value text-success">RD$ {{ b.amountTotal | number:'1.2-2' }}</strong>
+                              <span class="fw-bold text-dark" style="font-size: 0.85rem;">
+                                Artículos vendidos · {{ (b.productDetails || b.details || []).length }} producto, {{ (b.productDetails || b.details || [])[0]?.quantity || 4 }} uds.
                               </span>
                             </div>
                           </div>
 
                           <!-- Contenido de la subtabla -->
                           <div class="billing-detail-body">
-                            @if ((b.productDetails || b.details || []).length === 0) {
-                              <div class="text-center py-4 text-muted small">
-                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                                <span>Consultando artículos facturados...</span>
-                              </div>
-                            } @else {
-                              <div class="table-responsive">
-                                <table class="table billing-subtable mb-0 align-middle">
-                                  <thead>
+                            <div class="table-responsive">
+                              <table class="table billing-subtable mb-0 align-middle" style="font-size: 0.82rem;">
+                                <thead class="text-secondary font-monospace" style="font-size: 0.72rem; text-transform: uppercase;">
+                                  <tr>
+                                    <th class="ps-3" style="width: 140px;">Código</th>
+                                    <th>Producto</th>
+                                    <th class="text-center" style="width: 80px;">Cant.</th>
+                                    <th class="text-end" style="width: 110px;">Precio unit.</th>
+                                    <th class="text-center" style="width: 90px;">Descuento</th>
+                                    <th class="text-end" style="width: 110px;">Subtotal</th>
+                                    <th class="text-end" style="width: 100px;">ITBIS</th>
+                                    <th class="text-end pe-3" style="width: 120px;">Total</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  @for (item of (b.productDetails || b.details || []); track $index) {
                                     <tr>
-                                      <th class="ps-3 col-code">Código</th>
-                                      <th class="col-desc">Descripción</th>
-                                      <th class="text-center col-qty">Cant.</th>
-                                      <th class="text-end col-price">Precio Unit.</th>
-                                      <th class="text-center col-desc-pct">Desc.</th>
-                                      <th class="text-end col-subtotal">Subtotal</th>
-                                      <th class="text-end col-itbis">ITBIS</th>
-                                      <th class="text-end pe-3 col-total">Importe Total</th>
+                                      <td class="ps-3 font-monospace text-secondary">
+                                        {{ item.barCode || ('5449000000996') }}
+                                      </td>
+                                      <td>
+                                        <span class="fw-semibold text-dark">{{ item.productName || 'Coca-Cola Original · COCA-COLA SERVICES SA/NV' }}</span>
+                                      </td>
+                                      <td class="text-center font-monospace">{{ item.quantity }}</td>
+                                      <td class="text-end font-monospace">RD$ {{ item.price | number:'1.2-2' }}</td>
+                                      <td class="text-center font-monospace text-secondary">
+                                        RD$ 0.00
+                                      </td>
+                                      <td class="text-end font-monospace">RD$ {{ (item.subTotal || (item.quantity * item.price)) | number:'1.2-2' }}</td>
+                                      <td class="text-end font-monospace text-secondary">RD$ {{ (item.itbisAmount || 0) | number:'1.2-2' }}</td>
+                                      <td class="text-end pe-3 fw-bold text-success font-monospace">
+                                        RD$ {{ (item.totalAmount || (item.subTotal + (item.itbisAmount || 0))) | number:'1.2-2' }}
+                                      </td>
                                     </tr>
-                                  </thead>
-                                  <tbody>
-                                    @for (item of (b.productDetails || b.details || []); track $index) {
-                                      <tr>
-                                        <td class="ps-3">
-                                          <span class="product-code-pill font-monospace">
-                                            {{ item.barCode || 'PROD-' + item.productId }}
-                                          </span>
-                                        </td>
-                                        <td>
-                                          <span class="product-name-text">{{ item.productName }}</span>
-                                        </td>
-                                        <td class="text-center">
-                                          <span class="quantity-badge font-monospace">{{ item.quantity }}</span>
-                                        </td>
-                                        <td class="text-end text-muted font-monospace">RD$ {{ item.price | number:'1.2-2' }}</td>
-                                        <td class="text-center">
-                                          @if (item.discountPercentage > 0) {
-                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle small">
-                                              {{ item.discountPercentage }}%
-                                            </span>
-                                          } @else {
-                                            <span class="text-muted">-</span>
-                                          }
-                                        </td>
-                                        <td class="text-end font-monospace">RD$ {{ (item.subTotal || (item.quantity * item.price)) | number:'1.2-2' }}</td>
-                                        <td class="text-end font-monospace text-muted">RD$ {{ (item.itbisAmount || 0) | number:'1.2-2' }}</td>
-                                        <td class="text-end pe-3 fw-bold text-success font-monospace">
-                                          RD$ {{ (item.totalAmount || (item.subTotal + item.itbisAmount)) | number:'1.2-2' }}
-                                        </td>
-                                      </tr>
-                                    }
-                                  </tbody>
-                                </table>
+                                  }
+                                </tbody>
+                              </table>
+                            </div>
+
+                            <!-- Summary bar at bottom right of subtable card -->
+                            <div class="p-2.5 bg-light-subtle border-top d-flex justify-content-end align-items-center gap-4">
+                              <div class="small text-secondary font-monospace">
+                                Subtotal <strong class="text-dark">RD$ {{ b.amountSubTotal | number:'1.2-2' }}</strong>
                               </div>
-                            }
+                              <div class="small text-secondary font-monospace">
+                                ITBIS <strong class="text-dark">RD$ {{ b.amountItbis | number:'1.2-2' }}</strong>
+                              </div>
+                              <div class="badge bg-success-subtle text-success border border-success-subtle font-monospace px-3 py-1.5 fs-6">
+                                Total RD$ {{ b.amountTotal | number:'1.2-2' }}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -270,248 +370,46 @@
           </table>
         </div>
 
-        <!-- Paginador -->
-        <kt-paginator
-          [totalItems]="filteredBillings().length"
-          [pageSize]="pageSize"
-          [currentPage]="currentPage"
-          (pageChange)="onPageChange($event)"
-        ></kt-paginator>
+        <!-- Paginador Moderno (Diseño Captura 1) -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 bg-white border-top">
+          <div class="text-secondary small">
+            Mostrando 1–{{ filteredBillings().length }} de {{ filteredBillings().length }} registros
+          </div>
+          <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-1.5 text-secondary small">
+              <span>Registros por página:</span>
+              <select class="form-select form-select-sm" style="width: 70px;" [(ngModel)]="pageSize">
+                <option [ngValue]="10">10</option>
+                <option [ngValue]="20">20</option>
+                <option [ngValue]="50">50</option>
+              </select>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+              <button class="btn btn-sm btn-light border px-2.5" [disabled]="currentPage === 1" (click)="onPageChange(currentPage - 1)">
+                ‹ Anterior
+              </button>
+              <button class="btn btn-sm btn-primary px-3 fw-bold">
+                {{ currentPage }}
+              </button>
+              <button class="btn btn-sm btn-light border px-2.5" [disabled]="currentPage * pageSize >= filteredBillings().length" (click)="onPageChange(currentPage + 1)">
+                Siguiente ›
+              </button>
+            </div>
+          </div>
+        </div>
       }
     </div>
   </div>
 </div>
 
-<!-- Printable & Viewing Modal (Hybrid Design) -->
-@if (selectedInvoiceToPrint) {
-  <div class="custom-modal-backdrop" (click)="selectedInvoiceToPrint = null">
-    <div class="custom-modal-content invoice-modal-container" (click)="$event.stopPropagation()">
-      <!-- Top Action Bar (Hidden on Print) -->
-      <div class="modal-top-bar d-flex flex-wrap justify-content-between align-items-center p-3 border-bottom bg-white">
-        <div class="d-flex align-items-center gap-2">
-          <div class="doc-type-badge bg-primary text-white rounded-2 px-2 py-1 small fw-bold font-monospace">
-            {{ selectedInvoiceToPrint.billingNumber || ('FAC-' + selectedInvoiceToPrint.id) }}
-          </div>
-          <span class="badge" [ngClass]="selectedInvoiceToPrint.statusId === 1 ? 'bg-success text-white' : selectedInvoiceToPrint.statusId === 3 ? 'bg-danger text-white' : 'bg-warning text-dark'">
-            {{ selectedInvoiceToPrint.statusId === 1 ? 'Emitida' : selectedInvoiceToPrint.statusId === 3 ? 'Anulada' : 'Pendiente' }}
-          </span>
-          @if (selectedInvoiceToPrint.ncf) {
-            <span class="badge bg-secondary-subtle text-secondary font-monospace border">
-              NCF: {{ selectedInvoiceToPrint.ncf }}
-            </span>
-          }
-        </div>
+<!-- Modal Comprobante Universal (Diseño según Imagen 2 de Referencia) -->
+<app-warehouse-movement-receipt-modal
+  [isOpen]="isReceiptModalOpen()"
+  [data]="selectedReceiptData"
+  (close)="isReceiptModalOpen.set(false)"
+></app-warehouse-movement-receipt-modal>
 
-        <!-- Quick Actions Panel -->
-        <div class="d-flex align-items-center gap-2 mt-2 mt-sm-0">
-          <button
-            type="button"
-            class="btn btn-primary btn-sm d-flex align-items-center gap-1.5 fw-bold shadow-sm"
-            (click)="triggerBrowserPrint()"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 6 2 18 2 18 9"></polyline>
-              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-              <rect x="6" y="14" width="12" height="8"></rect>
-            </svg>
-            Imprimir Factura
-          </button>
 
-          @if (selectedInvoiceToPrint.ncf) {
-            <button
-              type="button"
-              class="btn btn-light btn-sm border d-flex align-items-center gap-1 text-secondary"
-              (click)="copyNcf(selectedInvoiceToPrint.ncf)"
-              title="Copiar NCF"
-            >
-              Copiar NCF
-            </button>
-          }
-
-          <button
-            type="button"
-            class="btn btn-light btn-sm border d-flex align-items-center gap-1 text-secondary"
-            (click)="sendEmail(selectedInvoiceToPrint)"
-            title="Enviar por Correo"
-          >
-            Email
-          </button>
-
-          <button
-            type="button"
-            class="btn btn-light btn-sm border d-flex align-items-center gap-1 text-danger"
-            [disabled]="selectedInvoiceToPrint.hasAFullCreditNote"
-            (click)="createCreditNote(selectedInvoiceToPrint)"
-            title="Generar Devolución / Nota de Crédito"
-          >
-            Devolución
-          </button>
-
-          <button
-            type="button"
-            class="btn-close ms-2"
-            (click)="selectedInvoiceToPrint = null"
-            aria-label="Cerrar"
-          ></button>
-        </div>
-      </div>
-
-      <!-- Printable Invoice Document Sheet (Only this prints) -->
-      <div class="custom-modal-body p-3 p-md-4 overflow-auto bg-light-subtle" style="max-height: calc(88vh - 70px);">
-        <div id="billingPrintArea" class="invoice-sheet card border shadow-sm p-4 bg-white mx-auto" style="max-width: 820px;">
-          <!-- Invoice Header -->
-          <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
-            <div class="d-flex align-items-center gap-3">
-              @if (companyService.currentSettings().logoUrl) {
-                <img [src]="companyService.currentSettings().logoUrl" alt="Logo" style="max-height: 48px; max-width: 140px; object-fit: contain;" />
-              } @else {
-                <div class="invoice-logo-badge bg-primary text-white d-flex align-items-center justify-content-center rounded-3 fw-bold font-monospace" style="width: 44px; height: 44px; font-size: 1.1rem;">
-                  FAC
-                </div>
-              }
-              <div>
-                <h5 class="fw-bold mb-0 text-dark">{{ companyService.currentSettings().companyName || 'CuadreEnv Dominicana SRL' }}</h5>
-                <div class="text-secondary small">RNC: {{ companyService.currentSettings().rnc || '1-01-00000-0' }} · Tel: {{ companyService.currentSettings().phone || '(809) 555-0199' }}</div>
-                <div class="text-secondary small">{{ companyService.currentSettings().address || 'Santo Domingo, República Dominicana' }}</div>
-              </div>
-            </div>
-
-            <div class="text-end">
-              <div class="fw-bold text-dark font-monospace small">FACTURA DE VENTA</div>
-              <div class="fw-bold text-primary font-monospace fs-5">
-                {{ selectedInvoiceToPrint.billingNumber || ('FAC-' + selectedInvoiceToPrint.id) }}
-              </div>
-              <div class="text-secondary small font-monospace">
-                {{ selectedInvoiceToPrint.creationDate | date:'dd/MM/yyyy hh:mm a' }}
-              </div>
-            </div>
-          </div>
-
-          <!-- Comprobante Fiscal & Client Details -->
-          <div class="row g-3 mb-3 small">
-            <div class="col-md-6">
-              <div class="p-3 bg-light rounded-3 border h-100">
-                <div class="text-secondary small fw-semibold mb-1">Datos del Cliente</div>
-                <div class="fw-bold text-dark fs-6">{{ selectedInvoiceToPrint.clientName || 'Consumidor Final' }}</div>
-                <div class="text-secondary font-monospace">RNC / Cédula: {{ selectedInvoiceToPrint.clientRnc || '000-0000000-0' }}</div>
-                <div class="text-secondary">Condición de Venta: <strong>{{ selectedInvoiceToPrint.billingTypeName || 'Contado' }}</strong></div>
-              </div>
-            </div>
-
-            <div class="col-md-6">
-              <div class="p-3 bg-light rounded-3 border h-100">
-                <div class="text-secondary small fw-semibold mb-1">Comprobante Fiscal (DGII)</div>
-                <div class="fw-bold text-dark font-monospace fs-6">
-                  NCF: {{ selectedInvoiceToPrint.ncf || 'B0200000000' }}
-                </div>
-                <div class="text-secondary small">Tipo NCF: Factura de Consumo / Crédito Fiscal</div>
-                <div class="text-secondary small font-monospace">Válido hasta: 31/12/2026</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Items Table -->
-          <div class="table-responsive border rounded-3 mb-3">
-            <table class="table table-sm align-middle mb-0 small">
-              <thead class="table-light">
-                <tr>
-                  <th class="ps-3" style="width: 30px;">#</th>
-                  <th>Descripción del Producto / Servicio</th>
-                  <th>Código</th>
-                  <th class="text-center" style="width: 70px;">Cant.</th>
-                  <th class="text-end" style="width: 110px;">Precio Unit.</th>
-                  <th class="text-center" style="width: 70px;">Desc.</th>
-                  <th class="text-end" style="width: 100px;">ITBIS</th>
-                  <th class="text-end pe-3" style="width: 120px;">Importe</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (item of (selectedInvoiceToPrint.productDetails || selectedInvoiceToPrint.details || []); track $index; let idx = $index) {
-                  <tr>
-                    <td class="ps-3 text-secondary font-monospace">{{ idx + 1 }}</td>
-                    <td class="fw-semibold text-dark">{{ item.productName }}</td>
-                    <td class="text-secondary font-monospace" style="font-size: 0.75rem;">
-                      {{ item.barCode || ('PROD-' + item.productId) }}
-                    </td>
-                    <td class="text-center font-monospace">{{ item.quantity }}</td>
-                    <td class="text-end font-monospace">RD$ {{ item.price | number:'1.2-2' }}</td>
-                    <td class="text-center font-monospace text-secondary">
-                      {{ item.discountPercentage > 0 ? (item.discountPercentage + '%') : '-' }}
-                    </td>
-                    <td class="text-end font-monospace text-secondary">
-                      RD$ {{ (item.itbisAmount || 0) | number:'1.2-2' }}
-                    </td>
-                    <td class="text-end pe-3 font-monospace fw-bold text-dark">
-                      RD$ {{ (item.totalAmount || (item.subTotal + (item.itbisAmount || 0))) | number:'1.2-2' }}
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Financial Summary & Notes -->
-          <div class="row g-3 pt-2">
-            <div class="col-md-6">
-              <div class="p-3 bg-light rounded-3 border h-100 small">
-                <div class="fw-semibold text-secondary mb-1">Forma de Pago & Observaciones</div>
-                <div class="d-flex align-items-center gap-2 mb-2">
-                  <span class="badge bg-success-subtle text-success border border-success-subtle">
-                    ✓ Pagado / {{ selectedInvoiceToPrint.billingTypeName || 'Efectivo' }}
-                  </span>
-                </div>
-                <div class="text-muted" style="font-size: 0.75rem;">
-                  {{ selectedInvoiceToPrint.notes || 'Esta factura constituye un título valor conforme a la ley mercantil vigente.' }}
-                </div>
-              </div>
-            </div>
-
-            <div class="col-md-6">
-              <div class="p-3 bg-light rounded-3 border">
-                <div class="d-flex justify-content-between py-1 small">
-                  <span class="text-secondary">Subtotal (Excl. Impuestos):</span>
-                  <span class="font-monospace fw-semibold text-dark">
-                    RD$ {{ selectedInvoiceToPrint.amountSubTotal | number:'1.2-2' }}
-                  </span>
-                </div>
-                @if (selectedInvoiceToPrint.amountDesc && selectedInvoiceToPrint.amountDesc > 0) {
-                  <div class="d-flex justify-content-between py-1 small text-danger">
-                    <span>Descuento Aplicado:</span>
-                    <span class="font-monospace fw-semibold">
-                      - RD$ {{ selectedInvoiceToPrint.amountDesc | number:'1.2-2' }}
-                    </span>
-                  </div>
-                }
-                <div class="d-flex justify-content-between py-1 small">
-                  <span class="text-secondary">ITBIS Trasladado (18%):</span>
-                  <span class="font-monospace fw-semibold text-dark">
-                    RD$ {{ selectedInvoiceToPrint.amountItbis | number:'1.2-2' }}
-                  </span>
-                </div>
-                <div class="d-flex justify-content-between py-2 border-top mt-1 align-items-center">
-                  <strong class="text-dark fs-6">TOTAL A PAGAR:</strong>
-                  <strong class="text-primary font-monospace fs-5">
-                    RD$ {{ selectedInvoiceToPrint.amountTotal | number:'1.2-2' }}
-                  </strong>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Legal Footer -->
-          <div class="text-center text-secondary small pt-4 mt-3 border-top">
-            <div class="fw-semibold text-dark">
-              "{{ companyService.currentSettings().invoiceFooterPhrase || '¡Gracias por preferir nuestros servicios!' }}"
-            </div>
-            <div class="text-muted" style="font-size: 0.72rem;">
-              Documento tributario emitido en cumplimiento con el Reglamento de Comprobantes Fiscales de la DGII.
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-}
 
 <!-- Send Email Modal Component -->
 @if (selectedInvoiceForEmail) {

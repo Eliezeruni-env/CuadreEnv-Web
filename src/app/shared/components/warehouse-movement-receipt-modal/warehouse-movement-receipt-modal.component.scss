@@ -35,6 +35,27 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+
+  &.entry {
+    background-color: #ecfdf5;
+    color: #16a34a;
+  }
+  &.outlet {
+    background-color: #fef2f2;
+    color: #dc2626;
+  }
+  &.transfer {
+    background-color: #f5f3ff;
+    color: #7c3aed;
+  }
+  &.sale {
+    background-color: #eff6ff;
+    color: #2563eb;
+  }
+  &.purchase {
+    background-color: #fef3c7;
+    color: #d97706;
+  }
 }
 
 .receipt-title {

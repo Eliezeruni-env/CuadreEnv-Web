@@ -22,6 +22,10 @@ import {
   SpinnerComponent,
 } from '@coreui/angular';
 import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/kt-paginator.component';
+import {
+  WarehouseMovementReceiptModalComponent,
+  type MovementReceiptData,
+} from '../../../../app/shared/components/warehouse-movement-receipt-modal/warehouse-movement-receipt-modal.component';
 import type { CreditNote } from '../../../../app/models/credit-note';
 
 import { ActivatedRoute } from '@angular/router';
@@ -35,6 +39,7 @@ import { ActivatedRoute } from '@angular/router';
     SpinnerComponent,
     CreditNoteFormComponent,
     KtPaginatorComponent,
+    WarehouseMovementReceiptModalComponent,
   ],
   templateUrl: './credit-notes.component.html',
   styleUrls: ['./credit-notes.component.scss'],
@@ -57,6 +62,10 @@ export class CreditNotesComponent implements OnInit {
 
   isCreateModalOpen = false;
   selectedCreditNote: CreditNote | null = null;
+
+  // Image 2 Universal Comprobante Modal
+  isReceiptModalOpen = signal<boolean>(false);
+  selectedReceiptData: MovementReceiptData | null = null;
 
   readonly filteredCreditNotes = computed(() => {
     const term = this.searchTerm.toLowerCase().trim();
@@ -128,7 +137,41 @@ export class CreditNotesComponent implements OnInit {
   }
 
   viewNoteDetail(note: CreditNote) {
-    this.selectedCreditNote = note;
+    this.openReceiptModal(note);
+  }
+
+  openReceiptModal(note: CreditNote): void {
+    const code = note.creditNoteNumber || (note.ncf ? note.ncf : `NC-${note.id}`);
+    const rawItems = note.creditNoteDetails || [];
+    this.selectedReceiptData = {
+      movementCode: code,
+      movementType: 'outlet',
+      statusLabel: 'Emitida',
+      title: 'Comprobante fiscal de nota de crédito',
+      firstColumnHeader: 'COMPROBANTE',
+      warehouseName: note.customerName || 'Consumidor Final',
+      secondColumnHeader: 'CLIENTE',
+      warehouseLocation: note.billingNumber ? `Afecta: ${note.billingNumber}` : 'Devolución de venta',
+      conceptName: note.creditNoteType === 1 ? 'Devolución Total' : 'Devolución Parcial',
+      thirdColumnHeader: 'TIPO DE NOTA',
+      conceptDescription: note.ncf ? `NCF: ${note.ncf}` : 'Modificación fiscal',
+      fourthColumnHeader: 'FECHA Y HORA',
+      date: new Date(note.creationDate || Date.now()).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      time: new Date(note.creationDate || Date.now()).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      itemsSectionTitle: 'Artículos reintegrados',
+      items: rawItems.map((p: any) => ({
+        code: p.barCode || (p.productId ? `PROD-${p.productId}` : 'N/A'),
+        name: p.productName || 'Artículo',
+        description: '',
+        quantity: Number(p.quantity) || 1,
+        unitCost: Number(p.price) || 0,
+        totalCost: Number(p.totalAmount || (p.quantity * (p.price || 0))) || 0,
+      })),
+      totalUnits: rawItems.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 1), 0),
+      totalCost: Number(note.amountTotal) || 0,
+      footerNote: 'Nota de crédito aplicada al inventario y balance de cuenta',
+    };
+    this.isReceiptModalOpen.set(true);
   }
 
   toggleDetail(note: CreditNote) {

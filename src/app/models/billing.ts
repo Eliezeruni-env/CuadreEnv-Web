@@ -40,6 +40,7 @@ export interface Billing {
   ncf?: string;
   warehouseId?: number;
   statusId: number;
+  statusName?: string;
   amountSubTotal: number;
   amountDesc: number;
   amountItbis: number;

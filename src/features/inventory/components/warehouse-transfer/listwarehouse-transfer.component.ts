@@ -4,12 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WarehouseTransferService } from '../../services/warehouse-transfer.service';
 import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/kt-paginator.component';
+import {
+  WarehouseMovementReceiptModalComponent,
+  type MovementReceiptData,
+} from '../../../../app/shared/components/warehouse-movement-receipt-modal/warehouse-movement-receipt-modal.component';
 import type { WarehouseTransfer } from '../../../../app/models/movement';
 
 @Component({
   selector: 'app-listwarehouse-transfer',
   standalone: true,
-  imports: [CommonModule, FormsModule, KtPaginatorComponent],
+  imports: [CommonModule, FormsModule, KtPaginatorComponent, WarehouseMovementReceiptModalComponent],
   templateUrl: './listwarehouse-transfer.component.html',
   styleUrls: ['./listwarehouse-transfer.component.scss'],
 })
@@ -25,6 +29,9 @@ export class ListwarehouseTransferComponent implements OnInit {
   pageSize = signal<number>(10);
   expandedTransferId = signal<number | null>(null);
 
+  // Receipt Modal State (Matching Image 2)
+  isReceiptModalOpen = signal<boolean>(false);
+  selectedReceiptData: MovementReceiptData | null = null;
   selectedTransfer: WarehouseTransfer | null = null;
 
   readonly filteredTransfers = computed(() => {
@@ -105,12 +112,50 @@ export class ListwarehouseTransferComponent implements OnInit {
   }
 
   viewDetail(transfer: WarehouseTransfer) {
-    this.selectedTransfer = transfer;
+    this.openReceiptModal(transfer);
   }
 
-  printVoucher() {
-    setTimeout(() => {
-      window.print();
-    }, 150);
+  openReceiptModal(transfer: WarehouseTransfer): void {
+    const code = transfer.movementNumber || `TRF-${transfer.id}`;
+    const rawItems = transfer.productDetails || [];
+    this.selectedReceiptData = {
+      movementCode: code,
+      movementType: 'transfer',
+      statusLabel: transfer.statusName || 'Aplicado',
+      title: 'Comprobante de transferencia de almacén',
+      firstColumnHeader: 'COMPROBANTE',
+      warehouseName: transfer.warehouseOfOriginName || 'Almacén Origen',
+      secondColumnHeader: 'ALMACÉN ORIGEN',
+      warehouseLocation: 'Emisor / Salida',
+      conceptName: transfer.destinationWarehouseName || 'Almacén Destino',
+      thirdColumnHeader: 'ALMACÉN DESTINO',
+      conceptDescription: 'Receptor / Entrada',
+      fourthColumnHeader: 'FECHA Y HORA',
+      date: new Date(transfer.createDate || (transfer as any).createdAt || Date.now()).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      time: new Date(transfer.createDate || (transfer as any).createdAt || Date.now()).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      itemsSectionTitle: 'Artículos transferidos',
+      items: rawItems.map((p: any) => ({
+        code: p.productCode || p.barcode || p.barCode || (p.productId ? `PROD-${p.productId}` : 'N/A'),
+        name: p.productName || p.description || 'Producto',
+        description: p.description || '',
+        quantity: Number(p.quantity) || 1,
+        unitCost: Number(p.cost || p.price) || 0,
+        totalCost: (Number(p.cost || p.price) || 0) * (Number(p.quantity) || 1),
+      })),
+      totalUnits: Number(transfer.totalQuantity) || rawItems.reduce((s: number, i: any) => s + (Number(i.quantity) || 0), 0) || 1,
+      totalCost: Number(transfer.totalCost) || 0,
+      footerNote: 'Transferencia aplicada al inventario',
+    };
+    this.isReceiptModalOpen.set(true);
+  }
+
+  printVoucher(transfer?: WarehouseTransfer) {
+    if (transfer) {
+      this.openReceiptModal(transfer);
+    } else {
+      setTimeout(() => {
+        window.print();
+      }, 150);
+    }
   }
 }
