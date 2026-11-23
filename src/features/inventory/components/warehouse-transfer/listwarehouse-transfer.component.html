@@ -82,6 +82,12 @@
                   {{ sortColumn() === 'quantity' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
                 </span>
               </th>
+              <th class="th-sortable text-end" (click)="toggleSort('cost')">
+                Costo Total
+                <span class="sort-indicator" [class.active]="sortColumn() === 'cost'">
+                  {{ sortColumn() === 'cost' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
               <th class="th-sortable text-center" (click)="toggleSort('status')">
                 Estado
                 <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
@@ -147,6 +153,9 @@
                   <td class="text-center font-monospace fw-bold text-dark fs-6">
                     {{ (t.totalQuantity || 0) | number:'1.0-2' }} uds
                   </td>
+                  <td class="text-end font-monospace fw-bold text-dark fs-6">
+                    RD$ {{ (t.totalCost || 0) | number:'1.2-2' }}
+                  </td>
                   <td class="text-center">
                     <span class="badge status-badge-success px-2.5 py-1 rounded-pill">
                       {{ t.statusName || 'Aplicado' }}
@@ -199,9 +208,13 @@
                               <span class="pill-label">Destino</span>
                               <strong class="pill-value">{{ t.destinationWarehouseName }}</strong>
                             </span>
-                            <span class="summary-pill total-pill">
-                              <span class="pill-label">Total</span>
+                            <span class="summary-pill">
+                              <span class="pill-label">Total Uds</span>
                               <strong class="pill-value">{{ (t.totalQuantity || 0) | number:'1.0-2' }} uds</strong>
+                            </span>
+                            <span class="summary-pill total-pill">
+                              <span class="pill-label">Costo Estimado</span>
+                              <strong class="pill-value text-dark">RD$ {{ (t.totalCost || 0) | number:'1.2-2' }}</strong>
                             </span>
                           </div>
                         </div>
@@ -211,9 +224,11 @@
                             <table class="table billing-subtable mb-0 align-middle">
                               <thead>
                                 <tr>
-                                  <th class="ps-3" style="width: 160px;">Código</th>
+                                  <th class="ps-3" style="width: 140px;">Código</th>
                                   <th>Descripción</th>
-                                  <th class="text-center pe-3" style="width: 160px;">Cant. Transferida</th>
+                                  <th class="text-center" style="width: 130px;">Cant. Transferida</th>
+                                  <th class="text-end" style="width: 130px;">Costo Unit.</th>
+                                  <th class="text-end pe-3" style="width: 140px;">Subtotal Costo</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -225,8 +240,12 @@
                                     <td>
                                       <span class="product-name-text">{{ item.productName }}</span>
                                     </td>
-                                    <td class="text-center pe-3">
+                                    <td class="text-center">
                                       <span class="quantity-badge font-monospace">{{ item.quantity }} uds</span>
+                                    </td>
+                                    <td class="text-end font-monospace text-muted">RD$ {{ (item.cost || item.price || 0) | number:'1.2-2' }}</td>
+                                    <td class="text-end pe-3 font-monospace fw-bold text-dark">
+                                      RD$ {{ (item.quantity * (item.cost || item.price || 0)) | number:'1.2-2' }}
                                     </td>
                                   </tr>
                                 }

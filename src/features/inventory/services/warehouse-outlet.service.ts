@@ -96,7 +96,24 @@ export class WarehouseOutletService {
         .filter((o: any) => o.isPendingSync === true)
         .map((o) => normalizeWarehouseMovement<WarehouseOutlet>(o));
 
-      const combined = [...validApiList, ...pendingOffline].sort(
+      // Deduplicación estricta por id y número de movimiento
+      const seenIds = new Set<number>();
+      const seenNumbers = new Set<string>();
+      const combined: WarehouseOutlet[] = [];
+
+      for (const outlet of [...validApiList, ...pendingOffline]) {
+        const idKey = outlet.id;
+        const numKey = (outlet.movementNumber || '').trim().toUpperCase();
+
+        if (idKey && seenIds.has(idKey)) continue;
+        if (numKey && seenNumbers.has(numKey)) continue;
+
+        if (idKey) seenIds.add(idKey);
+        if (numKey) seenNumbers.add(numKey);
+        combined.push(outlet);
+      }
+
+      combined.sort(
         (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
       );
       return { success: true, data: combined };
@@ -175,21 +192,37 @@ export class WarehouseOutletService {
       totalCost: totalCost,
     };
 
-    // 1. Post to backend endpoint POST /WarehouseOutlet
+    // 1. Post to backend endpoint POST /WarehouseOutlet (intenta encabezado completo primero)
     let createdBackendId: number | undefined;
-    for (const item of outlet.productDetails || []) {
-      try {
-        const res = await this.api.post<any, any>('/WarehouseOutlet', {
-          productId: item.productId,
-          warehouseId: whId,
-          quantity: item.quantity,
-        });
-        const resData = res?.data ?? res;
-        if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);
-      } catch (err: any) {
-        console.error('[WarehouseOutlet] Error al persistir en backend:', err);
-        const errMsg = err?.mappedError?.message || err?.message || 'Error al guardar la salida en el servidor.';
-        return { success: false, message: errMsg };
+
+    try {
+      const headerPayload = {
+        warehouseId: whId,
+        conceptId: outlet.conceptId,
+        commentary: outlet.commentary || '',
+        totalQuantity: totalQty,
+        totalCost: totalCost,
+        productDetails: outlet.productDetails,
+      };
+      const res = await this.api.post<any, any>('/WarehouseOutlet', headerPayload);
+      const resData = res?.data ?? res;
+      if (resData?.id) createdBackendId = Number(resData.id);
+    } catch {
+      // Fallback a envío por renglón
+      for (const item of outlet.productDetails || []) {
+        try {
+          const res = await this.api.post<any, any>('/WarehouseOutlet', {
+            productId: item.productId,
+            warehouseId: whId,
+            quantity: item.quantity,
+          });
+          const resData = res?.data ?? res;
+          if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);
+        } catch (err: any) {
+          console.error('[WarehouseOutlet] Error al persistir en backend:', err);
+          const errMsg = err?.mappedError?.message || err?.message || 'Error al guardar la salida en el servidor.';
+          return { success: false, message: errMsg };
+        }
       }
     }
 

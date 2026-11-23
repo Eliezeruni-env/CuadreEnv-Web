@@ -195,9 +195,25 @@
 
         <!-- Product Search & Fast Entry Bar -->
         <div class="search-entry-bar mb-4">
-          <label class="form-label small fw-semibold text-secondary mb-1">
-            Buscar producto o escanear código
-          </label>
+          <div class="d-flex align-items-center justify-content-between mb-1.5 flex-wrap gap-2">
+            <label class="form-label small fw-semibold text-secondary mb-0">
+              Buscar producto o escanear código
+            </label>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-primary fw-semibold d-inline-flex align-items-center gap-1.5 px-3 py-1.5 rounded-3 shadow-2xs"
+              (click)="openProductCatalogModal()"
+              data-tooltip="Abrir catálogo completo del almacén para selección rápida de múltiples productos a la vez"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              <span>Catálogo del almacén (Selección múltiple)</span>
+            </button>
+          </div>
           <div class="d-flex align-items-center flex-wrap gap-2">
             <!-- Search Text Input with Autocomplete Dropdown -->
             <div class="position-relative flex-grow-1" style="min-width: 260px;">
@@ -560,3 +576,196 @@
   [data]="receiptData"
   (close)="onReceiptClosed()"
 ></app-warehouse-movement-receipt-modal>
+
+<!-- Modal Catálogo de Productos del Almacén (Selección Múltiple Rápida) -->
+@if (isCatalogModalOpen()) {
+  <div class="modal-backdrop fade show" style="z-index: 1050;"></div>
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" style="z-index: 1055;">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <!-- Modal Header -->
+        <div class="modal-header border-bottom px-4 py-3 bg-light d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-2.5">
+            <div class="modal-header-icon p-2 bg-primary-subtle text-primary rounded-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </div>
+            <div>
+              <h5 class="modal-title fw-bold text-dark mb-0">Catálogo de Productos - {{ getSelectedWarehouseName() }}</h5>
+              <small class="text-secondary">Selecciona de 1 a múltiples productos para agregarlos en lote al movimiento</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" (click)="closeProductCatalogModal()"></button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="modal-body p-4">
+          <!-- Filter & Search Bar in Modal -->
+          <div class="row g-2 align-items-center mb-3">
+            <div class="col-md-7">
+              <div class="input-group">
+                <span class="input-group-text bg-white text-muted border-end-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  class="form-control border-start-0 ps-0"
+                  placeholder="Buscar por nombre, código de barras o referencia..."
+                  [(ngModel)]="catalogSearchTerm"
+                />
+              </div>
+            </div>
+            <div class="col-md-5 d-flex justify-content-md-end gap-1">
+              <div class="btn-group btn-group-sm" role="group">
+                <button
+                  type="button"
+                  class="btn"
+                  [ngClass]="catalogFilter === 'all' ? 'btn-primary' : 'btn-outline-secondary'"
+                  (click)="catalogFilter = 'all'"
+                >
+                  Todos ({{ catalogItems.length }})
+                </button>
+                <button
+                  type="button"
+                  class="btn"
+                  [ngClass]="catalogFilter === 'with-stock' ? 'btn-primary' : 'btn-outline-secondary'"
+                  (click)="catalogFilter = 'with-stock'"
+                >
+                  Con Stock
+                </button>
+                <button
+                  type="button"
+                  class="btn"
+                  [ngClass]="catalogFilter === 'zero-stock' ? 'btn-primary' : 'btn-outline-secondary'"
+                  (click)="catalogFilter = 'zero-stock'"
+                >
+                  Sin Stock
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product Table in Modal -->
+          <div class="table-responsive border rounded-3 overflow-hidden" style="max-height: 420px;">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="bg-light sticky-top">
+                <tr class="font-size-xs text-secondary text-uppercase">
+                  <th class="ps-3" style="width: 45px;">
+                    <input
+                      type="checkbox"
+                      class="form-check-input"
+                      [checked]="isAllCatalogSelected()"
+                      (change)="toggleSelectAllCatalog($event)"
+                    />
+                  </th>
+                  <th>Producto</th>
+                  <th style="width: 140px;">Código</th>
+                  <th class="text-center" style="width: 120px;">Stock Almacén</th>
+                  <th class="text-end" style="width: 140px;">Costo Unit. (RD$)</th>
+                  <th class="text-center" style="width: 120px;">Cant. a Mover</th>
+                  <th class="text-end pe-3" style="width: 140px;">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (filteredCatalogItems.length === 0) {
+                  <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                      No se encontraron productos en el catálogo que coincidan con la búsqueda.
+                    </td>
+                  </tr>
+                } @else {
+                  @for (it of filteredCatalogItems; track it.product.id) {
+                    <tr [class.table-primary]="it.selected" (click)="toggleCatalogRow(it, $event)" style="cursor: pointer;">
+                      <td class="ps-3" (click)="$event.stopPropagation()">
+                        <input
+                          type="checkbox"
+                          class="form-check-input"
+                          [(ngModel)]="it.selected"
+                        />
+                      </td>
+                      <td>
+                        <div class="fw-bold text-dark font-size-sm">{{ it.product.description }}</div>
+                        <div class="text-muted font-size-xs">{{ it.product.shortDescription || 'General' }}</div>
+                      </td>
+                      <td>
+                        <span class="badge bg-light text-secondary border font-monospace">
+                          {{ it.product.barcode || 'PRD-' + it.product.id }}
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <span class="badge font-monospace" [ngClass]="it.stock > 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-secondary-subtle text-secondary border'">
+                          {{ it.stock }} uds
+                        </span>
+                      </td>
+                      <td class="text-end" (click)="$event.stopPropagation()">
+                        <input
+                          type="number"
+                          class="form-control form-control-sm text-end font-monospace ms-auto"
+                          style="width: 110px;"
+                          [(ngModel)]="it.cost"
+                          (ngModelChange)="it.selected = true"
+                          min="0"
+                          step="0.01"
+                        />
+                      </td>
+                      <td class="text-center" (click)="$event.stopPropagation()">
+                        <input
+                          type="number"
+                          class="form-control form-control-sm text-center font-monospace mx-auto"
+                          style="width: 80px;"
+                          [(ngModel)]="it.quantity"
+                          (ngModelChange)="it.selected = true"
+                          min="1"
+                          step="1"
+                        />
+                      </td>
+                      <td class="text-end pe-3 font-monospace fw-bold text-dark">
+                        RD$ {{ ((it.quantity || 1) * (it.cost || 0)) | number:'1.2-2' }}
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer border-top px-4 py-3 bg-light d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-3">
+            <span class="fw-semibold text-dark">
+              Seleccionados: <span class="badge bg-primary text-white rounded-pill px-2.5">{{ selectedCatalogCount }} productos</span>
+            </span>
+            <span class="text-muted small">
+              ({{ selectedCatalogUnits }} uds • Costo estimado: <strong class="text-success font-monospace">RD$ {{ selectedCatalogCost | number:'1.2-2' }}</strong>)
+            </span>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-secondary px-3" (click)="closeProductCatalogModal()">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary fw-semibold px-4 d-inline-flex align-items-center gap-2"
+              [disabled]="selectedCatalogCount === 0"
+              (click)="confirmAddCatalogProducts()"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Agregar ({{ selectedCatalogCount }}) al movimiento</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+}

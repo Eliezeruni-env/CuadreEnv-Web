@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { WarehouseService } from '../../../../features/inventory/services/warehouse.service';
 import { ProductService } from '../../../../features/products/services/product.service';
 import { StockService } from '../../../../features/inventory/services/stock.service';
@@ -29,6 +29,14 @@ import type { Product } from '../../../models/product';
 
 export interface MovementLineItem extends ProductMovementDetail {
   description?: string;
+}
+
+export interface CatalogModalItem {
+  product: Product;
+  stock: number;
+  cost: number;
+  quantity: number;
+  selected: boolean;
 }
 
 @Component({
@@ -56,6 +64,7 @@ export class WarehouseMovementFormComponent implements OnInit {
   private notificationService = inject(NotificationService);
   private barcodeLookupService = inject(BarcodeLookupService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
   @ViewChild('barcodeImageInput') barcodeImageInput?: ElementRef<HTMLInputElement>;
@@ -63,6 +72,15 @@ export class WarehouseMovementFormComponent implements OnInit {
   // Receipt Modal State
   isReceiptModalOpen = signal<boolean>(false);
   receiptData: MovementReceiptData | null = null;
+
+  // Catalog Multi-Select Modal State
+  isCatalogModalOpen = signal<boolean>(false);
+  catalogSearchTerm = '';
+  catalogFilter: 'all' | 'with-stock' | 'zero-stock' = 'all';
+  catalogItems: CatalogModalItem[] = [];
+
+  // Active Warehouse Stock Cache
+  activeWarehouseStockMap = new Map<number, number>();
 
   // Catalogs
   warehouses: Warehouse[] = [];
@@ -115,22 +133,49 @@ export class WarehouseMovementFormComponent implements OnInit {
   }
 
   async ngOnInit() {
+    // 1. Cargar almacenes locales de inmediato (síncrono) para render instantáneo sin esperas
+    const localWhs = this.warehouseService.getLocalWarehouses();
+    if (localWhs && localWhs.length > 0) {
+      this.warehouses = localWhs.filter((w) => w.isActive !== false);
+      const qWh = Number(this.route.snapshot.queryParamMap.get('warehouseId') || this.route.snapshot.queryParamMap.get('originWarehouseId'));
+      if (qWh && this.warehouses.some((w) => Number(w.id) === qWh)) {
+        this.warehouseId = qWh;
+        this.warehouseOfOriginId = qWh;
+      } else {
+        const mainWh = this.warehouses.find((w) => w.isMain) || this.warehouses[0];
+        this.warehouseId = Number(mainWh.id);
+        this.warehouseOfOriginId = Number(mainWh.id);
+      }
+      this.destinationWarehouseId =
+        this.warehouses.length > 1 ? Number(this.warehouses[1].id) : Number(this.warehouses[0].id);
+      this.loadConcepts();
+      this.isLoadingCatalogs.set(false);
+    }
+
+    // 2. Cargar catálogos y productos en paralelo
     await Promise.all([this.loadCatalogs(), this.loadProducts()]);
+    await this.updateActiveWarehouseStock();
   }
 
   async loadCatalogs() {
-    this.isLoadingCatalogs.set(true);
     try {
       const res = await this.warehouseService.getWarehouses();
       if (res?.success && res.data) {
         this.warehouses = res.data.filter((w) => w.isActive !== false);
 
-        if (this.warehouses.length > 0) {
+        const qWh = Number(this.route.snapshot.queryParamMap.get('warehouseId') || this.route.snapshot.queryParamMap.get('originWarehouseId'));
+        if (qWh && this.warehouses.some((w) => Number(w.id) === qWh)) {
+          this.warehouseId = qWh;
+          this.warehouseOfOriginId = qWh;
+        } else if (!this.warehouses.some((w) => Number(w.id) === this.warehouseId) && this.warehouses.length > 0) {
           const mainWh = this.warehouses.find((w) => w.isMain) || this.warehouses[0];
-          this.warehouseId = mainWh.id;
-          this.warehouseOfOriginId = mainWh.id;
-          this.destinationWarehouseId =
-            this.warehouses.length > 1 ? this.warehouses[1].id : this.warehouses[0].id;
+          this.warehouseId = Number(mainWh.id);
+          this.warehouseOfOriginId = Number(mainWh.id);
+        }
+
+        if (this.warehouses.length > 1) {
+          const altWh = this.warehouses.find((w) => Number(w.id) !== this.warehouseOfOriginId);
+          if (altWh) this.destinationWarehouseId = Number(altWh.id);
         }
       }
 
@@ -152,7 +197,7 @@ export class WarehouseMovementFormComponent implements OnInit {
 
   async loadProducts() {
     try {
-      const res = await this.productService.getPagedProducts(1, 150);
+      const res = await this.productService.getPagedProducts(1, 200);
       if (res?.success && res.data?.items) {
         this.allProducts = (res.data.items as any[])
           .filter((p: any) => {
@@ -163,45 +208,85 @@ export class WarehouseMovementFormComponent implements OnInit {
             if (code.startsWith('SERV-') || code.startsWith('SERV')) return false;
             return true;
           })
-          .map((p: any) => ({
-            id: p.id || 0,
-            description: p.description || p.name || '',
-            barcode: p.barcode || p.reference || '',
-            reference: p.reference || '',
-            shortDescription: p.shortDescription || p.categoryName || '',
-            cost: p.cost || 0,
-            priceList: p.priceList || p.price || 0,
-            taxRate: p.taxRate || 18,
-            minimumQuantity: p.minimumQuantity || 5,
-            maximumQuantity: p.maximumQuantity || 100,
-            packingId: p.packingId || 1,
-            productTypeId: p.productTypeId || 1,
-            categoryId: p.categoryId || 1,
-            unitOfMeasurementId: p.unitOfMeasurementId || 1,
-            expires: p.expires || false,
-            invoiceWithoutStock: p.invoiceWithoutStock || false,
-            stock: p.stock || 0,
-          }));
+          .map((p: any) => {
+            const metrics = this.productService.getProductMetrics(p.id || 0);
+            const cost = Math.abs(Number(
+              p.cost ?? p.Cost ?? p.purchasePrice ?? p.PurchasePrice ?? p.unitCost ?? p.UnitCost ?? p.standardCost ?? p.StandardCost ?? metrics?.cost ?? 0
+            )) || 0;
+            const price = Math.abs(Number(
+              p.priceList ?? p.price ?? (cost > 0 ? cost * 1.35 : 0)
+            )) || 0;
+
+            return {
+              id: Number(p.id) || 0,
+              description: p.description || p.name || `Producto #${p.id}`,
+              barcode: p.barcode || p.reference || '',
+              reference: p.reference || '',
+              shortDescription: p.shortDescription || p.categoryName || '',
+              cost: cost,
+              priceList: price,
+              taxRate: p.taxRate || 18,
+              minimumQuantity: p.minimumQuantity || 5,
+              maximumQuantity: p.maximumQuantity || 100,
+              packingId: p.packingId || 1,
+              productTypeId: p.productTypeId || 1,
+              categoryId: p.categoryId || 1,
+              unitOfMeasurementId: p.unitOfMeasurementId || 1,
+              expires: p.expires || false,
+              invoiceWithoutStock: p.invoiceWithoutStock || false,
+              stock: p.stock || 0,
+            };
+          });
       }
     } catch {
       // Ignore
     }
   }
 
-  onWarehouseChange() {
-    if (this.mode === 'transfer' && this.warehouseOfOriginId === this.destinationWarehouseId) {
-      const alt = this.warehouses.find((w) => w.id !== this.warehouseOfOriginId);
-      if (alt) this.destinationWarehouseId = alt.id;
+  async updateActiveWarehouseStock() {
+    const currentWhId = this.mode === 'transfer' ? Number(this.warehouseOfOriginId) : Number(this.warehouseId);
+    if (!currentWhId) return;
+
+    try {
+      const stockRes = await this.stockService.getStock({ warehouseId: currentWhId });
+      if (stockRes?.success && stockRes.data) {
+        this.activeWarehouseStockMap.clear();
+        stockRes.data.forEach((s) => {
+          this.activeWarehouseStockMap.set(Number(s.productId), Number(s.quantity) || 0);
+        });
+
+        // Actualizar stock en memoria para los productos
+        this.allProducts.forEach((p) => {
+          if (this.activeWarehouseStockMap.has(p.id)) {
+            p.stock = this.activeWarehouseStockMap.get(p.id) || 0;
+          }
+        });
+
+        if (this.selectedProduct) {
+          this.selectedProduct.stock = this.activeWarehouseStockMap.get(this.selectedProduct.id) || 0;
+          this.selectedProduct.stockInWarehouse = this.selectedProduct.stock;
+        }
+      }
+    } catch {
+      // ignore
     }
+  }
+
+  async onWarehouseChange() {
+    if (this.mode === 'transfer' && Number(this.warehouseOfOriginId) === Number(this.destinationWarehouseId)) {
+      const alt = this.warehouses.find((w) => Number(w.id) !== Number(this.warehouseOfOriginId));
+      if (alt) this.destinationWarehouseId = Number(alt.id);
+    }
+    await this.updateActiveWarehouseStock();
   }
 
   getSelectedWarehouseName(): string {
     if (this.mode === 'transfer') {
-      const origin = this.warehouses.find((w) => w.id === this.warehouseOfOriginId);
-      const dest = this.warehouses.find((w) => w.id === this.destinationWarehouseId);
+      const origin = this.warehouses.find((w) => Number(w.id) === Number(this.warehouseOfOriginId));
+      const dest = this.warehouses.find((w) => Number(w.id) === Number(this.destinationWarehouseId));
       return `${origin?.name || 'Origen'} ➔ ${dest?.name || 'Destino'}`;
     }
-    const wh = this.warehouses.find((w) => w.id === this.warehouseId);
+    const wh = this.warehouses.find((w) => Number(w.id) === Number(this.warehouseId));
     return wh ? `${wh.name} (${wh.code || 'WH-' + wh.id})` : 'Almacén Principal';
   }
 
@@ -220,15 +305,20 @@ export class WarehouseMovementFormComponent implements OnInit {
         (p.barcode && p.barcode.toLowerCase().includes(q)) ||
         (p.shortDescription && p.shortDescription.toLowerCase().includes(q))
       )
+      .map((p) => ({
+        ...p,
+        stockInWarehouse: this.activeWarehouseStockMap.get(p.id) ?? p.stock ?? 0,
+      }))
       .slice(0, 8);
 
     this.isSearchDropdownOpen = this.filteredProducts.length > 0;
   }
 
   selectProductFromDropdown(p: Product) {
-    this.selectedProduct = p;
+    const resolvedStock = this.activeWarehouseStockMap.get(p.id) ?? p.stock ?? 0;
+    this.selectedProduct = { ...p, stockInWarehouse: resolvedStock, stock: resolvedStock };
     this.searchTerm = `${p.description} (${p.barcode || 'S/C'})`;
-    this.addCost = p.cost || 0;
+    this.addCost = p.cost || (p.priceList ? Math.round((p.priceList / 1.35) * 100) / 100 : 0);
     this.addQuantity = 1;
     this.isSearchDropdownOpen = false;
   }
@@ -345,8 +435,8 @@ export class WarehouseMovementFormComponent implements OnInit {
         barCode: this.selectedProduct.barcode || `PRD-${this.selectedProduct.id}`,
         quantity: qty,
         cost: cost,
-        price: this.selectedProduct.priceList || cost * 1.3,
-        warehouseId: this.mode === 'transfer' ? this.warehouseOfOriginId : this.warehouseId,
+        price: this.selectedProduct.priceList || cost * 1.35,
+        warehouseId: this.mode === 'transfer' ? Number(this.warehouseOfOriginId) : Number(this.warehouseId),
         stockAvailable: this.selectedProduct.stock,
       };
       this.productDetails = [...this.productDetails, newLine];
@@ -374,6 +464,117 @@ export class WarehouseMovementFormComponent implements OnInit {
 
   removeProduct(idx: number) {
     this.productDetails = this.productDetails.filter((_, i) => i !== idx);
+  }
+
+  // --- Catalog Multi-Select Modal Methods ---
+  openProductCatalogModal() {
+    this.catalogSearchTerm = '';
+    this.catalogFilter = 'all';
+
+    this.catalogItems = this.allProducts.map((p) => {
+      const stock = this.activeWarehouseStockMap.has(p.id)
+        ? (this.activeWarehouseStockMap.get(p.id) || 0)
+        : (p.stock || 0);
+      const existingInTable = this.productDetails.find((d) => d.productId === p.id);
+      const cost = p.cost > 0 ? p.cost : (p.priceList ? Math.round((p.priceList / 1.35) * 100) / 100 : 0);
+
+      return {
+        product: p,
+        stock: stock,
+        cost: cost,
+        quantity: existingInTable ? existingInTable.quantity : 1,
+        selected: false,
+      };
+    });
+
+    this.isCatalogModalOpen.set(true);
+  }
+
+  closeProductCatalogModal() {
+    this.isCatalogModalOpen.set(false);
+  }
+
+  get filteredCatalogItems(): CatalogModalItem[] {
+    const q = (this.catalogSearchTerm || '').toLowerCase().trim();
+    return this.catalogItems.filter((item) => {
+      if (this.catalogFilter === 'with-stock' && item.stock <= 0) return false;
+      if (this.catalogFilter === 'zero-stock' && item.stock > 0) return false;
+
+      if (!q) return true;
+      return (
+        item.product.description.toLowerCase().includes(q) ||
+        (item.product.barcode && item.product.barcode.toLowerCase().includes(q)) ||
+        (item.product.shortDescription && item.product.shortDescription.toLowerCase().includes(q))
+      );
+    });
+  }
+
+  toggleSelectAllCatalog(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.filteredCatalogItems.forEach((it) => (it.selected = checked));
+  }
+
+  isAllCatalogSelected(): boolean {
+    const items = this.filteredCatalogItems;
+    if (items.length === 0) return false;
+    return items.every((it) => it.selected);
+  }
+
+  get selectedCatalogCount(): number {
+    return this.catalogItems.filter((it) => it.selected).length;
+  }
+
+  get selectedCatalogUnits(): number {
+    return this.catalogItems
+      .filter((it) => it.selected)
+      .reduce((sum, it) => sum + (Number(it.quantity) || 1), 0);
+  }
+
+  get selectedCatalogCost(): number {
+    return this.catalogItems
+      .filter((it) => it.selected)
+      .reduce((sum, it) => sum + (Number(it.quantity) || 1) * (Number(it.cost) || 0), 0);
+  }
+
+  confirmAddCatalogProducts() {
+    const selected = this.catalogItems.filter((it) => it.selected);
+    if (selected.length === 0) {
+      this.notificationService.warning('Selecciona al menos un producto del catálogo.');
+      return;
+    }
+
+    let addedCount = 0;
+    const targetWhId = this.mode === 'transfer' ? Number(this.warehouseOfOriginId) : Number(this.warehouseId);
+
+    selected.forEach((it) => {
+      const p = it.product;
+      const qty = Number(it.quantity) > 0 ? Number(it.quantity) : 1;
+      const cost = Number(it.cost) >= 0 ? Number(it.cost) : (p.cost || 0);
+
+      const existingIdx = this.productDetails.findIndex((d) => d.productId === p.id);
+      if (existingIdx !== -1) {
+        this.productDetails[existingIdx].quantity += qty;
+        this.productDetails[existingIdx].cost = cost;
+      } else {
+        const newLine: MovementLineItem = {
+          productId: p.id,
+          productName: p.description,
+          description: p.shortDescription || p.reference || '',
+          barCode: p.barcode || `PRD-${p.id}`,
+          quantity: qty,
+          cost: cost,
+          price: p.priceList || cost * 1.35,
+          warehouseId: targetWhId,
+          stockAvailable: it.stock,
+        };
+        this.productDetails.push(newLine);
+      }
+      addedCount++;
+    });
+
+    this.productDetails = [...this.productDetails];
+    this.notificationService.success(`${addedCount} productos agregados al movimiento desde el catálogo.`);
+    this.closeProductCatalogModal();
   }
 
   // --- Camera Scanner Modal ---
@@ -417,12 +618,15 @@ export class WarehouseMovementFormComponent implements OnInit {
 
   // --- Save / Submit Movement ---
   async saveMovement() {
+    // Escudo inmediato contra doble click / duplicidad
+    if (this.isSaving()) return;
+
     if (this.productDetails.length === 0) {
       this.notificationService.warning('Debe agregar al menos un producto al movimiento.');
       return;
     }
 
-    if (this.mode === 'transfer' && this.warehouseOfOriginId === this.destinationWarehouseId) {
+    if (this.mode === 'transfer' && Number(this.warehouseOfOriginId) === Number(this.destinationWarehouseId)) {
       this.notificationService.error('El almacén de origen y destino no pueden ser iguales.');
       return;
     }
@@ -430,10 +634,10 @@ export class WarehouseMovementFormComponent implements OnInit {
     this.isSaving.set(true);
     try {
       const payload: WarehouseMovementHeader = {
-        warehouseId: this.mode === 'transfer' ? this.warehouseOfOriginId : this.warehouseId,
-        warehouseOfOriginId: this.warehouseOfOriginId,
-        destinationWarehouseId: this.destinationWarehouseId,
-        conceptId: this.conceptId,
+        warehouseId: this.mode === 'transfer' ? Number(this.warehouseOfOriginId) : Number(this.warehouseId),
+        warehouseOfOriginId: Number(this.warehouseOfOriginId),
+        destinationWarehouseId: Number(this.destinationWarehouseId),
+        conceptId: Number(this.conceptId),
         commentary: this.commentary || '',
         statusId: 1,
         totalQuantity: this.totalUnits,
@@ -460,11 +664,11 @@ export class WarehouseMovementFormComponent implements OnInit {
             : 'Transferencia completada exitosamente.');
         this.notificationService.success(msg);
 
-        const targetWhId = this.mode === 'transfer' ? this.destinationWarehouseId : this.warehouseId;
-        const wh = this.warehouses.find((w) => w.id === targetWhId);
-        const conc = this.concepts.find((c) => c.id === this.conceptId);
+        const targetWhId = this.mode === 'transfer' ? Number(this.destinationWarehouseId) : Number(this.warehouseId);
+        const wh = this.warehouses.find((w) => Number(w.id) === targetWhId);
+        const conc = this.concepts.find((c) => Number(c.id) === Number(this.conceptId));
         const prefix = this.mode === 'entry' ? 'ENT' : this.mode === 'outlet' ? 'SAL' : 'TRF';
-        const movId = res?.data?.id || 19;
+        const movId = res?.data?.id || Date.now().toString().slice(-6);
 
         this.receiptData = {
           movementCode: `${prefix}-${movId}`,
@@ -496,6 +700,12 @@ export class WarehouseMovementFormComponent implements OnInit {
     } finally {
       this.isSaving.set(false);
     }
+  }
+
+  toggleCatalogRow(it: CatalogModalItem, event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (target && (target.tagName === 'INPUT' || target.closest('input'))) return;
+    it.selected = !it.selected;
   }
 
   onReceiptClosed(): void {

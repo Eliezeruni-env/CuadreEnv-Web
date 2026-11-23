@@ -96,7 +96,24 @@ export class WarehouseEntryService {
         .filter((e: any) => e.isPendingSync === true)
         .map((e) => normalizeWarehouseMovement<WarehouseEntry>(e));
 
-      const combined = [...validApiList, ...pendingOffline].sort(
+      // Deduplicación estricta por id y número de movimiento
+      const seenIds = new Set<number>();
+      const seenNumbers = new Set<string>();
+      const combined: WarehouseEntry[] = [];
+
+      for (const entry of [...validApiList, ...pendingOffline]) {
+        const idKey = entry.id;
+        const numKey = (entry.movementNumber || '').trim().toUpperCase();
+
+        if (idKey && seenIds.has(idKey)) continue;
+        if (numKey && seenNumbers.has(numKey)) continue;
+
+        if (idKey) seenIds.add(idKey);
+        if (numKey) seenNumbers.add(numKey);
+        combined.push(entry);
+      }
+
+      combined.sort(
         (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
       );
       return { success: true, data: combined };
@@ -180,45 +197,61 @@ export class WarehouseEntryService {
       totalCost: totalCost,
     };
 
-    // 2. Persistir líneas en el backend usando endpoints oficiales
+    // 2. Persistir en el backend usando endpoints oficiales (intenta encabezado completo primero)
     let backendSuccess = false;
     let createdBackendId: number | undefined;
 
-    for (const item of entry.productDetails || []) {
-      const payload = {
-        productId: item.productId,
+    try {
+      const headerPayload = {
         warehouseId: targetWhId,
-        quantity: item.quantity,
-        isPackage: false,
-        packageFactor: 1,
+        conceptId: entry.conceptId,
+        commentary: entry.commentary || '',
+        totalQuantity: totalQty,
+        totalCost: totalCost,
+        productDetails: entry.productDetails,
       };
+      const res = await this.api.post<any, any>('/WarehouseEntry', headerPayload);
+      backendSuccess = true;
+      const resData = res?.data ?? res;
+      if (resData?.id) createdBackendId = Number(resData.id);
+    } catch {
+      // Fallback a endpoints por renglón
+      for (const item of entry.productDetails || []) {
+        const payload = {
+          productId: item.productId,
+          warehouseId: targetWhId,
+          quantity: item.quantity,
+          isPackage: false,
+          packageFactor: 1,
+        };
 
-      try {
-        const res = await this.api.post<any, any>('/warehouse/stock/add', payload);
-        backendSuccess = true;
-        const resData = res?.data ?? res;
-        if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);
-      } catch {
         try {
-          const res = await this.api.post<any, any>('/Warehouse/stock/add', payload);
+          const res = await this.api.post<any, any>('/warehouse/stock/add', payload);
           backendSuccess = true;
           const resData = res?.data ?? res;
           if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);
         } catch {
           try {
-            const res = await this.api.post<any, any>('/inventory/inbound', payload);
+            const res = await this.api.post<any, any>('/Warehouse/stock/add', payload);
             backendSuccess = true;
             const resData = res?.data ?? res;
             if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);
           } catch {
             try {
-              const res = await this.api.post<any, any>('/inventory/movements', {
-                ...payload,
-                type: 'Entrada',
-              });
+              const res = await this.api.post<any, any>('/inventory/inbound', payload);
               backendSuccess = true;
-            } catch (err: any) {
-              console.warn('[WarehouseEntry] Error al persistir en backend:', err);
+              const resData = res?.data ?? res;
+              if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);
+            } catch {
+              try {
+                const res = await this.api.post<any, any>('/inventory/movements', {
+                  ...payload,
+                  type: 'Entrada',
+                });
+                backendSuccess = true;
+              } catch (err: any) {
+                console.warn('[WarehouseEntry] Error al persistir en backend:', err);
+              }
             }
           }
         }

@@ -95,7 +95,24 @@ export class WarehouseTransferService {
         .filter((t: any) => t.isPendingSync === true)
         .map((t) => normalizeWarehouseMovement<WarehouseTransfer>(t));
 
-      const combined = [...validApiList, ...pendingOffline].sort(
+      // Deduplicación estricta por id y número de movimiento
+      const seenIds = new Set<number>();
+      const seenNumbers = new Set<string>();
+      const combined: WarehouseTransfer[] = [];
+
+      for (const transfer of [...validApiList, ...pendingOffline]) {
+        const idKey = transfer.id;
+        const numKey = (transfer.movementNumber || '').trim().toUpperCase();
+
+        if (idKey && seenIds.has(idKey)) continue;
+        if (numKey && seenNumbers.has(numKey)) continue;
+
+        if (idKey) seenIds.add(idKey);
+        if (numKey) seenNumbers.add(numKey);
+        combined.push(transfer);
+      }
+
+      combined.sort(
         (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
       );
       return { success: true, data: combined };
@@ -186,22 +203,39 @@ export class WarehouseTransferService {
       totalCost: totalCost,
     };
 
-    // 1. Post to backend endpoint POST /WarehouseTransfer
+    // 1. Post to backend endpoint POST /WarehouseTransfer (intenta encabezado completo primero)
     let createdBackendId: number | undefined;
-    for (const item of transfer.productDetails || []) {
-      try {
-        const res = await this.api.post<any, any>('/WarehouseTransfer', {
-          productId: item.productId,
-          fromWarehouseId: originId,
-          toWarehouseId: destinationId,
-          quantity: item.quantity,
-        });
-        const resData = res?.data ?? res;
-        if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);
-      } catch (err: any) {
-        console.error('[WarehouseTransfer] Error al persistir en backend:', err);
-        const errMsg = err?.mappedError?.message || err?.message || 'Error al guardar la transferencia en el servidor.';
-        return { success: false, message: errMsg };
+
+    try {
+      const headerPayload = {
+        warehouseOfOriginId: originId,
+        destinationWarehouseId: destinationId,
+        conceptId: transfer.conceptId,
+        commentary: transfer.commentary || '',
+        totalQuantity: totalQty,
+        totalCost: totalCost,
+        productDetails: transfer.productDetails,
+      };
+      const res = await this.api.post<any, any>('/WarehouseTransfer', headerPayload);
+      const resData = res?.data ?? res;
+      if (resData?.id) createdBackendId = Number(resData.id);
+    } catch {
+      // Fallback a envío por renglón
+      for (const item of transfer.productDetails || []) {
+        try {
+          const res = await this.api.post<any, any>('/WarehouseTransfer', {
+            productId: item.productId,
+            fromWarehouseId: originId,
+            toWarehouseId: destinationId,
+            quantity: item.quantity,
+          });
+          const resData = res?.data ?? res;
+          if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);
+        } catch (err: any) {
+          console.error('[WarehouseTransfer] Error al persistir en backend:', err);
+          const errMsg = err?.mappedError?.message || err?.message || 'Error al guardar la transferencia en el servidor.';
+          return { success: false, message: errMsg };
+        }
       }
     }
 

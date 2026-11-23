@@ -86,6 +86,10 @@ export class ListwarehouseTransferComponent implements OnInit {
           valA = a.totalQuantity || 0;
           valB = b.totalQuantity || 0;
           break;
+        case 'cost':
+          valA = a.totalCost || 0;
+          valB = b.totalCost || 0;
+          break;
         case 'status':
           valA = (a.statusName || '').toLowerCase();
           valB = (b.statusName || '').toLowerCase();
