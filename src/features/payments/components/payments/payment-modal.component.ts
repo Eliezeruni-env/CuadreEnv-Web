@@ -18,6 +18,8 @@ import {
 import { PaymentService } from '../../services/payment.service';
 import { SaleService } from '../../../sales/services/sale.service';
 import { PurchaseService } from '../../../purchases/services/purchase.service';
+import { SupplierService } from '../../../purchases/services/supplier.service';
+import { CashRegisterService } from '../../../cash-register/services/cash-register.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { applyFieldErrorsToForm } from '../../../cuadreEnv/utils/api-error-mapper';
 import type {
@@ -47,6 +49,8 @@ export class PaymentModalComponent implements OnInit {
   private paymentService = inject(PaymentService);
   private saleService = inject(SaleService);
   private purchaseService = inject(PurchaseService);
+  private supplierService = inject(SupplierService);
+  private cashRegisterService = inject(CashRegisterService, { optional: true });
   private notificationService = inject(NotificationService);
   private fb = inject(FormBuilder);
 
@@ -57,15 +61,17 @@ export class PaymentModalComponent implements OnInit {
   paymentType = signal<'purchase' | 'sale'>('purchase');
   sales = signal<SaleResponseDto[]>([]);
   purchases = signal<PurchaseDto[]>([]);
+  suppliers = signal<any[]>([]);
+  paymentsList = signal<PaymentDto[]>([]);
   isLoading = signal<boolean>(false);
 
   // Form Fields for specific methods
   selectedMethod = signal<string>('Transferencia bancaria');
   paymentDate = signal<string>(new Date().toISOString().split('T')[0]);
-  selectedSupplierName = signal<string>('Distribuidora del Caribe');
-  selectedPurchaseOrderCode = signal<string>('OC-00045');
-  selectedPurchaseTotal = signal<number>(15000);
-  selectedPurchasePaid = signal<number>(5000);
+  selectedSupplierName = signal<string>('Proveedor');
+  selectedPurchaseOrderCode = signal<string>('OC-0001');
+  selectedPurchaseTotal = signal<number>(0);
+  selectedPurchasePaid = signal<number>(0);
 
   // Card fields
   cardType = signal<string>('Visa');
@@ -75,7 +81,7 @@ export class PaymentModalComponent implements OnInit {
   // Transfer fields
   transferSenderBank = signal<string>('Banco Popular');
   transferReceiverBank = signal<string>('Banco BHD');
-  transferReference = signal<string>('REF-884129');
+  transferReference = signal<string>('');
 
   // Check fields
   checkBank = signal<string>('Banco de Reservas');
@@ -119,16 +125,10 @@ export class PaymentModalComponent implements OnInit {
       }
     });
 
-    // Autofill amount when purchaseId changes
+    // Autofill amount and details when purchaseId changes
     this.paymentForm.get('purchaseId')?.valueChanges.subscribe((id) => {
       if (id) {
-        const found = this.purchases().find((p) => p.id === Number(id));
-        if (found) {
-          this.paymentForm.patchValue(
-            { amount: found.total },
-            { emitEvent: false },
-          );
-        }
+        this.updatePurchaseSelection(id);
       }
     });
 
@@ -143,9 +143,11 @@ export class PaymentModalComponent implements OnInit {
 
   async loadData() {
     try {
-      const [saleRes, purchaseRes] = await Promise.all([
+      const [saleRes, purchaseRes, supRes, payRes] = await Promise.all([
         this.saleService.getSales(),
         this.purchaseService.getPurchases(),
+        this.supplierService.getSuppliers(),
+        this.paymentService.getPayments(),
       ]);
 
       if (saleRes?.success && saleRes.data) {
@@ -154,9 +156,40 @@ export class PaymentModalComponent implements OnInit {
       if (purchaseRes?.success && purchaseRes.data) {
         this.purchases.set(purchaseRes.data);
       }
+      if (supRes?.success && supRes.data) {
+        this.suppliers.set(supRes.data);
+      }
+      if (payRes?.success && payRes.data) {
+        this.paymentsList.set(payRes.data);
+      }
     } catch (e: any) {
       console.error('Failed to load pending sales/purchases:', e?.message || e);
     }
+  }
+
+  updatePurchaseSelection(purchaseId: number | string) {
+    const idNum = Number(purchaseId);
+    if (!idNum) return;
+    const found = this.purchases().find((p) => p.id === idNum);
+    if (!found) return;
+
+    const total = Number(found.total || 0);
+    const payments = this.paymentsList().filter((p) => p.purchaseId === idNum);
+    const paid = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
+    const balance = Math.max(0, total - paid);
+
+    this.selectedPurchaseTotal.set(total);
+    this.selectedPurchasePaid.set(paid);
+
+    const sup = this.suppliers().find((s) => s.id === found.supplierId);
+    const supName = sup?.name || found.supplier?.name || (found as any).supplierName || 'Proveedor';
+    this.selectedSupplierName.set(supName);
+    this.selectedPurchaseOrderCode.set(found.invoiceNumber || (found as any).purchaseOrderNumber || `OC-${found.id}`);
+
+    this.paymentForm.patchValue(
+      { amount: balance > 0 ? balance : total },
+      { emitEvent: false },
+    );
   }
 
   setPaymentType(type: 'sale' | 'purchase') {
@@ -168,38 +201,43 @@ export class PaymentModalComponent implements OnInit {
     }
   }
 
-  openCreate(defaultPurchaseId?: number) {
+  async openCreate(defaultPurchaseId?: number) {
     this.paymentType.set('purchase');
     this.selectedMethod.set('Transferencia bancaria');
     this.cardLastFour.set('');
     this.cardAuthVoucher.set('');
-    this.transferReference.set('REF-884129');
+    this.transferReference.set('');
     this.transferSenderBank.set('Banco Popular');
     this.transferReceiverBank.set('Banco BHD');
-    this.selectedPurchaseTotal.set(15000);
-    this.selectedPurchasePaid.set(5000);
-    this.selectedSupplierName.set('Distribuidora del Caribe');
-    this.selectedPurchaseOrderCode.set('OC-00045');
 
-    this.paymentForm.reset({
-      saleId: '',
-      purchaseId: defaultPurchaseId ? String(defaultPurchaseId) : '45',
-      amount: 4000,
-      method: 'Transferencia bancaria',
-      reference: 'REF-884129',
-      notes: '',
-    });
+    await this.loadData();
 
-    this.loadData();
-    if (defaultPurchaseId) {
-      setTimeout(() => {
-        const found = this.purchases().find(
-          (p) => p.id === Number(defaultPurchaseId),
-        );
-        if (found) {
-          this.paymentForm.patchValue({ amount: found.total });
-        }
-      }, 150);
+    const targetId = defaultPurchaseId ? Number(defaultPurchaseId) : (this.purchases()[0]?.id || 0);
+    const found = this.purchases().find((p) => p.id === targetId) || this.purchases()[0];
+
+    if (found) {
+      this.paymentForm.reset({
+        saleId: '',
+        purchaseId: String(found.id),
+        amount: 0,
+        method: 'Transferencia bancaria',
+        reference: '',
+        notes: '',
+      });
+      this.updatePurchaseSelection(found.id!);
+    } else {
+      this.selectedPurchaseTotal.set(0);
+      this.selectedPurchasePaid.set(0);
+      this.selectedSupplierName.set('Proveedor');
+      this.selectedPurchaseOrderCode.set('OC-0001');
+      this.paymentForm.reset({
+        saleId: '',
+        purchaseId: '',
+        amount: 0,
+        method: 'Transferencia bancaria',
+        reference: '',
+        notes: '',
+      });
     }
 
     this.visible = true;
@@ -225,7 +263,7 @@ export class PaymentModalComponent implements OnInit {
       return { methodFormatted: 'Tarjeta', referenceFormatted: ref };
     }
 
-    if (m === 'Transferencia Bancaria' || m === 'Transferencia') {
+    if (m === 'Transferencia Bancaria' || m === 'Transferencia' || m === 'Transferencia bancaria') {
       const orig = this.transferSenderBank().trim();
       const dest = this.transferReceiverBank().trim();
       const refNum = this.transferReference().trim();
@@ -271,6 +309,25 @@ export class PaymentModalComponent implements OnInit {
       method: methodFormatted,
       reference: referenceFormatted,
     };
+
+    // Resilient integration with Cash Register if cash disbursement
+    if (methodFormatted === 'Efectivo' && this.cashRegisterService) {
+      try {
+        const activeSess = await this.cashRegisterService.getActiveSession();
+        if (activeSess?.success && activeSess.data) {
+          await this.cashRegisterService.addMovement({
+            type: 'Salida',
+            category: 'Compras',
+            description: `Pago a proveedor: ${this.selectedSupplierName()} (${this.selectedPurchaseOrderCode()})`,
+            amount: payload.amount,
+            paymentMethod: 'Efectivo',
+            reference: payload.reference || this.selectedPurchaseOrderCode(),
+          });
+        }
+      } catch (cashErr) {
+        console.warn('Defensive fallback: cash register movement skipped:', cashErr);
+      }
+    }
 
     try {
       const res = await this.paymentService.createPayment(payload);

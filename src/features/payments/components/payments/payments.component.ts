@@ -1,5 +1,6 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { PaymentService } from '../../services/payment.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
 import { PermissionService } from '../../../roles/services/permission.service';
@@ -149,10 +150,16 @@ export class PaymentsComponent implements OnInit {
     public authService: AuthService,
     public permissionService: PermissionService,
     private notificationService: NotificationService,
+    private route: ActivatedRoute,
   ) {}
 
-  ngOnInit() {
-    this.loadData();
+  async ngOnInit() {
+    await this.loadData();
+    const paramPurchaseId = this.route.snapshot.queryParamMap.get('purchaseId');
+    if (paramPurchaseId) {
+      this.activeTab.set('pending');
+      this.paySpecificPurchase(Number(paramPurchaseId));
+    }
   }
 
   async loadData() {

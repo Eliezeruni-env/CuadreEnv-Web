@@ -469,6 +469,10 @@ export class PurchasesComponent implements OnInit {
     });
   }
 
+  payPurchase(purchase: PurchaseDto) {
+    this.router.navigate(['/payments'], { queryParams: { purchaseId: purchase.id } });
+  }
+
   receivePurchase(purchase: PurchaseDto) {
     if (!this.canManualReceive()) return;
     if (!purchase.id) return;

@@ -175,6 +175,13 @@ export class PurchaseModalComponent implements OnInit {
     }
   }
 
+  goToPayment() {
+    if (!this.selectedPurchase?.id) return;
+    const poId = this.selectedPurchase.id;
+    this.close();
+    this.router.navigate(['/payments'], { queryParams: { purchaseId: poId } });
+  }
+
   goToReceipt() {
     if (!this.selectedPurchase?.id) return;
     const poId = this.selectedPurchase.id;

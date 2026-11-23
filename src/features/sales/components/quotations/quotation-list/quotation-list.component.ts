@@ -200,6 +200,107 @@ export class QuotationListComponent implements OnInit {
     this.toggleExpand(item.id);
   }
 
+  printQuotation(item: QuotationDto, event?: Event): void {
+    if (event) event.stopPropagation();
+    const printWindow = window.open('', '_blank', 'width=880,height=960');
+    if (!printWindow) {
+      this.notificationService.warning(
+        'El navegador bloqueó la ventana emergente. Por favor permite popups para imprimir.',
+      );
+      return;
+    }
+    const itemsHtml = (item.details || [])
+      .map(
+        (d, i) => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${i + 1}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${d.productName || 'Producto'}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">${d.quantity}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right;">RD$ ${(d.unitPrice || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 600;">RD$ ${(d.subtotal || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+      </tr>
+    `,
+      )
+      .join('');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Cotización ${item.quotationNumber}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 30px; color: #1e293b; }
+          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #2563eb; padding-bottom: 15px; margin-bottom: 20px; }
+          .title { font-size: 24px; font-weight: bold; color: #1e293b; }
+          .code { font-size: 16px; color: #2563eb; font-weight: 600; margin-top: 4px; }
+          .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; font-size: 14px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 14px; }
+          th { background: #f8fafc; padding: 10px 8px; text-align: left; border-bottom: 2px solid #cbd5e1; font-weight: 600; }
+          .totals { margin-left: auto; width: 280px; font-size: 14px; }
+          .totals-row { display: flex; justify-content: space-between; padding: 6px 0; }
+          .totals-total { border-top: 2px solid #1e293b; font-weight: bold; font-size: 16px; margin-top: 4px; padding-top: 8px; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="title">COTIZACIÓN</div>
+            <div class="code">${item.quotationNumber}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-weight: 600;">Estado: ${this.getStatusLabel(item.status)}</div>
+            <div style="font-size: 13px; color: #64748b;">Emisión: ${new Date(item.issueDate).toLocaleDateString('es-DO')}</div>
+            <div style="font-size: 13px; color: #64748b;">Válida hasta: ${new Date(item.expirationDate).toLocaleDateString('es-DO')}</div>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <div>
+            <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">Cliente</strong>
+            <div style="font-size: 16px; font-weight: 600; margin-top: 2px;">${item.customerName}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 30px;">#</th>
+              <th>Descripción</th>
+              <th style="width: 80px; text-align: center;">Cantidad</th>
+              <th style="width: 120px; text-align: right;">Precio Unit.</th>
+              <th style="width: 120px; text-align: right;">Importe</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <div class="totals-row">
+            <span>Subtotal:</span>
+            <span>RD$ ${(item.subtotal || item.total || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div class="totals-row">
+            <span>ITBIS (18%):</span>
+            <span>RD$ ${(item.itbisAmount || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div class="totals-row totals-total">
+            <span>TOTAL:</span>
+            <span>RD$ ${(item.total || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+          </div>
+        </div>
+
+        <script>
+          window.onload = function() { window.print(); };
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  }
+
   editQuotation(item: QuotationDto, event?: Event): void {
     if (event) event.stopPropagation();
     this.router.navigate(['/sales/quotations/create'], { queryParams: { id: item.id } });

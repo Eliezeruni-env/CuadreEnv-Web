@@ -92,7 +92,9 @@ export class DistributionRoutesComponent implements OnInit {
   searchRouteTerm = signal<string>('');
 
   // Date Filter
-  selectedDateLabel = signal<string>(formatDateInRD(new Date(), { dateStyle: 'full' }));
+  selectedDateLabel = signal<string>(
+    formatDateInRD(new Date(), { dateStyle: 'full' }),
+  );
 
   // Modal: Nueva hoja de despacho
   isCreateRouteModalOpen = signal<boolean>(false);
@@ -152,9 +154,7 @@ export class DistributionRoutesComponent implements OnInit {
   readonly totalCollectedToday = computed(() => {
     return this.routes().reduce(
       (sum, r) =>
-        sum +
-        (r.totalCollectedCash || 0) +
-        (r.totalCollectedTransfer || 0),
+        sum + (r.totalCollectedCash || 0) + (r.totalCollectedTransfer || 0),
       0,
     );
   });
@@ -308,7 +308,10 @@ export class DistributionRoutesComponent implements OnInit {
       this.countedCash.set(r.totalCollectedCash || 0);
       const returned: { [productId: number]: number } = {};
       for (const item of r.items || []) {
-        returned[item.productId] = Math.max(0, item.loadedQuantity - item.soldQuantity);
+        returned[item.productId] = Math.max(
+          0,
+          item.loadedQuantity - item.soldQuantity,
+        );
       }
       this.returnedQuantities.set(returned);
     } else {
@@ -320,7 +323,7 @@ export class DistributionRoutesComponent implements OnInit {
 
   getReturnedQuantity(item: RouteLoadItem): number {
     const val = this.returnedQuantities()[item.productId];
-    return val !== undefined ? val : (item.loadedQuantity - item.soldQuantity);
+    return val !== undefined ? val : item.loadedQuantity - item.soldQuantity;
   }
 
   setReturnedQuantity(item: RouteLoadItem, qty: number): void {

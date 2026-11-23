@@ -50,9 +50,11 @@
                   </svg>
                 </span>
                 <select class="form-select custom-select border-start-0 ps-0" formControlName="purchaseId">
-                  <option value="45">OC-00045</option>
                   @for (p of purchases(); track p.id) {
                     <option [value]="p.id">OC-{{ p.id }} - Total: RD$ {{ p.total | number:'1.2-2' }}</option>
+                  }
+                  @if (purchases().length === 0) {
+                    <option value="">No hay compras pendientes</option>
                   }
                 </select>
               </div>
@@ -71,9 +73,12 @@
                   </svg>
                 </span>
                 <select class="form-select custom-select border-start-0 ps-0" [ngModel]="selectedSupplierName()" (ngModelChange)="selectedSupplierName.set($event)" [ngModelOptions]="{standalone: true}">
-                  <option value="Distribuidora del Caribe">Distribuidora del Caribe</option>
-                  <option value="Suplidora Nacional SRL">Suplidora Nacional SRL</option>
-                  <option value="Importadora Dominicana">Importadora Dominicana</option>
+                  @for (s of suppliers(); track s.id) {
+                    <option [value]="s.name">{{ s.name }}</option>
+                  }
+                  @if (suppliers().length === 0) {
+                    <option [value]="selectedSupplierName()">{{ selectedSupplierName() }}</option>
+                  }
                 </select>
               </div>
             </div>

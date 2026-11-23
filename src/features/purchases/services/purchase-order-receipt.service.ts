@@ -22,10 +22,10 @@ const DEFAULT_ORDERS: PurchaseOrder[] = [];
 })
 export class PurchaseOrderReceiptService {
   private api = inject(ApiClientService);
-  private stockService = inject(StockService);
-  private warehouseService = inject(WarehouseService);
-  private productService = inject(ProductService);
-  private kardexService = inject(KardexService);
+  private stockService = inject(StockService, { optional: true });
+  private warehouseService = inject(WarehouseService, { optional: true });
+  private productService = inject(ProductService, { optional: true });
+  private kardexService = inject(KardexService, { optional: true });
 
   private getLocalOrders(): PurchaseOrder[] {
     try {
@@ -133,59 +133,63 @@ export class PurchaseOrderReceiptService {
     if (newReceipt.statusId === 1) {
       for (const item of newReceipt.productDetails) {
         if (item.quantityReceived > 0) {
-          await this.stockService.updateStock(
-            newReceipt.warehouseId,
-            item.productId,
-            item.quantityReceived,
-            item.productName,
-            item.barCode,
-          );
+          if (this.stockService) {
+            await this.stockService.updateStock(
+              newReceipt.warehouseId,
+              item.productId,
+              item.quantityReceived,
+              item.productName,
+              item.barCode,
+            );
+          }
 
           // Kardex Automático y Costo Promedio Ponderado Dinámico
           try {
-            const productRes = await this.productService.getProduct(item.productId);
-            if (productRes?.success && productRes.data) {
-              const currentProd = productRes.data;
-              const currentCost = Number(currentProd.cost || 0);
-              const currentStock = Number(currentProd.stock || 0);
-              const newWeightedCost = this.kardexService.calculateWeightedAverageCost(
-                currentStock,
-                currentCost,
-                item.quantityReceived,
-                item.unitCost,
-              );
+            if (this.productService && this.kardexService) {
+              const productRes = await this.productService.getProduct(item.productId);
+              if (productRes?.success && productRes.data) {
+                const currentProd = productRes.data;
+                const currentCost = Number(currentProd.cost || 0);
+                const currentStock = Number(currentProd.stock || 0);
+                const newWeightedCost = this.kardexService.calculateWeightedAverageCost(
+                  currentStock,
+                  currentCost,
+                  item.quantityReceived,
+                  item.unitCost,
+                );
 
-              const sellPrice = currentProd.priceList || currentProd.price || (currentProd.cost ? currentProd.cost * 1.3 : 100);
-              const margin = this.kardexService.calculateProfitMargin(
-                sellPrice,
-                newWeightedCost,
-              );
+                const sellPrice = currentProd.priceList || currentProd.price || (currentProd.cost ? currentProd.cost * 1.3 : 100);
+                const margin = this.kardexService.calculateProfitMargin(
+                  sellPrice,
+                  newWeightedCost,
+                );
 
-              // Ajuste automático de costo unitario por fletes/aumentos de proveedor
-              await this.productService.updateProduct({
-                ...currentProd,
-                cost: newWeightedCost,
-              });
+                // Ajuste automático de costo unitario por fletes/aumentos de proveedor
+                await this.productService.updateProduct({
+                  ...currentProd,
+                  cost: newWeightedCost,
+                });
 
-              // Asiento de trazabilidad en Kardex
-              this.kardexService.recordMovement({
-                productId: item.productId,
-                productName: item.productName,
-                warehouseId: newReceipt.warehouseId,
-                warehouseName: newReceipt.warehouseName,
-                movementType: 'COMPRA',
-                documentReference: receiptNum,
-                quantityIn: item.quantityReceived,
-                quantityOut: 0,
-                stockBalance: currentStock + item.quantityReceived,
-                unitCost: item.unitCost,
-                previousAverageCost: currentCost,
-                newAverageCost: newWeightedCost,
-                sellingPrice: sellPrice,
-                profitMarginPercentage: margin,
-                isMarginWarning: margin < 15,
-                notes: `Recepción de Orden de Compra ${newReceipt.purchaseOrderNumber}`,
-              });
+                // Asiento de trazabilidad en Kardex
+                this.kardexService.recordMovement({
+                  productId: item.productId,
+                  productName: item.productName,
+                  warehouseId: newReceipt.warehouseId,
+                  warehouseName: newReceipt.warehouseName,
+                  movementType: 'COMPRA',
+                  documentReference: receiptNum,
+                  quantityIn: item.quantityReceived,
+                  quantityOut: 0,
+                  stockBalance: currentStock + item.quantityReceived,
+                  unitCost: item.unitCost,
+                  previousAverageCost: currentCost,
+                  newAverageCost: newWeightedCost,
+                  sellingPrice: sellPrice,
+                  profitMarginPercentage: margin,
+                  isMarginWarning: margin < 15,
+                  notes: `Recepción de Orden de Compra ${newReceipt.purchaseOrderNumber}`,
+                });
+              }
             }
           } catch (kdxErr) {
             console.warn('Error en cálculo de costo promedio ponderado Kardex:', kdxErr);

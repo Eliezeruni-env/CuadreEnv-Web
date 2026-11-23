@@ -301,7 +301,7 @@ export class ReceivablesComponent implements OnInit {
     this.selectedReceivable = item;
     this.isDetailModalOpen = true;
     setTimeout(() => {
-      if (this.detailModal) this.detailModal.open(item);
+      if (this.detailModal) this.detailModal.open(item, 'sale');
     });
   }
 

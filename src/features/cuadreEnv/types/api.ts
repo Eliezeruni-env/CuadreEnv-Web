@@ -432,6 +432,9 @@ export interface PurchaseDto {
   total: number;
   details: PurchaseDetailDto[];
   creationDate?: string;
+  status?: string;
+  invoiceNumber?: string;
+  supplier?: any;
 }
 
 // Payment
