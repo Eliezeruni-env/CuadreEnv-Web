@@ -10,9 +10,9 @@
             </div>
             <div>
               <h5 class="modal-title fw-bold mb-0 text-white">
-                {{ isEditMode ? 'Editar Servicio' : 'Nuevo Servicio Profesional' }}
+                {{ isViewMode ? 'Detalle del Servicio' : (isEditMode ? 'Editar Servicio' : 'Nuevo Servicio Profesional') }}
               </h5>
-              <small class="text-white-50">Configura tarifa, costos y detalles del servicio</small>
+              <small class="text-white-50">{{ isViewMode ? 'Consulta de tarifa, costos e información' : 'Configura tarifa, costos y detalles del servicio' }}</small>
             </div>
           </div>
           <button
@@ -166,27 +166,44 @@
 
             <!-- Footer Buttons -->
             <div class="d-flex justify-content-end gap-2 pt-2">
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-secondary px-3"
-                (click)="close()"
-                [disabled]="isLoading()"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                class="btn btn-sm btn-primary px-4 fw-semibold d-flex align-items-center gap-2"
-                [disabled]="isLoading()"
-              >
-                @if (isLoading()) {
-                  <c-spinner size="sm"></c-spinner>
-                  <span>Guardando...</span>
-                } @else {
-                  <svg cIcon name="cilCheck" style="width: 16px; height: 16px;"></svg>
-                  <span>{{ isEditMode ? 'Guardar Cambios' : 'Registrar Servicio' }}</span>
-                }
-              </button>
+              @if (isViewMode) {
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary px-3"
+                  (click)="close()"
+                >
+                  Cerrar
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-primary px-3 fw-semibold"
+                  (click)="switchToEdit()"
+                >
+                  Editar Servicio
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary px-3"
+                  (click)="close()"
+                  [disabled]="isLoading()"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  class="btn btn-sm btn-primary px-4 fw-semibold d-flex align-items-center gap-2"
+                  [disabled]="isLoading()"
+                >
+                  @if (isLoading()) {
+                    <c-spinner size="sm"></c-spinner>
+                    <span>Guardando...</span>
+                  } @else {
+                    <svg cIcon name="cilCheck" style="width: 16px; height: 16px;"></svg>
+                    <span>{{ isEditMode ? 'Guardar Cambios' : 'Registrar Servicio' }}</span>
+                  }
+                </button>
+              }
             </div>
           </form>
         </div>

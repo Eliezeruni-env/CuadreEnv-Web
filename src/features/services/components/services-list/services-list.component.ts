@@ -50,6 +50,19 @@ export class ServicesListComponent implements OnInit {
   statusFilter: 'ALL' | 'ACTIVE' | 'INACTIVE' = 'ALL';
   selectedCategoryId: number | null = null;
 
+  // Sorting
+  sortColumn = signal<string>('code');
+  sortDirection = signal<'asc' | 'desc'>('asc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
   // KPIs
   totalCount = computed(() => this.services().length);
   activeCount = computed(() => this.services().filter((s) => s.isActive).length);
@@ -83,7 +96,48 @@ export class ServicesListComponent implements OnInit {
       list = list.filter((s) => !s.isActive);
     }
 
-    return list;
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...list].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'code':
+          valA = a.code.toLowerCase();
+          valB = b.code.toLowerCase();
+          break;
+        case 'name':
+          valA = a.name.toLowerCase();
+          valB = b.name.toLowerCase();
+          break;
+        case 'category':
+          valA = (a.categoryName || '').toLowerCase();
+          valB = (b.categoryName || '').toLowerCase();
+          break;
+        case 'price':
+          valA = a.price || 0;
+          valB = b.price || 0;
+          break;
+        case 'cost':
+          valA = a.cost || 0;
+          valB = b.cost || 0;
+          break;
+        case 'margin':
+          valA = this.getProfitMargin(a);
+          valB = this.getProfitMargin(b);
+          break;
+        case 'status':
+          valA = a.isActive ? 1 : 0;
+          valB = b.isActive ? 1 : 0;
+          break;
+        default:
+          valA = a.code.toLowerCase();
+          valB = b.code.toLowerCase();
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
   });
 
   async ngOnInit() {
@@ -197,6 +251,12 @@ export class ServicesListComponent implements OnInit {
   openCreateModal() {
     if (this.serviceModal) {
       this.serviceModal.openCreate();
+    }
+  }
+
+  openViewModal(service: ServiceItemDto) {
+    if (this.serviceModal) {
+      this.serviceModal.openView(service);
     }
   }
 

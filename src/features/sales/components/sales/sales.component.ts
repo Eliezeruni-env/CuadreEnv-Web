@@ -273,9 +273,71 @@ export class SalesComponent implements OnInit {
     });
   });
 
+  sortColumn = signal<string>('date');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update((dir) => (dir === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+    this.currentPage.set(1);
+  }
+
+  readonly sortedSales = computed(() => {
+    const list = [...this.filteredSalesBase()];
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+
+    return list.sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      switch (col) {
+        case 'invoice':
+          valA = this.getInvoiceCode(a);
+          valB = this.getInvoiceCode(b);
+          break;
+        case 'date':
+          valA = new Date(a.creationDate || 0).getTime();
+          valB = new Date(b.creationDate || 0).getTime();
+          break;
+        case 'customer':
+          valA = (this.getCustomerDisplay(a) || '').toLowerCase();
+          valB = (this.getCustomerDisplay(b) || '').toLowerCase();
+          break;
+        case 'origin':
+          valA = this.getOriginLabel(a);
+          valB = this.getOriginLabel(b);
+          break;
+        case 'total':
+          valA = Number(a.total) || 0;
+          valB = Number(b.total) || 0;
+          break;
+        case 'paid':
+          valA = Number(a.paidAmount) || 0;
+          valB = Number(b.paidAmount) || 0;
+          break;
+        case 'status':
+          valA = (a.status === 4 || (a as any).isCancelled) ? 'Anulada' : 'Pagada';
+          valB = (b.status === 4 || (b as any).isCancelled) ? 'Anulada' : 'Pagada';
+          break;
+        default:
+          valA = a.id;
+          valB = b.id;
+      }
+
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  });
+
   readonly pagedSales = computed(() => {
     const start = (this.currentPage() - 1) * this.pageSize;
-    return this.filteredSalesBase().slice(start, start + this.pageSize);
+    return this.sortedSales().slice(start, start + this.pageSize);
   });
 
   getFilteredSalesCount(): number {

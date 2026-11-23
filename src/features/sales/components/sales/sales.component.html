@@ -88,14 +88,49 @@
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
                 </th>
-                <th>Factura <span class="sort-indicator text-muted ms-1">↕</span></th>
-                <th>Fecha / hora <span class="sort-indicator text-muted ms-1">↕</span></th>
-                <th>Cliente <span class="sort-indicator text-muted ms-1">↕</span></th>
-                <th>Origen <span class="sort-indicator text-muted ms-1">↕</span></th>
-                <th>Total <span class="sort-indicator text-muted ms-1">↕</span></th>
-                <th>Cobrado <span class="sort-indicator text-muted ms-1">↕</span></th>
-                <th class="text-center">Estado <span class="sort-indicator text-muted ms-1">↕</span></th>
-                <th class="text-center pe-3" style="width: 140px;">Acciones</th>
+                <th class="th-sortable" (click)="toggleSort('invoice')">
+                  Factura
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'invoice'">
+                    {{ sortColumn() === 'invoice' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('date')">
+                  Fecha / hora
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'date'">
+                    {{ sortColumn() === 'date' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('customer')">
+                  Cliente
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'customer'">
+                    {{ sortColumn() === 'customer' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('origin')">
+                  Origen
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'origin'">
+                    {{ sortColumn() === 'origin' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('total')">
+                  Total
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'total'">
+                    {{ sortColumn() === 'total' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('paid')">
+                  Cobrado
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'paid'">
+                    {{ sortColumn() === 'paid' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="text-center th-sortable" (click)="toggleSort('status')">
+                  Estado
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
+                    {{ sortColumn() === 'status' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="text-center pe-3" style="width: 110px;">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -154,10 +189,10 @@
                         {{ (sale.status === 4 || sale.isCancelled) ? 'Anulada' : 'Pagada' }}
                       </span>
                     </td>
-                    <td class="text-center pe-3" style="width: 140px;">
+                    <td class="text-center pe-3" style="width: 110px;">
                       <div class="d-inline-flex align-items-center gap-1.5">
                         <button
-                          class="btn-action-square"
+                          class="btn-action-square btn-action-primary"
                           type="button"
                           (click)="openDetailModal(sale)"
                           title="Ver detalle de venta"
@@ -169,29 +204,15 @@
                         </button>
 
                         <button
-                          class="btn-action-square"
-                          type="button"
-                          (click)="openInvoiceForSale(sale)"
-                          title="Imprimir comprobante fiscal"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                            <rect x="6" y="14" width="12" height="8"></rect>
-                          </svg>
-                        </button>
-
-                        <button
-                          class="btn-action-square"
+                          class="btn-action-square btn-action-refund"
                           type="button"
                           [disabled]="sale.status === 4 || sale.isCancelled || sale.notes?.includes('DEVUELTA')"
                           (click)="openCreditNoteForSale(sale)"
-                          title="Opciones avanzadas / Devolución"
+                          title="Emitir nota de crédito / Devolución"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="1"></circle>
-                            <circle cx="19" cy="12" r="1"></circle>
-                            <circle cx="5" cy="12" r="1"></circle>
+                            <polyline points="9 14 4 9 9 4"></polyline>
+                            <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
                           </svg>
                         </button>
                       </div>
@@ -378,7 +399,7 @@
 <app-create-sale-modal #createSaleModal [(visible)]="isCreateModalOpen"
   (saleCreated)="onSaleCreated()"></app-create-sale-modal>
 <app-sale-detail-modal #saleDetailModal [(visible)]="isDetailModalOpen" [sale]="selectedSale"
-  (closed)="selectedSale = null"></app-sale-detail-modal>
+  (closed)="selectedSale = null" (printRequested)="openInvoiceForSale($event)"></app-sale-detail-modal>
 
 <!-- Completed Sale / Invoice View & Printable Modal -->
 <app-sale-completed-modal

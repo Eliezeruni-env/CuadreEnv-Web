@@ -288,14 +288,54 @@
       <table class="table table-hover align-middle mb-0 recon-table">
         <thead class="table-light text-secondary small fw-bold">
           <tr>
-            <th class="ps-4">Fecha ↕</th>
-            <th>Referencia bancaria</th>
-            <th>Factura / Cliente</th>
-            <th>Banco destino</th>
-            <th class="text-start">Monto registrado ↕</th>
-            <th class="text-start">Monto extracto ↕</th>
-            <th class="text-start">Diferencia ↕</th>
-            <th class="text-center">Estado</th>
+            <th class="ps-4 th-sortable" (click)="toggleSort('date')">
+              Fecha
+              <span class="sort-indicator" [class.active]="sortColumn() === 'date'">
+                {{ sortColumn() === 'date' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('reference')">
+              Referencia bancaria
+              <span class="sort-indicator" [class.active]="sortColumn() === 'reference'">
+                {{ sortColumn() === 'reference' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('invoice')">
+              Factura / Cliente
+              <span class="sort-indicator" [class.active]="sortColumn() === 'invoice'">
+                {{ sortColumn() === 'invoice' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('bank')">
+              Banco destino
+              <span class="sort-indicator" [class.active]="sortColumn() === 'bank'">
+                {{ sortColumn() === 'bank' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable text-start" (click)="toggleSort('registered')">
+              Monto registrado
+              <span class="sort-indicator" [class.active]="sortColumn() === 'registered'">
+                {{ sortColumn() === 'registered' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable text-start" (click)="toggleSort('statement')">
+              Monto extracto
+              <span class="sort-indicator" [class.active]="sortColumn() === 'statement'">
+                {{ sortColumn() === 'statement' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable text-start" (click)="toggleSort('difference')">
+              Diferencia
+              <span class="sort-indicator" [class.active]="sortColumn() === 'difference'">
+                {{ sortColumn() === 'difference' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable text-center" (click)="toggleSort('status')">
+              Estado
+              <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
+                {{ sortColumn() === 'status' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
             <th class="text-center pe-4" style="width: 130px;">Acciones</th>
           </tr>
         </thead>

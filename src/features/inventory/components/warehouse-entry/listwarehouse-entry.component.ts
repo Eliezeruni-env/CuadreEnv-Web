@@ -34,20 +34,78 @@ export class ListwarehouseEntryComponent implements OnInit {
   pageSize = signal<number>(10);
   expandedEntryId = signal<number | null>(null);
 
+  // Sorting
+  sortColumn = signal<string>('date');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
   // Receipt Modal State (Matching Image 2)
   isReceiptModalOpen = signal<boolean>(false);
   selectedReceiptData: MovementReceiptData | null = null;
 
   readonly filteredEntries = computed(() => {
+    let list = this.entries();
     const q = this.searchTerm.toLowerCase().trim();
-    if (!q) return this.entries();
-    return this.entries().filter(
-      (e) =>
-        (e.movementNumber || '').toLowerCase().includes(q) ||
-        (e.warehouseName || '').toLowerCase().includes(q) ||
-        (e.conceptName || '').toLowerCase().includes(q) ||
-        (e.commentary || '').toLowerCase().includes(q),
-    );
+    if (q) {
+      list = list.filter(
+        (e) =>
+          (e.movementNumber || '').toLowerCase().includes(q) ||
+          (e.warehouseName || '').toLowerCase().includes(q) ||
+          (e.conceptName || '').toLowerCase().includes(q) ||
+          (e.commentary || '').toLowerCase().includes(q),
+      );
+    }
+
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...list].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'movement':
+          valA = a.movementNumber || String(a.id || '');
+          valB = b.movementNumber || String(b.id || '');
+          break;
+        case 'warehouse':
+          valA = (a.warehouseName || '').toLowerCase();
+          valB = (b.warehouseName || '').toLowerCase();
+          break;
+        case 'concept':
+          valA = (a.conceptName || '').toLowerCase();
+          valB = (b.conceptName || '').toLowerCase();
+          break;
+        case 'date':
+          valA = a.createDate ? new Date(a.createDate).getTime() : 0;
+          valB = b.createDate ? new Date(b.createDate).getTime() : 0;
+          break;
+        case 'quantity':
+          valA = a.totalQuantity || 0;
+          valB = b.totalQuantity || 0;
+          break;
+        case 'cost':
+          valA = a.totalCost || 0;
+          valB = b.totalCost || 0;
+          break;
+        case 'status':
+          valA = (a.statusName || '').toLowerCase();
+          valB = (b.statusName || '').toLowerCase();
+          break;
+        default:
+          valA = a.createDate ? new Date(a.createDate).getTime() : 0;
+          valB = b.createDate ? new Date(b.createDate).getTime() : 0;
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
   });
 
   readonly pagedEntries = computed(() => {

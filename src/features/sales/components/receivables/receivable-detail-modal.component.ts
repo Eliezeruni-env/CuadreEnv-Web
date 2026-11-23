@@ -425,9 +425,9 @@ export class ReceivableDetailModalComponent {
     });
   }
 
-  open(item: ReceivableDto) {
+  open(item: ReceivableDto, initialTab: 'timeline' | 'payment' | 'cuotas' | 'sale' | 'client' = 'timeline') {
     this.receivable = item;
-    this.activeTab.set('payment');
+    this.activeTab.set(initialTab);
     this.editingPayment.set(null);
     this.uploadedVoucher.set(null);
     this.voucherDetectionMessage.set(null);

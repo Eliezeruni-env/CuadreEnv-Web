@@ -104,6 +104,19 @@ export class ReceivablesComponent implements OnInit {
   selectedStatus = signal<string>('');
   selectedSort = signal<string>('newest');
 
+  // Table Column Sorting
+  sortColumn = signal<string>('client');
+  sortDirection = signal<'asc' | 'desc'>('asc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
   // Pagination
   currentPage = signal<number>(1);
   pageSize = 6;
@@ -153,26 +166,52 @@ export class ReceivablesComponent implements OnInit {
     }
 
     // 4. Sorting
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
     list.sort((a, b) => {
-      switch (sort) {
-        case 'oldest':
-          return (
-            new Date(a.creationDate).getTime() -
-            new Date(b.creationDate).getTime()
-          );
-        case 'amount-desc':
-          return b.pendingAmount - a.pendingAmount;
-        case 'amount-asc':
-          return a.pendingAmount - b.pendingAmount;
-        case 'name-asc':
-          return a.customerName.localeCompare(b.customerName);
-        case 'newest':
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'client':
+          valA = a.customerName.toLowerCase();
+          valB = b.customerName.toLowerCase();
+          break;
+        case 'pending':
+          valA = Number(a.pendingAmount) || 0;
+          valB = Number(b.pendingAmount) || 0;
+          break;
+        case 'dueDate':
+          valA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+          valB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+          break;
+        case 'status':
+          valA = (a.status || '').toLowerCase();
+          valB = (b.status || '').toLowerCase();
+          break;
         default:
-          return (
-            new Date(b.creationDate).getTime() -
-            new Date(a.creationDate).getTime()
-          );
+          switch (sort) {
+            case 'oldest':
+              return (
+                new Date(a.creationDate).getTime() -
+                new Date(b.creationDate).getTime()
+              );
+            case 'amount-desc':
+              return b.pendingAmount - a.pendingAmount;
+            case 'amount-asc':
+              return a.pendingAmount - b.pendingAmount;
+            case 'name-asc':
+              return a.customerName.localeCompare(b.customerName);
+            case 'newest':
+            default:
+              return (
+                new Date(b.creationDate).getTime() -
+                new Date(a.creationDate).getTime()
+              );
+          }
       }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
     });
 
     return list;

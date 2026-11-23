@@ -489,6 +489,17 @@ export class QuotationService {
     return { success: false, message: 'No se encontró la cotización' };
   }
 
+  async deleteQuotation(id: number): Promise<{ success: boolean; message?: string }> {
+    try {
+      await this.api.delete(`/quotations/${id}`);
+    } catch {
+      // Fallback local
+      const list = this.getLocalQuotations().filter((q) => q.id !== id);
+      this.saveAllLocalQuotations(list);
+    }
+    return { success: true };
+  }
+
   private computeKpis(list: QuotationDto[]): QuotationSummaryKpiDto {
     return {
       totalCount: list.length,

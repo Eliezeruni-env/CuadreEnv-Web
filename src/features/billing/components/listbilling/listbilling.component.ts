@@ -55,6 +55,19 @@ export class ListbillingComponent implements OnInit {
   currentPage = 1;
   pageSize = 10;
 
+  // Sorting signals
+  sortColumn = signal<string>('date');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
   selectedInvoiceToPrint: Billing | null = null;
   isEmailModalOpen = false;
   selectedInvoiceForEmail: Billing | null = null;
@@ -122,7 +135,48 @@ export class ListbillingComponent implements OnInit {
       list = list.filter((b) => new Date(b.creationDate).getTime() <= end);
     }
 
-    return list;
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...list].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'invoice':
+          valA = a.billingNumber || String(a.id || '');
+          valB = b.billingNumber || String(b.id || '');
+          break;
+        case 'date':
+          valA = new Date(a.creationDate).getTime() || 0;
+          valB = new Date(b.creationDate).getTime() || 0;
+          break;
+        case 'client':
+          valA = (a.clientName || '').toLowerCase();
+          valB = (b.clientName || '').toLowerCase();
+          break;
+        case 'origin':
+          valA = (a.billingTypeName || '').toLowerCase();
+          valB = (b.billingTypeName || '').toLowerCase();
+          break;
+        case 'total':
+          valA = a.amountTotal || 0;
+          valB = b.amountTotal || 0;
+          break;
+        case 'paid':
+          valA = a.amountTotal || 0;
+          valB = b.amountTotal || 0;
+          break;
+        case 'status':
+          valA = (a.statusName || '').toLowerCase();
+          valB = (b.statusName || '').toLowerCase();
+          break;
+        default:
+          valA = new Date(a.creationDate).getTime() || 0;
+          valB = new Date(b.creationDate).getTime() || 0;
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
   });
 
   readonly pagedBillings = computed(() => {

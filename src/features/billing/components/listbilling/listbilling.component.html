@@ -178,14 +178,49 @@
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
                 </th>
-                <th>Factura ⇕</th>
-                <th>Fecha / hora ⇕</th>
-                <th>Cliente ⇕</th>
-                <th>Origen ⇕</th>
-                <th class="text-end">Total ⇕</th>
-                <th class="text-end">Cobrado ⇕</th>
-                <th class="text-center">Estado ⇕</th>
-                <th class="text-center pe-3" style="width: 140px;">Acciones</th>
+                <th class="th-sortable" (click)="toggleSort('invoice')">
+                  Factura
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'invoice'">
+                    {{ sortColumn() === 'invoice' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('date')">
+                  Fecha / hora
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'date'">
+                    {{ sortColumn() === 'date' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('client')">
+                  Cliente
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'client'">
+                    {{ sortColumn() === 'client' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('origin')">
+                  Origen
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'origin'">
+                    {{ sortColumn() === 'origin' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable text-end" (click)="toggleSort('total')">
+                  Total
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'total'">
+                    {{ sortColumn() === 'total' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable text-end" (click)="toggleSort('paid')">
+                  Cobrado
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'paid'">
+                    {{ sortColumn() === 'paid' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable text-center" (click)="toggleSort('status')">
+                  Estado
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
+                    {{ sortColumn() === 'status' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="text-center pe-3" style="width: 110px;">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -261,40 +296,30 @@
                       </span>
                     </td>
                     <td class="text-center pe-3">
-                      <div class="d-flex align-items-center justify-content-center gap-1">
-                        <!-- Ver Factura -->
+                      <div class="d-flex align-items-center justify-content-center gap-1.5">
+                        <!-- Ver Factura / Detalles -->
                         <button
-                          class="btn-action-icon btn-action-view"
+                          class="btn-action-square btn-action-view"
                           type="button"
                           (click)="openReceiptModal(b)"
-                          data-tooltip="Ver comprobante de venta"
+                          title="Ver detalles del comprobante"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                             <circle cx="12" cy="12" r="3"></circle>
                           </svg>
                         </button>
-                        <!-- Imprimir comprobante directo -->
+                        <!-- Enviar a nota de crédito -->
                         <button
-                          class="btn-action-icon btn-action-print"
+                          class="btn-action-square btn-action-refund"
                           type="button"
-                          (click)="openReceiptModal(b)"
-                          data-tooltip="Imprimir comprobante fiscal"
+                          (click)="createCreditNote(b)"
+                          title="Enviar a nota de crédito"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                            <rect x="6" y="14" width="12" height="8"></rect>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 14 4 9 9 4"></polyline>
+                            <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
                           </svg>
-                        </button>
-                        <!-- Más opciones -->
-                        <button
-                          class="btn-action-icon"
-                          type="button"
-                          (click)="openReceiptModal(b)"
-                          data-tooltip="Más opciones"
-                        >
-                          ···
                         </button>
                       </div>
                     </td>

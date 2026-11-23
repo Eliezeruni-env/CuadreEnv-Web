@@ -58,6 +58,19 @@ export class QuotationListComponent implements OnInit {
     this.quotations().filter((q) => q.status === 'EXPIRED').length
   );
 
+  sortColumn = signal<string>('date');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  toggleSort(col: string): void {
+    if (this.sortColumn() === col) {
+      this.sortDirection.update((dir) => (dir === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(col);
+      this.sortDirection.set('asc');
+    }
+    this.currentPage.set(1);
+  }
+
   // Filtered List
   readonly filteredQuotations = computed(() => {
     let list = this.quotations();
@@ -80,7 +93,47 @@ export class QuotationListComponent implements OnInit {
       list = list.filter((item) => item.status === this.selectedStatusFilter());
     }
 
-    return list;
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+
+    return [...list].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      switch (col) {
+        case 'code':
+          valA = a.quotationNumber.toLowerCase();
+          valB = b.quotationNumber.toLowerCase();
+          break;
+        case 'customer':
+          valA = (a.customerName || '').toLowerCase();
+          valB = (b.customerName || '').toLowerCase();
+          break;
+        case 'date':
+          valA = new Date(a.issueDate || 0).getTime();
+          valB = new Date(b.issueDate || 0).getTime();
+          break;
+        case 'expiration':
+          valA = new Date(a.expirationDate || 0).getTime();
+          valB = new Date(b.expirationDate || 0).getTime();
+          break;
+        case 'total':
+          valA = Number(a.total) || 0;
+          valB = Number(b.total) || 0;
+          break;
+        case 'status':
+          valA = a.status;
+          valB = b.status;
+          break;
+        default:
+          valA = a.id;
+          valB = b.id;
+      }
+
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
   });
 
   // Paged List
@@ -144,7 +197,30 @@ export class QuotationListComponent implements OnInit {
   }
 
   viewQuotation(item: QuotationDto): void {
+    this.toggleExpand(item.id);
+  }
+
+  editQuotation(item: QuotationDto, event?: Event): void {
+    if (event) event.stopPropagation();
     this.router.navigate(['/sales/quotations/create'], { queryParams: { id: item.id } });
+  }
+
+  async deleteQuotation(item: QuotationDto, event?: Event): Promise<void> {
+    if (event) event.stopPropagation();
+    if (!confirm(`¿Estás seguro de que deseas eliminar la cotización "${item.quotationNumber}"?`)) {
+      return;
+    }
+    try {
+      const res = await this.quotationService.deleteQuotation(item.id);
+      if (res.success) {
+        this.notificationService.success(`Cotización ${item.quotationNumber} eliminada.`);
+        await this.loadQuotations();
+      } else {
+        this.notificationService.error(res.message || 'No se pudo eliminar la cotización.');
+      }
+    } catch (err: any) {
+      this.notificationService.error(err?.message || 'Error al eliminar cotización.');
+    }
   }
 
   async convertToSale(item: QuotationDto, event?: Event): Promise<void> {

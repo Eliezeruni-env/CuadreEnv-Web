@@ -201,12 +201,42 @@
         <thead>
           <tr>
             <th style="width: 40px;"></th>
-            <th>Cotización <span>↕</span></th>
-            <th>Cliente <span>↕</span></th>
-            <th>Emisión <span>↕</span></th>
-            <th>Vigencia <span>↕</span></th>
-            <th class="text-end">Total <span>↕</span></th>
-            <th>Estado <span>↕</span></th>
+            <th class="th-sortable" (click)="toggleSort('code')">
+              Cotización
+              <span class="sort-indicator" [class.active]="sortColumn() === 'code'">
+                {{ sortColumn() === 'code' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('customer')">
+              Cliente
+              <span class="sort-indicator" [class.active]="sortColumn() === 'customer'">
+                {{ sortColumn() === 'customer' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('date')">
+              Emisión
+              <span class="sort-indicator" [class.active]="sortColumn() === 'date'">
+                {{ sortColumn() === 'date' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('expiration')">
+              Vigencia
+              <span class="sort-indicator" [class.active]="sortColumn() === 'expiration'">
+                {{ sortColumn() === 'expiration' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="text-end th-sortable" (click)="toggleSort('total')">
+              Total
+              <span class="sort-indicator" [class.active]="sortColumn() === 'total'">
+                {{ sortColumn() === 'total' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('status')">
+              Estado
+              <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
+                {{ sortColumn() === 'status' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
             <th class="text-end pe-3">Acciones</th>
           </tr>
         </thead>
@@ -302,14 +332,23 @@
                         <span>→ Facturar</span>
                       </button>
                     }
-                    <button class="btn btn-icon-square" (click)="viewQuotation(quote)" title="Ver cotización">
+                    <button class="btn-action-square btn-action-primary" (click)="viewQuotation(quote)" title="Ver detalle de cotización">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
                       </svg>
                     </button>
-                    <button class="btn btn-icon-square" title="Más opciones">
-                      <span>···</span>
+                    <button class="btn-action-square" (click)="editQuotation(quote, $event)" title="Editar cotización">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                    </button>
+                    <button class="btn-action-square btn-action-danger" (click)="deleteQuotation(quote, $event)" title="Eliminar cotización">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
                     </button>
                   </div>
                 </td>

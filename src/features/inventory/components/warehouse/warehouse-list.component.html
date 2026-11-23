@@ -72,13 +72,43 @@
         <table class="table table-hover align-middle mb-0 master-detail-table">
           <thead class="table-light text-secondary text-uppercase font-size-xs">
             <tr>
-              <th class="ps-3">Código / Nombre</th>
-              <th>Ubicación / Dirección</th>
-              <th>Teléfono</th>
-              <th>Responsable</th>
-              <th class="text-center">Tipo</th>
-              <th class="text-center">Estado</th>
-              <th class="text-center pe-3" style="width: 110px;">Acciones</th>
+              <th class="ps-3 th-sortable" (click)="toggleSort('name')">
+                Código / Nombre
+                <span class="sort-indicator" [class.active]="sortColumn() === 'name'">
+                  {{ sortColumn() === 'name' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('address')">
+                Ubicación / Dirección
+                <span class="sort-indicator" [class.active]="sortColumn() === 'address'">
+                  {{ sortColumn() === 'address' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('phone')">
+                Teléfono
+                <span class="sort-indicator" [class.active]="sortColumn() === 'phone'">
+                  {{ sortColumn() === 'phone' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('manager')">
+                Responsable
+                <span class="sort-indicator" [class.active]="sortColumn() === 'manager'">
+                  {{ sortColumn() === 'manager' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable text-center" (click)="toggleSort('type')">
+                Tipo
+                <span class="sort-indicator" [class.active]="sortColumn() === 'type'">
+                  {{ sortColumn() === 'type' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable text-center" (click)="toggleSort('status')">
+                Estado
+                <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
+                  {{ sortColumn() === 'status' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="text-center pe-3" style="width: 140px;">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -134,16 +164,21 @@
                     </span>
                   </td>
                   <td class="text-center pe-3">
-                    <div class="action-btn-group justify-content-center">
-                      <button type="button" class="btn-action-icon btn-action-edit" (click)="openEditModal(wh)" title="Editar">
+                    <div class="d-flex align-items-center justify-content-center gap-1.5">
+                      <button
+                        type="button"
+                        class="btn-action-square btn-action-edit"
+                        (click)="openEditModal(wh)"
+                        title="Editar almacén"
+                      >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
                       </button>
                       <button
                         type="button"
-                        class="btn-action-icon"
+                        class="btn-action-square"
                         [ngClass]="wh.isActive ? 'btn-action-view' : 'btn-action-edit'"
                         (click)="toggleActive(wh)"
                         [title]="wh.isActive ? 'Desactivar' : 'Activar'"
@@ -159,19 +194,20 @@
                           </svg>
                         }
                       </button>
-                      @if (!wh.isMain) {
-                        <button
-                          type="button"
-                          class="btn-action-icon btn-action-delete"
-                          (click)="deleteWarehouse(wh)"
-                          title="Eliminar Almacén"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      }
+                      <button
+                        type="button"
+                        class="btn-action-square btn-action-danger"
+                        (click)="deleteWarehouse(wh)"
+                        [disabled]="wh.isMain"
+                        [title]="wh.isMain ? 'No se puede eliminar el almacén principal' : 'Eliminar Almacén'"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                      </button>
                     </div>
                   </td>
                 </tr>

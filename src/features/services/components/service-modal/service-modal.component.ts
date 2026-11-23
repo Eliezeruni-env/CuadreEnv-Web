@@ -35,6 +35,7 @@ export class ServiceModalComponent implements OnInit {
   @Output() saved = new EventEmitter<ServiceItemDto>();
 
   isEditMode = false;
+  isViewMode = false;
   selectedServiceId: number | null = null;
   isLoading = signal<boolean>(false);
   categories = signal<any[]>([]);
@@ -67,8 +68,10 @@ export class ServiceModalComponent implements OnInit {
   }
 
   openCreate() {
+    this.isViewMode = false;
     this.isEditMode = false;
     this.selectedServiceId = null;
+    this.form.enable();
     this.form.reset({
       code: this.serviceService.generateServiceCode(),
       name: '',
@@ -85,8 +88,10 @@ export class ServiceModalComponent implements OnInit {
   }
 
   openEdit(service: ServiceItemDto) {
+    this.isViewMode = false;
     this.isEditMode = true;
     this.selectedServiceId = service.id ?? null;
+    this.form.enable();
     this.form.reset({
       code: service.code,
       name: service.name,
@@ -100,6 +105,32 @@ export class ServiceModalComponent implements OnInit {
     });
     this.visible = true;
     this.visibleChange.emit(true);
+  }
+
+  openView(service: ServiceItemDto) {
+    this.isViewMode = true;
+    this.isEditMode = false;
+    this.selectedServiceId = service.id ?? null;
+    this.form.reset({
+      code: service.code,
+      name: service.name,
+      description: service.description || '',
+      categoryId: service.categoryId || null,
+      price: service.price || 0,
+      cost: service.cost || 0,
+      estimatedDuration: service.estimatedDuration || '',
+      taxRate: service.taxRate ?? 0.18,
+      isActive: service.isActive !== false,
+    });
+    this.form.disable();
+    this.visible = true;
+    this.visibleChange.emit(true);
+  }
+
+  switchToEdit() {
+    this.isViewMode = false;
+    this.isEditMode = true;
+    this.form.enable();
   }
 
   close() {

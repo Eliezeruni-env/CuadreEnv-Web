@@ -13,7 +13,12 @@ import type { WarehouseOutlet } from '../../../../app/models/movement';
 @Component({
   selector: 'app-listwarehouse-outlet',
   standalone: true,
-  imports: [CommonModule, FormsModule, KtPaginatorComponent, WarehouseMovementReceiptModalComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    KtPaginatorComponent,
+    WarehouseMovementReceiptModalComponent,
+  ],
   templateUrl: './listwarehouse-outlet.component.html',
   styleUrls: ['./listwarehouse-outlet.component.scss'],
 })
@@ -29,21 +34,79 @@ export class ListwarehouseOutletComponent implements OnInit {
   pageSize = signal<number>(10);
   expandedOutletId = signal<number | null>(null);
 
+  // Sorting
+  sortColumn = signal<string>('date');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
   // Receipt Modal State (Matching Image 2)
   isReceiptModalOpen = signal<boolean>(false);
   selectedReceiptData: MovementReceiptData | null = null;
   selectedOutlet: WarehouseOutlet | null = null;
 
   readonly filteredOutlets = computed(() => {
+    let list = this.outlets();
     const q = this.searchTerm.toLowerCase().trim();
-    if (!q) return this.outlets();
-    return this.outlets().filter(
-      (o) =>
-        (o.movementNumber || '').toLowerCase().includes(q) ||
-        (o.warehouseName || '').toLowerCase().includes(q) ||
-        (o.conceptName || '').toLowerCase().includes(q) ||
-        (o.commentary || '').toLowerCase().includes(q),
-    );
+    if (q) {
+      list = list.filter(
+        (o) =>
+          (o.movementNumber || '').toLowerCase().includes(q) ||
+          (o.warehouseName || '').toLowerCase().includes(q) ||
+          (o.conceptName || '').toLowerCase().includes(q) ||
+          (o.commentary || '').toLowerCase().includes(q),
+      );
+    }
+
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...list].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'movement':
+          valA = a.movementNumber || String(a.id || '');
+          valB = b.movementNumber || String(b.id || '');
+          break;
+        case 'warehouse':
+          valA = (a.warehouseName || '').toLowerCase();
+          valB = (b.warehouseName || '').toLowerCase();
+          break;
+        case 'concept':
+          valA = (a.conceptName || '').toLowerCase();
+          valB = (b.conceptName || '').toLowerCase();
+          break;
+        case 'date':
+          valA = a.createDate ? new Date(a.createDate).getTime() : 0;
+          valB = b.createDate ? new Date(b.createDate).getTime() : 0;
+          break;
+        case 'quantity':
+          valA = a.totalQuantity || 0;
+          valB = b.totalQuantity || 0;
+          break;
+        case 'cost':
+          valA = a.totalCost || 0;
+          valB = b.totalCost || 0;
+          break;
+        case 'status':
+          valA = (a.statusName || '').toLowerCase();
+          valB = (b.statusName || '').toLowerCase();
+          break;
+        default:
+          valA = a.createDate ? new Date(a.createDate).getTime() : 0;
+          valB = b.createDate ? new Date(b.createDate).getTime() : 0;
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
   });
 
   readonly pagedOutlets = computed(() => {
@@ -139,18 +202,40 @@ export class ListwarehouseOutletComponent implements OnInit {
       thirdColumnHeader: 'CONCEPTO',
       conceptDescription: outlet.commentary || 'Despacho de stock',
       fourthColumnHeader: 'FECHA Y HORA',
-      date: new Date(outlet.createDate || (outlet as any).createdAt || Date.now()).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-      time: new Date(outlet.createDate || (outlet as any).createdAt || Date.now()).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      date: new Date(
+        outlet.createDate || (outlet as any).createdAt || Date.now(),
+      ).toLocaleDateString('es-DO', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }),
+      time: new Date(
+        outlet.createDate || (outlet as any).createdAt || Date.now(),
+      ).toLocaleTimeString('es-DO', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      }),
       itemsSectionTitle: 'Productos descargados',
       items: rawItems.map((p: any) => ({
-        code: p.productCode || p.barcode || p.barCode || (p.productId ? `PROD-${p.productId}` : 'N/A'),
+        code:
+          p.productCode ||
+          p.barcode ||
+          p.barCode ||
+          (p.productId ? `PROD-${p.productId}` : 'N/A'),
         name: p.productName || p.description || 'Producto',
         description: p.description || '',
         quantity: Number(p.quantity) || 1,
         unitCost: Number(p.cost || p.price) || 0,
         totalCost: (Number(p.cost || p.price) || 0) * (Number(p.quantity) || 1),
       })),
-      totalUnits: Number(outlet.totalQuantity) || rawItems.reduce((s: number, i: any) => s + (Number(i.quantity) || 0), 0) || 1,
+      totalUnits:
+        Number(outlet.totalQuantity) ||
+        rawItems.reduce(
+          (s: number, i: any) => s + (Number(i.quantity) || 0),
+          0,
+        ) ||
+        1,
       totalCost: Number(outlet.totalCost) || 0,
       footerNote: 'Movimiento aplicado al inventario',
     };

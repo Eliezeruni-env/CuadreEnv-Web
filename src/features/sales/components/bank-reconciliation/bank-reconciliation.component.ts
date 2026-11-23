@@ -47,6 +47,19 @@ export class BankReconciliationComponent implements OnInit {
   selectedPeriod = signal<string>('ALL');
   activeTab = signal<'TODAS' | 'PENDIENTES' | 'CONCILIADAS' | 'DISCREPANCIAS'>('TODAS');
 
+  // Sorting
+  sortColumn = signal<string>('date');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
   // Modales
   isReconcileModalOpen = signal<boolean>(false);
   activeItemForReconciliation = signal<BankReconciliationItem | null>(null);
@@ -110,7 +123,7 @@ export class BankReconciliationComponent implements OnInit {
     const status = this.selectedStatus();
     const tab = this.activeTab();
 
-    return this.records().filter((r) => {
+    const list = this.records().filter((r) => {
       // Tab filter
       if (tab === 'PENDIENTES' && r.status !== 'Pendiente') return false;
       if (tab === 'CONCILIADAS' && r.status !== 'Conciliada') return false;
@@ -128,6 +141,53 @@ export class BankReconciliationComponent implements OnInit {
         r.customerName.toLowerCase().includes(q) ||
         r.destinationBank.toLowerCase().includes(q)
       );
+    });
+
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...list].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'date':
+          valA = a.date || '';
+          valB = b.date || '';
+          break;
+        case 'reference':
+          valA = (a.bankReference || '').toLowerCase();
+          valB = (b.bankReference || '').toLowerCase();
+          break;
+        case 'invoice':
+          valA = (a.invoiceNumber || '').toLowerCase();
+          valB = (b.invoiceNumber || '').toLowerCase();
+          break;
+        case 'bank':
+          valA = (a.destinationBank || '').toLowerCase();
+          valB = (b.destinationBank || '').toLowerCase();
+          break;
+        case 'registered':
+          valA = a.registeredAmount || 0;
+          valB = b.registeredAmount || 0;
+          break;
+        case 'statement':
+          valA = a.statementAmount ?? 0;
+          valB = b.statementAmount ?? 0;
+          break;
+        case 'difference':
+          valA = a.difference ?? 0;
+          valB = b.difference ?? 0;
+          break;
+        case 'status':
+          valA = (a.status || '').toLowerCase();
+          valB = (b.status || '').toLowerCase();
+          break;
+        default:
+          valA = a.date || '';
+          valB = b.date || '';
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
     });
   });
 

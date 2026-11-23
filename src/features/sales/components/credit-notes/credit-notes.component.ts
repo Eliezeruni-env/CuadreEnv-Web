@@ -60,6 +60,19 @@ export class CreditNotesComponent implements OnInit {
   pageSize = signal<number>(10);
   expandedNoteId = signal<number | null>(null);
 
+  // Sorting
+  sortColumn = signal<string>('date');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
   isCreateModalOpen = false;
   selectedCreditNote: CreditNote | null = null;
 
@@ -68,15 +81,64 @@ export class CreditNotesComponent implements OnInit {
   selectedReceiptData: MovementReceiptData | null = null;
 
   readonly filteredCreditNotes = computed(() => {
+    let list = this.creditNotes();
     const term = this.searchTerm.toLowerCase().trim();
-    if (!term) return this.creditNotes();
-    return this.creditNotes().filter(
-      (n) =>
-        (n.creditNoteNumber || '').toLowerCase().includes(term) ||
-        (n.ncf || '').toLowerCase().includes(term) ||
-        (n.billingNumber || '').toLowerCase().includes(term) ||
-        (n.customerName || '').toLowerCase().includes(term),
-    );
+    if (term) {
+      list = list.filter(
+        (n) =>
+          (n.creditNoteNumber || '').toLowerCase().includes(term) ||
+          (n.ncf || '').toLowerCase().includes(term) ||
+          (n.billingNumber || '').toLowerCase().includes(term) ||
+          (n.customerName || '').toLowerCase().includes(term),
+      );
+    }
+
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...list].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'ncf':
+          valA = (a.ncf || a.creditNoteNumber || '').toLowerCase();
+          valB = (b.ncf || b.creditNoteNumber || '').toLowerCase();
+          break;
+        case 'invoice':
+          valA = (a.billingNumber || '').toLowerCase();
+          valB = (b.billingNumber || '').toLowerCase();
+          break;
+        case 'client':
+          valA = (a.customerName || '').toLowerCase();
+          valB = (b.customerName || '').toLowerCase();
+          break;
+        case 'date':
+          valA = a.creationDate ? new Date(a.creationDate).getTime() : 0;
+          valB = b.creationDate ? new Date(b.creationDate).getTime() : 0;
+          break;
+        case 'method':
+          valA = (a.refundMethod || '').toLowerCase();
+          valB = (b.refundMethod || '').toLowerCase();
+          break;
+        case 'subtotal':
+          valA = a.amountSubTotal || 0;
+          valB = b.amountSubTotal || 0;
+          break;
+        case 'itbis':
+          valA = a.amountItbis || 0;
+          valB = b.amountItbis || 0;
+          break;
+        case 'total':
+          valA = a.amountTotal || 0;
+          valB = b.amountTotal || 0;
+          break;
+        default:
+          valA = a.creationDate ? new Date(a.creationDate).getTime() : 0;
+          valB = b.creationDate ? new Date(b.creationDate).getTime() : 0;
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
   });
 
   readonly pagedCreditNotes = computed(() => {

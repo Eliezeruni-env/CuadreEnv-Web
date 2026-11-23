@@ -25,6 +25,19 @@ export class WarehouseListComponent implements OnInit {
   currentPage = signal<number>(1);
   pageSize = signal<number>(10);
 
+  // Sorting
+  sortColumn = signal<string>('name');
+  sortDirection = signal<'asc' | 'desc'>('asc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
   isModalOpen = false;
   editingWarehouse: Warehouse | null = null;
   formModel: Partial<Warehouse> = {
@@ -38,14 +51,55 @@ export class WarehouseListComponent implements OnInit {
   };
 
   readonly filteredWarehouses = computed(() => {
+    let list = this.warehouses();
     const q = this.searchTerm.toLowerCase().trim();
-    if (!q) return this.warehouses();
-    return this.warehouses().filter(
-      (w) =>
-        w.name.toLowerCase().includes(q) ||
-        (w.code && w.code.toLowerCase().includes(q)) ||
-        (w.managerName && w.managerName.toLowerCase().includes(q)),
-    );
+    if (q) {
+      list = list.filter(
+        (w) =>
+          w.name.toLowerCase().includes(q) ||
+          (w.code && w.code.toLowerCase().includes(q)) ||
+          (w.managerName && w.managerName.toLowerCase().includes(q)),
+      );
+    }
+
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...list].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'name':
+          valA = (a.name || '').toLowerCase();
+          valB = (b.name || '').toLowerCase();
+          break;
+        case 'address':
+          valA = (a.address || '').toLowerCase();
+          valB = (b.address || '').toLowerCase();
+          break;
+        case 'phone':
+          valA = (a.phone || '').toLowerCase();
+          valB = (b.phone || '').toLowerCase();
+          break;
+        case 'manager':
+          valA = (a.managerName || '').toLowerCase();
+          valB = (b.managerName || '').toLowerCase();
+          break;
+        case 'type':
+          valA = a.isMain ? 1 : 0;
+          valB = b.isMain ? 1 : 0;
+          break;
+        case 'status':
+          valA = a.isActive ? 1 : 0;
+          valB = b.isActive ? 1 : 0;
+          break;
+        default:
+          valA = (a.name || '').toLowerCase();
+          valB = (b.name || '').toLowerCase();
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
   });
 
   readonly pagedWarehouses = computed(() => {

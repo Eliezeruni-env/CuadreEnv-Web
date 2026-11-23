@@ -129,15 +129,55 @@
           <thead class="table-light text-secondary text-uppercase font-size-xs">
             <tr>
               <th style="width: 44px;" class="ps-3 text-center"></th>
-              <th>No. / NCF</th>
-              <th>Factura Origen</th>
-              <th>Cliente</th>
-              <th>Fecha</th>
-              <th>Método Reembolso</th>
-              <th class="text-end">Subtotal</th>
-              <th class="text-end">ITBIS</th>
-              <th class="text-end">Total Reembolso</th>
-              <th class="text-center pe-3" style="width: 100px;">Acciones</th>
+              <th class="th-sortable" (click)="toggleSort('ncf')">
+                No. / NCF
+                <span class="sort-indicator" [class.active]="sortColumn() === 'ncf'">
+                  {{ sortColumn() === 'ncf' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('invoice')">
+                Factura Origen
+                <span class="sort-indicator" [class.active]="sortColumn() === 'invoice'">
+                  {{ sortColumn() === 'invoice' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('client')">
+                Cliente
+                <span class="sort-indicator" [class.active]="sortColumn() === 'client'">
+                  {{ sortColumn() === 'client' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('date')">
+                Fecha
+                <span class="sort-indicator" [class.active]="sortColumn() === 'date'">
+                  {{ sortColumn() === 'date' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('method')">
+                Método Reembolso
+                <span class="sort-indicator" [class.active]="sortColumn() === 'method'">
+                  {{ sortColumn() === 'method' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable text-end" (click)="toggleSort('subtotal')">
+                Subtotal
+                <span class="sort-indicator" [class.active]="sortColumn() === 'subtotal'">
+                  {{ sortColumn() === 'subtotal' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable text-end" (click)="toggleSort('itbis')">
+                ITBIS
+                <span class="sort-indicator" [class.active]="sortColumn() === 'itbis'">
+                  {{ sortColumn() === 'itbis' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable text-end" (click)="toggleSort('total')">
+                Total Reembolso
+                <span class="sort-indicator" [class.active]="sortColumn() === 'total'">
+                  {{ sortColumn() === 'total' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="text-center pe-3" style="width: 80px;">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -210,37 +250,17 @@
                     RD$ {{ note.amountTotal | number:'1.2-2' }}
                   </td>
                   <td class="text-center pe-3">
-                    <div class="action-btn-group justify-content-center">
+                    <div class="d-flex align-items-center justify-content-center">
                       <button
                         type="button"
-                        class="btn-action-icon btn-action-view"
+                        class="btn-action-square btn-action-view"
                         (click)="viewNoteDetail(note)"
                         title="Ver Comprobante de Nota de Crédito"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                           <circle cx="12" cy="12" r="3"></circle>
                         </svg>
-                      </button>
-                      <button
-                        type="button"
-                        class="btn-action-icon btn-action-print"
-                        (click)="openReceiptModal(note)"
-                        title="Imprimir Comprobante"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                          <rect x="6" y="14" width="12" height="8"></rect>
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        class="btn-action-icon"
-                        (click)="openReceiptModal(note)"
-                        title="Más opciones"
-                      >
-                        ···
                       </button>
                     </div>
                   </td>

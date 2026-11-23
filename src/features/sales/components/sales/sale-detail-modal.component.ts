@@ -73,6 +73,12 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
   @Output() visibleChange = new EventEmitter<boolean>();
   @Input() sale: SaleResponseDto | null = null;
   @Output() cancelled = new EventEmitter<void>();
+  @Output() printRequested = new EventEmitter<SaleResponseDto>();
+
+  printInvoice() {
+    if (!this.sale) return;
+    this.printRequested.emit(this.sale);
+  }
 
   products = signal<ProductDto[]>([]);
   itemsList = signal<SaleDetailItemView[]>([]);
