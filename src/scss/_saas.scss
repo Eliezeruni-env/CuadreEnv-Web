@@ -161,12 +161,21 @@ body {
 }
 
 // ============================================================================
+// ============================================================================
 // CUADRE-ENV CORPORATE EXECUTIVE SIDEBAR (Palette: #111827 / #253047 / #4F46E5)
 // ============================================================================
 .sidebar,
 c-sidebar.sidebar {
   background-color: var(--ce-sidebar-bg, #111827) !important;
   border-right: 1px solid #1F2937 !important;
+
+  // Reset CoreUI CSS custom properties that cause icon misalignment or active borders
+  --cui-sidebar-nav-link-active-bg: var(--ce-sidebar-active, #253047);
+  --cui-sidebar-nav-link-active-color: #FFFFFF;
+  --cui-sidebar-nav-link-active-icon-color: #FFFFFF;
+  --cui-sidebar-nav-link-border-width: 0px;
+  --cui-sidebar-nav-link-border-color: transparent;
+  --cui-sidebar-nav-link-icon-margin: 0.75rem;
 
   .sidebar-header {
     background-color: var(--ce-sidebar-bg, #111827) !important;
@@ -218,10 +227,13 @@ c-sidebar.sidebar {
       transition: all 0.15s ease-in-out !important;
       border: none !important;
       border-left: none !important;
+      outline: none !important;
+      box-shadow: none !important;
       margin-left: 0 !important;
       margin-inline-start: 0 !important;
 
-      .nav-icon {
+      .nav-icon,
+      svg.nav-icon {
         color: var(--ce-sidebar-muted, #94A3B8) !important;
         font-size: 1.05rem !important;
         width: 1.25rem !important;
@@ -231,6 +243,8 @@ c-sidebar.sidebar {
         margin: 0 !important;
         margin-inline-start: 0 !important;
         margin-left: 0 !important;
+        margin-inline-end: 0 !important;
+        margin-right: 0 !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -241,13 +255,14 @@ c-sidebar.sidebar {
         background-color: var(--ce-sidebar-hover, #1E293B) !important;
         color: #FFFFFF !important;
 
-        .nav-icon {
+        .nav-icon,
+        svg.nav-icon {
           color: #FFFFFF !important;
           transform: translateX(1px);
         }
       }
 
-      // Selected / Active navigation item (Limpio y centrado, sin barra azul lateral)
+      // Selected / Active navigation item (Limpio y centrado, sin barra azul ni borde)
       &.active,
       &.router-link-active {
         background-color: var(--ce-sidebar-active, #253047) !important;
@@ -255,9 +270,20 @@ c-sidebar.sidebar {
         font-weight: 600 !important;
         border: none !important;
         border-left: none !important;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        border-right: none !important;
+        border-top: none !important;
+        border-bottom: none !important;
+        outline: none !important;
+        box-shadow: none !important;
 
-        .nav-icon {
+        &::before,
+        &::after {
+          display: none !important;
+          content: none !important;
+        }
+
+        .nav-icon,
+        svg.nav-icon {
           color: #FFFFFF !important;
         }
 
@@ -293,25 +319,30 @@ c-sidebar.sidebar {
       .nav-group-items {
         padding: 0 !important;
         padding-inline-start: 0 !important;
+        overflow: visible !important;
+        list-style: none !important;
 
         .nav-item {
           margin: 1.5px 0.35rem !important;
         }
 
         .nav-link {
-          padding: 0.5rem 0.75rem 0.5rem 1.35rem !important;
-          padding-inline-start: 1.35rem !important;
+          padding: 0.5rem 0.85rem 0.5rem 1.6rem !important;
+          padding-inline-start: 1.6rem !important;
           font-size: 0.8125rem !important;
           border-radius: 6px !important;
           border: none !important;
           border-left: none !important;
+          outline: none !important;
+          box-shadow: none !important;
           margin-left: 0 !important;
           margin-inline-start: 0 !important;
           display: flex !important;
           align-items: center !important;
           gap: 0.65rem !important;
 
-          .nav-icon {
+          .nav-icon,
+          svg.nav-icon {
             margin: 0 !important;
             margin-left: 0 !important;
             margin-inline-start: 0 !important;
@@ -321,6 +352,8 @@ c-sidebar.sidebar {
             height: 1.15rem !important;
             min-width: 1.15rem !important;
             flex-shrink: 0 !important;
+            position: static !important;
+            transform: none !important;
           }
 
           &.active,
@@ -329,11 +362,41 @@ c-sidebar.sidebar {
             color: #ffffff !important;
             border: none !important;
             border-left: none !important;
+            outline: none !important;
+            box-shadow: none !important;
           }
         }
       }
     }
   }
+}
+
+// Global High-Specificity Overrides for CoreUI Sidebar Submenus and Active Links
+.sidebar-nav .nav-group-items .nav-icon,
+.sidebar-nav .nav-group-items svg.nav-icon,
+.sidebar .sidebar-nav .nav-group-items .nav-icon,
+.sidebar .sidebar-nav .nav-group-items svg.nav-icon,
+c-sidebar .sidebar-nav .nav-group-items .nav-icon,
+c-sidebar .sidebar-nav .nav-group-items svg.nav-icon {
+  margin-inline-start: 0 !important;
+  margin-left: 0 !important;
+  margin-inline-end: 0 !important;
+  margin-right: 0 !important;
+  position: static !important;
+  transform: none !important;
+}
+
+.sidebar-nav .nav-link.active,
+.sidebar-nav .nav-link.router-link-active,
+.sidebar .sidebar-nav .nav-link.active,
+.sidebar .sidebar-nav .nav-link.router-link-active,
+c-sidebar .sidebar-nav .nav-link.active,
+c-sidebar .sidebar-nav .nav-link.router-link-active {
+  border-left: none !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: var(--ce-sidebar-active, #253047) !important;
 }
 
 // ------------------------------------------------------------

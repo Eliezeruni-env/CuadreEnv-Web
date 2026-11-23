@@ -20,7 +20,7 @@
   --ce-sidebar-muted: #94A3B8;     /* Sidebar Secondary/Icon Text */
   --ce-sidebar-hover: #1E293B;     /* Sidebar Hover Item */
   --ce-sidebar-active: #253047;    /* Sidebar Selected Item */
-  --ce-sidebar-indicator: #4F46E5; /* Active Nav Left Accent Bar */
+  --ce-sidebar-indicator: transparent; /* No left accent bar */
 
   --ce-background: #F4F6F9;        /* Soft Pearl Gray - Restful, Non-Fatiguing Canvas */
   --ce-surface: #FFFFFF;           /* Pristine White Surfaces, Cards & Modals */
