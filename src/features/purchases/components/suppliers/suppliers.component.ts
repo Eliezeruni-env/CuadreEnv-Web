@@ -6,7 +6,6 @@ import { NotificationService } from '../../../cuadreEnv/services/notification.se
 import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import {
-  ButtonDirective,
   ContainerComponent,
   AlertComponent,
   SpinnerComponent,
@@ -47,7 +46,6 @@ const SUPPLIER_CONTACTS_KEY = 'cuadreenv_supplier_extra_contacts';
     ReactiveFormsModule,
     FormsModule,
     ContainerComponent,
-    ButtonDirective,
     AlertComponent,
     SpinnerComponent,
     FormControlDirective,
@@ -77,6 +75,19 @@ export class SuppliersComponent implements OnInit {
   supplierType = signal<'EMPRESA' | 'PERSONA'>('EMPRESA');
   isAdditionalContactsExpanded = signal<boolean>(true);
 
+  // Sorting
+  sortColumn = signal<string>('name');
+  sortDirection = signal<'asc' | 'desc'>('asc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
   // Dynamic additional contacts in current form
   additionalContacts = signal<SupplierContact[]>([]);
 
@@ -85,18 +96,58 @@ export class SuppliersComponent implements OnInit {
   // Filtered suppliers
   readonly filteredSuppliers = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
-    const list = this.suppliers();
-    if (!term) return list;
-    return list.filter(
-      (s) =>
-        (s.name || '').toLowerCase().includes(term) ||
-        (s.rnc || '').toLowerCase().includes(term) ||
-        (s.cedula || '').toLowerCase().includes(term) ||
-        (s.email || '').toLowerCase().includes(term) ||
-        (s.contactPerson || '').toLowerCase().includes(term) ||
-        (s.phone || '').toLowerCase().includes(term) ||
-        (s.mobile || '').toLowerCase().includes(term)
-    );
+    let list = this.suppliers();
+    if (term) {
+      list = list.filter(
+        (s) =>
+          (s.name || '').toLowerCase().includes(term) ||
+          (s.rnc || '').toLowerCase().includes(term) ||
+          (s.cedula || '').toLowerCase().includes(term) ||
+          (s.email || '').toLowerCase().includes(term) ||
+          (s.contactPerson || '').toLowerCase().includes(term) ||
+          (s.phone || '').toLowerCase().includes(term) ||
+          (s.mobile || '').toLowerCase().includes(term)
+      );
+    }
+
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...list].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'name':
+          valA = (a.name || '').toLowerCase();
+          valB = (b.name || '').toLowerCase();
+          break;
+        case 'rnc':
+          valA = (a.rnc || a.cedula || '').toLowerCase();
+          valB = (b.rnc || b.cedula || '').toLowerCase();
+          break;
+        case 'contact':
+          valA = (a.contactPerson || '').toLowerCase();
+          valB = (b.contactPerson || '').toLowerCase();
+          break;
+        case 'phone':
+          valA = (a.phone || a.mobile || '').toLowerCase();
+          valB = (b.phone || b.mobile || '').toLowerCase();
+          break;
+        case 'email':
+          valA = (a.email || '').toLowerCase();
+          valB = (b.email || '').toLowerCase();
+          break;
+        case 'status':
+          valA = a.active !== false ? 1 : 0;
+          valB = b.active !== false ? 1 : 0;
+          break;
+        default:
+          valA = (a.name || '').toLowerCase();
+          valB = (b.name || '').toLowerCase();
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
   });
 
   readonly totalSuppliers = computed(() => this.suppliers().length);

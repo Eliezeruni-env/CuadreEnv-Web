@@ -106,6 +106,19 @@ export class ProductsComponent implements OnInit {
     this.products().reduce((sum, p) => this.isServiceItem(p) ? sum : sum + (p.cost || 0) * (p.stock || 0), 0),
   );
 
+  // Dynamic Column Sorting
+  sortColumn = signal<string>('description');
+  sortDirection = signal<'asc' | 'desc'>('asc');
+
+  toggleSort(column: string): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
   // Pagination & Stale Request Tracking
   currentPage = signal<number>(1);
   pageSize = 10;
@@ -434,7 +447,7 @@ export class ProductsComponent implements OnInit {
       (activeFilters['status'] as string | undefined) || '',
     ).trim();
 
-    return this.products().filter((product) => {
+    const filtered = this.products().filter((product) => {
       // Excluir servicios: pertenecen al catálogo de servicios
       if (this.isServiceItem(product)) {
         return false;
@@ -467,6 +480,45 @@ export class ProductsComponent implements OnInit {
       return (
         matchesSearch && matchesStockFrom && matchesStockTo && matchesStatus
       );
+    });
+
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...filtered].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'description':
+          valA = (a.description || '').toLowerCase();
+          valB = (b.description || '').toLowerCase();
+          break;
+        case 'reference':
+          valA = (a.reference || '').toLowerCase();
+          valB = (b.reference || '').toLowerCase();
+          break;
+        case 'barcode':
+          valA = (a.barcode || '').toLowerCase();
+          valB = (b.barcode || '').toLowerCase();
+          break;
+        case 'cost':
+          valA = Number(a.cost || 0);
+          valB = Number(b.cost || 0);
+          break;
+        case 'stock':
+          valA = Number(a.stock || 0);
+          valB = Number(b.stock || 0);
+          break;
+        case 'status':
+          valA = this.getStockState(a);
+          valB = this.getStockState(b);
+          break;
+        default:
+          valA = (a.description || '').toLowerCase();
+          valB = (b.description || '').toLowerCase();
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
     });
   });
 

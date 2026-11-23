@@ -124,13 +124,43 @@
           <table class="table table-hover align-middle mb-0">
             <thead class="table-light text-secondary text-uppercase font-size-xs">
               <tr>
-                <th class="ps-4">Proveedor / Empresa</th>
-                <th>RNC / Cédula</th>
-                <th>Contacto Principal</th>
-                <th>Teléfono / Móvil</th>
+                <th class="ps-4 th-sortable" (click)="toggleSort('name')">
+                  Proveedor / Empresa
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'name'">
+                    {{ sortColumn() === 'name' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('rnc')">
+                  RNC / Cédula
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'rnc'">
+                    {{ sortColumn() === 'rnc' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('contact')">
+                  Contacto Principal
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'contact'">
+                    {{ sortColumn() === 'contact' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('phone')">
+                  Teléfono / Móvil
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'phone'">
+                    {{ sortColumn() === 'phone' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
                 <th>Contactos Adic.</th>
-                <th>Correo Electrónico</th>
-                <th class="text-center">Estado</th>
+                <th class="th-sortable" (click)="toggleSort('email')">
+                  Correo Electrónico
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'email'">
+                    {{ sortColumn() === 'email' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable text-center" (click)="toggleSort('status')">
+                  Estado
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
+                    {{ sortColumn() === 'status' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
                 <th class="text-center pe-4" style="width: 140px;">Acciones</th>
               </tr>
             </thead>
@@ -172,10 +202,10 @@
                     }
                   </td>
                   <td class="text-center pe-4">
-                    <div class="d-flex justify-content-center gap-1">
+                    <div class="d-flex align-items-center justify-content-center gap-1.5">
                       <button
                         type="button"
-                        class="btn btn-sm btn-light border text-primary"
+                        class="btn-action-square btn-action-view"
                         title="Ver Ficha Completa"
                         (click)="viewSupplierDetail(s)"
                       >
@@ -186,19 +216,27 @@
                       </button>
                       <button
                         type="button"
-                        class="btn btn-sm btn-light border"
-                        title="Editar"
+                        class="btn-action-square btn-action-edit"
+                        title="Editar Proveedor"
                         (click)="openEditModal(s)"
                       >
-                        <svg cIcon name="cilPencil" style="width: 14px; height: 14px;"></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 20h9"></path>
+                          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                        </svg>
                       </button>
                       <button
                         type="button"
-                        class="btn btn-sm btn-light border text-danger"
-                        title="Eliminar"
+                        class="btn-action-square btn-action-danger"
+                        title="Eliminar Proveedor"
                         (click)="deleteSupplier(s)"
                       >
-                        <svg cIcon name="cilTrash" style="width: 14px; height: 14px;"></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
                       </button>
                     </div>
                   </td>

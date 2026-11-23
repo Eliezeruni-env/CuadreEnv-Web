@@ -73,10 +73,30 @@
               <thead class="table-light text-secondary text-uppercase font-size-xs">
                 <tr>
                   <th style="width: 44px;" class="ps-3 text-center"></th>
-                  <th>{{ translationService.t('purchases.table.purchaseId') }}</th>
-                  <th>{{ translationService.t('purchases.table.date') }}</th>
-                  <th>{{ translationService.t('purchases.table.supplier') }}</th>
-                  <th class="text-end">{{ translationService.t('purchases.table.total') }}</th>
+                  <th class="th-sortable" (click)="toggleSort('id')">
+                    {{ translationService.t('purchases.table.purchaseId') }}
+                    <span class="sort-indicator" [class.active]="sortColumn() === 'id'">
+                      {{ sortColumn() === 'id' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                    </span>
+                  </th>
+                  <th class="th-sortable" (click)="toggleSort('date')">
+                    {{ translationService.t('purchases.table.date') }}
+                    <span class="sort-indicator" [class.active]="sortColumn() === 'date'">
+                      {{ sortColumn() === 'date' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                    </span>
+                  </th>
+                  <th class="th-sortable" (click)="toggleSort('supplier')">
+                    {{ translationService.t('purchases.table.supplier') }}
+                    <span class="sort-indicator" [class.active]="sortColumn() === 'supplier'">
+                      {{ sortColumn() === 'supplier' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                    </span>
+                  </th>
+                  <th class="th-sortable text-end" (click)="toggleSort('total')">
+                    {{ translationService.t('purchases.table.total') }}
+                    <span class="sort-indicator" [class.active]="sortColumn() === 'total'">
+                      {{ sortColumn() === 'total' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                    </span>
+                  </th>
                   <th class="text-center pe-3" style="width: 120px;">{{ translationService.t('common.actions') }}</th>
                 </tr>
               </thead>
@@ -108,11 +128,11 @@
                       RD$ {{ getPurchaseTotal(p) | number:'1.2-2' }}
                     </td>
                     <td class="text-center pe-3">
-                      <div class="action-btn-group justify-content-center gap-1.5">
+                      <div class="d-flex align-items-center justify-content-center gap-1.5">
                         @if (permissionService.canView('purchases')) {
                           <button
                             type="button"
-                            class="btn btn-outline-secondary btn-sm p-1.5 rounded-2 bg-white text-dark shadow-2xs"
+                            class="btn-action-square btn-action-view"
                             (click)="viewPurchaseDetail(p)"
                             title="Ver Detalle de Compra"
                           >
@@ -125,7 +145,7 @@
                         @if (canManualReceive()) {
                           <button
                             type="button"
-                            class="btn btn-outline-primary btn-sm p-1.5 rounded-2 bg-white shadow-2xs"
+                            class="btn-action-square btn-action-primary"
                             (click)="receivePurchase(p)"
                             title="Registrar Recepción"
                           >

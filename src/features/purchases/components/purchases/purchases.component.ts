@@ -88,6 +88,19 @@ export class PurchasesComponent implements OnInit {
   totalItems = signal<number>(0);
   expandedPurchaseId = signal<number | null>(null);
 
+  // Sorting
+  sortColumn = signal<string>('date');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
   // New Purchase Form State (Image 1)
   newPurchaseSupplierId = signal<string>('');
   newPurchaseInvoiceNumber = signal<string>('');
@@ -213,7 +226,7 @@ export class PurchasesComponent implements OnInit {
         ?.to ?? NaN,
     );
 
-    return this.purchases().filter((purchase) => {
+    const baseList = this.purchases().filter((purchase) => {
       const haystack = [
         purchase.id?.toString() || '',
         purchase.supplierId ? `supplier #${purchase.supplierId}` : '',
@@ -227,6 +240,37 @@ export class PurchasesComponent implements OnInit {
         Number.isNaN(totalTo) || (purchase.total || 0) <= totalTo;
 
       return matchesSearch && matchesTotalFrom && matchesTotalTo;
+    });
+
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...baseList].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'id':
+          valA = a.id || 0;
+          valB = b.id || 0;
+          break;
+        case 'date':
+          valA = a.creationDate ? new Date(a.creationDate).getTime() : 0;
+          valB = b.creationDate ? new Date(b.creationDate).getTime() : 0;
+          break;
+        case 'supplier':
+          valA = this.getSupplierName(a).toLowerCase();
+          valB = this.getSupplierName(b).toLowerCase();
+          break;
+        case 'total':
+          valA = this.getPurchaseTotal(a);
+          valB = this.getPurchaseTotal(b);
+          break;
+        default:
+          valA = a.creationDate ? new Date(a.creationDate).getTime() : 0;
+          valB = b.creationDate ? new Date(b.creationDate).getTime() : 0;
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
     });
   });
 

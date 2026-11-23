@@ -51,13 +51,43 @@
           <thead class="table-light text-secondary text-uppercase font-size-xs">
             <tr>
               <th style="width: 44px;" class="ps-3 text-center"></th>
-              <th>No. Recepción</th>
-              <th>Orden Origen</th>
-              <th>Proveedor / Suplidor</th>
-              <th>Almacén Destino</th>
-              <th>Fecha</th>
+              <th class="th-sortable" (click)="toggleSort('receiptNumber')">
+                No. Recepción
+                <span class="sort-indicator" [class.active]="sortColumn() === 'receiptNumber'">
+                  {{ sortColumn() === 'receiptNumber' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('orderNumber')">
+                Orden Origen
+                <span class="sort-indicator" [class.active]="sortColumn() === 'orderNumber'">
+                  {{ sortColumn() === 'orderNumber' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('supplier')">
+                Proveedor / Suplidor
+                <span class="sort-indicator" [class.active]="sortColumn() === 'supplier'">
+                  {{ sortColumn() === 'supplier' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('warehouse')">
+                Almacén Destino
+                <span class="sort-indicator" [class.active]="sortColumn() === 'warehouse'">
+                  {{ sortColumn() === 'warehouse' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('receiptDate')">
+                Fecha
+                <span class="sort-indicator" [class.active]="sortColumn() === 'receiptDate'">
+                  {{ sortColumn() === 'receiptDate' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
               <th class="text-center">Variaciones</th>
-              <th class="text-center">Estado</th>
+              <th class="th-sortable text-center" (click)="toggleSort('status')">
+                Estado
+                <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
+                  {{ sortColumn() === 'status' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
               <th class="text-center pe-3" style="width: 100px;">Acciones</th>
             </tr>
           </thead>
@@ -123,10 +153,10 @@
                     </span>
                   </td>
                   <td class="text-center pe-3">
-                    <div class="action-btn-group justify-content-center">
+                    <div class="d-flex align-items-center justify-content-center gap-1.5">
                       <button
                         type="button"
-                        class="btn-action-icon btn-action-view"
+                        class="btn-action-square btn-action-view"
                         (click)="viewReceipt(r)"
                         title="Ver Comprobante de Recepción"
                       >

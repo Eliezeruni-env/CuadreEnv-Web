@@ -174,13 +174,43 @@
           <table class="table table-hover align-middle mb-0 master-detail-table">
             <thead class="table-light text-secondary text-uppercase font-size-xs">
               <tr>
-                <th class="ps-3">{{ translationService.t('products.table.description') || 'Descripción' }}</th>
-                <th>{{ translationService.t('products.table.reference') }}</th>
-                <th>{{ translationService.t('products.table.barcode') }}</th>
-                <th class="text-end">{{ translationService.t('products.table.cost') }}</th>
-                <th class="text-end">{{ translationService.t('products.table.stock') }}</th>
-                <th class="text-center">{{ translationService.t('products.table.status') }}</th>
-                <th class="text-center pe-3" style="width: 110px;">{{ translationService.t('common.actions') }}</th>
+                <th class="ps-3 th-sortable" (click)="toggleSort('description')">
+                  {{ translationService.t('products.table.description') || 'Descripción' }}
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'description'">
+                    {{ sortColumn() === 'description' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('reference')">
+                  {{ translationService.t('products.table.reference') }}
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'reference'">
+                    {{ sortColumn() === 'reference' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('barcode')">
+                  {{ translationService.t('products.table.barcode') }}
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'barcode'">
+                    {{ sortColumn() === 'barcode' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable text-end" (click)="toggleSort('cost')">
+                  {{ translationService.t('products.table.cost') }}
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'cost'">
+                    {{ sortColumn() === 'cost' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable text-end" (click)="toggleSort('stock')">
+                  {{ translationService.t('products.table.stock') }}
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'stock'">
+                    {{ sortColumn() === 'stock' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable text-center" (click)="toggleSort('status')">
+                  {{ translationService.t('products.table.status') }}
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
+                    {{ sortColumn() === 'status' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="text-center pe-3" style="width: 120px;">{{ translationService.t('common.actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -241,10 +271,10 @@
                     }
                   </td>
                   <td class="text-center pe-3">
-                    <div class="action-btn-group justify-content-center">
+                    <div class="d-flex align-items-center justify-content-center gap-1.5">
                       @if (permissionService.canView('products')) {
                         <button
-                          class="btn-action-icon btn-action-view"
+                          class="btn-action-square btn-action-view"
                           type="button"
                           (click)="openDetailModal(p)"
                           title="Ver Detalle y Código de Barras Generado"
@@ -257,7 +287,7 @@
                       }
                       @if (permissionService.canEdit('products')) {
                         <button
-                          class="btn-action-icon btn-action-edit"
+                          class="btn-action-square btn-action-edit"
                           type="button"
                           (click)="openEditModal(p)"
                           [title]="translationService.t('common.edit')"
@@ -270,7 +300,7 @@
                       }
                       @if (permissionService.canDelete('products')) {
                         <button
-                          class="btn-action-icon btn-action-delete"
+                          class="btn-action-square btn-action-danger"
                           type="button"
                           (click)="deleteProduct(p)"
                           [title]="translationService.t('common.delete')"

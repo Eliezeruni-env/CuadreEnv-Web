@@ -502,16 +502,42 @@ export class DistributionRoutesComponent implements OnInit {
   }
 
   // Liquidate Actions
-  confirmRouteLiquidation(): void {
+  async confirmRouteLiquidation(): Promise<void> {
     if (this.activeRoute()) {
       const r = this.activeRoute()!;
       r.status = 'Liquidada';
+
+      // Sincronizar efectivo recaudado con la caja registradora destino seleccionada
+      if (r.totalCollectedCash > 0 && this.cashRegisterService) {
+        try {
+          await this.cashRegisterService.addMovement({
+            type: 'Entrada',
+            category: 'Ventas',
+            description: `Liquidación de ruta ${r.routeName} (${r.driverName}) en ${this.destinationCashBox()}`,
+            amount: r.totalCollectedCash,
+            paymentMethod: 'Efectivo',
+            reference: r.routeCode || `RUTA-${r.id}`,
+          });
+        } catch {
+          // ignore offline fallback
+        }
+      }
+
+      // Actualizar cantidades retornadas en los renglones
+      const retMap = this.returnedQuantities();
+      if (r.items && r.items.length > 0) {
+        r.items = r.items.map((it) => ({
+          ...it,
+          returnedQuantity: retMap[it.productId] ?? it.returnedQuantity ?? 0,
+        }));
+      }
+
       const updated = this.routes().map((item) =>
         item.id === r.id ? r : item,
       );
       this.saveRoutes(updated);
       this.notificationService.success(
-        `Ruta ${r.routeName} liquidada y cerrada exitosamente.`,
+        `Ruta ${r.routeName} liquidada exitosamente. Mercancía retornada a ${this.destinationReturnWarehouse()} y efectivo ingresado a ${this.destinationCashBox()}.`,
       );
     }
     this.currentView.set('dashboard');

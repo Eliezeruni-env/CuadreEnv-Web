@@ -27,16 +27,70 @@ export class PurchaseOrderReceiptListComponent implements OnInit {
 
   selectedReceipt: PurchaseOrderReceipt | null = null;
 
+  // Dynamic Column Sorting
+  sortColumn = signal<string>('receiptDate');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  toggleSort(column: string): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
   readonly filteredReceipts = computed(() => {
     const q = this.searchTerm.toLowerCase().trim();
-    if (!q) return this.receipts();
-    return this.receipts().filter(
-      (r) =>
-        r.receiptNumber.toLowerCase().includes(q) ||
-        (r.purchaseOrderNumber && r.purchaseOrderNumber.toLowerCase().includes(q)) ||
-        r.supplierName.toLowerCase().includes(q) ||
-        (r.warehouseName && r.warehouseName.toLowerCase().includes(q)),
-    );
+    let list = this.receipts();
+    if (q) {
+      list = list.filter(
+        (r) =>
+          r.receiptNumber.toLowerCase().includes(q) ||
+          (r.purchaseOrderNumber && r.purchaseOrderNumber.toLowerCase().includes(q)) ||
+          r.supplierName.toLowerCase().includes(q) ||
+          (r.warehouseName && r.warehouseName.toLowerCase().includes(q)),
+      );
+    }
+
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...list].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'receiptNumber':
+          valA = (a.receiptNumber || '').toLowerCase();
+          valB = (b.receiptNumber || '').toLowerCase();
+          break;
+        case 'orderNumber':
+          valA = (a.purchaseOrderNumber || '').toLowerCase();
+          valB = (b.purchaseOrderNumber || '').toLowerCase();
+          break;
+        case 'supplier':
+          valA = (a.supplierName || '').toLowerCase();
+          valB = (b.supplierName || '').toLowerCase();
+          break;
+        case 'warehouse':
+          valA = (a.warehouseName || '').toLowerCase();
+          valB = (b.warehouseName || '').toLowerCase();
+          break;
+        case 'receiptDate':
+          valA = new Date(a.receiptDate || 0).getTime();
+          valB = new Date(b.receiptDate || 0).getTime();
+          break;
+        case 'status':
+          valA = (a.statusName || '').toLowerCase();
+          valB = (b.statusName || '').toLowerCase();
+          break;
+        default:
+          valA = new Date(a.receiptDate || 0).getTime();
+          valB = new Date(b.receiptDate || 0).getTime();
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
   });
 
   readonly pagedReceipts = computed(() => {
