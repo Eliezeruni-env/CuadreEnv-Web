@@ -45,7 +45,9 @@ export class BankReconciliationComponent implements OnInit {
   selectedBank = signal<string>('ALL');
   selectedStatus = signal<string>('ALL');
   selectedPeriod = signal<string>('ALL');
-  activeTab = signal<'TODAS' | 'PENDIENTES' | 'CONCILIADAS' | 'DISCREPANCIAS'>('TODAS');
+  activeTab = signal<'TODAS' | 'PENDIENTES' | 'CONCILIADAS' | 'DISCREPANCIAS'>(
+    'TODAS',
+  );
 
   // Sorting
   sortColumn = signal<string>('date');
@@ -244,7 +246,11 @@ export class BankReconciliationComponent implements OnInit {
   // Conciliar Modal Action
   openConciliarModal(item: BankReconciliationItem): void {
     this.activeItemForReconciliation.set(item);
-    this.manualReferenceInput.set(item.bankReference === '—' ? `TRF-000834${Math.floor(20 + Math.random() * 80)}` : item.bankReference);
+    this.manualReferenceInput.set(
+      item.bankReference === '—'
+        ? `TRF-000834${Math.floor(20 + Math.random() * 80)}`
+        : item.bankReference,
+    );
     this.manualAmountInput.set(item.statementAmount ?? item.registeredAmount);
     this.isReconcileModalOpen.set(true);
   }
@@ -264,7 +270,8 @@ export class BankReconciliationComponent implements OnInit {
           bankReference: ref,
           statementAmount: amount,
           difference: diff,
-          status: diff === 0 ? ('Conciliada' as const) : ('Discrepancia' as const),
+          status:
+            diff === 0 ? ('Conciliada' as const) : ('Discrepancia' as const),
         };
       }
       return r;
@@ -272,7 +279,7 @@ export class BankReconciliationComponent implements OnInit {
 
     this.saveRecords(updated);
     this.notificationService.success(
-      `¡Movimiento ${item.invoiceNumber} conciliado con éxito contra el extracto!`
+      `¡Movimiento ${item.invoiceNumber} conciliado con éxito contra el extracto!`,
     );
     this.isReconcileModalOpen.set(false);
   }
@@ -289,7 +296,7 @@ export class BankReconciliationComponent implements OnInit {
 
   simulateImportExtract(): void {
     this.notificationService.success(
-      `¡Extracto de ${this.selectedBankForImport()} procesado! 1 transferencia identificada y conciliada automáticamente.`
+      `¡Extracto de ${this.selectedBankForImport()} procesado! 1 transferencia identificada y conciliada automáticamente.`,
     );
     this.isImportModalOpen.set(false);
   }
@@ -309,18 +316,24 @@ export class BankReconciliationComponent implements OnInit {
 
     const csvContent =
       'data:text/csv;charset=utf-8,' +
-      ['Fecha,Referencia,Factura,Cliente,Banco,Monto Registrado,Monto Extracto,Diferencia,Estado']
+      [
+        'Fecha,Referencia,Factura,Cliente,Banco,Monto Registrado,Monto Extracto,Diferencia,Estado',
+      ]
         .concat(
-          rows.map((r) =>
-            `"${r.Fecha}","${r.Referencia}","${r.Factura}","${r.Cliente}","${r.Banco}",${r.MontoRegistrado},${r.MontoExtracto},${r.Diferencia},"${r.Estado}"`
-          )
+          rows.map(
+            (r) =>
+              `"${r.Fecha}","${r.Referencia}","${r.Factura}","${r.Cliente}","${r.Banco}",${r.MontoRegistrado},${r.MontoExtracto},${r.Diferencia},"${r.Estado}"`,
+          ),
         )
         .join('\n');
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `conciliacion_bancaria_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute(
+      'download',
+      `conciliacion_bancaria_${new Date().toISOString().slice(0, 10)}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
