@@ -11,7 +11,12 @@
       </a>
       <div class="header-titles">
         <div class="header-title-row">
-          <h1 class="pos-title">Punto de Venta</h1>
+          <h1 class="pos-title">{{ isFractionalSaleMode() ? 'Venta Fraccionada / Menudeo' : 'Punto de Venta' }}</h1>
+          @if (isFractionalSaleMode()) {
+            <span class="cuadre-badge badge-neutral" style="font-weight: 700; background-color: #FEF3C7; color: #92400E; border: 1px solid #FCD34D;">
+              ⚖️ Granel & Pesaje
+            </span>
+          }
           @if (hasOpenSession()) {
             <span class="cuadre-badge badge-ok">
               <span class="badge-dot"></span>
@@ -507,6 +512,20 @@
               </select>
             </div>
             <div class="category-chips-list">
+              @if (isFractionalSaleMode()) {
+                <button
+                  type="button"
+                  class="btn-pos-outline"
+                  [style.background-color]="filterOnlyFractional() ? '#FEF3C7' : '#ffffff'"
+                  [style.color]="filterOnlyFractional() ? '#92400E' : '#475569'"
+                  [style.border-color]="filterOnlyFractional() ? '#FCD34D' : '#cbd5e1'"
+                  style="height: 32px; font-size: 11.5px; font-weight: 700; border-radius: 8px; padding: 0 10px; display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;"
+                  (click)="toggleOnlyFractional()"
+                  title="Alternar entre solo productos fraccionados y todo el catálogo"
+                >
+                  <span>{{ filterOnlyFractional() ? '⚖️ Solo Granel / Pesaje' : '📦 Todo el Catálogo' }}</span>
+                </button>
+              }
               @for (cat of categories(); track cat.id) {
                 <button
                   type="button"

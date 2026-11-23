@@ -179,14 +179,14 @@ export const AppRoutes: Routes = [
           ),
         data: { breadcrumb: 'Rutas & Surtidores' },
       },
-      // {
-      //   path: 'products/detail-sales',
-      //   loadComponent: () =>
-      //     import(
-      //       '../features/products/components/products/products.component'
-      //     ).then((m) => m.ProductsComponent),
-      //   data: { breadcrumb: 'Venta Fraccionada / Menudeo' },
-      // },
+      {
+        path: 'products/detail-sales',
+        loadComponent: () =>
+          import(
+            '../features/sales/components/quick-sale-page/quick-sale-page.component'
+          ).then((m) => m.QuickSalePageComponent),
+        data: { breadcrumb: 'Venta Fraccionada / Menudeo', isFractionalMode: true },
+      },
       {
         path: 'receivables',
         loadComponent: () =>

@@ -308,12 +308,25 @@ export const routes: Routes = [
         canActivate: [moduleGuard('sales-distribution')],
         data: { module: 'sales-distribution', title: 'Rutas de Distribución' },
       },
-      // {
-      //   path: 'products/detail-sales',
-      //   loadComponent: () => import('../features/products/components/products/products.component').then((m) => m.ProductsComponent),
-      //   canActivate: [moduleGuard('products.detail_sales')],
-      //   data: { module: 'products.detail_sales', title: 'Venta Fraccionada / Menudeo' }
-      // },
+      {
+        path: 'products/detail-sales',
+        loadComponent: () =>
+          import('../features/sales/components/quick-sale-page/quick-sale-page.component').then(
+            (m) => m.QuickSalePageComponent,
+          ),
+        canActivate: [moduleGuard('products-detail-sales')],
+        data: { module: 'products-detail-sales', title: 'Venta Fraccionada / Menudeo', isFractionalMode: true },
+      },
+      {
+        path: 'sales/detail-sales',
+        redirectTo: 'products/detail-sales',
+        pathMatch: 'full',
+      },
+      {
+        path: 'sales/fractional',
+        redirectTo: 'products/detail-sales',
+        pathMatch: 'full',
+      },
       {
         path: 'pos',
         loadComponent: () =>

@@ -214,6 +214,14 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
       localStorage.getItem('cuadre_pos_auto_print') === 'true',
   );
 
+  // 1.1 Venta Fraccionada / Menudeo Mode
+  isFractionalSaleMode = signal<boolean>(false);
+  filterOnlyFractional = signal<boolean>(false);
+
+  toggleOnlyFractional(): void {
+    this.filterOnlyFractional.update((v) => !v);
+  }
+
   // 2. Fila de "Favoritos / Productos Estrella" (1 Toque)
   favoriteProductIds = signal<number[]>(this.loadFavoriteProductIds());
 
@@ -952,6 +960,15 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
           return false;
         }
       }
+
+      if (this.isFractionalSaleMode() && this.filterOnlyFractional()) {
+        const isMeasurable = this.isProductMeasurable(p);
+        const pkg = p.id ? this.packagingService.getPackaging(p.id) : undefined;
+        if (!isMeasurable && !(pkg && pkg.hasPackaging)) {
+          return false;
+        }
+      }
+
       if (term) {
         const desc = (p.description || '').toLowerCase();
         const code = (p.barcode || p.reference || '').toLowerCase();
@@ -1001,6 +1018,13 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   }
 
   ngOnInit() {
+    if (
+      this.router.url.includes('detail-sales') ||
+      this.router.url.includes('fractional')
+    ) {
+      this.isFractionalSaleMode.set(true);
+      this.filterOnlyFractional.set(true);
+    }
     this.loadInitialLookups();
     this.restoreLastCompletedSale();
     this.registerDraftLifecycleListeners();
@@ -2293,6 +2317,8 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   }
 
   isProductMeasurable(product: ProductDto): boolean {
+    if (!product) return false;
+    if (product.allowFractional) return true;
     const u = this.units().find(
       (unit) => unit.id === product.unitOfMeasurementId,
     );
@@ -2599,7 +2625,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     const pkg = product.id
       ? this.packagingService.getPackaging(product.id)
       : undefined;
-    if (this.isProductMeasurable(product) || (pkg && pkg.hasPackaging)) {
+    if (this.isFractionalSaleMode() || this.isProductMeasurable(product) || (pkg && pkg.hasPackaging)) {
       this.openMeasurementModal(product);
       return;
     }

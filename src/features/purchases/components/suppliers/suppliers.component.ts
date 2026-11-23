@@ -1,6 +1,12 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  Validators,
+  ReactiveFormsModule,
+  FormsModule,
+} from '@angular/forms';
 import { SupplierService } from '../../services/supplier.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog.service';
@@ -106,7 +112,7 @@ export class SuppliersComponent implements OnInit {
           (s.email || '').toLowerCase().includes(term) ||
           (s.contactPerson || '').toLowerCase().includes(term) ||
           (s.phone || '').toLowerCase().includes(term) ||
-          (s.mobile || '').toLowerCase().includes(term)
+          (s.mobile || '').toLowerCase().includes(term),
       );
     }
 
@@ -152,7 +158,7 @@ export class SuppliersComponent implements OnInit {
 
   readonly totalSuppliers = computed(() => this.suppliers().length);
   readonly activeSuppliersCount = computed(
-    () => this.suppliers().filter((s) => s.active !== false).length
+    () => this.suppliers().filter((s) => s.active !== false).length,
   );
 
   constructor() {
@@ -210,7 +216,9 @@ export class SuppliersComponent implements OnInit {
       }
     } catch (e: any) {
       this.errorMessage.set(
-        e?.response?.data?.message || e?.message || 'Error al cargar los proveedores.'
+        e?.response?.data?.message ||
+          e?.message ||
+          'Error al cargar los proveedores.',
       );
     } finally {
       this.isLoading.set(false);
@@ -248,7 +256,9 @@ export class SuppliersComponent implements OnInit {
   openEditModal(supplier: SupplierItem) {
     this.isEditMode.set(true);
     this.selectedSupplierId.set(supplier.id || null);
-    this.additionalContacts.set(supplier.additionalContacts ? [...supplier.additionalContacts] : []);
+    this.additionalContacts.set(
+      supplier.additionalContacts ? [...supplier.additionalContacts] : [],
+    );
     this.supplierForm.patchValue({
       name: supplier.name || '',
       rnc: supplier.rnc || '',
@@ -283,7 +293,11 @@ export class SuppliersComponent implements OnInit {
     this.additionalContacts.set(list);
   }
 
-  updateContactField(index: number, field: keyof SupplierContact, value: string) {
+  updateContactField(
+    index: number,
+    field: keyof SupplierContact,
+    value: string,
+  ) {
     const list = [...this.additionalContacts()];
     if (list[index]) {
       list[index] = { ...list[index], [field]: value };
@@ -311,7 +325,9 @@ export class SuppliersComponent implements OnInit {
 
     this.isLoading.set(true);
     const val = this.supplierForm.value;
-    const cleanContacts = this.additionalContacts().filter((c) => c.name.trim().length > 0);
+    const cleanContacts = this.additionalContacts().filter(
+      (c) => c.name.trim().length > 0,
+    );
 
     const payload: SupplierItem = {
       name: val.name.trim(),

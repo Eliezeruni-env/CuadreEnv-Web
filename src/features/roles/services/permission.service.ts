@@ -549,6 +549,12 @@ export class PermissionService {
       distribution: 'sales-distribution',
       rutas: 'sales-distribution',
       rutasdedistribucion: 'sales-distribution',
+      productsdetailsales: 'products-detail-sales',
+      detailsales: 'products-detail-sales',
+      ventafraccionada: 'products-detail-sales',
+      ventasfraccionadas: 'products-detail-sales',
+      menudeo: 'products-detail-sales',
+      fraccionada: 'products-detail-sales',
 
       // Base
       billingreportsdgii: 'billing-reports-dgii',
@@ -647,7 +653,16 @@ export class PermissionService {
     }
 
     const normalizedTarget = this.normalizeModuleCode(targetModule);
-    return allowed.includes(normalizedTarget);
+    if (allowed.includes(normalizedTarget)) {
+      return true;
+    }
+    if (
+      normalizedTarget === 'products-detail-sales' &&
+      (allowed.includes('pos') || allowed.includes('sales') || allowed.includes('products'))
+    ) {
+      return true;
+    }
+    return false;
   }
 
   private isAdminSubmodule(moduleCode: string): boolean {

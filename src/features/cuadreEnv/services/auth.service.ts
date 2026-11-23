@@ -855,7 +855,7 @@ export class AuthService {
       }
     }
 
-    if (licensedNorm.includes('sales')) {
+    if (licensedNorm.includes('sales') || licensedNorm.includes('pos')) {
       if (
         [
           'sales',
@@ -865,6 +865,7 @@ export class AuthService {
           'sales.corporate',
           'sales.distribution',
           'products.detail_sales',
+          'products-detail-sales',
           'products',
           'products-settings',
           'credit-notes',
