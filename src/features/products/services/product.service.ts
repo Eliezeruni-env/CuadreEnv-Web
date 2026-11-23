@@ -2,8 +2,15 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, firstValueFrom, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import type { ProductDto, ApiResponse, PagedResult } from '../../cuadreEnv/types/api';
-import { ApiClientService, getCompanyId } from '../../cuadreEnv/services/apiClient';
+import type {
+  ProductDto,
+  ApiResponse,
+  PagedResult,
+} from '../../cuadreEnv/types/api';
+import {
+  ApiClientService,
+  getCompanyId,
+} from '../../cuadreEnv/services/apiClient';
 
 export interface ProductFilters {
   description?: string;
@@ -25,11 +32,19 @@ export class ProductService {
   private readonly http = inject(HttpClient);
   private readonly api = inject(ApiClientService);
   private readonly baseUrl =
-    (environment.apiUrl || 'http://localhost:8080').replace(/\/v1\/?$/, '').replace(/\/$/, '') + '/v1';
+    (environment.apiUrl || 'http://localhost:8080')
+      .replace(/\/v1\/?$/, '')
+      .replace(/\/$/, '') + '/v1';
   private readonly PHOTO_STORAGE_KEY = 'cuadreenv_product_photos_v1';
   private readonly METRICS_STORAGE_KEY = 'cuadreEnv_product_cost_metrics_v1';
-  private inFlightPagedMap = new Map<string, Promise<ApiResponse<PagedProductsResponse>>>();
-  private pagedCacheMap = new Map<string, { timestamp: number; data: ApiResponse<PagedProductsResponse> }>();
+  private inFlightPagedMap = new Map<
+    string,
+    Promise<ApiResponse<PagedProductsResponse>>
+  >();
+  private pagedCacheMap = new Map<
+    string,
+    { timestamp: number; data: ApiResponse<PagedProductsResponse> }
+  >();
   private readonly PAGED_CACHE_TTL = 10000; // 10s deduplication/cooldown cache
 
   clearCache(): void {
@@ -39,13 +54,20 @@ export class ProductService {
 
   isServiceItem(p: any): boolean {
     if (!p) return false;
-    if (p.isService === true || p.type === 'service' || p.type === 'Servicio') return true;
+    if (p.isService === true || p.type === 'service' || p.type === 'Servicio')
+      return true;
     if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
-    const ref = String(p.barcode || p.reference || '').toUpperCase().trim();
+    const ref = String(p.barcode || p.reference || '')
+      .toUpperCase()
+      .trim();
     if (ref.startsWith('SERV-') || ref.startsWith('SERV')) return true;
-    const typeName = String(p.productTypeName || p.productType?.name || '').toLowerCase();
+    const typeName = String(
+      p.productTypeName || p.productType?.name || '',
+    ).toLowerCase();
     if (typeName.includes('serv')) return true;
-    const catName = String(p.categoryName || p.category?.name || '').toLowerCase();
+    const catName = String(
+      p.categoryName || p.category?.name || '',
+    ).toLowerCase();
     if (catName.includes('serv')) return true;
     return false;
   }
@@ -74,7 +96,11 @@ export class ProductService {
     }
   }
 
-  updateProductCostFromPurchase(productId: number, unitCost: number, supplierId?: number | null): void {
+  updateProductCostFromPurchase(
+    productId: number,
+    unitCost: number,
+    supplierId?: number | null,
+  ): void {
     if (typeof window === 'undefined') return;
     try {
       const raw = localStorage.getItem(this.METRICS_STORAGE_KEY);
@@ -82,7 +108,8 @@ export class ProductService {
       const current = map[productId] || {};
       const price = current.price || unitCost * 1.35;
       const grossProfit = Math.round((price - unitCost) * 100) / 100;
-      const profitMargin = price > 0 ? Math.round(((grossProfit / price) * 100) * 10) / 10 : 0;
+      const profitMargin =
+        price > 0 ? Math.round((grossProfit / price) * 100 * 10) / 10 : 0;
       map[productId] = {
         ...current,
         cost: unitCost,
@@ -98,7 +125,13 @@ export class ProductService {
     }
   }
 
-  getProductMetrics(productId: number): { cost?: number; price?: number; grossProfit?: number; profitMargin?: number; supplierId?: number } | null {
+  getProductMetrics(productId: number): {
+    cost?: number;
+    price?: number;
+    grossProfit?: number;
+    profitMargin?: number;
+    supplierId?: number;
+  } | null {
     if (typeof window === 'undefined') return null;
     try {
       const raw = localStorage.getItem(this.METRICS_STORAGE_KEY);
@@ -118,7 +151,7 @@ export class ProductService {
   getPagedProducts$(
     pageNumber = 1,
     pageSize = 10,
-    filters?: ProductFilters
+    filters?: ProductFilters,
   ): Observable<ApiResponse<PagedProductsResponse>> {
     // Validar y acotar según reglas: no menor a 1, no mayor a 100
     const validPage = Math.max(1, pageNumber || 1);
@@ -145,7 +178,11 @@ export class ProductService {
     if (filters?.maxCost !== undefined && filters?.maxCost !== null) {
       params = params.set('maxCost', filters.maxCost.toString());
     }
-    if (filters?.categoryId !== undefined && filters?.categoryId !== null && Number(filters.categoryId) > 0) {
+    if (
+      filters?.categoryId !== undefined &&
+      filters?.categoryId !== null &&
+      Number(filters.categoryId) > 0
+    ) {
       params = params.set('categoryId', filters.categoryId.toString());
     }
 
@@ -162,7 +199,12 @@ export class ProductService {
           total = res.length;
         } else if (Array.isArray(resData)) {
           items = resData;
-          total = res?.totalItemCount ?? res?.TotalItemCount ?? res?.total ?? res?.Total ?? items.length;
+          total =
+            res?.totalItemCount ??
+            res?.TotalItemCount ??
+            res?.total ??
+            res?.Total ??
+            items.length;
         } else if (resData && typeof resData === 'object') {
           const rawItems =
             resData.items ??
@@ -187,14 +229,23 @@ export class ProductService {
           if (Array.isArray(rawItems)) {
             items = rawItems;
           }
-          total = res.totalItemCount ?? res.TotalItemCount ?? res.total ?? res.Total ?? items.length;
+          total =
+            res.totalItemCount ??
+            res.TotalItemCount ??
+            res.total ??
+            res.Total ??
+            items.length;
         }
 
         // Aislamiento multi-tenant estricto: un tenant jamás puede ver productos de otro
         if (activeCompanyId > 0) {
           items = items.filter((p: any) => {
             const pCid = p.companyId ?? p.CompanyId;
-            return pCid == null || Number(pCid) === 0 || Number(pCid) === activeCompanyId;
+            return (
+              pCid == null ||
+              Number(pCid) === 0 ||
+              Number(pCid) === activeCompanyId
+            );
           });
         }
 
@@ -209,7 +260,10 @@ export class ProductService {
 
         // Enriquecer productos con fotos y atributos guardados
         items = items.map((p) => {
-          const photo = p.imageUrl || (p.id ? this.getProductPhoto(p.id) : null) || (p.barcode ? this.getProductPhoto(p.barcode) : null);
+          const photo =
+            p.imageUrl ||
+            (p.id ? this.getProductPhoto(p.id) : null) ||
+            (p.barcode ? this.getProductPhoto(p.barcode) : null);
           return {
             ...p,
             imageUrl: photo || null,
@@ -231,7 +285,7 @@ export class ProductService {
           message: res?.message ?? res?.Message ?? null,
           errors: res?.errors ?? res?.Errors ?? [],
         };
-      })
+      }),
     );
   }
 
@@ -274,9 +328,12 @@ export class ProductService {
             maxCost,
             excludeServices,
             categoryId,
-          })
+          }),
         );
-        this.pagedCacheMap.set(cacheKey, { timestamp: Date.now(), data: result });
+        this.pagedCacheMap.set(cacheKey, {
+          timestamp: Date.now(),
+          data: result,
+        });
         return result;
       } catch (err: any) {
         const status = err?.status ?? err?.statusCode;
@@ -287,18 +344,30 @@ export class ProductService {
               .set('pageNumber', pageNumber.toString())
               .set('pageSize', validSize.toString());
             if (activeCompanyId > 0) {
-              params = params.set('companyId', activeCompanyId.toString()).set('CompanyId', activeCompanyId.toString());
+              params = params
+                .set('companyId', activeCompanyId.toString())
+                .set('CompanyId', activeCompanyId.toString());
             }
             if (description?.trim()) {
               const term = description.trim();
               params = params.set('description', term).set('barcode', term);
             }
-            const res: any = await firstValueFrom(this.http.get<any>(`${this.baseUrl}/product`, { params }));
-            let rawList: ProductDto[] = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : (res?.data?.items || []));
+            const res: any = await firstValueFrom(
+              this.http.get<any>(`${this.baseUrl}/product`, { params }),
+            );
+            let rawList: ProductDto[] = Array.isArray(res?.data)
+              ? res.data
+              : Array.isArray(res)
+                ? res
+                : res?.data?.items || [];
             if (activeCompanyId > 0) {
               rawList = rawList.filter((p: any) => {
                 const pCid = p.companyId ?? p.CompanyId;
-                return pCid == null || Number(pCid) === 0 || Number(pCid) === activeCompanyId;
+                return (
+                  pCid == null ||
+                  Number(pCid) === 0 ||
+                  Number(pCid) === activeCompanyId
+                );
               });
             }
             if (excludeServices) {
@@ -315,7 +384,10 @@ export class ProductService {
                 page: pageNumber,
               },
             };
-            this.pagedCacheMap.set(cacheKey, { timestamp: Date.now(), data: fallbackRes });
+            this.pagedCacheMap.set(cacheKey, {
+              timestamp: Date.now(),
+              data: fallbackRes,
+            });
             return fallbackRes;
           } catch {}
         }
@@ -331,7 +403,10 @@ export class ProductService {
             page: pageNumber,
           },
         };
-        this.pagedCacheMap.set(cacheKey, { timestamp: Date.now(), data: emptyRes });
+        this.pagedCacheMap.set(cacheKey, {
+          timestamp: Date.now(),
+          data: emptyRes,
+        });
         return emptyRes;
       } finally {
         this.inFlightPagedMap.delete(cacheKey);
@@ -354,8 +429,16 @@ export class ProductService {
       const data = res?.data ?? res?.Data ?? res;
       if (data && activeCompanyId > 0) {
         const pCid = data.companyId ?? data.CompanyId;
-        if (pCid != null && Number(pCid) > 0 && Number(pCid) !== activeCompanyId) {
-          return { success: false, data: null as any, message: 'Producto no pertenece a la empresa activa.' };
+        if (
+          pCid != null &&
+          Number(pCid) > 0 &&
+          Number(pCid) !== activeCompanyId
+        ) {
+          return {
+            success: false,
+            data: null as any,
+            message: 'Producto no pertenece a la empresa activa.',
+          };
         }
       }
       return { success: true, data };
@@ -365,8 +448,16 @@ export class ProductService {
       const data2 = res2?.data ?? res2?.Data ?? res2;
       if (data2 && activeCompanyId > 0) {
         const pCid = data2.companyId ?? data2.CompanyId;
-        if (pCid != null && Number(pCid) > 0 && Number(pCid) !== activeCompanyId) {
-          return { success: false, data: null as any, message: 'Producto no pertenece a la empresa activa.' };
+        if (
+          pCid != null &&
+          Number(pCid) > 0 &&
+          Number(pCid) !== activeCompanyId
+        ) {
+          return {
+            success: false,
+            data: null as any,
+            message: 'Producto no pertenece a la empresa activa.',
+          };
         }
       }
       return { success: true, data: data2 };
@@ -377,29 +468,41 @@ export class ProductService {
    * Búsqueda rápida por descripción o código:
    * GET /v1/product/search?description=arroz
    */
-  async searchProducts(description: string): Promise<ApiResponse<ProductDto[]>> {
+  async searchProducts(
+    description: string,
+  ): Promise<ApiResponse<ProductDto[]>> {
     const term = (description || '').trim();
     const activeCompanyId = Number(getCompanyId()) || 0;
     if (term) {
       try {
         const url = `${this.baseUrl}/product/search`;
-        let params = new HttpParams().set('description', term).set('barcode', term);
+        let params = new HttpParams()
+          .set('description', term)
+          .set('barcode', term);
         if (activeCompanyId > 0) {
-          params = params.set('companyId', activeCompanyId.toString()).set('CompanyId', activeCompanyId.toString());
+          params = params
+            .set('companyId', activeCompanyId.toString())
+            .set('CompanyId', activeCompanyId.toString());
         }
-        const res: any = await firstValueFrom(this.http.get<any>(url, { params }));
+        const res: any = await firstValueFrom(
+          this.http.get<any>(url, { params }),
+        );
         let list: ProductDto[] = Array.isArray(res?.data)
           ? res.data
           : Array.isArray(res?.Data)
-          ? res.Data
-          : Array.isArray(res)
-          ? res
-          : (res?.data?.items || res?.Data?.Items || []);
+            ? res.Data
+            : Array.isArray(res)
+              ? res
+              : res?.data?.items || res?.Data?.Items || [];
 
         if (activeCompanyId > 0 && list.length > 0) {
           list = list.filter((p: any) => {
             const pCid = p.companyId ?? p.CompanyId;
-            return pCid == null || Number(pCid) === 0 || Number(pCid) === activeCompanyId;
+            return (
+              pCid == null ||
+              Number(pCid) === 0 ||
+              Number(pCid) === activeCompanyId
+            );
           });
         }
 
@@ -424,14 +527,26 @@ export class ProductService {
       const url = `${this.baseUrl}/product/services`;
       let params = new HttpParams();
       if (activeCompanyId > 0) {
-        params = params.set('companyId', activeCompanyId.toString()).set('CompanyId', activeCompanyId.toString());
+        params = params
+          .set('companyId', activeCompanyId.toString())
+          .set('CompanyId', activeCompanyId.toString());
       }
-      const res: any = await firstValueFrom(this.http.get<any>(url, { params }));
-      let list: ProductDto[] = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      const res: any = await firstValueFrom(
+        this.http.get<any>(url, { params }),
+      );
+      let list: ProductDto[] = Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res)
+          ? res
+          : [];
       if (activeCompanyId > 0 && list.length > 0) {
         list = list.filter((p: any) => {
           const pCid = p.companyId ?? p.CompanyId;
-          return pCid == null || Number(pCid) === 0 || Number(pCid) === activeCompanyId;
+          return (
+            pCid == null ||
+            Number(pCid) === 0 ||
+            Number(pCid) === activeCompanyId
+          );
         });
       }
       return { success: true, data: list };
@@ -446,11 +561,21 @@ export class ProductService {
    */
   private sanitizeProductPayload(product: ProductDto): any {
     const activeCompanyId = Number(getCompanyId()) || 0;
-    const resolvedCompanyId = activeCompanyId > 0 ? activeCompanyId : (product.companyId && product.companyId > 0 ? product.companyId : 1);
+    const resolvedCompanyId =
+      activeCompanyId > 0
+        ? activeCompanyId
+        : product.companyId && product.companyId > 0
+          ? product.companyId
+          : 1;
 
     const cost = Number(product.cost) || 0;
-    const price = Number(product.price) || (cost > 0 ? Math.round(cost * 1.35 * 100) / 100 : 0);
-    const profitMargin = cost > 0 && price > 0 ? Math.round(((price - cost) / cost) * 100 * 100) / 100 : 35;
+    const price =
+      Number(product.price) ||
+      (cost > 0 ? Math.round(cost * 1.35 * 100) / 100 : 0);
+    const profitMargin =
+      cost > 0 && price > 0
+        ? Math.round(((price - cost) / cost) * 100 * 100) / 100
+        : 35;
 
     const clean: Record<string, any> = {
       description: String(product.description || '').trim(),
@@ -493,13 +618,17 @@ export class ProductService {
     const payload = this.sanitizeProductPayload(product);
     try {
       const url = `${this.baseUrl}/product`;
-      return await firstValueFrom(this.http.post<ApiResponse<ProductDto>>(url, payload));
+      return await firstValueFrom(
+        this.http.post<ApiResponse<ProductDto>>(url, payload),
+      );
     } catch (err: any) {
       // Fallback a PascalCase si el router del backend es sensible a mayúsculas
       if (err?.status === 404 || err?.status === 400) {
         try {
           const url2 = `${this.baseUrl}/Product`;
-          return await firstValueFrom(this.http.post<ApiResponse<ProductDto>>(url2, payload));
+          return await firstValueFrom(
+            this.http.post<ApiResponse<ProductDto>>(url2, payload),
+          );
         } catch {
           // Relanzar el error original con los datos de validación
           throw err;
@@ -517,12 +646,16 @@ export class ProductService {
     const payload = this.sanitizeProductPayload(product);
     try {
       const url = `${this.baseUrl}/product`;
-      return await firstValueFrom(this.http.put<ApiResponse<any>>(url, payload));
+      return await firstValueFrom(
+        this.http.put<ApiResponse<any>>(url, payload),
+      );
     } catch (err: any) {
       if (err?.status === 404 || err?.status === 400) {
         try {
           const url2 = `${this.baseUrl}/Product`;
-          return await firstValueFrom(this.http.put<ApiResponse<any>>(url2, payload));
+          return await firstValueFrom(
+            this.http.put<ApiResponse<any>>(url2, payload),
+          );
         } catch {
           throw err;
         }
@@ -548,9 +681,13 @@ export class ProductService {
     try {
       const url = `${this.baseUrl}/product/catalogs/preloaded`;
       const res: any = await firstValueFrom(
-        this.http.get<any>(url, { headers: { 'x-silent-error': 'true' } })
+        this.http.get<any>(url, { headers: { 'x-silent-error': 'true' } }),
       );
-      const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      const list = Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res)
+          ? res
+          : [];
       if (list.length > 0) {
         return { success: true, data: list };
       }
@@ -560,7 +697,9 @@ export class ProductService {
 
     try {
       const localData = await firstValueFrom(
-        this.http.get<PreloadedCatalog[]>('assets/data/preloaded-catalogs.json')
+        this.http.get<PreloadedCatalog[]>(
+          'assets/data/preloaded-catalogs.json',
+        ),
       );
       return { success: true, data: localData || [] };
     } catch {

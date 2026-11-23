@@ -7,21 +7,36 @@
   </div>
 
   <!-- Header -->
-  <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
-    <div>
-      <h1 class="page-title">Cotizaciones</h1>
-      <p class="page-subtitle">Gestiona propuestas comerciales y conviértelas en ventas.</p>
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-indigo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      </div>
+      <div class="view-header-content">
+        <h2 class="view-header-title">Cotizaciones y propuestas comerciales</h2>
+        <p class="view-header-subtitle">Gestiona presupuestos a clientes, vigencia y conversión directa a facturación</p>
+      </div>
     </div>
-    <div class="header-actions d-flex align-items-center gap-2">
-      <button class="btn btn-primary-custom d-flex align-items-center gap-2" (click)="goToNew()">
-        <span class="fs-5 lh-1">+</span>
-        <span>Nueva cotización</span>
-      </button>
-      <button class="btn btn-outline-secondary d-flex align-items-center gap-1.5" (click)="loadQuotations()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+    <div class="view-header-actions">
+      <button type="button" class="btn btn-outline-secondary" (click)="loadQuotations()" data-tooltip="Actualizar cotizaciones">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
         </svg>
         <span>Actualizar</span>
+      </button>
+      <button type="button" class="btn btn-navy" (click)="goToNew()" data-tooltip="Crear una nueva cotización">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>+ Nueva cotización</span>
       </button>
     </div>
   </div>

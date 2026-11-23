@@ -1,20 +1,29 @@
 <div class="container-fluid py-3">
   <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
-    <div>
-      <h3 class="fw-bold text-dark mb-1">Control de Stock y Existencias</h3>
-      <p class="text-secondary small mb-0">Monitoreo de inventario en tiempo real por almacén con semáforos de nivel</p>
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-blue">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <div class="view-header-content">
+        <h1 class="view-header-title">Control de Stock y Existencias</h1>
+        <p class="view-header-subtitle">Monitoreo de inventario en tiempo real por almacén con semáforos de nivel</p>
+      </div>
     </div>
-    <div class="d-flex gap-2">
-      <a routerLink="/inventory/intelligence" class="btn btn-primary d-flex align-items-center gap-1.5 shadow-sm">
+    <div class="view-header-actions">
+      <a routerLink="/inventory/intelligence" class="btn btn-navy text-white d-flex align-items-center gap-1.5 px-3 py-2 rounded-3 shadow-sm fw-medium">
         <span>🧠 Reposición Inteligente</span>
       </a>
-      <button type="button" class="btn btn-light border d-flex align-items-center gap-1.5" (click)="loadData()">
+      <button type="button" class="btn btn-outline-secondary bg-white text-dark d-flex align-items-center gap-1.5 px-3 py-2 rounded-3 shadow-2xs fw-medium" (click)="loadData()">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 4 23 10 17 10"></polyline>
           <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
         </svg>
-        Actualizar
+        <span>Actualizar</span>
       </button>
     </div>
   </div>

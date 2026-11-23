@@ -12,18 +12,26 @@
   </nav>
 
   <!-- Page Header -->
-  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-    <div>
-      <h2 class="page-title fw-bold text-dark mb-1">Catálogo de servicios</h2>
-      <p class="text-secondary small mb-0">
-        Administración de servicios profesionales, mano de obra especializada y tarifas de facturación.
-      </p>
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-indigo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+        </svg>
+      </div>
+      <div class="view-header-content">
+        <h1 class="view-header-title">Catálogo de servicios</h1>
+        <p class="view-header-subtitle">
+          Administración de servicios profesionales, mano de obra especializada y tarifas de facturación.
+        </p>
+      </div>
     </div>
 
-    <div class="d-flex flex-wrap align-items-center gap-2">
+    <div class="view-header-actions">
       <a
         routerLink="/sales/service"
-        class="btn btn-outline-navy d-flex align-items-center gap-2 px-3 py-2 fw-medium rounded-3"
+        class="btn btn-outline-secondary bg-white text-dark d-flex align-items-center gap-2 px-3 py-2 fw-medium rounded-3 shadow-2xs"
         data-tooltip="Ir a pantalla de facturación de servicios"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -36,7 +44,7 @@
 
       <button
         type="button"
-        class="btn btn-navy d-flex align-items-center gap-2 px-3 py-2 fw-semibold rounded-3 shadow-2xs"
+        class="btn btn-navy text-white d-flex align-items-center gap-2 px-3.5 py-2 fw-semibold rounded-3 shadow-sm"
         (click)="openCreateModal()"
         data-tooltip="Crear y agregar un nuevo servicio al catálogo"
       >

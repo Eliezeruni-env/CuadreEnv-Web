@@ -298,17 +298,34 @@
   <!-- STATE B: ACTIVE CASH REGISTER SESSION (DASHBOARD MATCHING IMAGE 2) -->
   @if (activeSession()) {
     <!-- 1. Header Toolbar -->
-    <div
-      class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4"
-    >
-      <div>
-        <h2 class="page-title mb-0">Caja</h2>
-        <p class="text-muted mb-0">
-          Controla los movimientos de efectivo de tu negocio
-        </p>
+    <div class="view-header-card">
+      <div class="view-header-left">
+        <div class="view-header-icon icon-navy">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+            <path d="M7 15h0M2 9.5h20"></path>
+            <circle cx="12" cy="14" r="2"></circle>
+          </svg>
+        </div>
+        <div class="view-header-content">
+          <h1 class="view-header-title">Caja y Arqueo de Turno</h1>
+          <p class="view-header-subtitle">
+            Controla los movimientos de efectivo, cobros y ventas del turno activo
+          </p>
+        </div>
       </div>
 
-      <div class="d-flex align-items-center gap-2">
+      <div class="view-header-actions">
         <!-- Date Badge -->
         <div class="date-badge">
           <svg
@@ -330,16 +347,6 @@
           <span>{{ currentDateFormatted() }}</span>
         </div>
 
-        <!-- Botón Auditoría Antirrobo oculto temporalmente
-        <a
-          [routerLink]="['/cash-register/fraud-guardian']"
-          class="btn btn-outline-danger fw-bold d-flex align-items-center gap-1 shadow-xs px-3"
-          title="Ver alertas de prevención de pérdidas y auditoría de cajeros"
-        >
-          <span>🛡️ Auditoría Antirrobo</span>
-        </a>
-        -->
-
         <!-- Pausar / Reanudar Caja Button -->
         @if (activeSession()?.status !== 'PAUSED') {
           <button
@@ -347,7 +354,7 @@
             cButton
             color="secondary"
             variant="outline"
-            class="d-flex align-items-center gap-1"
+            class="d-flex align-items-center gap-1 rounded-3"
             (click)="openPauseModal()"
           >
             <svg
@@ -367,7 +374,7 @@
             type="button"
             cButton
             color="warning"
-            class="d-flex align-items-center gap-1 text-dark fw-bold"
+            class="d-flex align-items-center gap-1 text-dark fw-bold rounded-3"
             (click)="initiateResumeSession()"
             [disabled]="isLoading()"
           >

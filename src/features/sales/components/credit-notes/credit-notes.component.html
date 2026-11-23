@@ -1,17 +1,36 @@
 <div class="container-fluid py-3 list-credit-notes-container">
   <!-- Top Bar -->
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
-    <div>
-      <h4 class="fw-bold mb-0 text-dark">Notas de Crédito y Devoluciones</h4>
-      <small class="text-secondary">Gestión de devoluciones vinculadas a facturas, reingreso a almacén y control fiscal NCF (B04)</small>
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-purple">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      </div>
+      <div class="view-header-content">
+        <h2 class="view-header-title">Notas de crédito y devoluciones</h2>
+        <p class="view-header-subtitle">Gestión de devoluciones vinculadas a facturas, reingreso a inventario y comprobantes fiscales NCF (B04)</p>
+      </div>
     </div>
 
-    <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadCreditNotes()">
-        Recargar
+    <div class="view-header-actions">
+      <button type="button" class="btn btn-outline-secondary" (click)="loadCreditNotes()" data-tooltip="Recargar notas de crédito">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        <span>Recargar</span>
       </button>
-      <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openCreateModal()">
-        <span>+ Nueva Nota de Crédito</span>
+      <button type="button" class="btn btn-navy" (click)="openCreateModal()" data-tooltip="Crear nueva nota de crédito">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>+ Nueva nota de crédito</span>
       </button>
     </div>
   </div>

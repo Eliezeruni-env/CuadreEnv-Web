@@ -12,15 +12,26 @@
   </div>
 
   <!-- Page Header -->
-  <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
-    <div>
-      <h1 class="page-title">Ventas por cobrar</h1>
-      <p class="page-subtitle">Gestiona los saldos pendientes y el seguimiento de tus clientes.</p>
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-blue">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+          <line x1="1" y1="10" x2="23" y2="10"></line>
+        </svg>
+      </div>
+      <div class="view-header-content">
+        <h2 class="view-header-title">Ventas por cobrar</h2>
+        <p class="view-header-subtitle">Gestiona los saldos pendientes, facturas a crédito y el seguimiento de cobros a clientes.</p>
+      </div>
     </div>
-    <div>
-      <button class="btn btn-primary-custom d-flex align-items-center gap-2" (click)="openCreateModal()" data-tooltip="Crear una nueva cuenta o venta por cobrar">
-        <span class="fs-5 lh-1">+</span>
-        <span>Nueva venta por cobrar</span>
+    <div class="view-header-actions">
+      <button type="button" class="btn btn-navy" (click)="openCreateModal()" data-tooltip="Crear una nueva cuenta o venta por cobrar">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>+ Nueva venta por cobrar</span>
       </button>
     </div>
   </div>

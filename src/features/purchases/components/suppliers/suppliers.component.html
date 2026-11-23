@@ -7,21 +7,34 @@
   }
 
   <!-- Header Toolbar -->
-  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-    <div>
-      <h2 class="page-title mb-1">Proveedores</h2>
-      <p class="text-muted mb-0">Administra el catálogo de suplidores y contactos comerciales</p>
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+      </div>
+      <div class="view-header-content">
+        <h2 class="view-header-title">Proveedores y suplidores</h2>
+        <p class="view-header-subtitle">Administra el catálogo de suplidores comerciales, RNC y contactos directos</p>
+      </div>
     </div>
 
-    <button
-      type="button"
-      cButton
-      class="btn btn-primary px-4 d-flex align-items-center gap-2 fw-semibold"
-      (click)="openCreateModal()"
-    >
-      <svg cIcon name="cilPlus" style="width: 18px; height: 18px;"></svg>
-      Nuevo Proveedor
-    </button>
+    <div class="view-header-actions">
+      <button
+        type="button"
+        class="btn btn-navy"
+        (click)="openCreateModal()"
+        data-tooltip="Registrar nuevo proveedor"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>+ Nuevo proveedor</span>
+      </button>
+    </div>
   </div>
 
   <!-- Stat Cards -->

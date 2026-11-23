@@ -5,23 +5,23 @@
   <!-- ========================================================================= -->
   @if (currentView() === 'dashboard') {
     <!-- Module Header -->
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-      <div class="d-flex align-items-center gap-3">
-        <div class="header-icon-box text-white d-flex align-items-center justify-content-center shadow-2xs">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <div class="view-header-card">
+      <div class="view-header-left">
+        <div class="view-header-icon icon-blue">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="1" y="3" width="15" height="13"></rect>
             <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
             <circle cx="5.5" cy="18.5" r="2.5"></circle>
             <circle cx="18.5" cy="18.5" r="2.5"></circle>
           </svg>
         </div>
-        <div>
-          <h2 class="module-title mb-0">Rutas de distribución</h2>
-          <p class="module-subtitle mb-0">Control de rutas, carga, ventas y cobranza en calle</p>
+        <div class="view-header-content">
+          <h1 class="view-header-title">Rutas de distribución</h1>
+          <p class="view-header-subtitle">Control de rutas, carga, ventas y cobranza en calle</p>
         </div>
       </div>
 
-      <div class="d-flex align-items-center gap-2">
+      <div class="view-header-actions">
         <!-- Date Selector Filter -->
         <div class="date-selector-pill d-inline-flex align-items-center gap-2 px-3 py-2 bg-white rounded-3 border shadow-2xs">
           <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
@@ -34,7 +34,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-muted"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
 
-        <button type="button" class="btn btn-navy d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm" (click)="openCreateRouteModal()" data-tooltip="Crear una nueva hoja de ruta y despacho">
+        <button type="button" class="btn btn-navy d-inline-flex align-items-center gap-2 px-3.5 py-2 shadow-sm rounded-3 fw-semibold text-white" (click)="openCreateRouteModal()" data-tooltip="Crear una nueva hoja de ruta y despacho">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>

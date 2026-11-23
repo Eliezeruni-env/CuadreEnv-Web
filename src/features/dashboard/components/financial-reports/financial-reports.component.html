@@ -1,31 +1,39 @@
 <div class="financial-reports-container p-3 p-md-4">
   <!-- 1. ENCABEZADO Y CONTEXTO EMPRESARIAL -->
-  <header class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-3 border-bottom">
-    <div>
-      <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-        <span class="badge bg-primary text-white fw-bold px-2.5 py-1" style="font-size: 11px; letter-spacing: 0.05em;">
-          CONTROL FINANCIERO & CONTABILIDAD
-        </span>
-        <span class="badge bg-light text-dark border px-2 py-0.5" style="font-size: 11px;">
-          🏢 {{ companyName() }}
-        </span>
-        <span class="badge bg-light text-secondary border px-2 py-0.5" style="font-size: 11px;">
-          RNC: {{ companyRnc() }}
-        </span>
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-navy">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23"></line>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
       </div>
-      <h1 class="fw-bold text-dark mb-0 tracking-tight" style="font-size: 1.65rem;">
-        Reportes Financieros & Libros de Venta
-      </h1>
-      <p class="text-secondary small mb-0 mt-1">
-        Auditoría de ingresos brutos, cálculo de base imponible, desglose fiscal de ITBIS (18%) y control de medios de pago.
-      </p>
+      <div class="view-header-content">
+        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+          <span class="view-header-tag">
+            CONTROL FINANCIERO & CONTABILIDAD
+          </span>
+          <span class="badge bg-light text-dark border px-2 py-0.5" style="font-size: 11px;">
+            🏢 {{ companyName() }}
+          </span>
+          <span class="badge bg-light text-secondary border px-2 py-0.5" style="font-size: 11px;">
+            RNC: {{ companyRnc() }}
+          </span>
+        </div>
+        <h1 class="view-header-title">
+          Reportes Financieros & Libros de Venta
+        </h1>
+        <p class="view-header-subtitle">
+          Auditoría de ingresos brutos, cálculo de base imponible, desglose fiscal de ITBIS (18%) y control de medios de pago.
+        </p>
+      </div>
     </div>
 
     <!-- Botones de Acción Global -->
-    <div class="d-flex align-items-center gap-2 flex-wrap">
+    <div class="view-header-actions">
       <button
         type="button"
-        class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1.5 shadow-sm"
+        class="btn btn-outline-secondary bg-white text-dark d-flex align-items-center gap-1.5 px-3 py-2 rounded-3 shadow-2xs fw-medium"
         (click)="loadFinancialData()"
         [disabled]="isLoading()"
         title="Actualizar datos"
@@ -39,7 +47,7 @@
 
       <button
         type="button"
-        class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1.5 shadow-sm"
+        class="btn btn-navy text-white d-flex align-items-center gap-1.5 px-3.5 py-2 rounded-3 shadow-sm fw-semibold"
         (click)="exportToCsv()"
         [disabled]="isLoading() || filteredSales().length === 0"
       >
@@ -52,7 +60,7 @@
 
       <button
         type="button"
-        class="btn btn-outline-dark btn-sm d-flex align-items-center gap-1.5 shadow-sm"
+        class="btn btn-outline-secondary bg-white text-dark d-flex align-items-center gap-1.5 px-3 py-2 rounded-3 shadow-2xs fw-medium"
         (click)="printReport()"
         [disabled]="isLoading() || filteredSales().length === 0"
       >
@@ -63,7 +71,7 @@
         <span>Imprimir</span>
       </button>
     </div>
-  </header>
+  </div>
 
   <!-- 2. BARRA DE FILTROS TEMPORALES -->
   <div class="card border-0 shadow-sm mb-4 bg-light-subtle">

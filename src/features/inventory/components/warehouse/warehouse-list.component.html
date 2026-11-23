@@ -6,17 +6,33 @@
   }
 
   <!-- Top Bar -->
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
-    <div>
-      <h4 class="fw-bold mb-0 text-dark">Gestión de Almacenes y Depósitos</h4>
-      <small class="text-secondary">Administra los puntos de almacenamiento, sucursales y bodegas</small>
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-blue">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+      </div>
+      <div class="view-header-content">
+        <h1 class="view-header-title">Gestión de Almacenes y Depósitos</h1>
+        <p class="view-header-subtitle">Administra los puntos de almacenamiento, sucursales y bodegas físicas</p>
+      </div>
     </div>
 
-    <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadWarehouses()" [disabled]="isLoading()">
-        Recargar
+    <div class="view-header-actions">
+      <button class="btn btn-outline-secondary bg-white text-dark d-flex align-items-center gap-1.5 px-3 py-2 rounded-3 shadow-2xs fw-medium" (click)="loadWarehouses()" [disabled]="isLoading()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        <span>Recargar</span>
       </button>
-      <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openCreateModal()">
+      <button class="btn btn-navy text-white fw-semibold shadow-sm d-flex align-items-center gap-1.5 px-3.5 py-2 rounded-3" (click)="openCreateModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
         <span>+ Nuevo Almacén</span>
       </button>
     </div>

@@ -1,16 +1,16 @@
 <div class="container-fluid py-3 forensic-dashboard px-lg-4">
 
-  <!-- Header Bar (Exact Match Image 2) -->
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4 bg-white p-3.5 rounded-4 shadow-sm border">
-    <div class="d-flex align-items-center gap-3">
-      <div class="forensic-brand-icon d-flex align-items-center justify-content-center text-white rounded-3 shadow-2xs" style="background: #0f172a; width: 48px; height: 48px;">
+  <!-- Header Bar -->
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-navy">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
         </svg>
       </div>
-      <div>
+      <div class="view-header-content">
         <div class="d-flex align-items-center gap-2">
-          <h4 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.02em;">Guardián antirrobo</h4>
+          <h1 class="view-header-title">Guardián antirrobo</h1>
           <span
             class="badge rounded-pill px-2.5 py-1 font-size-xs fw-semibold"
             [ngClass]="{
@@ -22,11 +22,11 @@
             Riesgo {{ fraudService.branchRiskLevel() | lowercase }} · {{ fraudService.branchRiskScore() }}/100
           </span>
         </div>
-        <small class="text-secondary">Monitoreo de anomalías y revisión de incidencias en caja</small>
+        <p class="view-header-subtitle">Monitoreo de anomalías y revisión de incidencias en caja</p>
       </div>
     </div>
 
-    <div class="d-flex align-items-center gap-2">
+    <div class="view-header-actions">
       <button
         type="button"
         class="btn btn-outline-secondary d-flex align-items-center gap-2 shadow-2xs px-3 py-2 bg-white text-dark fw-medium"

@@ -6,30 +6,43 @@
   }
 
   <!-- Top Bar -->
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
-    <div>
-      <h4 class="fw-bold mb-0 text-dark">{{ translationService.t('products.title') }}</h4>
-      <small class="text-secondary">{{ translationService.t('products.subtitle') }}</small>
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-blue">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <div class="view-header-content">
+        <h2 class="view-header-title">{{ translationService.t('products.title') }}</h2>
+        <p class="view-header-subtitle">{{ translationService.t('products.subtitle') }}</p>
+      </div>
     </div>
 
-    <div class="d-flex align-items-center gap-2">
+    <div class="view-header-actions">
       @if (expiringProducts().length > 0) {
-        <button class="btn btn-outline-danger d-flex align-items-center gap-1 shadow-xs px-3 fw-bold" (click)="openExpirationModalManually()">
+        <button class="btn btn-outline-danger fw-bold" (click)="openExpirationModalManually()">
           ⚠️ {{ expiringProducts().length }} Próximos a Vencer
         </button>
       }
-      <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadProducts()">
-        Recargar
+      <button class="btn btn-outline-secondary" (click)="loadProducts()" data-tooltip="Recargar catálogo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        <span>Recargar</span>
       </button>
       @if (permissionService.canEdit('products')) {
-        <a routerLink="/products/settings" class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" title="Configurar Categorías y Tipos">
+        <a routerLink="/products/settings" class="btn btn-outline-secondary" title="Configurar Categorías y Tipos">
           <span>Categorías</span>
         </a>
       }
       @if (permissionService.canExport('products')) {
         <div class="dropdown d-inline-block position-relative">
-          <button class="btn btn-outline-secondary d-flex align-items-center gap-2 shadow-xs px-3 fw-bold" type="button" (click)="toggleExportMenu()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button class="btn btn-outline-secondary" type="button" (click)="toggleExportMenu()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
               <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -55,15 +68,19 @@
         </div>
       }
       @if (permissionService.canCreate('products')) {
-        <button class="btn btn-outline-success d-flex align-items-center gap-2 shadow-xs px-3 fw-bold" (click)="openDataExchangeModal()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button class="btn btn-outline-secondary" (click)="openDataExchangeModal()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="17 8 12 3 7 8"></polyline>
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
           <span>Importar Excel / CSV</span>
         </button>
-        <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openCreateModal()">
+        <button class="btn btn-navy" (click)="openCreateModal()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
           <span>+ {{ translationService.t('products.new') }}</span>
         </button>
       }

@@ -1,13 +1,24 @@
 <div class="container-fluid py-3 list-billing-container">
-  <!-- Top Bar (Image 1 Style) -->
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-3 shadow-2xs border">
-    <div>
-      <h4 class="fw-bold mb-0 text-dark">Registro de ventas y comprobantes</h4>
-      <small class="text-secondary">Control de ventas al contado, a crédito y facturación comercial</small>
+  <!-- Top Bar -->
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-blue">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      </div>
+      <div class="view-header-content">
+        <h1 class="view-header-title">Registro de ventas y comprobantes</h1>
+        <p class="view-header-subtitle">Control de ventas al contado, a crédito y facturación comercial con NCF</p>
+      </div>
     </div>
 
-    <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-outline-secondary d-flex align-items-center gap-1.5 px-3 py-1.5 rounded-pill fw-semibold" (click)="loadBillings()" data-tooltip="Actualizar lista de ventas">
+    <div class="view-header-actions">
+      <button class="btn btn-outline-secondary bg-white text-dark d-flex align-items-center gap-1.5 px-3 py-2 rounded-3 shadow-2xs fw-medium" (click)="loadBillings()" data-tooltip="Actualizar lista de ventas">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 4 23 10 17 10"></polyline>
           <polyline points="1 20 1 14 7 14"></polyline>
@@ -16,16 +27,18 @@
         <span>Actualizar</span>
       </button>
 
-      <button class="btn btn-outline-success d-flex align-items-center gap-1.5 px-3 py-1.5 rounded-pill fw-semibold" (click)="goToPOS()" data-tooltip="Ir a terminal de punto de venta rápido">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-          <line x1="8" y1="21" x2="16" y2="21"></line>
-          <line x1="12" y1="17" x2="12" y2="21"></line>
+      <button class="btn btn-outline-success bg-white d-flex align-items-center gap-1.5 px-3 py-2 rounded-3 shadow-2xs fw-semibold" (click)="goToPOS()" data-tooltip="Ir a terminal de punto de venta rápido">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
         </svg>
         <span>Venta rápida (POS)</span>
       </button>
 
-      <button class="btn btn-primary fw-bold shadow-sm d-flex align-items-center gap-1.5 px-3.5 py-1.5 rounded-pill" (click)="goToCreate()" data-tooltip="Crear nueva factura de venta">
+      <button class="btn btn-navy text-white fw-semibold shadow-sm d-flex align-items-center gap-1.5 px-3.5 py-2 rounded-3" (click)="goToCreate()" data-tooltip="Crear nueva factura de venta">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
         <span>+ Nueva venta</span>
       </button>
     </div>

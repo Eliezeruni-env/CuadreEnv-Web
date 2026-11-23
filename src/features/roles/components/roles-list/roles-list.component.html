@@ -1,24 +1,31 @@
 <div class="roles-container fade-in">
   <!-- Page Header -->
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-    <div>
-      <div class="d-flex align-items-center gap-2 mb-1">
-        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">
-          Seguridad & Acceso
-        </span>
-        <span class="text-secondary small">· {{ roles().length }} roles definidos</span>
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-navy">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
       </div>
-      <h2 class="fw-bold text-dark mb-1 fs-4">Gestión de Roles y Permisos</h2>
-      <p class="text-secondary mb-0 small">
-        Administra los roles de acceso disponibles para los colaboradores de tu empresa y personaliza qué puede hacer cada perfil.
-      </p>
+      <div class="view-header-content">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+            Seguridad & Acceso
+          </span>
+          <span class="text-secondary small">· {{ roles().length }} roles definidos</span>
+        </div>
+        <h1 class="view-header-title">Gestión de Roles y Permisos</h1>
+        <p class="view-header-subtitle">
+          Administra los roles de acceso disponibles para los colaboradores de tu empresa y personaliza qué puede hacer cada perfil.
+        </p>
+      </div>
     </div>
 
     <!-- Action Buttons -->
-    <div class="d-flex align-items-center gap-2">
+    <div class="view-header-actions">
       <button
         type="button"
-        class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2 px-3 shadow-2xs rounded-3 fw-medium"
+        class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2 px-3 py-2 shadow-2xs rounded-3 fw-medium"
         (click)="goToMatrix()"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -33,14 +40,14 @@
 
       <button
         type="button"
-        class="btn btn-primary btn-sm d-flex align-items-center gap-2 px-3 shadow-sm rounded-3 fw-medium"
+        class="btn btn-navy text-white d-flex align-items-center gap-2 px-3.5 py-2 shadow-sm rounded-3 fw-semibold"
         (click)="openCreateModal()"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
-        <span>Nuevo Rol</span>
+        <span>+ Nuevo Rol</span>
       </button>
     </div>
   </div>

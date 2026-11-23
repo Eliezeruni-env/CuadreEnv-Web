@@ -1,12 +1,21 @@
 <div class="inventory-intelligence-page">
   <!-- Header -->
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-    <div>
-      <h1 class="page-title mb-1">Reposición e inteligencia de inventario</h1>
-      <p class="page-subtitle mb-0">Anticipa faltantes, planifica compras y optimiza el capital de inventario.</p>
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-indigo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+      </div>
+      <div class="view-header-content">
+        <h1 class="view-header-title">Reposición e inteligencia de inventario</h1>
+        <p class="view-header-subtitle">Anticipa faltantes, planifica compras y optimiza el capital de inventario.</p>
+      </div>
     </div>
 
-    <div class="d-flex align-items-center gap-3">
+    <div class="view-header-actions">
       <div class="d-flex align-items-center gap-2">
         <span class="text-secondary small fw-medium">Período:</span>
         <div class="period-toggle-group">
@@ -37,7 +46,7 @@
         </div>
       </div>
 
-      <button type="button" class="btn btn-outline-refresh d-flex align-items-center gap-1.5" (click)="runAnalysis()">
+      <button type="button" class="btn btn-outline-secondary bg-white text-dark d-flex align-items-center gap-1.5 px-3 py-2 rounded-3 shadow-2xs fw-medium" (click)="runAnalysis()">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
         </svg>
