@@ -5,7 +5,7 @@ import { WarehouseService } from './warehouse.service';
 import { ProductService } from '../../products/services/product.service';
 import type { ApiResponse } from '../../cuadreEnv/types/api';
 import type { WarehouseOutlet, WarehouseMovementHeader } from '../../../app/models/movement';
-import { normalizeWarehouseMovement } from '../utils/movement-normalizer';
+import { normalizeWarehouseMovement, groupWarehouseMovements } from '../utils/movement-normalizer';
 
 const OUTLETS_STORAGE_KEY = 'cuadreenv_warehouse_outlets_db';
 
@@ -87,21 +87,36 @@ export class WarehouseOutletService {
     });
 
     if (isApiConnected) {
-      // Backend is online and authoritative.
-      // Purge any stale non-pending local entries to eliminate past duplicates
-      this.clearStaleLocalOutlets();
+      const localList = this.getLocalOutlets().map((o) => normalizeWarehouseMovement<WarehouseOutlet>(o));
+      const localMap = new Map<string, WarehouseOutlet>();
+      for (const loc of localList) {
+        if (loc.id) localMap.set(String(loc.id), loc);
+        if (loc.movementNumber) localMap.set(loc.movementNumber.trim().toUpperCase(), loc);
+      }
 
-      // Only append pending offline entries that failed to reach the server
-      const pendingOffline = this.getLocalOutlets()
-        .filter((o: any) => o.isPendingSync === true)
-        .map((o) => normalizeWarehouseMovement<WarehouseOutlet>(o));
+      // Enrich remote outlets with richer local productDetails if present
+      const enrichedApiList = validApiList.map((remote) => {
+        const idKey = remote.id ? String(remote.id) : '';
+        const numKey = (remote.movementNumber || '').trim().toUpperCase();
+        const localMatch = (idKey && localMap.get(idKey)) || (numKey && localMap.get(numKey));
+
+        if (localMatch && (localMatch.productDetails?.length || 0) > (remote.productDetails?.length || 0)) {
+          return {
+            ...remote,
+            productDetails: localMatch.productDetails,
+            totalQuantity: localMatch.totalQuantity || remote.totalQuantity,
+            totalCost: localMatch.totalCost || remote.totalCost,
+          };
+        }
+        return remote;
+      });
 
       // Deduplicación estricta por id y número de movimiento
       const seenIds = new Set<number>();
       const seenNumbers = new Set<string>();
       const combined: WarehouseOutlet[] = [];
 
-      for (const outlet of [...validApiList, ...pendingOffline]) {
+      for (const outlet of [...enrichedApiList, ...localList.filter((o: any) => o.isPendingSync === true)]) {
         const idKey = outlet.id;
         const numKey = (outlet.movementNumber || '').trim().toUpperCase();
 
@@ -113,14 +128,16 @@ export class WarehouseOutletService {
         combined.push(outlet);
       }
 
-      combined.sort(
+      const grouped = groupWarehouseMovements(combined);
+      grouped.sort(
         (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
       );
-      return { success: true, data: combined };
+      return { success: true, data: grouped };
     }
 
     const localList = this.getLocalOutlets().map((o) => normalizeWarehouseMovement<WarehouseOutlet>(o));
-    return { success: true, data: localList };
+    const groupedLocal = groupWarehouseMovements(localList);
+    return { success: true, data: groupedLocal };
   }
 
   async getOutlet(id: number): Promise<ApiResponse<WarehouseOutlet>> {
@@ -196,25 +213,59 @@ export class WarehouseOutletService {
     let createdBackendId: number | undefined;
 
     try {
-      const headerPayload = {
+      const headerPayload: any = {
         warehouseId: whId,
-        conceptId: outlet.conceptId,
+        conceptId: Number(outlet.conceptId),
         commentary: outlet.commentary || '',
+        quantity: totalQty,
         totalQuantity: totalQty,
+        qty: totalQty,
+        cost: totalCost,
         totalCost: totalCost,
-        productDetails: outlet.productDetails,
+        unitCost: totalQty > 0 ? Math.round((totalCost / totalQty) * 100) / 100 : 0,
+        price: totalCost,
+        movementNumber: newOutlet.movementNumber,
+        reference: newOutlet.movementNumber,
+        productId: outlet.productDetails?.[0]?.productId || 0,
+        productDetails: (outlet.productDetails || []).map((it) => ({
+          productId: it.productId,
+          productName: it.productName,
+          barCode: it.barCode,
+          quantity: it.quantity,
+          qty: it.quantity,
+          cost: it.cost || 0,
+          unitCost: it.cost || 0,
+          price: it.price || it.cost || 0,
+          warehouseId: whId,
+        })),
+        details: (outlet.productDetails || []).map((it) => ({
+          productId: it.productId,
+          productName: it.productName,
+          barCode: it.barCode,
+          quantity: it.quantity,
+          qty: it.quantity,
+          cost: it.cost || 0,
+          unitCost: it.cost || 0,
+          price: it.price || it.cost || 0,
+          warehouseId: whId,
+        })),
       };
       const res = await this.api.post<any, any>('/WarehouseOutlet', headerPayload);
       const resData = res?.data ?? res;
       if (resData?.id) createdBackendId = Number(resData.id);
     } catch {
-      // Fallback a envío por renglón
+      // Fallback a envío por renglón garantizando costo y referencia
       for (const item of outlet.productDetails || []) {
         try {
           const res = await this.api.post<any, any>('/WarehouseOutlet', {
             productId: item.productId,
             warehouseId: whId,
             quantity: item.quantity,
+            cost: item.cost || 0,
+            unitCost: item.cost || 0,
+            price: item.price || item.cost || 0,
+            movementNumber: newOutlet.movementNumber,
+            reference: newOutlet.movementNumber,
           });
           const resData = res?.data ?? res;
           if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);

@@ -33,20 +33,36 @@ export function normalizeProductDetail(raw: any, defaultWarehouseId: number = 1)
     raw.price ?? raw.Price ?? raw.salePrice ?? raw.SalePrice ?? cost
   )) || 0;
 
-  // Si el costo viene en 0, intentar resolverlo desde stock local si está en memoria
+  // Si el costo viene en 0, intentar resolverlo desde stock local o métricas de producto
   if (cost === 0 && productId > 0 && typeof window !== 'undefined' && window.localStorage) {
     try {
-      const rawStock = window.localStorage.getItem('cuadreenv_stock_db');
-      if (rawStock) {
-        const stocks = JSON.parse(rawStock);
-        const match = stocks.find((s: any) => Number(s.productId) === productId);
-        if (match && (match.cost || match.price)) {
-          cost = Number(match.cost || match.price || 0);
-          if (!price) price = Number(match.price || cost);
+      const rawMetrics = window.localStorage.getItem('cuadreEnv_product_cost_metrics_v1');
+      if (rawMetrics) {
+        const metricsMap = JSON.parse(rawMetrics);
+        const m = metricsMap[productId];
+        if (m && (m.cost || m.price)) {
+          cost = Number(m.cost || (m.price ? Math.round((m.price / 1.35) * 100) / 100 : 0));
+          if (!price) price = Number(m.price || cost);
         }
       }
-    } catch {
-      // ignore
+    } catch {}
+
+    if (cost === 0) {
+      try {
+        const rawStock = window.localStorage.getItem('cuadreenv_stock_db');
+        if (rawStock) {
+          const stocks = JSON.parse(rawStock);
+          const match = stocks.find((s: any) => Number(s.productId) === productId);
+          if (match && (match.cost || match.price)) {
+            cost = Number(match.cost || (match.price ? Math.round((match.price / 1.35) * 100) / 100 : 0));
+            if (!price) price = Number(match.price || cost);
+          }
+        }
+      } catch {}
+    }
+
+    if (cost === 0 && price > 0) {
+      cost = Math.round((price / 1.35) * 100) / 100;
     }
   }
 
@@ -281,4 +297,46 @@ export function normalizeWarehouseMovement<T extends WarehouseMovementHeader>(ra
     totalCost,
     productDetails,
   } as T;
+}
+
+/**
+ * Groups multiple flat movements (e.g. from backend legacy split lines) into unified multi-line movements.
+ */
+export function groupWarehouseMovements<T extends WarehouseMovementHeader>(movements: T[]): T[] {
+  if (!movements || movements.length === 0) return [];
+  const map = new Map<string, T>();
+  const order: string[] = [];
+
+  for (const mov of movements) {
+    const rawNum = (mov.movementNumber || '').trim().toUpperCase();
+    const key = rawNum || `MOV-${mov.id}`;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        ...mov,
+        productDetails: [...(mov.productDetails || [])],
+      });
+      order.push(key);
+    } else {
+      const existing = map.get(key)!;
+      for (const item of mov.productDetails || []) {
+        const itemIdx = existing.productDetails.findIndex((d) => d.productId === item.productId);
+        if (itemIdx !== -1) {
+          existing.productDetails[itemIdx].quantity += (item.quantity || 0);
+          if ((!existing.productDetails[itemIdx].cost || existing.productDetails[itemIdx].cost === 0) && item.cost) {
+            existing.productDetails[itemIdx].cost = item.cost;
+          }
+        } else {
+          existing.productDetails.push({ ...item });
+        }
+      }
+      existing.totalQuantity = existing.productDetails.reduce((sum, d) => sum + (d.quantity || 0), 0);
+      existing.totalCost = existing.productDetails.reduce(
+        (sum, d) => sum + (d.quantity || 0) * (d.cost || d.price || 0),
+        0
+      );
+    }
+  }
+
+  return order.map((k) => map.get(k)!);
 }

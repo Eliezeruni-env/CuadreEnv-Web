@@ -5,7 +5,7 @@ import { WarehouseService } from './warehouse.service';
 import { ProductService } from '../../products/services/product.service';
 import type { ApiResponse } from '../../cuadreEnv/types/api';
 import type { WarehouseEntry, WarehouseMovementHeader } from '../../../app/models/movement';
-import { normalizeWarehouseMovement } from '../utils/movement-normalizer';
+import { normalizeWarehouseMovement, groupWarehouseMovements } from '../utils/movement-normalizer';
 
 const ENTRIES_STORAGE_KEY = 'cuadreenv_warehouse_entries_db';
 
@@ -87,21 +87,36 @@ export class WarehouseEntryService {
     });
 
     if (isApiConnected) {
-      // Backend is online and authoritative.
-      // Purge any stale non-pending local entries to eliminate past duplicates
-      this.clearStaleLocalEntries();
+      const localList = this.getLocalEntries().map((e) => normalizeWarehouseMovement<WarehouseEntry>(e));
+      const localMap = new Map<string, WarehouseEntry>();
+      for (const loc of localList) {
+        if (loc.id) localMap.set(String(loc.id), loc);
+        if (loc.movementNumber) localMap.set(loc.movementNumber.trim().toUpperCase(), loc);
+      }
 
-      // Only append pending offline entries that failed to reach the server
-      const pendingOffline = this.getLocalEntries()
-        .filter((e: any) => e.isPendingSync === true)
-        .map((e) => normalizeWarehouseMovement<WarehouseEntry>(e));
+      // Enrich remote entries with richer local productDetails if present
+      const enrichedApiList = validApiList.map((remote) => {
+        const idKey = remote.id ? String(remote.id) : '';
+        const numKey = (remote.movementNumber || '').trim().toUpperCase();
+        const localMatch = (idKey && localMap.get(idKey)) || (numKey && localMap.get(numKey));
+
+        if (localMatch && (localMatch.productDetails?.length || 0) > (remote.productDetails?.length || 0)) {
+          return {
+            ...remote,
+            productDetails: localMatch.productDetails,
+            totalQuantity: localMatch.totalQuantity || remote.totalQuantity,
+            totalCost: localMatch.totalCost || remote.totalCost,
+          };
+        }
+        return remote;
+      });
 
       // Deduplicación estricta por id y número de movimiento
       const seenIds = new Set<number>();
       const seenNumbers = new Set<string>();
       const combined: WarehouseEntry[] = [];
 
-      for (const entry of [...validApiList, ...pendingOffline]) {
+      for (const entry of [...enrichedApiList, ...localList.filter((e: any) => e.isPendingSync === true)]) {
         const idKey = entry.id;
         const numKey = (entry.movementNumber || '').trim().toUpperCase();
 
@@ -113,15 +128,17 @@ export class WarehouseEntryService {
         combined.push(entry);
       }
 
-      combined.sort(
+      const grouped = groupWarehouseMovements(combined);
+      grouped.sort(
         (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
       );
-      return { success: true, data: combined };
+      return { success: true, data: grouped };
     }
 
     // Offline fallback: load strictly from local storage
     const localList = this.getLocalEntries().map((e) => normalizeWarehouseMovement<WarehouseEntry>(e));
-    return { success: true, data: localList };
+    const groupedLocal = groupWarehouseMovements(localList);
+    return { success: true, data: groupedLocal };
   }
 
   async getEntry(id: number): Promise<ApiResponse<WarehouseEntry>> {
@@ -202,25 +219,59 @@ export class WarehouseEntryService {
     let createdBackendId: number | undefined;
 
     try {
-      const headerPayload = {
+      const headerPayload: any = {
         warehouseId: targetWhId,
-        conceptId: entry.conceptId,
+        conceptId: Number(entry.conceptId),
         commentary: entry.commentary || '',
+        quantity: totalQty,
         totalQuantity: totalQty,
+        qty: totalQty,
+        cost: totalCost,
         totalCost: totalCost,
-        productDetails: entry.productDetails,
+        unitCost: totalQty > 0 ? Math.round((totalCost / totalQty) * 100) / 100 : 0,
+        price: totalCost,
+        movementNumber: newEntry.movementNumber,
+        reference: newEntry.movementNumber,
+        productId: entry.productDetails?.[0]?.productId || 0,
+        productDetails: (entry.productDetails || []).map((it) => ({
+          productId: it.productId,
+          productName: it.productName,
+          barCode: it.barCode,
+          quantity: it.quantity,
+          qty: it.quantity,
+          cost: it.cost || 0,
+          unitCost: it.cost || 0,
+          price: it.price || it.cost || 0,
+          warehouseId: targetWhId,
+        })),
+        details: (entry.productDetails || []).map((it) => ({
+          productId: it.productId,
+          productName: it.productName,
+          barCode: it.barCode,
+          quantity: it.quantity,
+          qty: it.quantity,
+          cost: it.cost || 0,
+          unitCost: it.cost || 0,
+          price: it.price || it.cost || 0,
+          warehouseId: targetWhId,
+        })),
       };
       const res = await this.api.post<any, any>('/WarehouseEntry', headerPayload);
       backendSuccess = true;
       const resData = res?.data ?? res;
       if (resData?.id) createdBackendId = Number(resData.id);
     } catch {
-      // Fallback a endpoints por renglón
+      // Fallback a endpoints por renglón garantizando costo y referencia
       for (const item of entry.productDetails || []) {
         const payload = {
           productId: item.productId,
           warehouseId: targetWhId,
           quantity: item.quantity,
+          cost: item.cost || 0,
+          unitCost: item.cost || 0,
+          price: item.price || item.cost || 0,
+          movementNumber: newEntry.movementNumber,
+          reference: newEntry.movementNumber,
           isPackage: false,
           packageFactor: 1,
         };
@@ -263,13 +314,18 @@ export class WarehouseEntryService {
       newEntry.movementNumber = `ENT-${String(createdBackendId).padStart(6, '0')}`;
     }
 
-    // 3. Persistir en almacenamiento local SOLO si el backend no pudo ser alcanzado (modo offline)
+    // 3. Persistir SIEMPRE en almacenamiento local para preservar los múltiples renglones y costos reales
     if (!backendSuccess) {
       (newEntry as any).isPendingSync = true;
-      const currentList = this.getLocalEntries();
-      currentList.unshift(newEntry);
-      this.saveLocalEntries(currentList);
     }
+    const currentList = this.getLocalEntries();
+    const existingIdx = currentList.findIndex(e => e.id === newEntry.id || (e.movementNumber && e.movementNumber === newEntry.movementNumber));
+    if (existingIdx !== -1) {
+      currentList[existingIdx] = newEntry;
+    } else {
+      currentList.unshift(newEntry);
+    }
+    this.saveLocalEntries(currentList);
 
     // 4. Aumentar stock de forma atómica en el inventario local por almacén
     for (const item of entry.productDetails || []) {

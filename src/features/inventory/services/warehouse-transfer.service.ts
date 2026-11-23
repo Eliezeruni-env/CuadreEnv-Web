@@ -5,7 +5,7 @@ import { WarehouseService } from './warehouse.service';
 import { ProductService } from '../../products/services/product.service';
 import type { ApiResponse } from '../../cuadreEnv/types/api';
 import type { WarehouseTransfer, WarehouseMovementHeader } from '../../../app/models/movement';
-import { normalizeWarehouseMovement } from '../utils/movement-normalizer';
+import { normalizeWarehouseMovement, groupWarehouseMovements } from '../utils/movement-normalizer';
 
 const TRANSFERS_STORAGE_KEY = 'cuadreenv_warehouse_transfers_db';
 
@@ -86,21 +86,36 @@ export class WarehouseTransferService {
     });
 
     if (isApiConnected) {
-      // Backend is online and authoritative.
-      // Purge any stale non-pending local entries to eliminate past duplicates
-      this.clearStaleLocalTransfers();
+      const localList = this.getLocalTransfers().map((t) => normalizeWarehouseMovement<WarehouseTransfer>(t));
+      const localMap = new Map<string, WarehouseTransfer>();
+      for (const loc of localList) {
+        if (loc.id) localMap.set(String(loc.id), loc);
+        if (loc.movementNumber) localMap.set(loc.movementNumber.trim().toUpperCase(), loc);
+      }
 
-      // Only append pending offline entries that failed to reach the server
-      const pendingOffline = this.getLocalTransfers()
-        .filter((t: any) => t.isPendingSync === true)
-        .map((t) => normalizeWarehouseMovement<WarehouseTransfer>(t));
+      // Enrich remote entries with richer local productDetails if present
+      const enrichedApiList = validApiList.map((remote) => {
+        const idKey = remote.id ? String(remote.id) : '';
+        const numKey = (remote.movementNumber || '').trim().toUpperCase();
+        const localMatch = (idKey && localMap.get(idKey)) || (numKey && localMap.get(numKey));
+
+        if (localMatch && (localMatch.productDetails?.length || 0) > (remote.productDetails?.length || 0)) {
+          return {
+            ...remote,
+            productDetails: localMatch.productDetails,
+            totalQuantity: localMatch.totalQuantity || remote.totalQuantity,
+            totalCost: localMatch.totalCost || remote.totalCost,
+          };
+        }
+        return remote;
+      });
 
       // Deduplicación estricta por id y número de movimiento
       const seenIds = new Set<number>();
       const seenNumbers = new Set<string>();
       const combined: WarehouseTransfer[] = [];
 
-      for (const transfer of [...validApiList, ...pendingOffline]) {
+      for (const transfer of [...enrichedApiList, ...localList.filter((t: any) => t.isPendingSync === true)]) {
         const idKey = transfer.id;
         const numKey = (transfer.movementNumber || '').trim().toUpperCase();
 
@@ -112,14 +127,16 @@ export class WarehouseTransferService {
         combined.push(transfer);
       }
 
-      combined.sort(
+      const grouped = groupWarehouseMovements(combined);
+      grouped.sort(
         (a, b) => new Date(b.createDate || 0).getTime() - new Date(a.createDate || 0).getTime()
       );
-      return { success: true, data: combined };
+      return { success: true, data: grouped };
     }
 
     const localList = this.getLocalTransfers().map((t) => normalizeWarehouseMovement<WarehouseTransfer>(t));
-    return { success: true, data: localList };
+    const groupedLocal = groupWarehouseMovements(localList);
+    return { success: true, data: groupedLocal };
   }
 
   async getTransfer(id: number): Promise<ApiResponse<WarehouseTransfer>> {
@@ -204,19 +221,50 @@ export class WarehouseTransferService {
     };
 
     // 1. Post to backend endpoint POST /WarehouseTransfer (intenta encabezado completo primero)
+    let backendSuccess = false;
     let createdBackendId: number | undefined;
 
     try {
-      const headerPayload = {
+      const headerPayload: any = {
         warehouseOfOriginId: originId,
         destinationWarehouseId: destinationId,
-        conceptId: transfer.conceptId,
+        fromWarehouseId: originId,
+        toWarehouseId: destinationId,
+        conceptId: Number(transfer.conceptId),
         commentary: transfer.commentary || '',
+        quantity: totalQty,
         totalQuantity: totalQty,
+        qty: totalQty,
+        cost: totalCost,
         totalCost: totalCost,
-        productDetails: transfer.productDetails,
+        unitCost: totalQty > 0 ? Math.round((totalCost / totalQty) * 100) / 100 : 0,
+        price: totalCost,
+        movementNumber: newTransfer.movementNumber,
+        reference: newTransfer.movementNumber,
+        productId: transfer.productDetails?.[0]?.productId || 0,
+        productDetails: (transfer.productDetails || []).map((it) => ({
+          productId: it.productId,
+          productName: it.productName,
+          barCode: it.barCode,
+          quantity: it.quantity,
+          qty: it.quantity,
+          cost: it.cost || 0,
+          unitCost: it.cost || 0,
+          price: it.price || it.cost || 0,
+        })),
+        details: (transfer.productDetails || []).map((it) => ({
+          productId: it.productId,
+          productName: it.productName,
+          barCode: it.barCode,
+          quantity: it.quantity,
+          qty: it.quantity,
+          cost: it.cost || 0,
+          unitCost: it.cost || 0,
+          price: it.price || it.cost || 0,
+        })),
       };
       const res = await this.api.post<any, any>('/WarehouseTransfer', headerPayload);
+      backendSuccess = true;
       const resData = res?.data ?? res;
       if (resData?.id) createdBackendId = Number(resData.id);
     } catch {
@@ -227,7 +275,14 @@ export class WarehouseTransferService {
             productId: item.productId,
             fromWarehouseId: originId,
             toWarehouseId: destinationId,
+            warehouseOfOriginId: originId,
+            destinationWarehouseId: destinationId,
             quantity: item.quantity,
+            qty: item.quantity,
+            cost: item.cost || 0,
+            unitCost: item.cost || 0,
+            movementNumber: newTransfer.movementNumber,
+            reference: newTransfer.movementNumber,
           });
           const resData = res?.data ?? res;
           if (resData?.id && !createdBackendId) createdBackendId = Number(resData.id);
@@ -248,10 +303,15 @@ export class WarehouseTransferService {
 
     // Persist in local storage for instant availability and deduplication
     const currentTransfers = this.getLocalTransfers();
-    if (!currentTransfers.some(t => t.id === newTransfer.id || (t.movementNumber && t.movementNumber === newTransfer.movementNumber))) {
+    const existingIndex = currentTransfers.findIndex(
+      (t) => t.id === newTransfer.id || (t.movementNumber && t.movementNumber === newTransfer.movementNumber)
+    );
+    if (existingIndex >= 0) {
+      currentTransfers[existingIndex] = newTransfer;
+    } else {
       currentTransfers.unshift(newTransfer);
-      this.saveLocalTransfers(currentTransfers);
     }
+    this.saveLocalTransfers(currentTransfers);
 
     // 2. Atomic Stock Update in local cache: decrease at origin, increase at destination
     for (const item of transfer.productDetails) {

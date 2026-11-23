@@ -329,9 +329,14 @@ export class WarehouseMovementFormComponent implements OnInit {
     const resolvedStock = this.activeWarehouseStockMap.get(p.id) ?? p.stock ?? 0;
     this.selectedProduct = { ...p, stockInWarehouse: resolvedStock, stock: resolvedStock };
     this.searchTerm = `${p.description} (${p.barcode || 'S/C'})`;
+    const metrics = this.productService.getProductMetrics(p.id);
     const resolvedCost = Number(p.cost) > 0
       ? Number(p.cost)
-      : (Number(p.priceList) > 0 ? Math.round((Number(p.priceList) / 1.35) * 100) / 100 : 0);
+      : (metrics?.cost && Number(metrics.cost) > 0
+          ? Number(metrics.cost)
+          : (Number(p.priceList) > 0
+              ? Math.round((Number(p.priceList) / 1.35) * 100) / 100
+              : (Number((p as any).price) > 0 ? Math.round((Number((p as any).price) / 1.35) * 100) / 100 : 0)));
     this.addCost = resolvedCost;
     this.addQuantity = 1;
     this.isSearchDropdownOpen = false;
@@ -418,7 +423,15 @@ export class WarehouseMovementFormComponent implements OnInit {
     if (!this.selectedProduct) return;
 
     const qty = Number(this.addQuantity) || 1;
-    const cost = Number(this.addCost) >= 0 ? Number(this.addCost) : (this.selectedProduct.cost || 0);
+    const metrics = this.selectedProduct ? this.productService.getProductMetrics(this.selectedProduct.id) : null;
+    const fallbackCost = Number(this.selectedProduct?.cost) > 0
+      ? Number(this.selectedProduct!.cost)
+      : (metrics?.cost && Number(metrics.cost) > 0
+          ? Number(metrics.cost)
+          : (Number(this.selectedProduct?.priceList) > 0
+              ? Math.round((Number(this.selectedProduct!.priceList) / 1.35) * 100) / 100
+              : (Number((this.selectedProduct as any)?.price) > 0 ? Math.round((Number((this.selectedProduct as any).price) / 1.35) * 100) / 100 : 0)));
+    const cost = Number(this.addCost) > 0 ? Number(this.addCost) : fallbackCost;
 
     // Validate outlet/transfer stock
     if (this.mode !== 'entry' && this.selectedProduct.stock !== undefined) {
@@ -490,7 +503,14 @@ export class WarehouseMovementFormComponent implements OnInit {
         ? (this.activeWarehouseStockMap.get(p.id) || 0)
         : (p.stock || 0);
       const existingInTable = this.productDetails.find((d) => d.productId === p.id);
-      const cost = p.cost > 0 ? p.cost : (p.priceList ? Math.round((p.priceList / 1.35) * 100) / 100 : 0);
+      const metrics = this.productService.getProductMetrics(p.id);
+      const cost = Number(p.cost) > 0
+        ? Number(p.cost)
+        : (metrics?.cost && Number(metrics.cost) > 0
+            ? Number(metrics.cost)
+            : (Number(p.priceList) > 0
+                ? Math.round((Number(p.priceList) / 1.35) * 100) / 100
+                : (Number((p as any).price) > 0 ? Math.round((Number((p as any).price) / 1.35) * 100) / 100 : 0)));
 
       return {
         product: p,
@@ -563,7 +583,15 @@ export class WarehouseMovementFormComponent implements OnInit {
     selected.forEach((it) => {
       const p = it.product;
       const qty = Number(it.quantity) > 0 ? Number(it.quantity) : 1;
-      const cost = Number(it.cost) >= 0 ? Number(it.cost) : (p.cost || 0);
+      const metrics = this.productService.getProductMetrics(p.id);
+      const fallbackCost = Number(p.cost) > 0
+        ? Number(p.cost)
+        : (metrics?.cost && Number(metrics.cost) > 0
+            ? Number(metrics.cost)
+            : (Number(p.priceList) > 0
+                ? Math.round((Number(p.priceList) / 1.35) * 100) / 100
+                : (Number((p as any).price) > 0 ? Math.round((Number((p as any).price) / 1.35) * 100) / 100 : 0)));
+      const cost = Number(it.cost) > 0 ? Number(it.cost) : fallbackCost;
 
       const existingIdx = this.productDetails.findIndex((d) => d.productId === p.id);
       if (existingIdx !== -1) {
