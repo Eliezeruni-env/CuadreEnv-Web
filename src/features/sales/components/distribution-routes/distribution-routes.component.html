@@ -125,23 +125,26 @@
     </div>
 
     <!-- Main 2-Column Layout (Exact Match Image 3) -->
-    <div class="row g-4">
+    <div class="row g-4 align-items-stretch">
       <!-- Left Column: Rutas List -->
-      <div class="col-lg-4 col-xl-3">
+      <div class="col-lg-5 col-xl-4">
         <div class="card border-0 shadow-sm rounded-4 p-3.5 bg-white h-100">
-          <h5 class="fw-bold text-dark mb-3">Rutas</h5>
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="fw-bold text-dark mb-0">Rutas</h5>
+            <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2.5 py-1 small">
+              {{ routes().length }} {{ routes().length === 1 ? 'ruta' : 'rutas' }}
+            </span>
+          </div>
 
           <!-- Search input -->
-          <div class="input-group mb-3 search-input-box">
-            <span class="input-group-text bg-white border-end-0 text-muted">
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-            </span>
+          <div class="position-relative mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
             <input
               type="text"
-              class="form-control border-start-0 ps-0"
+              class="form-control ps-5"
               placeholder="Buscar ruta, zona o chofer..."
               [ngModel]="searchRouteTerm()"
               (ngModelChange)="searchRouteTerm.set($event)"
@@ -149,7 +152,7 @@
           </div>
 
           <!-- Routes Item List -->
-          <div class="d-flex flex-column gap-2">
+          <div class="d-flex flex-column gap-2 flex-grow-1">
             @for (route of filteredRoutes(); track route.id) {
               <div
                 class="route-select-card p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer"
@@ -188,16 +191,19 @@
                 </div>
               </div>
             } @empty {
-              <div class="text-center py-4 text-muted small">
-                No hay rutas registradas.
+              <div class="text-center py-5 px-3 text-muted my-auto">
+                <p class="small mb-3">No hay rutas registradas para esta fecha.</p>
+                <button type="button" class="btn btn-sm btn-outline-primary" (click)="openCreateRouteModal()">
+                  + Crear ruta
+                </button>
               </div>
             }
           </div>
         </div>
       </div>
 
-      <!-- Right Column: Route Details & Products (Exact Match Image 3) -->
-      <div class="col-lg-8 col-xl-9">
+      <!-- Right Column: Route Details & Products -->
+      <div class="col-lg-7 col-xl-8">
         @if (activeRoute(); as r) {
           <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
             <!-- Header of active route -->

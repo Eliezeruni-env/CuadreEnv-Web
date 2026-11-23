@@ -124,74 +124,99 @@
     </button>
   </div>
 
-  <!-- Filter Toolbar -->
-  <div class="toolbar-box">
-    <div class="search-input-wrap">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
-        <circle cx="11" cy="11" r="8"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-      </svg>
-      <input
-        type="text"
-        class="search-input"
-        placeholder="Buscar cotización o cliente..."
-        [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set($event)"
-      />
+  <!-- Filter Toolbar (Diseño Unificado Estilo Billing) -->
+  <div class="card border-0 shadow-2xs rounded-3 p-3 mb-3 bg-white">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-3">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white border-end-0 text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input
+            type="text"
+            class="form-control border-start-0 ps-1"
+            placeholder="Buscar cotización o cliente..."
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+          />
+        </div>
+      </div>
+
+      <div class="col-md-3 col-lg-2">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white border-end-0 text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </span>
+          <select class="form-select border-start-0 ps-1" [ngModel]="dateRangeFilter()" (ngModelChange)="dateRangeFilter.set($event)">
+            <option value="ALL">Rango de fechas</option>
+            <option value="TODAY">Hoy</option>
+            <option value="THIS_WEEK">Esta semana</option>
+            <option value="THIS_MONTH">Este mes</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="col-md-2">
+        <div class="d-flex align-items-center gap-1.5">
+          <span class="small text-secondary fw-medium">Estado</span>
+          <select class="form-select form-select-sm" [ngModel]="selectedStatusFilter()" (ngModelChange)="selectedStatusFilter.set($event)">
+            <option value="ALL">Todos</option>
+            <option value="DRAFT">Borrador</option>
+            <option value="SENT">Enviada</option>
+            <option value="APPROVED">Aprobada</option>
+            <option value="CONVERTED">Convertida</option>
+            <option value="EXPIRED">Vencida</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="col-md-4 col-lg-5 d-flex justify-content-end align-items-center gap-1.5 ms-auto">
+        <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" (click)="exportQuotesCsv()" title="Exportar cotizaciones a archivo CSV">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Exportar</span>
+        </button>
+      </div>
     </div>
 
-    <div class="dropdown-filter">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="filter-icon">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-        <line x1="16" y1="2" x2="16" y2="6"></line>
-        <line x1="8" y1="2" x2="8" y2="6"></line>
-        <line x1="3" y1="10" x2="21" y2="10"></line>
-      </svg>
-      <select class="form-select filter-select" [ngModel]="dateRangeFilter()" (ngModelChange)="dateRangeFilter.set($event)">
-        <option value="ALL">Rango de fechas</option>
-        <option value="TODAY">Hoy</option>
-        <option value="THIS_WEEK">Esta semana</option>
-        <option value="THIS_MONTH">Este mes</option>
-      </select>
-    </div>
-
-    <div class="dropdown-filter">
-      <select class="form-select filter-select" [ngModel]="selectedStatusFilter()" (ngModelChange)="selectedStatusFilter.set($event)">
-        <option value="ALL">Estado</option>
-        <option value="DRAFT">Borrador</option>
-        <option value="SENT">Enviada</option>
-        <option value="APPROVED">Aprobada</option>
-        <option value="CONVERTED">Convertida</option>
-        <option value="EXPIRED">Vencida</option>
-      </select>
-    </div>
-
-    <button class="btn btn-filter-more">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-      </svg>
-      <span>Más filtros</span>
-    </button>
-
-    <div class="toolbar-spacer"></div>
-
-    <button class="btn btn-export">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-        <polyline points="7 10 12 15 17 10"></polyline>
-        <line x1="12" y1="15" x2="12" y2="3"></line>
-      </svg>
-      <span>Exportar</span>
-    </button>
-
-    <button class="btn btn-columns">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10"></line>
-        <line x1="12" y1="20" x2="12" y2="4"></line>
-        <line x1="6" y1="20" x2="6" y2="14"></line>
-      </svg>
-      <span>Columnas</span>
-    </button>
+    <!-- Active filter chips row -->
+    @if (hasActiveFilters()) {
+      <div class="d-flex align-items-center gap-2 mt-2 pt-2 border-top">
+        <span class="small text-muted">Filtros activos:</span>
+        @if (selectedStatusFilter() !== 'ALL') {
+          <span class="badge bg-primary-subtle text-primary rounded-pill d-inline-flex align-items-center gap-1 px-2.5 py-1">
+            Estado: {{ getStatusLabel(selectedStatusFilter()) }}
+            <button type="button" class="btn-close btn-close-xs" (click)="selectedStatusFilter.set('ALL')"></button>
+          </span>
+        }
+        @if (dateRangeFilter() !== 'ALL') {
+          <span class="badge bg-primary-subtle text-primary rounded-pill d-inline-flex align-items-center gap-1 px-2.5 py-1">
+            Fecha: {{ dateRangeFilter() }}
+            <button type="button" class="btn-close btn-close-xs" (click)="dateRangeFilter.set('ALL')"></button>
+          </span>
+        }
+        @if (searchQuery().trim()) {
+          <span class="badge bg-primary-subtle text-primary rounded-pill d-inline-flex align-items-center gap-1 px-2.5 py-1">
+            Búsqueda: "{{ searchQuery() }}"
+            <button type="button" class="btn-close btn-close-xs" (click)="searchQuery.set('')"></button>
+          </span>
+        }
+        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none small text-primary ms-2" (click)="clearFilters()">
+          Limpiar filtros
+        </button>
+      </div>
+    }
   </div>
 
   <!-- Table Card -->

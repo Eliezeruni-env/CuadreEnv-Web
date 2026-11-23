@@ -135,19 +135,21 @@
     </div>
   </div>
 
-  <!-- Filter Toolbar (Exact Match Image 4) -->
-  <div class="services-filter-box card border rounded-4 p-3 bg-white shadow-2xs mb-4">
+  <!-- Filter Toolbar (Diseño Unificado Estilo Billing) -->
+  <div class="card border-0 shadow-2xs rounded-3 p-3 mb-4 bg-white">
     <div class="row g-2 align-items-center">
       <!-- Search Input -->
       <div class="col-12 col-md-4">
-        <div class="search-input-wrap position-relative">
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon-pos position-absolute top-50 start-0 translate-middle-y ms-3 text-muted">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white border-end-0 text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
           <input
             type="text"
-            class="form-control ps-5"
+            class="form-control border-start-0 ps-1"
             placeholder="Buscar por código, nombre o descripción..."
             [(ngModel)]="searchQuery"
           />
@@ -156,28 +158,34 @@
 
       <!-- Category Filter -->
       <div class="col-12 col-sm-6 col-md-3">
-        <select class="form-select custom-select" [(ngModel)]="selectedCategoryId">
-          <option [ngValue]="null">Todas las categorías</option>
-          @for (cat of categories(); track cat.id) {
-            <option [ngValue]="cat.id">{{ cat.name || cat.description }}</option>
-          }
-        </select>
+        <div class="d-flex align-items-center gap-1.5">
+          <span class="small text-secondary fw-medium">Categoría</span>
+          <select class="form-select form-select-sm" [(ngModel)]="selectedCategoryId">
+            <option [ngValue]="null">Todas las categorías</option>
+            @for (cat of categories(); track cat.id) {
+              <option [ngValue]="cat.id">{{ cat.name || cat.description }}</option>
+            }
+          </select>
+        </div>
       </div>
 
       <!-- Status Filter -->
       <div class="col-12 col-sm-6 col-md-2">
-        <select class="form-select custom-select" [(ngModel)]="statusFilter">
-          <option value="ALL">Todos los estados</option>
-          <option value="ACTIVE">Activo</option>
-          <option value="INACTIVE">Inactivo</option>
-        </select>
+        <div class="d-flex align-items-center gap-1.5">
+          <span class="small text-secondary fw-medium">Estado</span>
+          <select class="form-select form-select-sm" [(ngModel)]="statusFilter">
+            <option value="ALL">Todos</option>
+            <option value="ACTIVE">Activo</option>
+            <option value="INACTIVE">Inactivo</option>
+          </select>
+        </div>
       </div>
 
-      <!-- Action Buttons: Reload & Columns -->
+      <!-- Action Buttons: Reload -->
       <div class="col-12 col-md-3 d-flex justify-content-md-end align-items-center gap-2">
         <button
           type="button"
-          class="btn btn-outline-secondary bg-white text-dark d-flex align-items-center gap-1.5 px-3 py-2 fw-medium rounded-3"
+          class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
           (click)="loadServices()"
           [disabled]="isLoading()"
           data-tooltip="Actualizar lista de servicios"
@@ -185,7 +193,7 @@
           @if (isLoading()) {
             <c-spinner size="sm"></c-spinner>
           } @else {
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="23 4 23 10 17 10"></polyline>
               <polyline points="1 20 1 14 7 14"></polyline>
               <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
@@ -193,206 +201,8 @@
           }
           <span>Actualizar</span>
         </button>
-
-        <button
-          type="button"
-          class="btn btn-outline-secondary bg-white text-dark d-flex align-items-center gap-1.5 px-3 py-2 fw-medium rounded-3"
-          data-tooltip="Configurar columnas visibles"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="12" y1="3" x2="12" y2="21"></line>
-          </svg>
-          <span>Columnas</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </button>
       </div>
     </div>
   </div>
 
-  <!-- Services Table Card (Exact Match Image 4) -->
-  <div class="card border rounded-4 bg-white shadow-2xs overflow-hidden mb-4">
-    <div class="table-responsive">
-      <table class="table align-middle mb-0 services-table">
-        <thead>
-          <tr>
-            <th class="ps-4 th-sortable" (click)="toggleSort('code')">
-              CÓDIGO
-              <span class="sort-indicator" [class.active]="sortColumn() === 'code'">
-                {{ sortColumn() === 'code' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
-              </span>
-            </th>
-            <th class="th-sortable" (click)="toggleSort('name')">
-              SERVICIO
-              <span class="sort-indicator" [class.active]="sortColumn() === 'name'">
-                {{ sortColumn() === 'name' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
-              </span>
-            </th>
-            <th class="th-sortable" (click)="toggleSort('category')">
-              CATEGORÍA
-              <span class="sort-indicator" [class.active]="sortColumn() === 'category'">
-                {{ sortColumn() === 'category' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
-              </span>
-            </th>
-            <th class="th-sortable" (click)="toggleSort('price')">
-              TARIFA
-              <span class="sort-indicator" [class.active]="sortColumn() === 'price'">
-                {{ sortColumn() === 'price' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
-              </span>
-            </th>
-            <th class="th-sortable" (click)="toggleSort('cost')">
-              COSTO BASE
-              <span class="sort-indicator" [class.active]="sortColumn() === 'cost'">
-                {{ sortColumn() === 'cost' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
-              </span>
-            </th>
-            <th class="th-sortable" (click)="toggleSort('margin')">
-              MARGEN BRUTO
-              <span class="sort-indicator" [class.active]="sortColumn() === 'margin'">
-                {{ sortColumn() === 'margin' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
-              </span>
-            </th>
-            <th class="th-sortable" (click)="toggleSort('status')">
-              ESTADO
-              <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
-                {{ sortColumn() === 'status' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
-              </span>
-            </th>
-            <th class="text-end pe-4" style="width: 140px;">ACCIONES</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of filteredServices(); track item.id || item.code) {
-            <tr class="service-table-row">
-              <!-- Code -->
-              <td class="ps-4">
-                <span class="service-code-link font-monospace fw-semibold">{{ item.code }}</span>
-              </td>
-
-              <!-- Service Name -->
-              <td>
-                <span class="fw-semibold text-dark">{{ item.name }}</span>
-              </td>
-
-              <!-- Category Badge (Purple pill) -->
-              <td>
-                <span class="category-pill-badge">
-                  {{ item.categoryName || 'General' }}
-                </span>
-              </td>
-
-              <!-- Rate / Price -->
-              <td class="font-monospace fw-semibold text-dark">
-                RD${{ item.price | number: '1.2-2' }}
-              </td>
-
-              <!-- Base Cost -->
-              <td class="font-monospace text-secondary">
-                RD${{ (item.cost || 0) | number: '1.2-2' }}
-              </td>
-
-              <!-- Margin -->
-              <td class="fw-semibold text-dark">
-                {{ getProfitMargin(item) }}%
-              </td>
-
-              <!-- Status -->
-              <td>
-                @if (item.isActive) {
-                  <span class="status-active-badge d-inline-flex align-items-center gap-1.5" (click)="toggleStatus(item)" data-tooltip="Servicio activo. Clic para desactivar">
-                    <span class="dot-active">●</span>
-                    <span>Activo</span>
-                  </span>
-                } @else {
-                  <span class="status-inactive-badge d-inline-flex align-items-center gap-1.5" (click)="toggleStatus(item)" data-tooltip="Servicio inactivo. Clic para activar">
-                    <span>○</span>
-                    <span>Inactivo</span>
-                  </span>
-                }
-              </td>
-
-              <!-- Actions (Consistent with Sales: Ver detalles, Editar, Eliminar) -->
-              <td class="text-end pe-4">
-                <div class="d-inline-flex align-items-center gap-1.5 justify-content-end">
-                  <button
-                    type="button"
-                    class="btn-action-square btn-action-view"
-                    (click)="openViewModal(item)"
-                    title="Ver detalles del servicio"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                      <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                  </button>
-
-                  <button
-                    type="button"
-                    class="btn-action-square btn-action-edit"
-                    (click)="openEditModal(item)"
-                    title="Editar servicio"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M12 20h9"></path>
-                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                    </svg>
-                  </button>
-
-                  <button
-                    type="button"
-                    class="btn-action-square btn-action-danger"
-                    (click)="deleteService(item)"
-                    title="Eliminar servicio"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      <line x1="10" y1="11" x2="10" y2="17"></line>
-                      <line x1="14" y1="11" x2="14" y2="17"></line>
-                    </svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Table Footer with Pagination (Exact Match Image 4) -->
-    <div class="card-footer bg-white border-top p-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
-      <span class="text-secondary small">
-        Mostrando 1 – {{ filteredServices().length }} de {{ totalCount() }} servicios
-      </span>
-
-      <div class="d-flex align-items-center gap-3">
-        <div class="d-flex align-items-center gap-2">
-          <span class="text-secondary small">Filas por página:</span>
-          <select class="form-select form-select-sm custom-select" style="width: 70px;">
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-          </select>
-        </div>
-
-        <div class="pagination-buttons d-flex align-items-center gap-1">
-          <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1" disabled data-tooltip="Página anterior">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-          </button>
-          <button type="button" class="btn btn-sm btn-navy px-2.5 py-1 fw-bold">1</button>
-          <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1" disabled data-tooltip="Página siguiente">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bottom Brand Copyright Footer (Exact Match Image 4) -->
-  <div class="footer-copyright text-muted small mt-4">
-    <strong class="text-dark">CuadreEnv</strong> © 2026 creativeLabs. Todos los derechos reservados.
-  </div>
-
-  <!-- Modal for Create/Edit -->
-  <app-service-modal (serviceSaved)="onServiceSaved()"></app-service-modal>
-</div>
+>

@@ -29,6 +29,48 @@ export class QuotationListComponent implements OnInit {
   selectedStatusFilter = signal<string>('ALL');
   dateRangeFilter = signal<string>('ALL');
 
+  readonly hasActiveFilters = computed(() => {
+    return (
+      this.searchQuery().trim() !== '' ||
+      this.selectedStatusFilter() !== 'ALL' ||
+      this.dateRangeFilter() !== 'ALL'
+    );
+  });
+
+  clearFilters(): void {
+    this.searchQuery.set('');
+    this.selectedStatusFilter.set('ALL');
+    this.dateRangeFilter.set('ALL');
+  }
+
+  exportQuotesCsv(): void {
+    const list = this.filteredQuotations();
+    if (list.length === 0) {
+      this.notificationService.warning('No hay cotizaciones para exportar.');
+      return;
+    }
+    const headers = ['Cotizacion', 'Cliente', 'Fecha Emision', 'Fecha Vencimiento', 'Subtotal', 'ITBIS', 'Total', 'Estado'];
+    const rows = list.map((q) => [
+      q.quotationNumber,
+      `"${q.customerName.replace(/"/g, '""')}"`,
+      q.issueDate,
+      q.expirationDate,
+      (q.subtotal || 0).toFixed(2),
+      (q.itbisAmount || 0).toFixed(2),
+      (q.total || 0).toFixed(2),
+      this.getStatusLabel(q.status),
+    ]);
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cotizaciones_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    this.notificationService.success('Cotizaciones exportadas exitosamente.');
+  }
+
   // Master-Detail expansion
   expandedQuotationId = signal<number | null>(null);
 
@@ -371,7 +413,7 @@ export class QuotationListComponent implements OnInit {
     }
   }
 
-  getStatusLabel(status: QuotationStatus): string {
+  getStatusLabel(status: QuotationStatus | string): string {
     switch (status) {
       case 'DRAFT':
         return 'Borrador';

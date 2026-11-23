@@ -104,6 +104,20 @@ export class ReceivablesComponent implements OnInit {
   selectedStatus = signal<string>('');
   selectedSort = signal<string>('newest');
 
+  readonly hasActiveFilters = computed(() => {
+    return (
+      this.searchQuery().trim() !== '' ||
+      this.selectedStatus() !== '' ||
+      this.selectedSort() !== 'newest'
+    );
+  });
+
+  clearFilters(): void {
+    this.searchQuery.set('');
+    this.selectedStatus.set('');
+    this.selectedSort.set('newest');
+  }
+
   // Table Column Sorting
   sortColumn = signal<string>('client');
   sortDirection = signal<'asc' | 'desc'>('asc');

@@ -202,56 +202,25 @@ export class BankReconciliationComponent implements OnInit {
         if (raw) return JSON.parse(raw);
       }
     } catch {}
-    return [
-      {
-        id: 'rec-1',
-        date: '15 ene 2025',
-        bankReference: 'TRF-00083421',
-        invoiceNumber: 'FAC-0158',
-        customerName: 'Comercial Norte, S.R.L.',
-        destinationBank: 'Banco Popular',
-        registeredAmount: 6000.0,
-        statementAmount: 6000.0,
-        difference: 0.0,
-        status: 'Conciliada',
-      },
-      {
-        id: 'rec-2',
-        date: '16 ene 2025',
-        bankReference: 'TRF-00083422',
-        invoiceNumber: 'FAC-0159',
-        customerName: 'Industrias del Caribe, S.A.',
-        destinationBank: 'Banco BHD',
-        registeredAmount: 4000.0,
-        statementAmount: 4000.0,
-        difference: 0.0,
-        status: 'Conciliada',
-      },
-      {
-        id: 'rec-3',
-        date: '17 ene 2025',
-        bankReference: '—',
-        invoiceNumber: 'FAC-0160',
-        customerName: 'Servicios Globales, S.R.L.',
-        destinationBank: 'Banco Popular',
-        registeredAmount: 6000.0,
-        statementAmount: null,
-        difference: null,
-        status: 'Pendiente',
-      },
-      {
-        id: 'rec-4',
-        date: '18 ene 2025',
-        bankReference: 'TRF-00083424',
-        invoiceNumber: 'FAC-0161',
-        customerName: 'Distribuidora Caribe, S.A.',
-        destinationBank: 'Banco Santa Cruz',
-        registeredAmount: 2500.0,
-        statementAmount: 2000.0,
-        difference: 500.0,
-        status: 'Discrepancia',
-      },
-    ];
+    return [];
+  }
+
+  readonly hasActiveFilters = computed(() => {
+    return (
+      this.searchTerm().trim() !== '' ||
+      this.selectedBank() !== 'ALL' ||
+      this.selectedStatus() !== 'ALL' ||
+      this.selectedPeriod() !== 'ALL' ||
+      this.activeTab() !== 'TODAS'
+    );
+  });
+
+  clearFilters(): void {
+    this.searchTerm.set('');
+    this.selectedBank.set('ALL');
+    this.selectedStatus.set('ALL');
+    this.selectedPeriod.set('ALL');
+    this.activeTab.set('TODAS');
   }
 
   saveRecords(items: BankReconciliationItem[]): void {
@@ -270,14 +239,6 @@ export class BankReconciliationComponent implements OnInit {
     } finally {
       this.isLoading.set(false);
     }
-  }
-
-  clearFilters(): void {
-    this.searchTerm.set('');
-    this.selectedBank.set('ALL');
-    this.selectedStatus.set('ALL');
-    this.selectedPeriod.set('ALL');
-    this.activeTab.set('TODAS');
   }
 
   // Conciliar Modal Action

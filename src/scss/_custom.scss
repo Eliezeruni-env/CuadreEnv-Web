@@ -746,6 +746,25 @@ app-default-header,
 }
 
 // Universal Subtle Scrollbars
+.shadow-2xs {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.filter-toolbar-card {
+  background: #ffffff !important;
+  border: 1px solid var(--ce-border, #e2e8f0) !important;
+  border-radius: var(--ce-radius-md, 8px) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+.btn-close-xs {
+  width: 0.5rem;
+  height: 0.5rem;
+  font-size: 0.5rem;
+  padding: 0;
+  background-size: 0.5rem;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
