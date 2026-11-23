@@ -6,42 +6,79 @@
 
 :root {
   /* ==========================================================================
+     0. CuadreEnv Corporate Executive SaaS Design Tokens (Reference Standard)
+     ========================================================================== */
+  --ce-primary: #111827;           /* Deep Corporate Navy (Sidebar & Structure) */
+  --ce-primary-light: #1E293B;     /* Secondary Dark Slate */
+  --ce-accent: #4F46E5;            /* Executive Indigo (Key Interactions, Focus, Selections) */
+  --ce-accent-hover: #4338CA;      /* Indigo Hover */
+  --ce-brand-red: #EF233C;         /* Corporate Logo Red Accent (Identity Details) */
+  --ce-brand-red-subtle: rgba(239, 35, 60, 0.08);
+
+  --ce-sidebar-bg: #111827;        /* Sidebar Background */
+  --ce-sidebar-text: #E2E8F0;      /* Sidebar Nav Text */
+  --ce-sidebar-muted: #94A3B8;     /* Sidebar Secondary/Icon Text */
+  --ce-sidebar-hover: #1E293B;     /* Sidebar Hover Item */
+  --ce-sidebar-active: #253047;    /* Sidebar Selected Item */
+  --ce-sidebar-indicator: #4F46E5; /* Active Nav Left Accent Bar */
+
+  --ce-background: #F4F6F9;        /* Soft Pearl Gray - Restful, Non-Fatiguing Canvas */
+  --ce-surface: #FFFFFF;           /* Pristine White Surfaces, Cards & Modals */
+  --ce-border: #E2E8F0;            /* Subtle Neutral Dividers & Outlines */
+  --ce-border-subtle: #F1F5F9;
+
+  --ce-text-primary: #0F172A;      /* High-Contrast Main Headings & Key Data */
+  --ce-text-secondary: #64748B;    /* Neutral Balanced Secondary & Meta Text */
+
+  --ce-success: #059669;           /* Positive/Settled Emerald */
+  --ce-success-bg: #ECFDF5;
+  --ce-warning: #D97706;           /* Alerts/Pending Amber */
+  --ce-warning-bg: #FFFBEB;
+  --ce-danger: #DC2626;            /* Overdue/Errors Crimson */
+  --ce-danger-bg: #FEF2F2;
+
+  --ce-radius-sm: 6px;
+  --ce-radius-md: 8px;
+  --ce-radius-lg: 12px;
+  --ce-radius-xl: 16px;
+
+  /* ==========================================================================
      1. Color Palette: Primary & Accents
      ========================================================================== */
-  --cuadre-color-primary: #2563eb;          /* Blue 600 */
-  --cuadre-color-primary-hover: #1d4ed8;    /* Blue 700 */
-  --cuadre-color-primary-light: #eff6ff;    /* Blue 50 */
-  --cuadre-color-primary-border: #bfdbfe;   /* Blue 200 */
+  --cuadre-color-primary: #4F46E5;          /* Executive Indigo */
+  --cuadre-color-primary-hover: #4338CA;
+  --cuadre-color-primary-light: #EEF2FF;
+  --cuadre-color-primary-border: #C7D2FE;
 
-  --cuadre-color-success: #10b981;          /* Emerald 500 */
-  --cuadre-color-success-hover: #059669;    /* Emerald 600 */
-  --cuadre-color-success-light: #ecfdf5;    /* Emerald 50 */
-  --cuadre-color-success-border: #a7f3d0;   /* Emerald 200 */
+  --cuadre-color-success: #059669;          /* Emerald */
+  --cuadre-color-success-hover: #047857;
+  --cuadre-color-success-light: #ECFDF5;
+  --cuadre-color-success-border: #A7F3D0;
 
-  --cuadre-color-warning: #f59e0b;          /* Amber 500 */
-  --cuadre-color-warning-hover: #d97706;    /* Amber 600 */
-  --cuadre-color-warning-light: #fffbeb;    /* Amber 50 */
-  --cuadre-color-warning-border: #fde68a;   /* Amber 200 */
+  --cuadre-color-warning: #D97706;          /* Amber */
+  --cuadre-color-warning-hover: #B45309;
+  --cuadre-color-warning-light: #FFFBEB;
+  --cuadre-color-warning-border: #FDE68A;
 
-  --cuadre-color-danger: #ef4444;           /* Red 500 */
-  --cuadre-color-danger-hover: #dc2626;     /* Red 600 */
-  --cuadre-color-danger-light: #fef2f2;     /* Red 50 */
-  --cuadre-color-danger-border: #fecaca;    /* Red 200 */
+  --cuadre-color-danger: #DC2626;           /* Crimson */
+  --cuadre-color-danger-hover: #B91C1C;
+  --cuadre-color-danger-light: #FEF2F2;
+  --cuadre-color-danger-border: #FECACA;
 
   /* ==========================================================================
      2. Neutral & High-Contrast Typography (WCAG AA Compliant)
      ========================================================================== */
-  --cuadre-text-main: #0f172a;              /* Slate 900 - Contrast 16:1 against #ffffff */
-  --cuadre-text-body: #1e293b;              /* Slate 800 - Contrast 12.5:1 against #ffffff */
-  --cuadre-text-muted: #475569;             /* Slate 600 - Contrast 5.5:1 against #ffffff (WCAG AA PASS) */
-  --cuadre-text-inverse: #ffffff;
+  --cuadre-text-main: var(--ce-text-primary, #0F172A);
+  --cuadre-text-body: #1E293B;
+  --cuadre-text-muted: var(--ce-text-secondary, #64748B);
+  --cuadre-text-inverse: #FFFFFF;
 
-  --cuadre-bg-body: #f8fafc;                /* Slate 50 */
-  --cuadre-bg-surface: #ffffff;
-  --cuadre-bg-subtle: #f1f5f9;              /* Slate 100 */
+  --cuadre-bg-body: var(--ce-background, #F4F6F9);
+  --cuadre-bg-surface: var(--ce-surface, #FFFFFF);
+  --cuadre-bg-subtle: #F1F5F9;
 
-  --cuadre-border-color: #e2e8f0;           /* Slate 200 */
-  --cuadre-border-color-focus: #3b82f6;     /* Blue 500 */
+  --cuadre-border-color: var(--ce-border, #E2E8F0);
+  --cuadre-border-color-focus: var(--ce-accent, #4F46E5);
 
   /* ==========================================================================
      3. Ergonomics & Tap Targets (Minimum 44px for Touch Screens & POS Keypads)

@@ -105,12 +105,20 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
 
       const res = await this.poService.getPurchaseOrders();
       const all = res?.data || [];
-      const found = all.find(
+      let found = all.find(
         (o) =>
           o.id === targetId ||
           o.orderNumber.toLowerCase() === term.toLowerCase() ||
-          `OC-${o.id}`.toLowerCase() === term.toLowerCase(),
+          `OC-${o.id}`.toLowerCase() === term.toLowerCase() ||
+          `OC-${String(o.id).padStart(5, '0')}`.toLowerCase() === term.toLowerCase(),
       );
+
+      if (!found && targetId > 0) {
+        const single = await this.poService.getPurchaseOrder(targetId);
+        if (single?.success && single.data) {
+          found = single.data;
+        }
+      }
 
       if (found) {
         this.selectOrderDirectly(found);

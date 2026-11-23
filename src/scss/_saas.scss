@@ -160,9 +160,131 @@ body {
   -webkit-user-select: all;
 }
 
-// Navigation sidebar tweaks
-.sidebar {
-  background-color: #0f172a !important; // Dark premium slate
+// ============================================================================
+// CUADRE-ENV CORPORATE EXECUTIVE SIDEBAR (Palette: #111827 / #253047 / #4F46E5)
+// ============================================================================
+.sidebar,
+c-sidebar.sidebar {
+  background-color: var(--ce-sidebar-bg, #111827) !important;
+  border-right: 1px solid #1F2937 !important;
+
+  .sidebar-header {
+    background-color: var(--ce-sidebar-bg, #111827) !important;
+    border-bottom: 1px solid #1F2937 !important;
+    padding: 0.85rem 1.25rem !important;
+
+    .sidebar-brand-full,
+    .sidebar-brand-narrow {
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      &:hover {
+        opacity: 0.95;
+      }
+    }
+  }
+
+  .sidebar-footer {
+    background-color: var(--ce-sidebar-bg, #111827) !important;
+    border-top: 1px solid #1F2937 !important;
+  }
+
+  .sidebar-nav {
+    padding-top: 0.5rem;
+    padding-bottom: 1rem;
+
+    .nav-title {
+      color: var(--ce-sidebar-muted, #94A3B8) !important;
+      font-size: 0.6875rem !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.08em !important;
+      text-transform: uppercase !important;
+      padding: 0.75rem 1.25rem 0.35rem 1.25rem !important;
+      opacity: 0.85;
+    }
+
+    .nav-item {
+      margin: 1.5px 0.5rem;
+    }
+
+    .nav-link {
+      color: var(--ce-sidebar-text, #E2E8F0) !important;
+      font-size: 0.845rem !important;
+      font-weight: 500 !important;
+      border-radius: 8px !important;
+      padding: 0.55rem 0.85rem !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.75rem !important;
+      transition: all 0.15s ease-in-out !important;
+      border-left: 3px solid transparent !important;
+
+      .nav-icon {
+        color: var(--ce-sidebar-muted, #94A3B8) !important;
+        font-size: 1.05rem !important;
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+        transition: color 0.15s ease, transform 0.15s ease;
+      }
+
+      &:hover {
+        background-color: var(--ce-sidebar-hover, #1E293B) !important;
+        color: #FFFFFF !important;
+
+        .nav-icon {
+          color: #FFFFFF !important;
+          transform: translateX(1px);
+        }
+      }
+
+      // Selected / Active navigation item with discrete Indigo accent bar
+      &.active,
+      &.router-link-active {
+        background-color: var(--ce-sidebar-active, #253047) !important;
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+        border-left: 3px solid var(--ce-sidebar-indicator, #4F46E5) !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+
+        .nav-icon {
+          color: #FFFFFF !important;
+        }
+
+        .badge {
+          background-color: var(--ce-accent, #4F46E5) !important;
+          color: #FFFFFF !important;
+        }
+      }
+    }
+
+    // Submenu groups
+    .nav-group {
+      &.show {
+        background-color: rgba(30, 41, 59, 0.35);
+        border-radius: 8px;
+        margin: 2px 0.4rem;
+
+        > .nav-group-items {
+          padding-left: 0.5rem;
+        }
+      }
+
+      .nav-group-toggle {
+        color: var(--ce-sidebar-text, #E2E8F0) !important;
+        font-size: 0.845rem !important;
+        font-weight: 500 !important;
+        border-radius: 8px !important;
+        padding: 0.55rem 0.85rem !important;
+
+        &:hover {
+          background-color: var(--ce-sidebar-hover, #1E293B) !important;
+          color: #FFFFFF !important;
+        }
+
+        &::after {
+          filter: brightness(0.85);
+        }
+      }
+    }
+  }
 }
 
 // ------------------------------------------------------------

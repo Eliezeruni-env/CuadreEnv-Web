@@ -6,9 +6,12 @@ import { StockService } from '../../inventory/services/stock.service';
 import { WarehouseService } from '../../inventory/services/warehouse.service';
 import { ProductService } from '../../products/services/product.service';
 import { KardexService } from '../../inventory/services/kardex.service';
-import type { ApiResponse } from '../../cuadreEnv/types/api';
+import { PurchaseService } from './purchase.service';
+import { SupplierService } from './supplier.service';
+import type { ApiResponse, PurchaseDto } from '../../cuadreEnv/types/api';
 import type {
   PurchaseOrder,
+  PurchaseOrderDetail,
   PurchaseOrderReceipt,
 } from '../../../app/models/purchase-order';
 
@@ -26,6 +29,8 @@ export class PurchaseOrderReceiptService {
   private warehouseService = inject(WarehouseService, { optional: true });
   private productService = inject(ProductService, { optional: true });
   private kardexService = inject(KardexService, { optional: true });
+  private purchaseService = inject(PurchaseService, { optional: true });
+  private supplierService = inject(SupplierService, { optional: true });
 
   private getLocalOrders(): PurchaseOrder[] {
     try {
@@ -61,14 +66,100 @@ export class PurchaseOrderReceiptService {
     }
   }
 
+  private mapPurchaseToOrder(p: PurchaseDto, suppliersMap: Map<number, string>): PurchaseOrder {
+    const id = p.id || 0;
+    const supName =
+      (p as any).supplierName ||
+      (p.supplierId ? suppliersMap.get(p.supplierId) : null) ||
+      'Proveedor General';
+
+    const details: PurchaseOrderDetail[] = (p.details || []).map((d: any) => ({
+      productId: d.productId,
+      barCode: d.barCode || '',
+      productName: d.productName || `Producto #${d.productId}`,
+      quantityOrdered: Number(d.quantity || 0),
+      quantityReceived: 0,
+      unitCost: Number(d.costPrice || d.unitCost || 0),
+      subTotal: Number(d.quantity || 0) * Number(d.costPrice || d.unitCost || 0),
+      total: Number(d.quantity || 0) * Number(d.costPrice || d.unitCost || 0),
+    }));
+
+    return {
+      id,
+      orderNumber: (p as any).orderNumber || p.invoiceNumber || `OC-${String(id).padStart(5, '0')}`,
+      prefix: 'OC',
+      supplierId: p.supplierId || 1,
+      supplierName: supName,
+      supplierRnc: (p as any).supplierRnc || '',
+      warehouseId: (p as any).warehouseId || 1,
+      warehouseName: (p as any).warehouseName || 'Almacén Principal',
+      orderDate: p.creationDate || new Date().toISOString(),
+      expectedDeliveryDate: (p as any).expectedDeliveryDate || p.creationDate || new Date().toISOString(),
+      statusId: (p as any).statusId || (p.status === 'PAID' ? 3 : 1),
+      statusName: (p as any).statusName || (p.status === 'PAID' ? 'Completada' : 'Pendiente'),
+      notes: (p as any).notes || '',
+      subTotal: (p as any).subTotal || p.total || 0,
+      itbis: (p as any).itbis || 0,
+      total: p.total || 0,
+      productDetails: details,
+    };
+  }
+
   async getPurchaseOrders(): Promise<ApiResponse<PurchaseOrder[]>> {
+    const combinedMap = new Map<number, PurchaseOrder>();
+
+    // 1. Try server PO endpoint
     try {
       const res = await this.api.get<any, any>('/PurchaseOrder');
       const list = extractArray<PurchaseOrder>(res);
-      return { success: true, data: list || [] };
-    } catch {
-      return { success: false, data: [], message: 'No se pudo conectar con el servidor.' };
+      if (list && list.length > 0) {
+        list.forEach((o) => {
+          if (o.id) combinedMap.set(o.id, o);
+        });
+      }
+    } catch {}
+
+    // 2. Query Purchases module (server or local cache)
+    try {
+      let purchases: PurchaseDto[] = [];
+      if (this.purchaseService) {
+        const pRes = await this.purchaseService.getPurchases();
+        if (pRes?.success && pRes.data && pRes.data.length > 0) {
+          purchases = pRes.data;
+        } else {
+          purchases = this.purchaseService.getLocalPurchases();
+        }
+      }
+
+      // Preload supplier names
+      const supMap = new Map<number, string>();
+      if (this.supplierService) {
+        const sRes = await this.supplierService.getSuppliers();
+        if (sRes?.success && sRes.data) {
+          sRes.data.forEach((s: any) => {
+            if (s.id && s.name) supMap.set(s.id, s.name);
+          });
+        }
+      }
+
+      purchases.forEach((p) => {
+        if (p.id && !combinedMap.has(p.id)) {
+          combinedMap.set(p.id, this.mapPurchaseToOrder(p, supMap));
+        }
+      });
+    } catch {}
+
+    // 3. Fallback to local POs
+    const local = this.getLocalOrders();
+    local.forEach((o) => {
+      if (o.id && !combinedMap.has(o.id)) combinedMap.set(o.id, o);
+    });
+
+    const result = Array.from(combinedMap.values());
+    if (result.length > 0) {
+      this.saveLocalOrders(result);
     }
+    return { success: true, data: result };
   }
 
   async getPurchaseOrder(id: number): Promise<ApiResponse<PurchaseOrder>> {
@@ -77,10 +168,27 @@ export class PurchaseOrderReceiptService {
       if (res?.data || res) {
         return { success: true, data: (res.data ?? res) as PurchaseOrder };
       }
-    } catch {
-      // offline / not found
+    } catch {}
+
+    // Fallback: look in combined orders
+    const all = await this.getPurchaseOrders();
+    const found = all.data?.find((o) => o.id === id);
+    if (found) {
+      return { success: true, data: found };
     }
-    return { success: false, message: 'Orden de compra no encontrada en el servidor.' };
+
+    // Direct purchase lookup
+    if (this.purchaseService) {
+      try {
+        const pRes = await this.purchaseService.getPurchase(id);
+        if (pRes?.success && pRes.data) {
+          const supMap = new Map<number, string>();
+          return { success: true, data: this.mapPurchaseToOrder(pRes.data, supMap) };
+        }
+      } catch {}
+    }
+
+    return { success: false, message: 'Orden de compra no encontrada en el sistema.' };
   }
 
   existsReceiptOrRequest(purchaseOrderId: number): Observable<boolean> {
