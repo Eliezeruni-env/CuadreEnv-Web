@@ -4,6 +4,9 @@
 // Import styles with default layout.
 @use "@coreui/coreui/scss/coreui" as * with ($enable-deprecation-messages: false);
 
+// Global unified typography system (Plus Jakarta Sans, Inter & JetBrains Mono)
+@use "typography";
+
 // Import Chart.js custom tooltips styles
 @use "@coreui/chartjs/scss/coreui-chartjs";
 

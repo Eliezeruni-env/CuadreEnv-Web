@@ -367,7 +367,8 @@
 
   strong {
     color: #2563eb;
-    font-family: monospace;
+    font-family: var(--cuadre-font-mono, 'JetBrains Mono', monospace);
+    font-variant-numeric: tabular-nums;
   }
 }
 

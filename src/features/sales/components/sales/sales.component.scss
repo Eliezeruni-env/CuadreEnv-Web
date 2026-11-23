@@ -112,3 +112,15 @@
   border-radius: 6px;
   border-color: #cbd5e1;
 }
+
+.table-voucher-code {
+  font-family: var(--cuadre-font-mono) !important;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.table-amount-cell {
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1;
+  font-weight: 700;
+}
