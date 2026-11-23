@@ -45,52 +45,51 @@ export class FraudGuardianDashboardComponent {
   evidenceAttached = signal<boolean>(false);
   isCriteriaExpanded = signal<boolean>(false);
 
-  // Initial table data matching Image 2
-  alerts = signal<AuditAlertItem[]>([
-    {
-      id: 'ALT-101',
-      title: 'Tasa de anulación excesiva',
-      description: 'Tasa de anulaciones por encima del límite definido.',
-      operator: 'Cajero #104',
-      registerTime: 'Caja 02\n08:16',
-      observedMetric: '8.4%',
-      thresholdLimit: '≤ 5.0%',
-      severity: 'Crítica',
-      severityCode: 'critical',
-      observationRatio: '4 de 48 (8.3%) · Umbral: 5%'
-    },
-    {
-      id: 'ALT-102',
-      title: 'Aperturas de gaveta sin venta',
-      description: 'Registro de aperturas de gaveta sin transacciones asociadas.',
-      operator: 'Cajero #108',
-      registerTime: 'Caja 01\n07:23',
-      observedMetric: '4 aperturas',
-      thresholdLimit: '≤ 3 por turno',
-      severity: 'Moderada',
-      severityCode: 'moderate',
-      observationRatio: '4 aperturas en 30 min · Umbral: 3 por turno'
-    },
-    {
-      id: 'ALT-103',
-      title: 'Descuentos manuales sucesivos',
-      description: 'Descuentos manuales por encima del porcentaje permitido.',
-      operator: 'Cajero #102',
-      registerTime: 'Caja 01\n05:58',
-      observedMetric: '3 ventas con -15%',
-      thresholdLimit: '≤ 2 consecutivas',
-      severity: 'Moderada',
-      severityCode: 'moderate',
-      observationRatio: '3 ventas consecutivas · Umbral: ≤ 2'
-    }
-  ]);
+  // Dynamic table data connected to FraudGuardianService
+  alerts = computed<AuditAlertItem[]>(() => {
+    return this.fraudService.flags().filter(f => f.status === 'ACTIVE').map(f => ({
+      id: f.id,
+      title: f.title,
+      description: f.description,
+      operator: f.cashierName,
+      registerTime: f.cashRegisterName,
+      observedMetric: f.metricValue,
+      thresholdLimit: f.thresholdLimit,
+      severity: (f.severity === 'CRITICAL' ? 'Crítica' : f.severity === 'LOW' ? 'Baja' : 'Moderada') as any,
+      severityCode: (f.severity === 'CRITICAL' ? 'critical' : f.severity === 'LOW' ? 'low' : 'moderate') as any,
+      observationRatio: `${f.metricValue} · Umbral: ${f.thresholdLimit}`
+    }));
+  });
 
-  cashiersActivity = signal<CashierAuditItem[]>([
-    { cashierName: 'Cajero #102', totalSales: 142, cancellationRate: 1.4, noSaleDrawers: 1, status: 'Por revisar' },
-    { cashierName: 'Cajero #104', totalSales: 48, cancellationRate: 8.3, noSaleDrawers: 2, status: 'Por revisar' },
-    { cashierName: 'Cajero #108', totalSales: 96, cancellationRate: 1.0, noSaleDrawers: 4, status: 'Por revisar' },
-    { cashierName: 'Cajero #112', totalSales: 110, cancellationRate: 0.0, noSaleDrawers: 0, status: 'Sin alerta' }
-  ]);
+  cashiersActivity = computed<CashierAuditItem[]>(() => {
+    return this.fraudService.cashierScores().map(c => ({
+      cashierName: c.cashierName,
+      totalSales: c.totalSalesCount,
+      cancellationRate: c.cancellationRate,
+      noSaleDrawers: c.noSaleDrawerKicksCount,
+      status: c.riskStatus === 'MONITORED' || c.riskStatus === 'HIGH_RISK' ? 'Por revisar' : 'Sin alerta'
+    }));
+  });
+
+  readonly criticalAlertsCount = computed(() => {
+    return this.alerts().filter(a => a.severityCode === 'critical').length;
+  });
+
+  readonly moderateAlertsCount = computed(() => {
+    return this.alerts().filter(a => a.severityCode === 'moderate').length;
+  });
+
+  readonly anulacionesCashiersCount = computed(() => {
+    return this.fraudService.cashierScores().filter(c => c.cancellationRate > 5).length;
+  });
+
+  readonly totalNoSaleDrawers = computed(() => {
+    return this.fraudService.cashierScores().reduce((sum, c) => sum + (c.noSaleDrawerKicksCount || 0), 0);
+  });
+
+  readonly totalDiscrepancy = computed(() => {
+    return this.fraudService.cashierScores().reduce((sum, c) => sum + (c.accumulatedDiscrepancyDop || 0), 0);
+  });
 
   readonly filteredAlerts = computed(() => {
     const tab = this.activeTab();
@@ -127,7 +126,7 @@ export class FraudGuardianDashboardComponent {
       return;
     }
 
-    this.alerts.update(list => list.filter(a => a.id !== alert.id));
+    this.fraudService.resolveFlag(alert.id, note);
     this.notificationService.success(`Incidencia "${alert.title}" resuelta con resultado: ${this.reviewResult()}.`);
     this.closeReviewModal();
   }
@@ -137,8 +136,8 @@ export class FraudGuardianDashboardComponent {
     let report = `========================================================================\r\n`;
     report += `CUADRE-ENV POS - GUARDIÁN ANTIRROBO (AUDITORÍA FORENSE)\r\n`;
     report += `Fecha de Emisión: ${dateStr}\r\n`;
-    report += `Nivel de Riesgo Global: Riesgo crítico · 71/100\r\n`;
-    report += `Alertas activas: ${this.alerts().length} | Aperturas sin venta: 7 eventos | Diferencia: RD$ -190.00\r\n`;
+    report += `Nivel de Riesgo Global: Riesgo ${this.fraudService.branchRiskLevel()} · ${this.fraudService.branchRiskScore()}/100\r\n`;
+    report += `Alertas activas: ${this.alerts().length} | Aperturas sin venta: ${this.totalNoSaleDrawers()} eventos | Diferencia: RD$ ${this.totalDiscrepancy().toFixed(2)}\r\n`;
     report += `========================================================================\r\n\r\n`;
 
     report += `1. ALERTAS POR REVISAR:\r\n`;

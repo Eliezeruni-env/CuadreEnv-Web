@@ -89,9 +89,9 @@ export class PurchasesComponent implements OnInit {
   expandedPurchaseId = signal<number | null>(null);
 
   // New Purchase Form State (Image 1)
-  newPurchaseSupplierId = signal<string>('1');
-  newPurchaseInvoiceNumber = signal<string>('FAC-000123');
-  newPurchaseDate = signal<string>('2025-01-27');
+  newPurchaseSupplierId = signal<string>('');
+  newPurchaseInvoiceNumber = signal<string>('');
+  newPurchaseDate = signal<string>(new Date().toISOString().split('T')[0]);
   newPurchaseWarehouse = signal<string>('Almacén Principal');
   newPurchasePaymentCondition = signal<'Contado' | 'Crédito'>('Contado');
 
@@ -99,38 +99,7 @@ export class PurchasesComponent implements OnInit {
   newItemQuantity = signal<number>(1);
   newItemUnitCost = signal<number>(0);
 
-  purchaseItems = signal<PurchaseLineItem[]>([
-    {
-      productId: 1,
-      code: 'LAP-001',
-      name: 'Laptop 14" i5 8GB 512GB',
-      quantity: 2,
-      unitCost: 2200.0,
-      discountPercent: 0,
-      taxPercent: 18,
-      subtotal: 5192.0, // (2 * 2200) * 1.18 = 4400 + 792 = 5192
-    },
-    {
-      productId: 2,
-      code: 'MOU-002',
-      name: 'Mouse inalámbrico',
-      quantity: 5,
-      unitCost: 150.0,
-      discountPercent: 0,
-      taxPercent: 18,
-      subtotal: 885.0, // (5 * 150) * 1.18 = 750 + 135 = 885
-    },
-    {
-      productId: 3,
-      code: 'TEC-003',
-      name: 'Teclado USB',
-      quantity: 3,
-      unitCost: 120.0,
-      discountPercent: 0,
-      taxPercent: 18,
-      subtotal: 531.0, // (3 * 120) * 1.18 = 360 + 64.8 = 531 (rounded)
-    },
-  ]);
+  purchaseItems = signal<PurchaseLineItem[]>([]);
 
   readonly orderSubtotalGross = computed(() => {
     return this.purchaseItems().reduce((sum, item) => {
@@ -185,11 +154,7 @@ export class PurchasesComponent implements OnInit {
       if (supRes?.success && supRes.data && supRes.data.length > 0) {
         this.suppliers.set(supRes.data);
       } else {
-        this.suppliers.set([
-          { id: 1, name: 'Distribuidora Tecnológica del Caribe', rnc: '131-00000-0' },
-          { id: 2, name: 'Importadora Dominicana de Cómputo', rnc: '101-99887-2' },
-          { id: 3, name: 'Suministros Globales SRL', rnc: '130-44556-3' },
-        ]);
+        this.suppliers.set([]);
       }
 
       if (prodRes?.success && prodRes.data?.items) {

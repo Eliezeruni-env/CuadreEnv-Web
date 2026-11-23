@@ -1,14 +1,19 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import {
+  FormsModule,
+  ReactiveFormsModule,
+  FormBuilder,
+  FormGroup,
+  Validators,
+} from '@angular/forms';
 import { WarehouseService } from '../../../inventory/services/warehouse.service';
 import { StockService } from '../../../inventory/services/stock.service';
 import { ProductService } from '../../../products/services/product.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { CashRegisterService } from '../../../cash-register/services/cash-register.service';
 import { DistributionRouteService } from '../../services/distribution-route.service';
-import type { ProductDto } from '../../../cuadreEnv/types/api';
-
+import { formatDateInRD } from '../../../cuadreEnv/utils/rd-date.util';
 export interface RouteLoadItem {
   productId: number;
   productCode: string;
@@ -78,14 +83,16 @@ export class DistributionRoutesComponent implements OnInit {
   private fb = inject(FormBuilder);
 
   // Active view: 'dashboard' | 'load-stock' | 'route-sale' | 'liquidate'
-  currentView = signal<'dashboard' | 'load-stock' | 'route-sale' | 'liquidate'>('dashboard');
+  currentView = signal<'dashboard' | 'load-stock' | 'route-sale' | 'liquidate'>(
+    'dashboard',
+  );
 
   routes = signal<DistributionRoute[]>(this.loadRoutes());
   activeRoute = signal<DistributionRoute | null>(null);
   searchRouteTerm = signal<string>('');
 
   // Date Filter
-  selectedDateLabel = signal<string>('Hoy, 16 de ene. de 2025');
+  selectedDateLabel = signal<string>(formatDateInRD(new Date(), { dateStyle: 'full' }));
 
   // Modal: Nueva hoja de despacho
   isCreateRouteModalOpen = signal<boolean>(false);
@@ -94,47 +101,15 @@ export class DistributionRoutesComponent implements OnInit {
   // Screen 2: Cargar Mercancía
   loadOriginWarehouse = signal<string>('Almacén Principal');
   loadSearchTerm = signal<string>('');
-  productsToLoad = signal<RouteLoadItem[]>([
-    {
-      productId: 101,
-      productCode: 'NES-001',
-      productName: 'Nesquik',
-      loadedQuantity: 10,
-      soldQuantity: 0,
-      returnedQuantity: 0,
-      unitPrice: 250,
-      totalSoldAmount: 0,
-      totalRemainingValue: 2500,
-      stockAvailable: 51,
-      isSelected: true,
-    },
-    {
-      productId: 102,
-      productCode: 'COC-001',
-      productName: 'Coca-Cola',
-      loadedQuantity: 10,
-      soldQuantity: 0,
-      returnedQuantity: 0,
-      unitPrice: 75,
-      totalSoldAmount: 0,
-      totalRemainingValue: 750,
-      stockAvailable: 10,
-      isSelected: true,
-    },
-  ]);
+  productsToLoad = signal<RouteLoadItem[]>([]);
 
   // Screen 3: Venta en Ruta
-  selectedClient = signal<string>('Colmado El Progreso');
-  salePaymentMethod = signal<'Efectivo' | 'Transferencia' | 'Crédito'>('Efectivo');
+  selectedClient = signal<string>('Cliente General');
+  salePaymentMethod = signal<'Efectivo' | 'Transferencia' | 'Crédito'>(
+    'Efectivo',
+  );
   saleSearchTerm = signal<string>('');
-  truckProducts = signal<SaleProductOnTruck[]>([
-    { id: 1, name: 'Detergente', code: 'DET-001', stock: 18, price: 1650, quantity: 2, inCart: true },
-    { id: 2, name: 'Aceite', code: 'ACE-001', stock: 25, price: 580, quantity: 1, inCart: true },
-    { id: 3, name: 'Arroz (10 lb)', code: 'ARR-010', stock: 30, price: 890, quantity: 0, inCart: false },
-    { id: 4, name: 'Azúcar (5 lb)', code: 'AZU-005', stock: 20, price: 320, quantity: 0, inCart: false },
-    { id: 5, name: 'Leche (1 L)', code: 'LEC-001', stock: 15, price: 125, quantity: 0, inCart: false },
-    { id: 6, name: 'Jabón de baño', code: 'JAB-001', stock: 22, price: 95, quantity: 0, inCart: false },
-  ]);
+  truckProducts = signal<SaleProductOnTruck[]>([]);
 
   cart = computed<CartItem[]>(() => {
     return this.truckProducts()
@@ -154,14 +129,10 @@ export class DistributionRoutesComponent implements OnInit {
   });
 
   // Screen 4: Liquidación de Ruta
-  countedCash = signal<number>(42000);
-  destinationCashBox = signal<string>('Caja #54');
+  countedCash = signal<number>(0);
+  destinationCashBox = signal<string>('Caja Principal');
   destinationReturnWarehouse = signal<string>('Almacén Principal');
-  returnedQuantities = signal<{ [productId: number]: number }>({
-    1: 6,
-    2: 8,
-    3: 5,
-  });
+  returnedQuantities = signal<{ [productId: number]: number }>({});
 
   // Computed KPIs
   readonly totalActiveTrucks = computed(() => {
@@ -169,11 +140,23 @@ export class DistributionRoutesComponent implements OnInit {
   });
 
   readonly totalLoadedToday = computed(() => {
-    return 79200;
+    return this.routes().reduce((sum, r) => {
+      const itemsSum = (r.items || []).reduce(
+        (iSum, it) => iSum + (it.loadedQuantity || 0) * (it.unitPrice || 0),
+        0,
+      );
+      return sum + itemsSum;
+    }, 0);
   });
 
   readonly totalCollectedToday = computed(() => {
-    return 60060;
+    return this.routes().reduce(
+      (sum, r) =>
+        sum +
+        (r.totalCollectedCash || 0) +
+        (r.totalCollectedTransfer || 0),
+      0,
+    );
   });
 
   readonly filteredRoutes = computed(() => {
@@ -183,7 +166,7 @@ export class DistributionRoutesComponent implements OnInit {
       (r) =>
         r.routeName.toLowerCase().includes(term) ||
         r.coverageZone.toLowerCase().includes(term) ||
-        r.driverName.toLowerCase().includes(term)
+        r.driverName.toLowerCase().includes(term),
     );
   });
 
@@ -191,7 +174,9 @@ export class DistributionRoutesComponent implements OnInit {
     const term = this.saleSearchTerm().toLowerCase().trim();
     if (!term) return this.truckProducts();
     return this.truckProducts().filter(
-      (p) => p.name.toLowerCase().includes(term) || p.code.toLowerCase().includes(term)
+      (p) =>
+        p.name.toLowerCase().includes(term) ||
+        p.code.toLowerCase().includes(term),
     );
   });
 
@@ -216,10 +201,53 @@ export class DistributionRoutesComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    if (this.routes().length > 0) {
-      this.activeRoute.set(this.routes()[0]);
-    }
     await this.fetchRoutesFromBackend();
+    await this.loadAvailableProducts();
+    if (this.routes().length > 0 && !this.activeRoute()) {
+      this.activeRoute.set(this.routes()[0]);
+      this.updateTruckProductsFromActiveRoute();
+    }
+  }
+
+  async loadAvailableProducts(): Promise<void> {
+    try {
+      const res = await this.productService.getPagedProducts(1, 50);
+      if (res?.success && res.data?.items) {
+        const items: RouteLoadItem[] = res.data.items.map((p: any) => ({
+          productId: p.id,
+          productCode: p.code || p.barCode || `PRD-${p.id}`,
+          productName: p.name || p.description,
+          loadedQuantity: 0,
+          soldQuantity: 0,
+          returnedQuantity: 0,
+          unitPrice: p.price || 0,
+          totalSoldAmount: 0,
+          totalRemainingValue: 0,
+          stockAvailable: p.currentStock || p.stock || 0,
+          isSelected: false,
+        }));
+        this.productsToLoad.set(items);
+      }
+    } catch {}
+  }
+
+  updateTruckProductsFromActiveRoute(): void {
+    const route = this.activeRoute();
+    if (!route || !route.items || route.items.length === 0) {
+      this.truckProducts.set([]);
+      return;
+    }
+    this.truckProducts.set(
+      route.items.map((it) => ({
+        id: it.productId,
+        name: it.productName,
+        code: it.productCode,
+        stock: Math.max(0, it.loadedQuantity - it.soldQuantity),
+        price: it.unitPrice,
+        quantity: 0,
+        inCart: false,
+      })),
+    );
   }
 
   async fetchRoutesFromBackend(): Promise<void> {
@@ -227,8 +255,12 @@ export class DistributionRoutesComponent implements OnInit {
       const res = await this.routeService.getRoutes();
       if (res.success && res.data && res.data.length > 0) {
         this.routes.set(res.data);
-        if (!this.activeRoute() || !res.data.some((r: any) => r.id === this.activeRoute()?.id)) {
+        if (
+          !this.activeRoute() ||
+          !res.data.some((r: any) => r.id === this.activeRoute()?.id)
+        ) {
           this.activeRoute.set(res.data[0]);
+          this.updateTruckProductsFromActiveRoute();
         }
       }
     } catch {}
@@ -241,74 +273,7 @@ export class DistributionRoutesComponent implements OnInit {
         if (raw) return JSON.parse(raw);
       }
     } catch {}
-    return [
-      {
-        id: 1,
-        routeCode: 'Ruta Sur',
-        routeName: 'Ruta Sur',
-        coverageZone: 'San Cristóbal y Baní',
-        driverName: 'Euris Ramírez',
-        vehiclePlate: 'L458920',
-        vehicleName: 'Camión F-023',
-        date: '16/01/2025',
-        status: 'En reparto',
-        originWarehouse: 'Almacén Principal',
-        items: [
-          {
-            productId: 1,
-            productCode: 'DET-001',
-            productName: 'Detergente',
-            loadedQuantity: 20,
-            soldQuantity: 14,
-            returnedQuantity: 6,
-            unitPrice: 3850,
-            totalSoldAmount: 53900,
-            totalRemainingValue: 23100,
-          },
-          {
-            productId: 2,
-            productCode: 'ACE-001',
-            productName: 'Aceite',
-            loadedQuantity: 40,
-            soldQuantity: 32,
-            returnedQuantity: 8,
-            unitPrice: 2320,
-            totalSoldAmount: 74240,
-            totalRemainingValue: 18560,
-          },
-          {
-            productId: 3,
-            productCode: 'ARR-010',
-            productName: 'Arroz',
-            loadedQuantity: 25,
-            soldQuantity: 20,
-            returnedQuantity: 5,
-            unitPrice: 3680,
-            totalSoldAmount: 73600,
-            totalRemainingValue: 18400,
-          },
-        ],
-        totalCollectedCash: 42000,
-        totalCollectedTransfer: 18060,
-        totalCreditSales: 0,
-      },
-      {
-        id: 2,
-        routeCode: 'Ruta Este',
-        routeName: 'Ruta Este',
-        coverageZone: 'San Pedro y La Romana',
-        driverName: 'Carlos Méndez',
-        vehiclePlate: 'L456789',
-        vehicleName: 'Vehículo de Ruta 01',
-        date: '16/01/2025',
-        status: 'Cargando',
-        originWarehouse: 'Almacén Principal',
-        items: [],
-        totalCollectedCash: 0,
-        totalCollectedTransfer: 0,
-        totalCreditSales: 0,
-      },
-    ];
+    return [];
   }
 
   private saveRoutes(list: DistributionRoute[]): void {
@@ -320,6 +285,7 @@ export class DistributionRoutesComponent implements OnInit {
 
   selectRoute(route: DistributionRoute): void {
     this.activeRoute.set(route);
+    this.updateTruckProductsFromActiveRoute();
   }
 
   // Navigation between sub-views
@@ -332,11 +298,34 @@ export class DistributionRoutesComponent implements OnInit {
   }
 
   openRouteSaleView(): void {
+    this.updateTruckProductsFromActiveRoute();
     this.currentView.set('route-sale');
   }
 
   openLiquidateView(): void {
+    if (this.activeRoute()) {
+      const r = this.activeRoute()!;
+      this.countedCash.set(r.totalCollectedCash || 0);
+      const returned: { [productId: number]: number } = {};
+      for (const item of r.items || []) {
+        returned[item.productId] = Math.max(0, item.loadedQuantity - item.soldQuantity);
+      }
+      this.returnedQuantities.set(returned);
+    } else {
+      this.countedCash.set(0);
+      this.returnedQuantities.set({});
+    }
     this.currentView.set('liquidate');
+  }
+
+  getReturnedQuantity(item: RouteLoadItem): number {
+    const val = this.returnedQuantities()[item.productId];
+    return val !== undefined ? val : (item.loadedQuantity - item.soldQuantity);
+  }
+
+  setReturnedQuantity(item: RouteLoadItem, qty: number): void {
+    const map = { ...this.returnedQuantities(), [item.productId]: qty };
+    this.returnedQuantities.set(map);
   }
 
   // Modal: Nueva hoja de despacho
@@ -379,7 +368,9 @@ export class DistributionRoutesComponent implements OnInit {
     this.saveRoutes(updated);
     this.activeRoute.set(newRoute);
     this.isCreateRouteModalOpen.set(false);
-    this.notificationService.success(`Ruta ${newRoute.routeName} creada en borrador.`);
+    this.notificationService.success(
+      `Ruta ${newRoute.routeName} creada en borrador.`,
+    );
     this.openLoadStockView();
   }
 
@@ -387,7 +378,7 @@ export class DistributionRoutesComponent implements OnInit {
   toggleAllLoadSelection(event: any): void {
     const checked = event.target.checked;
     this.productsToLoad.update((items) =>
-      items.map((i) => ({ ...i, isSelected: checked }))
+      items.map((i) => ({ ...i, isSelected: checked })),
     );
   }
 
@@ -401,13 +392,28 @@ export class DistributionRoutesComponent implements OnInit {
               loadedQuantity: newQty,
               totalRemainingValue: newQty * i.unitPrice,
             }
-          : i
-      )
+          : i,
+      ),
     );
   }
 
   confirmLoadToTruck(): void {
-    this.notificationService.success('Mercancía cargada exitosamente al vehículo.');
+    const selected = this.productsToLoad().filter(
+      (p) => p.isSelected && (p.loadedQuantity || 0) > 0,
+    );
+    if (this.activeRoute()) {
+      const active = { ...this.activeRoute()! };
+      active.items = selected;
+      const updated = this.routes().map((r) =>
+        r.id === active.id ? active : r,
+      );
+      this.saveRoutes(updated);
+      this.activeRoute.set(active);
+      this.updateTruckProductsFromActiveRoute();
+    }
+    this.notificationService.success(
+      'Mercancía cargada exitosamente al vehículo.',
+    );
     this.currentView.set('dashboard');
   }
 
@@ -415,9 +421,13 @@ export class DistributionRoutesComponent implements OnInit {
     if (this.activeRoute()) {
       const active = this.activeRoute()!;
       active.status = 'En reparto';
-      const updated = this.routes().map((r) => (r.id === active.id ? active : r));
+      const updated = this.routes().map((r) =>
+        r.id === active.id ? active : r,
+      );
       this.saveRoutes(updated);
-      this.notificationService.success(`Ruta ${active.routeName} iniciada. Camión en calle.`);
+      this.notificationService.success(
+        `Ruta ${active.routeName} iniciada. Camión en calle.`,
+      );
     }
     this.currentView.set('dashboard');
   }
@@ -456,14 +466,16 @@ export class DistributionRoutesComponent implements OnInit {
 
   clearCart(): void {
     this.truckProducts.update((list) =>
-      list.map((p) => ({ ...p, quantity: 0, inCart: false }))
+      list.map((p) => ({ ...p, quantity: 0, inCart: false })),
     );
   }
 
   confirmRouteSale(): void {
     const total = this.cartSubtotal();
     if (total <= 0) {
-      this.notificationService.warning('El carrito está vacío. Agrega productos para vender.');
+      this.notificationService.warning(
+        'El carrito está vacío. Agrega productos para vender.',
+      );
       return;
     }
 
@@ -476,11 +488,15 @@ export class DistributionRoutesComponent implements OnInit {
       } else {
         r.totalCreditSales += total;
       }
-      const updated = this.routes().map((item) => (item.id === r.id ? r : item));
+      const updated = this.routes().map((item) =>
+        item.id === r.id ? r : item,
+      );
       this.saveRoutes(updated);
     }
 
-    this.notificationService.success(`Venta de RD$ ${total.toLocaleString()} registrada exitosamente.`);
+    this.notificationService.success(
+      `Venta de RD$ ${total.toLocaleString()} registrada exitosamente.`,
+    );
     this.clearCart();
     this.currentView.set('dashboard');
   }
@@ -490,9 +506,13 @@ export class DistributionRoutesComponent implements OnInit {
     if (this.activeRoute()) {
       const r = this.activeRoute()!;
       r.status = 'Liquidada';
-      const updated = this.routes().map((item) => (item.id === r.id ? r : item));
+      const updated = this.routes().map((item) =>
+        item.id === r.id ? r : item,
+      );
       this.saveRoutes(updated);
-      this.notificationService.success(`Ruta ${r.routeName} liquidada y cerrada exitosamente.`);
+      this.notificationService.success(
+        `Ruta ${r.routeName} liquidada y cerrada exitosamente.`,
+      );
     }
     this.currentView.set('dashboard');
   }

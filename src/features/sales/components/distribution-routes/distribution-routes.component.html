@@ -187,6 +187,10 @@
                   </svg>
                 </div>
               </div>
+            } @empty {
+              <div class="text-center py-4 text-muted small">
+                No hay rutas registradas.
+              </div>
             }
           </div>
         </div>
@@ -355,6 +359,24 @@
               </div>
             </div>
           </div>
+        } @else {
+          <div class="card border-0 shadow-sm rounded-4 p-5 bg-white text-center">
+            <div class="text-muted mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="1" y="3" width="15" height="13"></rect>
+                <polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon>
+                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+              </svg>
+            </div>
+            <h5 class="fw-bold text-dark">No hay ninguna ruta seleccionada</h5>
+            <p class="text-secondary small mb-4">Crea una nueva hoja de despacho para comenzar a gestionar repartos y cobranzas en calle.</p>
+            <div>
+              <button type="button" class="btn btn-navy px-3.5 py-2 shadow-sm" (click)="openCreateRouteModal()">
+                + Nueva hoja de despacho
+              </button>
+            </div>
+          </div>
         }
       </div>
     </div>
@@ -491,6 +513,12 @@
                       <td class="text-end font-monospace text-dark">RD$ {{ p.unitPrice | number:'1.2-2' }}</td>
                       <td class="text-end pe-3 font-monospace fw-bold text-dark">
                         RD$ {{ (p.loadedQuantity * p.unitPrice) | number:'1.2-2' }}
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="6" class="text-center py-4 text-muted small">
+                        No hay productos disponibles en el catálogo para cargar.
                       </td>
                     </tr>
                   }
@@ -735,6 +763,12 @@
                         }
                       </td>
                     </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="6" class="text-center py-4 text-muted small">
+                        No hay mercancía cargada en este camión para vender.
+                      </td>
+                    </tr>
                   }
                 </tbody>
               </table>
@@ -850,7 +884,7 @@
             </svg>
             <div>
               <div class="text-secondary font-size-xs">Ruta:</div>
-              <strong class="text-dark">Sur</strong>
+              <strong class="text-dark">{{ activeRoute()?.routeName || 'Sin ruta' }}</strong>
             </div>
           </div>
 
@@ -861,7 +895,7 @@
             </svg>
             <div>
               <div class="text-secondary font-size-xs">Responsable (conductor):</div>
-              <strong class="text-dark">Carlos Méndez</strong>
+              <strong class="text-dark">{{ activeRoute()?.driverName || 'Sin conductor' }}</strong>
             </div>
           </div>
 
@@ -874,7 +908,7 @@
             </svg>
             <div>
               <div class="text-secondary font-size-xs">Vehículo:</div>
-              <strong class="text-dark">Camión F-023</strong>
+              <strong class="text-dark">{{ activeRoute()?.vehicleName || 'Sin vehículo' }} ({{ activeRoute()?.vehiclePlate || '' }})</strong>
             </div>
           </div>
         </div>
@@ -886,7 +920,7 @@
             <line x1="12" y1="16" x2="12" y2="12"></line>
             <line x1="12" y1="8" x2="12.01" y2="8"></line>
           </svg>
-          <span class="small text-amber-900">Esta liquidación concilia la mercancía retornada y el cierre financiero de la ruta <strong>Sur</strong>.</span>
+          <span class="small text-amber-900">Esta liquidación concilia la mercancía retornada y el cierre financiero de la ruta <strong>{{ activeRoute()?.routeName || '' }}</strong>.</span>
         </div>
 
         <!-- 2-Column Main Layout: Conciliación de Mercancía vs Liquidación Financiera -->
@@ -912,27 +946,27 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td class="ps-3 fw-bold text-dark">Detergente</td>
-                      <td class="text-center font-monospace">6</td>
-                      <td class="text-center pe-3">
-                        <input type="number" class="form-control text-center font-monospace fw-bold" style="max-width: 90px; margin: 0 auto;" value="6" />
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="ps-3 fw-bold text-dark">Aceite</td>
-                      <td class="text-center font-monospace">8</td>
-                      <td class="text-center pe-3">
-                        <input type="number" class="form-control text-center font-monospace fw-bold" style="max-width: 90px; margin: 0 auto;" value="8" />
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="ps-3 fw-bold text-dark">Arroz</td>
-                      <td class="text-center font-monospace">5</td>
-                      <td class="text-center pe-3">
-                        <input type="number" class="form-control text-center font-monospace fw-bold" style="max-width: 90px; margin: 0 auto;" value="5" />
-                      </td>
-                    </tr>
+                    @for (item of activeRoute()?.items || []; track item.productId) {
+                      <tr>
+                        <td class="ps-3 fw-bold text-dark">{{ item.productName }}</td>
+                        <td class="text-center font-monospace">{{ item.loadedQuantity - item.soldQuantity }}</td>
+                        <td class="text-center pe-3">
+                          <input
+                            type="number"
+                            class="form-control text-center font-monospace fw-bold"
+                            style="max-width: 90px; margin: 0 auto;"
+                            [ngModel]="getReturnedQuantity(item)"
+                            (ngModelChange)="setReturnedQuantity(item, $event)"
+                          />
+                        </td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="3" class="text-center py-4 text-muted small">
+                          No hay mercancía en esta ruta para conciliar.
+                        </td>
+                      </tr>
+                    }
                   </tbody>
                 </table>
               </div>
@@ -954,29 +988,43 @@
 
               <div class="d-flex justify-content-between align-items-center py-2">
                 <span class="text-secondary small">Efectivo esperado:</span>
-                <strong class="font-monospace fs-6 text-dark">RD$42,000</strong>
+                <strong class="font-monospace fs-6 text-dark">RD${{ (activeRoute()?.totalCollectedCash || 0) | number:'1.2-2' }}</strong>
               </div>
 
               <div class="d-flex justify-content-between align-items-center py-2">
                 <span class="text-secondary small">Efectivo contado: *</span>
                 <div style="width: 150px;">
-                  <input type="text" class="form-control text-end font-monospace fw-bold" value="RD$42,000" />
+                  <input
+                    type="number"
+                    class="form-control text-end font-monospace fw-bold"
+                    [ngModel]="countedCash()"
+                    (ngModelChange)="countedCash.set($event)"
+                  />
                 </div>
               </div>
 
               <div class="p-2.5 rounded-3 bg-light border d-flex justify-content-between align-items-center my-2">
                 <span class="fw-bold text-dark">Diferencia:</span>
-                <strong class="font-monospace text-dark fs-6">RD$0</strong>
+                <strong
+                  class="font-monospace fs-6"
+                  [ngClass]="{
+                    'text-success': (countedCash() - (activeRoute()?.totalCollectedCash || 0)) === 0,
+                    'text-danger': (countedCash() - (activeRoute()?.totalCollectedCash || 0)) < 0,
+                    'text-primary': (countedCash() - (activeRoute()?.totalCollectedCash || 0)) > 0
+                  }"
+                >
+                  RD${{ (countedCash() - (activeRoute()?.totalCollectedCash || 0)) | number:'1.2-2' }}
+                </strong>
               </div>
 
               <div class="d-flex justify-content-between align-items-center py-2">
                 <span class="text-secondary small">Transferencias reportadas:</span>
-                <strong class="font-monospace text-dark">RD$18,060</strong>
+                <strong class="font-monospace text-dark">RD${{ (activeRoute()?.totalCollectedTransfer || 0) | number:'1.2-2' }}</strong>
               </div>
 
               <div class="d-flex justify-content-between align-items-center py-2">
                 <span class="text-secondary small">Créditos otorgados:</span>
-                <strong class="font-monospace text-dark">RD$0</strong>
+                <strong class="font-monospace text-dark">RD${{ (activeRoute()?.totalCreditSales || 0) | number:'1.2-2' }}</strong>
               </div>
             </div>
           </div>
@@ -990,8 +1038,8 @@
               Caja que recibe el efectivo: <span class="text-danger">*</span>
             </label>
             <select class="form-select custom-select" [ngModel]="destinationCashBox()" (ngModelChange)="destinationCashBox.set($event)">
-              <option value="Caja #54">Caja #54</option>
               <option value="Caja Principal">Caja Principal</option>
+              <option value="Caja #54">Caja #54</option>
             </select>
           </div>
 
@@ -1016,7 +1064,7 @@
           </svg>
           <div>
             <div class="fw-bold text-dark font-size-sm">Confirme el retorno de la mercancía y el registro del efectivo solo una vez.</div>
-            <div class="text-secondary small">Esta acción cerrará la ruta Sur y no podrá modificarse posteriormente.</div>
+            <div class="text-secondary small">Esta acción cerrará la ruta {{ activeRoute()?.routeName || '' }} y no podrá modificarse posteriormente.</div>
           </div>
         </div>
 

@@ -495,37 +495,14 @@ export class BillingService {
           },
         };
       }
-    } catch {
-      // Mock quotation conversion
+    } catch (e) {
+      console.error('Error fetching quotation for billing:', e);
     }
 
     return {
-      success: true,
-      data: {
-        header: {
-          clientId: 1,
-          clientName: 'Cliente Ejemplo Cotización',
-          billingTypeId: 1,
-          voucherTypeId: 1,
-          warehouseId: 1,
-        },
-        items: [
-          {
-            productId: 1,
-            barCode: 'PROD-001',
-            productName: 'Servicio / Producto de Cotización',
-            quantity: 2,
-            price: 500,
-            discountPercentage: 0,
-            discountAmount: 0,
-            itbisPercentage: 18,
-            itbisAmount: 180,
-            subTotal: 1000,
-            totalAmount: 1180,
-            warehouseId: 1,
-          },
-        ],
-      },
+      success: false,
+      message: 'No se pudo cargar la cotización desde el servidor.',
+      data: null as any,
     };
   }
 }

@@ -67,36 +67,15 @@ export class CorporateSalesComponent implements OnInit {
 
   // B2B Order Form State
   selectedClientForSale = signal<CorporateClient | null>(null);
-  orderPoNumber = signal<string>('OC-CD-2026-0158');
+  orderPoNumber = signal<string>('');
   orderNcf = signal<string>('B01 - Factura de Crédito Fiscal');
   orderWarehouse = signal<string>('Almacén Principal');
-  orderIssueDate = signal<string>('2026-01-26');
-  orderDueDate = signal<string>('2026-02-25');
-  orderDeliveryNotes = signal<string>(
-    'Entregar en andén 3 de recepción, horario matutino.',
-  );
+  orderIssueDate = signal<string>(new Date().toISOString().split('T')[0]);
+  orderDueDate = signal<string>(new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]);
+  orderDeliveryNotes = signal<string>('');
   productSearchInput = signal<string>('');
 
-  orderItems = signal<B2BOrderItem[]>([
-    {
-      productId: 1,
-      code: 'DET-IND-04L',
-      productName: 'Detergente líquido industrial 4 L',
-      quantity: 10,
-      unitPrice: 1650.0,
-      itbis: 2970.0,
-      subtotal: 16500.0,
-    },
-    {
-      productId: 2,
-      code: 'ACE-PRE-01L',
-      productName: 'Aceite vegetal premium 1 L',
-      quantity: 10,
-      unitPrice: 580.0,
-      itbis: 1044.0,
-      subtotal: 5800.0,
-    },
-  ]);
+  orderItems = signal<B2BOrderItem[]>([]);
 
   // Modal para nuevo cliente corporativo
   isClientModalOpen = signal<boolean>(false);
@@ -207,11 +186,15 @@ export class CorporateSalesComponent implements OnInit {
 
   async fetchCorporateClients(): Promise<void> {
     try {
+      this.isLoading.set(true);
       const res = await this.customerService.getCorporateCustomers();
-      if (res.success && res.data && res.data.length > 0) {
+      if (res.success && res.data) {
         this.corporateClients.set(res.data);
       }
-    } catch {}
+    } catch {
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
   loadCorporateClients(): CorporateClient[] {
@@ -221,64 +204,7 @@ export class CorporateSalesComponent implements OnInit {
         if (raw) return JSON.parse(raw);
       }
     } catch {}
-    return [
-      {
-        id: 101,
-        companyName: 'Supermercados Del Valle, SRL',
-        rnc: '130-99887-1',
-        contactPerson: 'Lic. Mariano Castillo',
-        phone: '809-567-8900',
-        email: 'compras@delvalle.com.do',
-        creditLimit: 500000,
-        creditDays: 30,
-        currentBalance: 125400,
-        availableCredit: 374600,
-        activeOrdersCount: 2,
-        status: 'Activo',
-      },
-      {
-        id: 102,
-        companyName: 'Distribuidora Norte, EIRL',
-        rnc: '131-45678-9',
-        contactPerson: 'Ing. Laura Bautista',
-        phone: '809-556-1122',
-        email: 'abastecimiento@norte.com.do',
-        creditLimit: 300000,
-        creditDays: 15,
-        currentBalance: 0,
-        availableCredit: 300000,
-        activeOrdersCount: 0,
-        status: 'Activo',
-      },
-      {
-        id: 103,
-        companyName: 'Cadena Hotelera Atlántico, SAS',
-        rnc: '101-77889-4',
-        contactPerson: 'Carlos Mendoza (Chef Ejecutivo & Compras)',
-        phone: '829-887-4433',
-        email: 'compras@atlantico.com.do',
-        creditLimit: 750000,
-        creditDays: 45,
-        currentBalance: 420000,
-        availableCredit: 330000,
-        activeOrdersCount: 3,
-        status: 'Activo',
-      },
-      {
-        id: 104,
-        companyName: 'Servicios Industriales Omega, SRL',
-        rnc: '1234567897',
-        contactPerson: 'Ludwig Cabrera',
-        phone: '809-345-6677',
-        email: 'compras@omega.com.do',
-        creditLimit: 150000,
-        creditDays: 30,
-        currentBalance: 0,
-        availableCredit: 150000,
-        activeOrdersCount: 0,
-        status: 'Activo',
-      },
-    ];
+    return [];
   }
 
   saveCorporateClients(list: CorporateClient[]): void {
