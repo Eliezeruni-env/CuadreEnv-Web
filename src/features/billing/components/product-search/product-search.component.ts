@@ -76,11 +76,14 @@ export class ProductSearchComponent implements OnInit {
       const res = await this.productService.getPagedProducts(1, 100);
       const items = res?.data?.items || (Array.isArray(res?.data) ? res.data : []);
       if (items.length > 0) {
-        this.products.set(items);
+        // Excluir productos con 0 stock para módulos de venta a menos que permitan facturar sin stock
+        const validItems = items.filter((it: any) => it.invoiceWithoutStock === true || Number(it.stock ?? 0) > 0);
+        this.products.set(validItems);
       } else {
         const searchRes = await this.productService.searchProducts('');
         if (searchRes?.success && searchRes.data && searchRes.data.length > 0) {
-          this.products.set(searchRes.data);
+          const validItems = searchRes.data.filter((it: any) => it.invoiceWithoutStock === true || Number(it.stock ?? 0) > 0);
+          this.products.set(validItems);
         } else {
           this.products.set([]);
         }

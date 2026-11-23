@@ -204,9 +204,9 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
 
   getSelectedCustomerName(): string {
     const id = this.selectedCustomerId();
-    if (!id) return 'Consumidor Final';
+    if (!id || id === 1) return 'Cliente Contado';
     const client = this.clientsList().find((c) => c.id === id);
-    return client?.name || 'Cliente Mostrador';
+    return client?.name || 'Cliente Contado';
   }
 
   openDigitalSignatureModal(): void {
@@ -515,7 +515,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     { id: 1, name: 'Consumidor Final', rnc: '000-0000000-0', type: 'Contado' },
   ]);
   rawCustomersList = signal<CustomerDto[]>([]);
-  selectedCustomerId = signal<number | null>(null);
+  selectedCustomerId = signal<number | null>(1);
 
   // =========================================================================
   // CREACIÓN RÁPIDA: CLIENTES, VENTAS POR COBRAR (FIAO) Y PRODUCTOS (MOBILE)
@@ -881,6 +881,11 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     return this.products().filter((p) => {
       // RULE: Services are intangible labor and cannot be sold in POS / Cash Register
       if (this.isServiceItem(p)) {
+        return false;
+      }
+
+      // RULE: Productos en 0 de stock no se muestran en caja salvo que permitan facturar sin stock
+      if (!p.invoiceWithoutStock && (p.stock || 0) <= 0) {
         return false;
       }
 

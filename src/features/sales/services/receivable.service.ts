@@ -205,10 +205,23 @@ export class ReceivableService {
           const colorIdx = (id || 1) % AVATAR_COLORS.length;
 
           if (existing) {
-            existing.totalAmount = ar.totalAmount || ar.total || existing.totalAmount;
-            existing.paidAmount = Math.max(existing.paidAmount || 0, ar.paidAmount || 0);
-            existing.pendingAmount = Math.max(0, existing.totalAmount - existing.paidAmount);
-            existing.status = existing.pendingAmount === 0 ? 'Pagado' : existing.paidAmount > 0 ? 'Parcial' : 'Pendiente';
+            const isSettled = existing.status === 'Pagado' || existing.pendingAmount <= 0.01;
+            if (isSettled) {
+              existing.pendingAmount = 0;
+              existing.status = 'Pagado';
+              if (!existing.settledDate) {
+                existing.settledDate = new Date().toISOString();
+              }
+            } else {
+              existing.totalAmount = ar.totalAmount || ar.total || existing.totalAmount;
+              existing.paidAmount = Math.max(existing.paidAmount || 0, ar.paidAmount || 0);
+              existing.pendingAmount = Math.max(0, Math.round((existing.totalAmount - existing.paidAmount) * 100) / 100);
+              existing.status = existing.pendingAmount < 0.01 ? 'Pagado' : existing.paidAmount > 0 ? 'Parcial' : 'Pendiente';
+              if (existing.status === 'Pagado') {
+                existing.pendingAmount = 0;
+                if (!existing.settledDate) existing.settledDate = new Date().toISOString();
+              }
+            }
           } else {
             stored.unshift({
               id: id,
@@ -252,7 +265,7 @@ export class ReceivableService {
 
           if (existing) {
             // Si la cuenta ya fue saldada localmente, preservar su estado de liquidación
-            const isSettled = existing.status === 'Pagado' || existing.pendingAmount <= 0;
+            const isSettled = existing.status === 'Pagado' || existing.pendingAmount <= 0.01;
             existing.paidAmount = Math.max(existing.paidAmount || 0, s.paidAmount || 0);
             if (isSettled) {
               existing.pendingAmount = 0;
@@ -261,10 +274,13 @@ export class ReceivableService {
                 existing.settledDate = new Date().toISOString();
               }
             } else {
-              existing.pendingAmount = Math.max(0, (s.total || existing.totalAmount) - existing.paidAmount);
-              existing.status = existing.pendingAmount === 0 ? 'Pagado' : existing.paidAmount > 0 ? 'Parcial' : 'Pendiente';
-              if (existing.status === 'Pagado' && !existing.settledDate) {
-                existing.settledDate = new Date().toISOString();
+              existing.pendingAmount = Math.max(0, Math.round(((s.total || existing.totalAmount) - existing.paidAmount) * 100) / 100);
+              existing.status = existing.pendingAmount < 0.01 ? 'Pagado' : existing.paidAmount > 0 ? 'Parcial' : 'Pendiente';
+              if (existing.status === 'Pagado') {
+                existing.pendingAmount = 0;
+                if (!existing.settledDate) {
+                  existing.settledDate = new Date().toISOString();
+                }
               }
             }
           } else if (s.originChannel === 'CREDITO' || s.paymentMethod?.toLowerCase().includes('crédito') || pending > 0 || (s.paidAmount > 0 && s.paidAmount < s.total)) {
@@ -502,9 +518,18 @@ export class ReceivableService {
     item.payments.forEach((p) => (p.isCurrent = false));
     item.payments.push(newRecord);
 
-    item.paidAmount = item.payments.reduce((acc, p) => acc + (p.amount || 0), 0);
-    item.pendingAmount = Math.max(0, item.totalAmount - item.paidAmount);
-    item.status = item.pendingAmount === 0 ? 'Pagado' : item.paidAmount > 0 ? 'Parcial' : 'Pendiente';
+    item.paidAmount = Math.round(item.payments.reduce((acc, p) => acc + (p.amount || 0), 0) * 100) / 100;
+    item.pendingAmount = Math.max(0, Math.round((item.totalAmount - item.paidAmount) * 100) / 100);
+    if (item.pendingAmount < 0.01 || item.paidAmount >= item.totalAmount) {
+      item.pendingAmount = 0;
+      item.paidAmount = item.totalAmount;
+      item.status = 'Pagado';
+      if (!item.settledDate) {
+        item.settledDate = new Date().toISOString();
+      }
+    } else {
+      item.status = item.paidAmount > 0 ? 'Parcial' : 'Pendiente';
+    }
 
     // Check active cash register session
     let cashRegisterId: number | null = null;
@@ -651,12 +676,45 @@ export class ReceivableService {
     };
 
     // Recalculate total paid & pending balance
-    item.paidAmount = item.payments.reduce((acc, p) => acc + (p.amount || 0), 0);
-    item.pendingAmount = Math.max(0, item.totalAmount - item.paidAmount);
-    item.status = item.pendingAmount === 0 ? 'Pagado' : item.paidAmount > 0 ? 'Parcial' : 'Pendiente';
+    item.paidAmount = Math.round(item.payments.reduce((acc, p) => acc + (p.amount || 0), 0) * 100) / 100;
+    item.pendingAmount = Math.max(0, Math.round((item.totalAmount - item.paidAmount) * 100) / 100);
+    if (item.pendingAmount < 0.01 || item.paidAmount >= item.totalAmount) {
+      item.pendingAmount = 0;
+      item.paidAmount = item.totalAmount;
+      item.status = 'Pagado';
+      if (!item.settledDate) {
+        item.settledDate = new Date().toISOString();
+      }
+    } else {
+      item.status = item.paidAmount > 0 ? 'Parcial' : 'Pendiente';
+    }
 
     this.saveStoredReceivables(list);
     return { success: true, data: item };
+  }
+
+  async settleReceivable(
+    receivableId: number,
+    options: {
+      method?: string;
+      reference?: string;
+      notes?: string;
+      registerInCash?: boolean;
+    } = {}
+  ): Promise<ApiResponse<ReceivableDto>> {
+    const list = this.getStoredReceivables();
+    const item = list.find((r) => r.id === receivableId);
+    if (!item) {
+      return { success: false, message: 'Venta por cobrar no encontrada.' };
+    }
+    const remaining = item.pendingAmount > 0 ? item.pendingAmount : 0;
+    return this.addPayment(receivableId, {
+      amount: remaining,
+      method: options.method || 'Efectivo',
+      reference: options.reference || 'Liquidación total 100%',
+      notes: options.notes || 'Saldo liquidado en su totalidad',
+      registerInCash: options.registerInCash ?? true,
+    });
   }
 
   async deletePayment(
@@ -677,9 +735,18 @@ export class ReceivableService {
     item.payments.splice(payIdx, 1);
 
     // Recalculate total paid & pending balance
-    item.paidAmount = item.payments.reduce((acc, p) => acc + (p.amount || 0), 0);
-    item.pendingAmount = Math.max(0, item.totalAmount - item.paidAmount);
-    item.status = item.pendingAmount === 0 ? 'Pagado' : item.paidAmount > 0 ? 'Parcial' : 'Pendiente';
+    item.paidAmount = Math.round(item.payments.reduce((acc, p) => acc + (p.amount || 0), 0) * 100) / 100;
+    item.pendingAmount = Math.max(0, Math.round((item.totalAmount - item.paidAmount) * 100) / 100);
+    if (item.pendingAmount < 0.01 || item.paidAmount >= item.totalAmount) {
+      item.pendingAmount = 0;
+      item.paidAmount = item.totalAmount;
+      item.status = 'Pagado';
+      if (!item.settledDate) {
+        item.settledDate = new Date().toISOString();
+      }
+    } else {
+      item.status = item.paidAmount > 0 ? 'Parcial' : 'Pendiente';
+    }
 
     this.saveStoredReceivables(list);
     return { success: true, data: item };

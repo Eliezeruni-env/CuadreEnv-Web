@@ -291,9 +291,19 @@
                       RD$ {{ (b.amountTotal || 0) | number:'1.2-2' }}
                     </td>
                     <td class="text-center">
-                      <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill fw-semibold" style="font-size: 0.75rem;">
-                        {{ b.statusName || 'Pagada' }}
-                      </span>
+                      @if (b.hasPartialCreditNote || b.creditNoteStatus === 'NC Parcial' || b.statusName === 'NC Parcial Aplicada') {
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning px-3 py-1 rounded-pill fw-semibold" style="font-size: 0.75rem;" title="Nota de Crédito Parcial aplicada a esta factura">
+                          ⚠ NC Parcial Aplicada
+                        </span>
+                      } @else if (b.hasAFullCreditNote || b.creditNoteStatus === 'NC Total' || b.statusName === 'Anulada por NC' || b.statusId === 3) {
+                        <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-1 rounded-pill fw-semibold" style="font-size: 0.75rem;" title="Factura anulada en su totalidad por Nota de Crédito">
+                          ✕ Anulada por NC
+                        </span>
+                      } @else {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill fw-semibold" style="font-size: 0.75rem;">
+                          {{ b.statusName || 'Pagada' }}
+                        </span>
+                      }
                     </td>
                     <td class="text-center pe-3">
                       <div class="d-flex align-items-center justify-content-center gap-1.5">
@@ -369,7 +379,18 @@
                                       <td>
                                         <span class="fw-semibold text-dark">{{ item.productName || 'Coca-Cola Original · COCA-COLA SERVICES SA/NV' }}</span>
                                       </td>
-                                      <td class="text-center font-monospace">{{ item.quantity }}</td>
+                                      <td class="text-center font-monospace">
+                                        @if (item.creditedQuantity && item.creditedQuantity > 0) {
+                                          <div class="d-flex flex-column align-items-center">
+                                            <span class="fw-bold text-dark">{{ item.quantity }}</span>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle extra-small mt-0.5" style="font-size: 0.68rem;" title="Unidades devueltas por Nota de Crédito">
+                                              -{{ item.creditedQuantity }} NC ({{ item.originalQuantity || (item.quantity + item.creditedQuantity) }} inicial)
+                                            </span>
+                                          </div>
+                                        } @else {
+                                          <span>{{ item.quantity }}</span>
+                                        }
+                                      </td>
                                       <td class="text-end font-monospace">RD$ {{ item.price | number:'1.2-2' }}</td>
                                       <td class="text-center font-monospace text-secondary">
                                         RD$ 0.00

@@ -3,10 +3,13 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { QuotationService } from '../../../services/quotation.service';
-import { CustomerService } from '../../../../customers/services/customer.service';
+import { CustomerService, DEFAULT_CASH_CUSTOMER } from '../../../../customers/services/customer.service';
 import { ProductService } from '../../../../products/services/product.service';
+import { WarehouseService } from '../../../../inventory/services/warehouse.service';
+import { StockService } from '../../../../inventory/services/stock.service';
 import { NotificationService } from '../../../../cuadreEnv/services/notification.service';
 import type { CustomerDto, ProductDto } from '../../../../cuadreEnv/types/api';
+import type { Warehouse } from '../../../../../app/models/warehouse';
 import type { QuotationStatus, CreateQuotationDto } from '../../../types/quotation.types';
 
 export interface QuotationFormItem {
@@ -31,6 +34,8 @@ export class CreateQuotationComponent implements OnInit {
   private quotationService = inject(QuotationService);
   private customerService = inject(CustomerService);
   private productService = inject(ProductService);
+  private warehouseService = inject(WarehouseService);
+  private stockService = inject(StockService);
   private notificationService = inject(NotificationService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -40,7 +45,8 @@ export class CreateQuotationComponent implements OnInit {
   quotationNumber = signal<string>('COT-NUEVA');
   status = signal<QuotationStatus>('DRAFT');
 
-  customerId = signal<number>(103);
+  customerId = signal<number>(1); // Default: Cliente Contado
+  warehouseId = signal<number>(1); // Almacén seleccionado para la cotización
   issueDate = signal<string>(new Date().toISOString().substring(0, 10));
   expirationDate = signal<string>(
     new Date(Date.now() + 15 * 86400000).toISOString().substring(0, 10)
@@ -57,6 +63,8 @@ export class CreateQuotationComponent implements OnInit {
 
   // Catalogs
   customers = signal<CustomerDto[]>([]);
+  warehouses = signal<Warehouse[]>([]);
+  warehouseStockMap = signal<Map<number, number>>(new Map());
   allProducts = signal<ProductDto[]>([]);
 
   // Async
@@ -134,24 +142,59 @@ export class CreateQuotationComponent implements OnInit {
   async loadCatalogs(): Promise<void> {
     try {
       const custRes = await this.customerService.getCustomers();
-      if (custRes?.success && custRes.data) {
-        this.customers.set(custRes.data);
+      let custList: CustomerDto[] = [];
+      if (custRes?.success && custRes.data && custRes.data.length > 0) {
+        custList = [...custRes.data];
+      }
+      if (!custList.some((c) => c.id === 1)) {
+        custList.unshift(DEFAULT_CASH_CUSTOMER);
+      }
+      this.customers.set(custList);
+
+      // Load Warehouses
+      const whRes = await this.warehouseService.getWarehouses();
+      if (whRes?.success && whRes.data && whRes.data.length > 0) {
+        const whs = whRes.data.filter((w) => w.isActive !== false);
+        this.warehouses.set(whs);
+        const mainWh = whs.find((w) => w.isMain) || whs[0];
+        this.warehouseId.set(Number(mainWh.id));
       } else {
-        // Fallback default customers
-        this.customers.set([
-          { id: 103, name: 'Comercial Duarte, S.R.L.' } as CustomerDto,
-          { id: 101, name: 'Ferretería El Progreso, S.R.L.' } as CustomerDto,
-          { id: 102, name: 'Inversiones Rivas, S.A.' } as CustomerDto,
-          { id: 104, name: 'Distribuidora Metro, S.A.' } as CustomerDto,
-        ]);
+        const defaultWh = this.warehouseService.createDefaultMainWarehouse();
+        this.warehouses.set([defaultWh]);
+        this.warehouseId.set(1);
       }
 
-      const prodRes = await this.productService.getPagedProducts(1, 100);
+      await this.loadWarehouseStock(this.warehouseId());
+
+      const prodRes = await this.productService.getPagedProducts(1, 150);
       if (prodRes?.data?.items) {
         this.allProducts.set(prodRes.data.items);
       }
     } catch (e) {
       console.warn('Error loading catalogs:', e);
+    }
+  }
+
+  async onWarehouseChange(whId: number): Promise<void> {
+    this.warehouseId.set(Number(whId));
+    await this.loadWarehouseStock(Number(whId));
+    if (this.productSearchTerm().trim()) {
+      this.onProductSearchInput(this.productSearchTerm());
+    }
+  }
+
+  async loadWarehouseStock(whId: number): Promise<void> {
+    try {
+      const stockRes = await this.stockService.getStock({ warehouseId: whId });
+      const map = new Map<number, number>();
+      if (stockRes?.success && stockRes.data) {
+        stockRes.data.forEach((s) => {
+          map.set(Number(s.productId), Number(s.quantity) || 0);
+        });
+      }
+      this.warehouseStockMap.set(map);
+    } catch {
+      // ignore
     }
   }
 
@@ -197,13 +240,21 @@ export class CreateQuotationComponent implements OnInit {
       this.isSearchDropdownOpen.set(false);
       return;
     }
-    const matches = this.allProducts().filter(
-      (p) =>
+    const stockMap = this.warehouseStockMap();
+    const matches = this.allProducts().filter((p) => {
+      const textMatch =
         (p.description && p.description.toLowerCase().includes(q)) ||
         (p.shortDescription && p.shortDescription.toLowerCase().includes(q)) ||
         (p.reference && p.reference.toLowerCase().includes(q)) ||
-        (p.barcode && p.barcode.toLowerCase().includes(q))
-    );
+        (p.barcode && p.barcode.toLowerCase().includes(q));
+
+      if (!textMatch) return false;
+
+      // Excluir productos con 0 stock a menos que permitan facturar sin stock
+      const allowWithoutStock = (p as any).invoiceWithoutStock === true;
+      const currentStock = p.id != null && stockMap.has(p.id) ? (stockMap.get(p.id) || 0) : ((p as any).stock || 0);
+      return allowWithoutStock || currentStock > 0;
+    });
     this.filteredProducts.set(matches.slice(0, 8));
     this.isSearchDropdownOpen.set(matches.length > 0);
   }

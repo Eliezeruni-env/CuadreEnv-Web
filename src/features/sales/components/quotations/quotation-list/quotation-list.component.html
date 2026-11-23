@@ -36,7 +36,7 @@
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
-        <span>+ Nueva cotización</span>
+        <span>Nueva cotización</span>
       </button>
     </div>
   </div>
@@ -145,9 +145,9 @@
         </div>
       </div>
 
-      <div class="col-md-3 col-lg-2">
+      <div class="col-md-auto" style="min-width: 195px;">
         <div class="input-group input-group-sm">
-          <span class="input-group-text bg-white border-end-0 text-muted">
+          <span class="input-group-text bg-white border-end-0 text-muted px-2.5">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
               <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -155,7 +155,7 @@
               <line x1="3" y1="10" x2="21" y2="10"></line>
             </svg>
           </span>
-          <select class="form-select border-start-0 ps-1" [ngModel]="dateRangeFilter()" (ngModelChange)="dateRangeFilter.set($event)">
+          <select class="form-select border-start-0 ps-2" [ngModel]="dateRangeFilter()" (ngModelChange)="dateRangeFilter.set($event)">
             <option value="ALL">Rango de fechas</option>
             <option value="TODAY">Hoy</option>
             <option value="THIS_WEEK">Esta semana</option>
@@ -164,7 +164,7 @@
         </div>
       </div>
 
-      <div class="col-md-2">
+      <div class="col-md-auto" style="min-width: 160px;">
         <div class="d-flex align-items-center gap-1.5">
           <span class="small text-secondary fw-medium">Estado</span>
           <select class="form-select form-select-sm" [ngModel]="selectedStatusFilter()" (ngModelChange)="selectedStatusFilter.set($event)">
@@ -178,7 +178,7 @@
         </div>
       </div>
 
-      <div class="col-md-4 col-lg-5 d-flex justify-content-end align-items-center gap-1.5 ms-auto">
+      <div class="col-md-auto d-flex justify-content-end align-items-center gap-1.5 ms-auto">
         <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" (click)="exportQuotesCsv()" title="Exportar cotizaciones a archivo CSV">
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -192,27 +192,27 @@
 
     <!-- Active filter chips row -->
     @if (hasActiveFilters()) {
-      <div class="d-flex align-items-center gap-2 mt-2 pt-2 border-top">
-        <span class="small text-muted">Filtros activos:</span>
+      <div class="d-flex align-items-center gap-2 mt-2 pt-2 border-top flex-wrap">
+        <span class="small text-muted fw-semibold">Filtros activos:</span>
         @if (selectedStatusFilter() !== 'ALL') {
-          <span class="badge bg-primary-subtle text-primary rounded-pill d-inline-flex align-items-center gap-1 px-2.5 py-1">
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill d-inline-flex align-items-center gap-1.5 px-2.5 py-1">
             Estado: {{ getStatusLabel(selectedStatusFilter()) }}
             <button type="button" class="btn-close btn-close-xs" (click)="selectedStatusFilter.set('ALL')"></button>
           </span>
         }
         @if (dateRangeFilter() !== 'ALL') {
-          <span class="badge bg-primary-subtle text-primary rounded-pill d-inline-flex align-items-center gap-1 px-2.5 py-1">
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill d-inline-flex align-items-center gap-1.5 px-2.5 py-1">
             Fecha: {{ dateRangeFilter() }}
             <button type="button" class="btn-close btn-close-xs" (click)="dateRangeFilter.set('ALL')"></button>
           </span>
         }
         @if (searchQuery().trim()) {
-          <span class="badge bg-primary-subtle text-primary rounded-pill d-inline-flex align-items-center gap-1 px-2.5 py-1">
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill d-inline-flex align-items-center gap-1.5 px-2.5 py-1">
             Búsqueda: "{{ searchQuery() }}"
             <button type="button" class="btn-close btn-close-xs" (click)="searchQuery.set('')"></button>
           </span>
         }
-        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none small text-primary ms-2" (click)="clearFilters()">
+        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none small text-primary ms-2 fw-semibold" (click)="clearFilters()">
           Limpiar filtros
         </button>
       </div>

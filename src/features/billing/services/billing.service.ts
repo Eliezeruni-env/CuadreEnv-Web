@@ -135,21 +135,76 @@ export class BillingService {
       if (creditNotes.length === 0) return billings;
 
       return billings.map((b) => {
-        const fullNote = creditNotes.find(
+        // Find all credit notes related to this invoice
+        const matchedNotes = creditNotes.filter(
           (cn) =>
-            (cn.billingId === b.id ||
-              cn.billingNumber === b.billingNumber ||
-              (cn.originalNcf && b.ncf && cn.originalNcf === b.ncf)) &&
-            (cn.creditNoteType === 1 || cn.amountTotal >= (b.amountTotal || 0)),
+            cn.billingId === b.id ||
+            (cn.billingNumber && b.billingNumber && cn.billingNumber.toLowerCase() === b.billingNumber.toLowerCase()) ||
+            (cn.originalNcf && b.ncf && cn.originalNcf.toLowerCase() === b.ncf.toLowerCase()),
         );
-        if (fullNote) {
-          return {
-            ...b,
-            hasAFullCreditNote: true,
-            statusId: 3, // Anulada/Devuelta
-          };
+
+        if (matchedNotes.length === 0) {
+          return b;
         }
-        return b;
+
+        // Check if there is an explicit full cancellation
+        const hasFullNote = matchedNotes.some(
+          (cn) => cn.creditNoteType === 1 || cn.amountTotal >= (b.amountTotal || 0),
+        );
+
+        // Accumulate credited quantities per product
+        const creditedByProduct = new Map<number, number>();
+        for (const note of matchedNotes) {
+          const rawDetails = note.creditNoteDetails || note.details || [];
+          for (const d of rawDetails) {
+            const pId = Number(d.productId || d.id);
+            const q = Number(d.quantity || 0);
+            creditedByProduct.set(pId, (creditedByProduct.get(pId) || 0) + q);
+          }
+        }
+
+        const details = (b.productDetails || b.details || []).map((it: any) => {
+          const pId = Number(it.productId || it.id);
+          const credited = creditedByProduct.get(pId) || 0;
+          const origQty = it.originalQuantity != null ? it.originalQuantity : it.quantity;
+          const remainingQty = Math.max(0, Math.round((origQty - credited) * 100) / 100);
+          const pPrice = it.price || it.unitPrice || 0;
+          const discPerc = it.discountPercentage || 0;
+          const discAmt = Math.round(pPrice * remainingQty * (discPerc / 100) * 100) / 100;
+          const sub = Math.round((pPrice * remainingQty - discAmt) * 100) / 100;
+          const itbisAmt = Math.round(sub * 0.18 * 100) / 100;
+          const tot = Math.round((sub + itbisAmt) * 100) / 100;
+
+          return {
+            ...it,
+            originalQuantity: origQty,
+            creditedQuantity: credited,
+            quantity: remainingQty,
+            discountAmount: discAmt,
+            subTotal: sub,
+            itbisAmount: itbisAmt,
+            totalAmount: tot,
+          };
+        });
+
+        const allItemsCredited = hasFullNote || (details.length > 0 && details.every((it: any) => it.quantity === 0));
+        const newSubTotal = Math.round(details.reduce((sum: number, it: any) => sum + (it.subTotal || 0), 0) * 100) / 100;
+        const newItbis = Math.round(details.reduce((sum: number, it: any) => sum + (it.itbisAmount || 0), 0) * 100) / 100;
+        const newTotal = Math.round(details.reduce((sum: number, it: any) => sum + (it.totalAmount || 0), 0) * 100) / 100;
+
+        return {
+          ...b,
+          productDetails: details,
+          details: details,
+          amountSubTotal: allItemsCredited ? 0 : newSubTotal,
+          amountItbis: allItemsCredited ? 0 : newItbis,
+          amountTotal: allItemsCredited ? 0 : newTotal,
+          hasPartialCreditNote: !allItemsCredited,
+          hasAFullCreditNote: allItemsCredited,
+          creditNoteStatus: allItemsCredited ? 'NC Total' : 'NC Parcial',
+          statusName: allItemsCredited ? 'Anulada por NC' : 'NC Parcial Aplicada',
+          statusId: allItemsCredited ? 3 : b.statusId,
+        };
       });
     } catch {
       return billings;

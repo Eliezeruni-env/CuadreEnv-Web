@@ -242,6 +242,15 @@ export class WarehouseTransferService {
     if (createdBackendId) {
       newTransfer.id = createdBackendId;
       newTransfer.movementNumber = `TRF-${String(createdBackendId).padStart(6, '0')}`;
+    } else {
+      (newTransfer as any).isPendingSync = true;
+    }
+
+    // Persist in local storage for instant availability and deduplication
+    const currentTransfers = this.getLocalTransfers();
+    if (!currentTransfers.some(t => t.id === newTransfer.id || (t.movementNumber && t.movementNumber === newTransfer.movementNumber))) {
+      currentTransfers.unshift(newTransfer);
+      this.saveLocalTransfers(currentTransfers);
     }
 
     // 2. Atomic Stock Update in local cache: decrease at origin, increase at destination

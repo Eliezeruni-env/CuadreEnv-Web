@@ -319,6 +319,31 @@ export class ReceivablesComponent implements OnInit {
     });
   }
 
+  async quickSettle(item: ReceivableDto) {
+    if (!item || item.pendingAmount <= 0) return;
+    const confirmed = await this.confirmService.confirm({
+      title: 'Liquidar venta por cobrar',
+      message: `¿Deseas liquidar el saldo total pendiente de RD$ ${item.pendingAmount.toLocaleString('es-DO', { minimumFractionDigits: 2 })} para la factura ${item.invoiceNumber}?`,
+      itemName: item.customerName,
+      itemType: 'Cliente',
+      confirmText: 'Sí, liquidar 100%',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
+    this.isLoading.set(true);
+    try {
+      const res = await this.receivableService.settleReceivable(item.id);
+      if (res.success) {
+        this.notificationService.success(`Cuenta ${item.invoiceNumber} liquidada al 100% exitosamente.`);
+        await this.loadReceivables();
+      }
+    } catch (e: any) {
+      this.notificationService.showApiError(e);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
   async deleteReceivable(item: ReceivableDto) {
     const confirmed = await this.confirmService.confirm({
       title: '¿Eliminar venta por cobrar?',

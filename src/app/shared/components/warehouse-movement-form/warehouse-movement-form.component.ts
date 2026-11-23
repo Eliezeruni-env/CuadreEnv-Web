@@ -108,6 +108,7 @@ export class WarehouseMovementFormComponent implements OnInit {
   // Async States
   isLoadingCatalogs = signal<boolean>(true);
   isSaving = signal<boolean>(false);
+  private _isSubmitting = false;
   isCameraScannerOpen = signal<boolean>(false);
   isDecodingBarcodeImage = signal<boolean>(false);
 
@@ -135,22 +136,24 @@ export class WarehouseMovementFormComponent implements OnInit {
   async ngOnInit() {
     // 1. Cargar almacenes locales de inmediato (síncrono) para render instantáneo sin esperas
     const localWhs = this.warehouseService.getLocalWarehouses();
-    if (localWhs && localWhs.length > 0) {
-      this.warehouses = localWhs.filter((w) => w.isActive !== false);
-      const qWh = Number(this.route.snapshot.queryParamMap.get('warehouseId') || this.route.snapshot.queryParamMap.get('originWarehouseId'));
-      if (qWh && this.warehouses.some((w) => Number(w.id) === qWh)) {
-        this.warehouseId = qWh;
-        this.warehouseOfOriginId = qWh;
-      } else {
-        const mainWh = this.warehouses.find((w) => w.isMain) || this.warehouses[0];
-        this.warehouseId = Number(mainWh.id);
-        this.warehouseOfOriginId = Number(mainWh.id);
-      }
-      this.destinationWarehouseId =
-        this.warehouses.length > 1 ? Number(this.warehouses[1].id) : Number(this.warehouses[0].id);
-      this.loadConcepts();
-      this.isLoadingCatalogs.set(false);
+    const availableWhs = (localWhs && localWhs.length > 0)
+      ? localWhs.filter((w) => w.isActive !== false)
+      : [this.warehouseService.createDefaultMainWarehouse()];
+
+    this.warehouses = availableWhs.map((w) => ({ ...w, id: Number(w.id) }));
+    const qWh = Number(this.route.snapshot.queryParamMap.get('warehouseId') || this.route.snapshot.queryParamMap.get('originWarehouseId'));
+    if (qWh && this.warehouses.some((w) => Number(w.id) === qWh)) {
+      this.warehouseId = qWh;
+      this.warehouseOfOriginId = qWh;
+    } else {
+      const mainWh = this.warehouses.find((w) => w.isMain) || this.warehouses[0];
+      this.warehouseId = Number(mainWh.id);
+      this.warehouseOfOriginId = Number(mainWh.id);
     }
+    this.destinationWarehouseId =
+      this.warehouses.length > 1 ? Number(this.warehouses[1].id) : Number(this.warehouses[0].id);
+    this.loadConcepts();
+    this.isLoadingCatalogs.set(false);
 
     // 2. Cargar catálogos y productos en paralelo
     await Promise.all([this.loadCatalogs(), this.loadProducts()]);
@@ -160,21 +163,21 @@ export class WarehouseMovementFormComponent implements OnInit {
   async loadCatalogs() {
     try {
       const res = await this.warehouseService.getWarehouses();
-      if (res?.success && res.data) {
-        this.warehouses = res.data.filter((w) => w.isActive !== false);
+      if (res?.success && res.data && res.data.length > 0) {
+        this.warehouses = res.data.filter((w) => w.isActive !== false).map((w) => ({ ...w, id: Number(w.id) }));
 
         const qWh = Number(this.route.snapshot.queryParamMap.get('warehouseId') || this.route.snapshot.queryParamMap.get('originWarehouseId'));
         if (qWh && this.warehouses.some((w) => Number(w.id) === qWh)) {
           this.warehouseId = qWh;
           this.warehouseOfOriginId = qWh;
-        } else if (!this.warehouses.some((w) => Number(w.id) === this.warehouseId) && this.warehouses.length > 0) {
+        } else if (!this.warehouses.some((w) => Number(w.id) === Number(this.warehouseId))) {
           const mainWh = this.warehouses.find((w) => w.isMain) || this.warehouses[0];
           this.warehouseId = Number(mainWh.id);
           this.warehouseOfOriginId = Number(mainWh.id);
         }
 
         if (this.warehouses.length > 1) {
-          const altWh = this.warehouses.find((w) => Number(w.id) !== this.warehouseOfOriginId);
+          const altWh = this.warehouses.find((w) => Number(w.id) !== Number(this.warehouseOfOriginId));
           if (altWh) this.destinationWarehouseId = Number(altWh.id);
         }
       }
@@ -273,11 +276,19 @@ export class WarehouseMovementFormComponent implements OnInit {
   }
 
   async onWarehouseChange() {
-    if (this.mode === 'transfer' && Number(this.warehouseOfOriginId) === Number(this.destinationWarehouseId)) {
-      const alt = this.warehouses.find((w) => Number(w.id) !== Number(this.warehouseOfOriginId));
+    this.warehouseId = Number(this.warehouseId);
+    this.warehouseOfOriginId = Number(this.warehouseOfOriginId);
+    this.destinationWarehouseId = Number(this.destinationWarehouseId);
+
+    if (this.mode === 'transfer' && this.warehouseOfOriginId === this.destinationWarehouseId) {
+      const alt = this.warehouses.find((w) => Number(w.id) !== this.warehouseOfOriginId);
       if (alt) this.destinationWarehouseId = Number(alt.id);
     }
     await this.updateActiveWarehouseStock();
+
+    if (this.isCatalogModalOpen()) {
+      this.openProductCatalogModal();
+    }
   }
 
   getSelectedWarehouseName(): string {
@@ -318,7 +329,10 @@ export class WarehouseMovementFormComponent implements OnInit {
     const resolvedStock = this.activeWarehouseStockMap.get(p.id) ?? p.stock ?? 0;
     this.selectedProduct = { ...p, stockInWarehouse: resolvedStock, stock: resolvedStock };
     this.searchTerm = `${p.description} (${p.barcode || 'S/C'})`;
-    this.addCost = p.cost || (p.priceList ? Math.round((p.priceList / 1.35) * 100) / 100 : 0);
+    const resolvedCost = Number(p.cost) > 0
+      ? Number(p.cost)
+      : (Number(p.priceList) > 0 ? Math.round((Number(p.priceList) / 1.35) * 100) / 100 : 0);
+    this.addCost = resolvedCost;
     this.addQuantity = 1;
     this.isSearchDropdownOpen = false;
   }
@@ -618,21 +632,21 @@ export class WarehouseMovementFormComponent implements OnInit {
 
   // --- Save / Submit Movement ---
   async saveMovement() {
-    // Escudo inmediato contra doble click / duplicidad
-    if (this.isSaving()) return;
-
-    if (this.productDetails.length === 0) {
-      this.notificationService.warning('Debe agregar al menos un producto al movimiento.');
-      return;
-    }
-
-    if (this.mode === 'transfer' && Number(this.warehouseOfOriginId) === Number(this.destinationWarehouseId)) {
-      this.notificationService.error('El almacén de origen y destino no pueden ser iguales.');
-      return;
-    }
-
+    // Escudo inmediato e incondicional contra doble click / duplicidad
+    if (this._isSubmitting || this.isSaving()) return;
+    this._isSubmitting = true;
     this.isSaving.set(true);
+
     try {
+      if (this.productDetails.length === 0) {
+        this.notificationService.warning('Debe agregar al menos un producto al movimiento.');
+        return;
+      }
+
+      if (this.mode === 'transfer' && Number(this.warehouseOfOriginId) === Number(this.destinationWarehouseId)) {
+        this.notificationService.error('El almacén de origen y destino no pueden ser iguales.');
+        return;
+      }
       const payload: WarehouseMovementHeader = {
         warehouseId: this.mode === 'transfer' ? Number(this.warehouseOfOriginId) : Number(this.warehouseId),
         warehouseOfOriginId: Number(this.warehouseOfOriginId),
@@ -699,6 +713,7 @@ export class WarehouseMovementFormComponent implements OnInit {
       this.notificationService.showApiError(e);
     } finally {
       this.isSaving.set(false);
+      this._isSubmitting = false;
     }
   }
 

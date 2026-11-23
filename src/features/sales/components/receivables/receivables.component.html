@@ -363,6 +363,19 @@
                 <!-- Acciones -->
                 <td class="text-end pe-4" style="width: 140px;">
                   <div class="d-inline-flex align-items-center gap-1.5 justify-content-end">
+                    @if (item.pendingAmount > 0 && item.status !== 'Pagado') {
+                      <button
+                        class="btn-action-square btn-action-success"
+                        type="button"
+                        (click)="quickSettle(item)"
+                        title="Liquidar saldo total pendiente (100%)"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </button>
+                    }
+
                     <button
                       class="btn-action-square btn-action-view"
                       type="button"

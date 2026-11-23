@@ -50,6 +50,8 @@ export interface Billing {
   retentionIsrAmount?: number;
   netPayableAmount?: number;
   hasAFullCreditNote?: boolean;
+  hasPartialCreditNote?: boolean;
+  creditNoteStatus?: 'NC Parcial' | 'NC Total' | string;
   showDetail?: boolean; // Control UI para expandir fila
   productDetails: ProductDetails[];
   details?: ProductDetails[]; // Compatibilidad

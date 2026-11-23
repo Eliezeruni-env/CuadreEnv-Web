@@ -339,6 +339,75 @@ export class CreditNoteService {
     currentList.unshift(newNote);
     this.saveLocalCreditNotes(currentList);
 
+    // Actualizar factura original deduciendo los productos y actualizando montos
+    try {
+      const keysToUpdate = [
+        BILLING_STORAGE_KEY,
+        `cuadreenv_billing_invoices_db_default`,
+        `cuadreenv_billing_invoices_db_1`,
+      ];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('cuadreenv_billing_invoices_db')) {
+          if (!keysToUpdate.includes(k)) keysToUpdate.push(k);
+        }
+      }
+
+      keysToUpdate.forEach((storageKey) => {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        try {
+          const list: any[] = JSON.parse(raw);
+          let changed = false;
+          list.forEach((b) => {
+            const isMatch =
+              (note.billingId && b.id === note.billingId) ||
+              (b.billingNumber && note.billingNumber && b.billingNumber.toLowerCase() === note.billingNumber.toLowerCase()) ||
+              (b.ncf && note.originalNcf && b.ncf.toLowerCase() === note.originalNcf.toLowerCase());
+
+            if (isMatch) {
+              changed = true;
+              const details = b.productDetails || b.details || [];
+              mappedDetails.forEach((cd: any) => {
+                const line = details.find((p: any) => (p.productId || p.id) === cd.productId);
+                if (line) {
+                  line.originalQuantity = line.originalQuantity != null ? line.originalQuantity : line.quantity;
+                  line.creditedQuantity = Math.round(((line.creditedQuantity || 0) + cd.quantity) * 100) / 100;
+                  line.quantity = Math.max(0, Math.round((line.originalQuantity - line.creditedQuantity) * 100) / 100);
+
+                  const pPrice = line.price || line.unitPrice || 0;
+                  const discPerc = line.discountPercentage || 0;
+                  const discAmt = Math.round(pPrice * line.quantity * (discPerc / 100) * 100) / 100;
+                  line.discountAmount = discAmt;
+                  line.subTotal = Math.round((pPrice * line.quantity - discAmt) * 100) / 100;
+                  line.itbisAmount = Math.round(line.subTotal * 0.18 * 100) / 100;
+                  line.totalAmount = Math.round((line.subTotal + line.itbisAmount) * 100) / 100;
+                }
+              });
+
+              const allCredited = details.length > 0 && details.every((it: any) => it.quantity === 0);
+              b.amountSubTotal = Math.round(details.reduce((sum: number, it: any) => sum + (it.subTotal || 0), 0) * 100) / 100;
+              b.amountItbis = Math.round(details.reduce((sum: number, it: any) => sum + (it.itbisAmount || 0), 0) * 100) / 100;
+              b.amountTotal = Math.round(details.reduce((sum: number, it: any) => sum + (it.totalAmount || 0), 0) * 100) / 100;
+              b.hasPartialCreditNote = !allCredited;
+              b.hasAFullCreditNote = allCredited;
+              b.creditNoteNumber = assignedNumber;
+              b.creditNoteNcf = assignedNCF;
+              b.creditNoteStatus = allCredited ? 'NC Total' : 'NC Parcial';
+              b.statusName = allCredited ? 'Anulada por NC' : 'NC Parcial Aplicada';
+              b.statusId = allCredited ? 3 : b.statusId;
+            }
+          });
+
+          if (changed) {
+            localStorage.setItem(storageKey, JSON.stringify(list));
+          }
+        } catch {}
+      });
+    } catch (syncErr) {
+      console.warn('Error syncing billing lines with credit note:', syncErr);
+    }
+
     return {
       success: true,
       data: newNote,

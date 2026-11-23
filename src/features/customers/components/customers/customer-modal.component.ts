@@ -98,7 +98,15 @@ export class CustomerModalComponent {
 
     this.isLoading.set(true);
     const formVal = this.customerForm.value;
-    const payload: CustomerDto = { ...formVal };
+    const cleanId = (formVal.identification || '').trim() || null;
+    const payload: CustomerDto = {
+      name: (formVal.name || '').trim(),
+      email: (formVal.email || '').trim() || null,
+      phone: (formVal.phone || '').trim() || null,
+      identification: cleanId,
+      rnc: cleanId,
+      active: formVal.active !== false,
+    };
 
     try {
       if (this.isEditMode) {

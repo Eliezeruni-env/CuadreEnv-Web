@@ -241,7 +241,14 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
 
   readonly favoriteProducts = computed<ProductDto[]>(() => {
     const favIds = this.favoriteProductIds();
-    const allProds = this.products().filter((p) => !this.isServiceItem(p));
+    const allProds = this.products().filter((p) => {
+      if (this.isServiceItem(p)) return false;
+      if (p.id != null) {
+        const available = this.getProductAvailableStock(p.id);
+        if (available <= 0 && !(p as any).invoiceWithoutStock) return false;
+      }
+      return true;
+    });
     if (favIds.length > 0) {
       const favSet = new Set(favIds);
       const list = allProds.filter((p) => favSet.has(p.id!));
@@ -279,11 +286,10 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   selectedWarehouseId = signal<number | null>(null);
   warehouseStockMap = signal<Map<number, number>>(new Map());
 
-  selectedCustomerId: number | null = null;
+  selectedCustomerId: number | null = 1;
   readonly selectedCustomer = computed(() => {
-    const id = this.selectedCustomerId;
-    if (!id) return null;
-    return this.customers().find((c) => c.id === id) || null;
+    const id = this.selectedCustomerId ?? 1;
+    return this.customers().find((c) => c.id === id) || this.customers().find((c) => c.id === 1) || null;
   });
   catalogSearchTerm = signal<string>('');
   selectedCategory = signal<number | null>(null);
@@ -928,6 +934,14 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       // RULE: Services are intangible labor and cannot be sold in POS / Cash Register
       if (this.isServiceItem(p)) {
         return false;
+      }
+
+      // RULE: Productos que estén en 0 de almacén no se muestran en caja a menos que tengan permiso
+      if (p.id != null) {
+        const available = this.getProductAvailableStock(p.id);
+        if (available <= 0 && !(p as any).invoiceWithoutStock) {
+          return false;
+        }
       }
 
       if (cat !== null) {

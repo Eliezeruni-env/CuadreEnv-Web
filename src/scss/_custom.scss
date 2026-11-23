@@ -720,6 +720,14 @@ app-default-header,
     }
   }
 
+  &.btn-action-success {
+    color: var(--ce-success, #059669);
+    &:hover {
+      background: #ECFDF5;
+      border-color: #A7F3D0;
+    }
+  }
+
   &.btn-action-danger {
     color: var(--ce-danger, #DC2626);
     &:hover {

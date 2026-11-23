@@ -229,6 +229,15 @@ export class WarehouseOutletService {
     if (createdBackendId) {
       newOutlet.id = createdBackendId;
       newOutlet.movementNumber = `SAL-${String(createdBackendId).padStart(6, '0')}`;
+    } else {
+      (newOutlet as any).isPendingSync = true;
+    }
+
+    // Persist in local storage for instant availability and deduplication
+    const currentOutlets = this.getLocalOutlets();
+    if (!currentOutlets.some(o => o.id === newOutlet.id || (o.movementNumber && o.movementNumber === newOutlet.movementNumber))) {
+      currentOutlets.unshift(newOutlet);
+      this.saveLocalOutlets(currentOutlets);
     }
 
     // 2. Atomically decrease stock in origin warehouse local cache

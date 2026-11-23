@@ -128,7 +128,7 @@
     <div class="row g-4 align-items-stretch">
       <!-- Left Column: Rutas List -->
       <div class="col-lg-5 col-xl-4">
-        <div class="card border-0 shadow-sm rounded-4 p-3.5 bg-white h-100">
+        <div class="card border-0 shadow-sm rounded-4 p-3.5 bg-white h-100 routes-list-card">
           <div class="d-flex align-items-center justify-content-between mb-3">
             <h5 class="fw-bold text-dark mb-0">Rutas</h5>
             <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2.5 py-1 small">
@@ -191,10 +191,19 @@
                 </div>
               </div>
             } @empty {
-              <div class="text-center py-5 px-3 text-muted my-auto">
-                <p class="small mb-3">No hay rutas registradas para esta fecha.</p>
-                <button type="button" class="btn btn-sm btn-outline-primary" (click)="openCreateRouteModal()">
-                  + Crear ruta
+              <div class="text-center py-5 px-3 text-muted my-auto d-flex flex-column align-items-center justify-content-center">
+                <div class="p-3 bg-light rounded-circle text-secondary mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <circle cx="6" cy="19" r="3"></circle>
+                    <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path>
+                    <circle cx="18" cy="5" r="3"></circle>
+                  </svg>
+                </div>
+                <h6 class="fw-semibold text-dark mb-1">Sin rutas para esta fecha</h6>
+                <p class="small text-muted mb-3" style="max-width: 240px;">No se encontraron hojas de reparto registradas para la fecha seleccionada.</p>
+                <button type="button" class="btn btn-sm btn-primary fw-semibold px-3 py-1.5 rounded-3 shadow-sm d-inline-flex align-items-center gap-1.5" (click)="openCreateRouteModal()">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  <span>Crear ruta</span>
                 </button>
               </div>
             }
@@ -366,7 +375,7 @@
             </div>
           </div>
         } @else {
-          <div class="card border-0 shadow-sm rounded-4 p-5 bg-white text-center">
+          <div class="card border-0 shadow-sm rounded-4 p-5 bg-white text-center h-100 route-details-placeholder-card">
             <div class="text-muted mb-3">
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <rect x="1" y="3" width="15" height="13"></rect>
