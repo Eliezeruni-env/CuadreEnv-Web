@@ -1,7 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, of, from } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
-import { ApiClientService, extractArray } from '../../cuadreEnv/services/apiClient';
+import {
+  ApiClientService,
+  extractArray,
+} from '../../cuadreEnv/services/apiClient';
 import { StockService } from '../../inventory/services/stock.service';
 import { WarehouseService } from '../../inventory/services/warehouse.service';
 import { ProductService } from '../../products/services/product.service';
@@ -66,33 +69,53 @@ export class PurchaseOrderReceiptService {
     }
   }
 
-  private mapPurchaseToOrder(p: PurchaseDto, suppliersMap: Map<number, string>): PurchaseOrder {
+  private mapPurchaseToOrder(
+    p: PurchaseDto,
+    suppliersMap: Map<number, string>,
+  ): PurchaseOrder {
     const id = p.id || 0;
     const supName =
       (p as any).supplierName ||
       (p.supplierId ? suppliersMap.get(p.supplierId) : null) ||
       'Proveedor General';
 
-    const rawItems: any[] = (p.details && p.details.length > 0)
-      ? p.details
-      : ((p as any).items && (p as any).items.length > 0)
-        ? (p as any).items
-        : [];
+    const rawItems: any[] =
+      p.details && p.details.length > 0
+        ? p.details
+        : (p as any).items && (p as any).items.length > 0
+          ? (p as any).items
+          : [];
 
-    const details: PurchaseOrderDetail[] = rawItems.map((d: any, idx: number) => ({
-      productId: Number(d.productId || d.id || idx + 1),
-      barCode: d.barCode || d.productCode || d.code || '',
-      productName: d.productName || d.name || d.description || `Producto #${d.productId || idx + 1}`,
-      quantityOrdered: Number(d.quantityOrdered || d.quantity || 1),
-      quantityReceived: Number(d.quantityReceived || 0),
-      unitCost: Number(d.costPrice || d.cost || d.unitCost || 0),
-      subTotal: Number(d.subtotal ?? (Number(d.quantity || 1) * Number(d.costPrice || d.cost || 0))),
-      total: Number(d.total ?? d.subtotal ?? (Number(d.quantity || 1) * Number(d.costPrice || d.cost || 0))),
-    }));
+    const details: PurchaseOrderDetail[] = rawItems.map(
+      (d: any, idx: number) => ({
+        productId: Number(d.productId || d.id || idx + 1),
+        barCode: d.barCode || d.productCode || d.code || '',
+        productName:
+          d.productName ||
+          d.name ||
+          d.description ||
+          `Producto #${d.productId || idx + 1}`,
+        quantityOrdered: Number(d.quantityOrdered || d.quantity || 1),
+        quantityReceived: Number(d.quantityReceived || 0),
+        unitCost: Number(d.costPrice || d.cost || d.unitCost || 0),
+        subTotal: Number(
+          d.subtotal ??
+            Number(d.quantity || 1) * Number(d.costPrice || d.cost || 0),
+        ),
+        total: Number(
+          d.total ??
+            d.subtotal ??
+            Number(d.quantity || 1) * Number(d.costPrice || d.cost || 0),
+        ),
+      }),
+    );
 
     return {
       id,
-      orderNumber: (p as any).orderNumber || p.invoiceNumber || `OC-${String(id).padStart(5, '0')}`,
+      orderNumber:
+        (p as any).orderNumber ||
+        p.invoiceNumber ||
+        `OC-${String(id).padStart(5, '0')}`,
       prefix: 'OC',
       supplierId: p.supplierId || 1,
       supplierName: supName,
@@ -100,9 +123,14 @@ export class PurchaseOrderReceiptService {
       warehouseId: (p as any).warehouseId || 1,
       warehouseName: (p as any).warehouseName || 'Almacén Principal',
       orderDate: p.creationDate || new Date().toISOString(),
-      expectedDeliveryDate: (p as any).expectedDeliveryDate || p.creationDate || new Date().toISOString(),
+      expectedDeliveryDate:
+        (p as any).expectedDeliveryDate ||
+        p.creationDate ||
+        new Date().toISOString(),
       statusId: (p as any).statusId || (p.status === 'PAID' ? 3 : 1),
-      statusName: (p as any).statusName || (p.status === 'PAID' ? 'Completada' : 'Pendiente'),
+      statusName:
+        (p as any).statusName ||
+        (p.status === 'PAID' ? 'Completada' : 'Pendiente'),
       notes: (p as any).notes || '',
       subTotal: (p as any).subTotal || p.total || 0,
       itbis: (p as any).itbis || 0,
@@ -190,12 +218,18 @@ export class PurchaseOrderReceiptService {
         const pRes = await this.purchaseService.getPurchase(id);
         if (pRes?.success && pRes.data) {
           const supMap = new Map<number, string>();
-          return { success: true, data: this.mapPurchaseToOrder(pRes.data, supMap) };
+          return {
+            success: true,
+            data: this.mapPurchaseToOrder(pRes.data, supMap),
+          };
         }
       } catch {}
     }
 
-    return { success: false, message: 'Orden de compra no encontrada en el sistema.' };
+    return {
+      success: false,
+      message: 'Orden de compra no encontrada en el sistema.',
+    };
   }
 
   existsReceiptOrRequest(purchaseOrderId: number): Observable<boolean> {
@@ -203,10 +237,12 @@ export class PurchaseOrderReceiptService {
       map((res) => {
         const list = res.data || [];
         return list.some(
-          (r) => r.purchaseOrderId === purchaseOrderId && (r.statusId === 1 || r.statusId === 2),
+          (r) =>
+            r.purchaseOrderId === purchaseOrderId &&
+            (r.statusId === 1 || r.statusId === 2),
         );
       }),
-      catchError(() => of(false))
+      catchError(() => of(false)),
     );
   }
 
@@ -216,11 +252,17 @@ export class PurchaseOrderReceiptService {
       const list = extractArray<PurchaseOrderReceipt>(res);
       return { success: true, data: list || [] };
     } catch {
-      return { success: false, data: [], message: 'No se pudo conectar con el servidor.' };
+      return {
+        success: false,
+        data: [],
+        message: 'No se pudo conectar con el servidor.',
+      };
     }
   }
 
-  async createReceipt(receipt: Partial<PurchaseOrderReceipt>): Promise<ApiResponse<PurchaseOrderReceipt>> {
+  async createReceipt(
+    receipt: Partial<PurchaseOrderReceipt>,
+  ): Promise<ApiResponse<PurchaseOrderReceipt>> {
     const id = Date.now();
     const receiptNum = `REC-${String(id).slice(-6)}`;
     const orders = this.getLocalOrders();
@@ -231,14 +273,16 @@ export class PurchaseOrderReceiptService {
       receiptNumber: receiptNum,
       prefix: 'REC',
       purchaseOrderId: receipt.purchaseOrderId || 0,
-      purchaseOrderNumber: receipt.purchaseOrderNumber || `OC-${receipt.purchaseOrderId}`,
+      purchaseOrderNumber:
+        receipt.purchaseOrderNumber || `OC-${receipt.purchaseOrderId}`,
       warehouseId: receipt.warehouseId || 1,
       warehouseName: receipt.warehouseName || 'Almacén Principal',
       supplierId: receipt.supplierId || 1,
       supplierName: receipt.supplierName || 'Proveedor',
       receiptDate: new Date().toISOString(),
       statusId: receipt.statusId || 1,
-      statusName: receipt.statusId === 2 ? 'En Revisión (Manage Request)' : 'Aplicado',
+      statusName:
+        receipt.statusId === 2 ? 'En Revisión (Manage Request)' : 'Aplicado',
       comments: receipt.comments || '',
       hasDiscrepancies: receipt.hasDiscrepancies || false,
       productDetails: receipt.productDetails || [],
@@ -261,19 +305,25 @@ export class PurchaseOrderReceiptService {
           // Kardex Automático y Costo Promedio Ponderado Dinámico
           try {
             if (this.productService && this.kardexService) {
-              const productRes = await this.productService.getProduct(item.productId);
+              const productRes = await this.productService.getProduct(
+                item.productId,
+              );
               if (productRes?.success && productRes.data) {
                 const currentProd = productRes.data;
                 const currentCost = Number(currentProd.cost || 0);
                 const currentStock = Number(currentProd.stock || 0);
-                const newWeightedCost = this.kardexService.calculateWeightedAverageCost(
-                  currentStock,
-                  currentCost,
-                  item.quantityReceived,
-                  item.unitCost,
-                );
+                const newWeightedCost =
+                  this.kardexService.calculateWeightedAverageCost(
+                    currentStock,
+                    currentCost,
+                    item.quantityReceived,
+                    item.unitCost,
+                  );
 
-                const sellPrice = currentProd.priceList || currentProd.price || (currentProd.cost ? currentProd.cost * 1.3 : 100);
+                const sellPrice =
+                  currentProd.priceList ||
+                  currentProd.price ||
+                  (currentProd.cost ? currentProd.cost * 1.3 : 100);
                 const margin = this.kardexService.calculateProfitMargin(
                   sellPrice,
                   newWeightedCost,
@@ -308,7 +358,10 @@ export class PurchaseOrderReceiptService {
               }
             }
           } catch (kdxErr) {
-            console.warn('Error en cálculo de costo promedio ponderado Kardex:', kdxErr);
+            console.warn(
+              'Error en cálculo de costo promedio ponderado Kardex:',
+              kdxErr,
+            );
           }
         }
       }
@@ -317,12 +370,16 @@ export class PurchaseOrderReceiptService {
       if (poIndex !== -1) {
         const po = orders[poIndex];
         po.productDetails.forEach((line) => {
-          const received = newReceipt.productDetails.find((r) => r.productId === line.productId);
+          const received = newReceipt.productDetails.find(
+            (r) => r.productId === line.productId,
+          );
           if (received) {
             line.quantityReceived += received.quantityReceived;
           }
         });
-        const allCompleted = po.productDetails.every((line) => line.quantityReceived >= line.quantityOrdered);
+        const allCompleted = po.productDetails.every(
+          (line) => line.quantityReceived >= line.quantityOrdered,
+        );
         po.statusId = allCompleted ? 3 : 2; // 3: Completada, 2: Parcial
         po.statusName = allCompleted ? 'Completada' : 'Recepción Parcial';
         this.saveLocalOrders(orders);
@@ -331,7 +388,9 @@ export class PurchaseOrderReceiptService {
       if (this.purchaseService && newReceipt.purchaseOrderId) {
         try {
           const localPurchases = this.purchaseService.getLocalPurchases();
-          const pMatch = localPurchases.find((p) => p.id === newReceipt.purchaseOrderId);
+          const pMatch = localPurchases.find(
+            (p) => p.id === newReceipt.purchaseOrderId,
+          );
           if (pMatch) {
             (pMatch as any).statusId = 3;
             (pMatch as any).statusName = 'Recibida';

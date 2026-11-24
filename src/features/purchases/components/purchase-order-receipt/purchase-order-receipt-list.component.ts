@@ -49,7 +49,8 @@ export class PurchaseOrderReceiptListComponent implements OnInit {
       list = list.filter(
         (r) =>
           r.receiptNumber.toLowerCase().includes(q) ||
-          (r.purchaseOrderNumber && r.purchaseOrderNumber.toLowerCase().includes(q)) ||
+          (r.purchaseOrderNumber &&
+            r.purchaseOrderNumber.toLowerCase().includes(q)) ||
           r.supplierName.toLowerCase().includes(q) ||
           (r.warehouseName && r.warehouseName.toLowerCase().includes(q)),
       );
@@ -152,7 +153,11 @@ export class PurchaseOrderReceiptListComponent implements OnInit {
     if (!r) return;
 
     const company = this.companyService.currentSettings();
-    const companyName = company.commercialName || (company as any).businessName || (company as any).name || 'CuadreEnv Negocio';
+    const companyName =
+      company.commercialName ||
+      (company as any).businessName ||
+      (company as any).name ||
+      'CuadreEnv Negocio';
     const dateStr = new Date(r.receiptDate).toLocaleDateString('es-DO', {
       day: '2-digit',
       month: '2-digit',
@@ -165,18 +170,31 @@ export class PurchaseOrderReceiptListComponent implements OnInit {
     });
 
     const items = r.productDetails || [];
-    const totalQty = items.reduce((acc, i) => acc + (Number(i.quantityReceived) || 0), 0);
-    const totalAmount = items.reduce((acc, i) => acc + (Number(i.subTotal) || ((Number(i.quantityReceived) || 0) * (Number(i.unitCost) || 0))), 0);
+    const totalQty = items.reduce(
+      (acc, i) => acc + (Number(i.quantityReceived) || 0),
+      0,
+    );
+    const totalAmount = items.reduce(
+      (acc, i) =>
+        acc +
+        (Number(i.subTotal) ||
+          (Number(i.quantityReceived) || 0) * (Number(i.unitCost) || 0)),
+      0,
+    );
 
-    const itemsHtml = items.map((item) => `
+    const itemsHtml = items
+      .map(
+        (item) => `
       <div style="margin-bottom: 5px; font-size: 11px;">
         <div style="font-weight: bold;">${item.productName}</div>
         <div style="display: flex; justify-content: space-between; color: #333;">
           <span>${item.barCode || 'S/C'} · ${item.quantityReceived} uds @ RD$ ${Number(item.unitCost || 0).toFixed(2)}</span>
-          <span style="font-weight: bold;">RD$ ${Number(item.subTotal || ((item.quantityReceived || 0) * (item.unitCost || 0))).toFixed(2)}</span>
+          <span style="font-weight: bold;">RD$ ${Number(item.subTotal || (item.quantityReceived || 0) * (item.unitCost || 0)).toFixed(2)}</span>
         </div>
       </div>
-    `).join('');
+    `,
+      )
+      .join('');
 
     const printWin = window.open('', '_blank', 'width=420,height=680');
     if (!printWin) {
@@ -265,10 +283,14 @@ export class PurchaseOrderReceiptListComponent implements OnInit {
             <span>RD$ ${totalAmount.toFixed(2)}</span>
           </div>
 
-          ${r.comments ? `
+          ${
+            r.comments
+              ? `
             <div class="divider"></div>
             <div style="font-size: 11px;"><strong>Observaciones:</strong> ${r.comments}</div>
-          ` : ''}
+          `
+              : ''
+          }
 
           <div class="signatures">
             <div class="sign-box">Recibido (Almacén)</div>
