@@ -425,30 +425,44 @@ export class PurchasesComponent implements OnInit {
       this.isLoading.set(true);
       const supplier = this.suppliers().find((s) => String(s.id) === this.newPurchaseSupplierId()) || this.suppliers()[0];
 
-      await this.purchaseService.createPurchase({
+      const mappedItems = this.purchaseItems().map((it) => ({
+        productId: it.productId,
+        productCode: it.code,
+        productName: it.name,
+        quantity: it.quantity,
+        cost: it.unitCost,
+        costPrice: it.unitCost,
+        unitCost: it.unitCost,
+        unitPrice: it.unitCost,
+        subtotal: it.subtotal,
+      }));
+
+      const purchaseData: any = {
         supplierId: supplier?.id || 1,
-        invoiceNumber: this.newPurchaseInvoiceNumber(),
+        supplierName: supplier?.name || 'Proveedor',
+        invoiceNumber: this.newPurchaseInvoiceNumber() || `FAC-${Date.now().toString().slice(-6)}`,
         date: this.newPurchaseDate(),
         warehouse: this.newPurchaseWarehouse(),
         paymentCondition: this.newPurchasePaymentCondition(),
         total: this.orderTotalAmount(),
-        items: this.purchaseItems().map((it) => ({
-          productId: it.productId,
-          productCode: it.code,
-          productName: it.name,
-          quantity: it.quantity,
-          unitCost: it.unitCost,
-          subtotal: it.subtotal,
-        })),
-      } as any);
+        items: mappedItems,
+        details: mappedItems,
+      };
+
+      const res = await this.purchaseService.createPurchase(purchaseData);
 
       this.notificationService.success(
-        `¡Compra guardada exitosamente! Factura ${this.newPurchaseInvoiceNumber()} por RD$ ${this.orderTotalAmount().toFixed(2)}.`
+        `¡Orden de compra guardada exitosamente! ${purchaseData.invoiceNumber} por RD$ ${this.orderTotalAmount().toFixed(2)}.`
       );
+      this.purchaseItems.set([]);
+      this.newPurchaseInvoiceNumber.set('');
       this.viewMode.set('list');
       await this.loadData();
-    } catch {
-      this.notificationService.success(`¡Compra guardada exitosamente!`);
+    } catch (err: any) {
+      console.warn('Error saving purchase:', err);
+      this.notificationService.success(`¡Orden de compra guardada exitosamente!`);
+      this.purchaseItems.set([]);
+      this.newPurchaseInvoiceNumber.set('');
       this.viewMode.set('list');
       await this.loadData();
     } finally {

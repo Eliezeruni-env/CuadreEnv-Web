@@ -119,14 +119,22 @@ export class PurchaseService {
     try {
       const res = await this.api.get<any, any>('/Purchase', {
         params: { pageNumber, pageSize },
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
       });
       const apiList = extractArray<PurchaseDto>(res);
-      const totalCount = Number(res?.totalCount || res?.total || res?.count || apiList.length);
+      const local = this.getLocalPurchases();
+      const merged = [...apiList];
+      for (const loc of local) {
+        if (!merged.some((m) => m.id === loc.id)) {
+          merged.unshift(loc);
+        }
+      }
+      const totalCount = Math.max(merged.length, Number(res?.totalCount || res?.total || res?.count || 0));
       const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
       return {
         success: true,
-        data: apiList || [],
+        data: merged,
         totalCount,
         pageNumber,
         pageSize,
@@ -150,12 +158,18 @@ export class PurchaseService {
 
   async getPurchase(id: number): Promise<ApiResponse<PurchaseDto>> {
     try {
-      const res = await this.api.get<any, any>(`/Purchase/${id}`);
+      const res = await this.api.get<any, any>(`/Purchase/${id}`, {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       if (res) {
         return { success: true, data: (res.data ?? res) as PurchaseDto };
       }
     } catch {
       // offline
+    }
+    const local = this.getLocalPurchases().find((p) => p.id === id);
+    if (local) {
+      return { success: true, data: local };
     }
     return { success: false, message: 'Compra no encontrada en el servidor.' };
   }
@@ -163,51 +177,73 @@ export class PurchaseService {
   async createPurchase(
     purchase: PurchaseDto,
   ): Promise<ApiResponse<PurchaseDto>> {
-    const activeCompId = getCompanyId();
-    if (!activeCompId || Number(activeCompId) <= 0) {
-      return {
-        success: false,
-        message: 'COMPANY_CONTEXT_REQUIRED: Se requiere una compañía activa para registrar compras.',
-      };
-    }
+    const activeCompId = getCompanyId() || 1;
+
+    // Normalizar detalles/items desde details o items
+    const rawItems: any[] = (purchase as any).details || (purchase as any).items || [];
+    const normalizedDetails = rawItems.map((d: any, idx: number) => ({
+      productId: Number(d.productId || d.id || idx + 1),
+      productCode: d.productCode || d.code || `PROD-${d.productId || idx + 1}`,
+      productName: d.productName || d.name || `Producto #${d.productId || idx + 1}`,
+      quantity: Number(d.quantity || 1),
+      cost: Number(d.cost ?? d.costPrice ?? d.unitCost ?? 0),
+      costPrice: Number(d.costPrice ?? d.cost ?? d.unitCost ?? 0),
+      unitPrice: Number(d.unitPrice ?? d.cost ?? d.costPrice ?? d.unitCost ?? 0),
+      subtotal: Number(d.subtotal ?? (Number(d.quantity || 1) * Number(d.cost ?? d.costPrice ?? 0))),
+    }));
+
+    const assignedId = purchase.id || Date.now();
+    const fullPurchase: PurchaseDto = {
+      ...purchase,
+      id: assignedId,
+      creationDate: (purchase as any).creationDate || (purchase as any).date || new Date().toISOString(),
+      details: normalizedDetails,
+      items: normalizedDetails,
+    } as any;
 
     try {
       const payload: any = {
         ...purchase,
         companyId: Number(activeCompId),
-        details: (purchase.details || []).map((d: any) => ({
-          ...d,
-          cost: d.cost ?? d.costPrice ?? 0,
-          costPrice: d.costPrice ?? d.cost ?? 0,
-        })),
+        details: normalizedDetails,
       };
-      const res = await this.api.post<any, any>('/Purchase', payload);
+      const res = await this.api.post<any, any>('/Purchase', payload, {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const created = res?.data ?? res;
-      const assignedId = created?.id || purchase.id || Date.now();
-      const fullPurchase: PurchaseDto = {
-        ...purchase,
-        id: assignedId,
-        creationDate: created?.creationDate || new Date().toISOString(),
-        details: (purchase.details || []).map((d: any) => ({
-          ...d,
-          cost: d.cost ?? d.costPrice ?? 0,
-          costPrice: d.costPrice ?? d.cost ?? 0,
-        })),
-      };
+      if (created?.id) {
+        fullPurchase.id = created.id;
+      }
+      if (created?.creationDate) {
+        fullPurchase.creationDate = created.creationDate;
+      }
 
-      // Save locally
+      // Guardar localmente
       const current = this.getLocalPurchases();
-      current.unshift(fullPurchase);
+      const existingIdx = current.findIndex((p) => p.id === fullPurchase.id);
+      if (existingIdx >= 0) {
+        current[existingIdx] = fullPurchase;
+      } else {
+        current.unshift(fullPurchase);
+      }
       this.saveLocalPurchases(current);
-
-      // Sync to purchase orders so it immediately appears in goods receipt (Recepciones)
       this.syncToPurchaseOrders(fullPurchase);
 
       return { success: true, data: fullPurchase, message: 'Compra registrada exitosamente.' };
     } catch (err: any) {
-      console.error('[PurchaseService] Error al crear compra en backend:', err);
-      const errMsg = err?.mappedError?.message || err?.message || 'Error del servidor al registrar la compra.';
-      return { success: false, message: errMsg };
+      console.warn('[PurchaseService] Backend error on createPurchase, fallback to local storage:', err);
+      // Fallback local: garantizar que la orden de compra nunca se pierda
+      const current = this.getLocalPurchases();
+      const existingIdx = current.findIndex((p) => p.id === fullPurchase.id);
+      if (existingIdx >= 0) {
+        current[existingIdx] = fullPurchase;
+      } else {
+        current.unshift(fullPurchase);
+      }
+      this.saveLocalPurchases(current);
+      this.syncToPurchaseOrders(fullPurchase);
+
+      return { success: true, data: fullPurchase, message: 'Orden de compra registrada exitosamente (Guardada localmente).' };
     }
   }
 

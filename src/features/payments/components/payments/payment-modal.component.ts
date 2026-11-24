@@ -143,11 +143,12 @@ export class PaymentModalComponent implements OnInit {
 
   async loadData() {
     try {
-      const [saleRes, purchaseRes, supRes, payRes] = await Promise.all([
-        this.saleService.getSales(),
+      const isSale = this.paymentType() === 'sale';
+      const [purchaseRes, supRes, payRes, saleRes] = await Promise.all([
         this.purchaseService.getPurchases(),
         this.supplierService.getSuppliers(),
         this.paymentService.getPayments(),
+        isSale ? this.saleService.getSales() : Promise.resolve(null),
       ]);
 
       if (saleRes?.success && saleRes.data) {
@@ -172,7 +173,7 @@ export class PaymentModalComponent implements OnInit {
         this.paymentsList.set(payRes.data);
       }
     } catch (e: any) {
-      console.error('Failed to load pending sales/purchases:', e?.message || e);
+      console.warn('Failed to load pending sales/purchases:', e?.message || e);
     }
   }
 
@@ -205,6 +206,13 @@ export class PaymentModalComponent implements OnInit {
     this.paymentType.set(type);
     if (type === 'sale') {
       this.paymentForm.patchValue({ purchaseId: '', amount: 0 });
+      if (this.sales().length === 0) {
+        this.saleService.getSales().then((res) => {
+          if (res?.success && res.data) {
+            this.sales.set(res.data);
+          }
+        }).catch(() => {});
+      }
     } else {
       this.paymentForm.patchValue({ saleId: '', amount: 0 });
     }

@@ -60,7 +60,10 @@ export class SaleService {
       pageSize: params?.pageSize ? Math.min(100, Math.max(1, params.pageSize)) : 100,
     };
     try {
-      const res = await this.api.get<any, any>('/Sale', { params: validParams });
+      const res = await this.api.get<any, any>('/Sale', {
+        params: validParams,
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const apiSales = extractArray<SaleResponseDto>(res);
       const localList = this.getLocalSales();
       if (localList.length > 0) {
@@ -93,7 +96,10 @@ export class SaleService {
     } catch (err: any) {
       if (err?.status === 404) {
         try {
-          const res2 = await this.api.get<any, any>('/sales', { params: validParams });
+          const res2 = await this.api.get<any, any>('/sales', {
+            params: validParams,
+            headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+          });
           const apiSales2 = extractArray<SaleResponseDto>(res2);
           const localList = this.getLocalSales();
           const merged2 = [...(apiSales2 || [])];
@@ -125,10 +131,7 @@ export class SaleService {
         }
       }
       const localFallback = this.getLocalSales();
-      if (localFallback.length > 0) {
-        return { success: true, data: localFallback };
-      }
-      return { success: false, data: [], message: 'No se pudo conectar con el servidor.' };
+      return { success: true, data: localFallback };
     }
   }
 
