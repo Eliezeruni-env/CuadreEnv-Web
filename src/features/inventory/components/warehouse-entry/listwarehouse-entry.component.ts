@@ -123,10 +123,24 @@ export class ListwarehouseEntryComponent implements OnInit {
     try {
       const res = await this.entryService.getEntries();
       if (res?.success && res.data) {
-        const safeData = (res.data || []).map((e: any) => ({
-          ...e,
-          productDetails: e.productDetails || e.details || e.items || [],
-        }));
+        const safeData = (res.data || []).map((e: any) => {
+          const details = e.productDetails || e.details || e.items || [];
+          let computedCost = Number(e.totalCost || e.costTotal || e.amount || 0);
+
+          if (computedCost === 0 && details.length > 0) {
+            computedCost = details.reduce((sum: number, it: any) => {
+              const c = Number(it.cost || it.unitCost || it.price || 0);
+              const q = Number(it.quantity || it.cant || 1);
+              return sum + c * q;
+            }, 0);
+          }
+
+          return {
+            ...e,
+            productDetails: details,
+            totalCost: computedCost,
+          };
+        });
         this.entries.set(safeData);
       }
     } catch {

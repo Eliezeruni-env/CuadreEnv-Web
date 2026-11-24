@@ -12,7 +12,7 @@ import type {
 } from '../../cuadreEnv/types/api';
 
 const SALES_STORAGE_KEY_BASE = 'cuadreenv_local_sales_cache';
-function getSalesStorageKey(): string {
+export function getSalesStorageKey(): string {
   const compId = getCompanyId() || 'default';
   return `${SALES_STORAGE_KEY_BASE}_${compId}`;
 }
@@ -28,24 +28,129 @@ export class SaleService {
   }
 
   getLocalSales(): SaleResponseDto[] {
+    const list: SaleResponseDto[] = [];
+    const seen = new Set<string>();
+
+    const checkAndAdd = (arr: any[]) => {
+      if (!Array.isArray(arr)) return;
+      for (const item of arr) {
+        if (!item) continue;
+        const key = `${item.id ?? ''}_${item.invoiceNumber ?? item.invoiceFolio ?? item.billingNumber ?? ''}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push(item);
+        }
+      }
+    };
+
     try {
-      const raw = localStorage.getItem(getSalesStorageKey());
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+      if (typeof localStorage !== 'undefined') {
+        // 1. Scoped company key
+        const currentKey = getSalesStorageKey();
+        const rawCurrent = localStorage.getItem(currentKey);
+        if (rawCurrent) {
+          try { checkAndAdd(JSON.parse(rawCurrent)); } catch {}
+        }
+
+        // 2. Global unscoped cache keys
+        const rawBase = localStorage.getItem(SALES_STORAGE_KEY_BASE);
+        if (rawBase) {
+          try { checkAndAdd(JSON.parse(rawBase)); } catch {}
+        }
+
+        const rawOld = localStorage.getItem('cuadreenv_local_sales');
+        if (rawOld) {
+          try { checkAndAdd(JSON.parse(rawOld)); } catch {}
+        }
+
+        const rawDefault = localStorage.getItem(`${SALES_STORAGE_KEY_BASE}_default`);
+        if (rawDefault) {
+          try { checkAndAdd(JSON.parse(rawDefault)); } catch {}
+        }
+
+        const rawOne = localStorage.getItem(`${SALES_STORAGE_KEY_BASE}_1`);
+        if (rawOne) {
+          try { checkAndAdd(JSON.parse(rawOne)); } catch {}
+        }
+
+        // 3. Scan all keys in localStorage for local sales or billing invoices
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (!k) continue;
+
+          if (k.startsWith('cuadreenv_local_sales') || k.startsWith('cuadreenv_sales')) {
+            try {
+              const val = localStorage.getItem(k);
+              if (val) checkAndAdd(JSON.parse(val));
+            } catch {}
+          } else if (k.startsWith('cuadreenv_billing_invoices_db')) {
+            try {
+              const val = localStorage.getItem(k);
+              if (val) {
+                const billings = JSON.parse(val);
+                if (Array.isArray(billings)) {
+                  for (const b of billings) {
+                    const bKey = `${b.id ?? ''}_${b.billingNumber ?? b.invoiceNumber ?? ''}`;
+                    if (!seen.has(bKey)) {
+                      seen.add(bKey);
+                      list.push({
+                        id: b.id || Date.now(),
+                        total: Number(b.amountTotal || b.total || 0),
+                        paidAmount: Number(b.amountTotal || b.total || 0),
+                        creationDate: b.creationDate || new Date().toISOString(),
+                        customerId: b.clientId || b.customerId,
+                        customerName: b.clientName || b.customerName || 'Consumidor Final',
+                        invoiceNumber: b.billingNumber || b.ncf || `FAC-${b.id}`,
+                        isCancelled: b.statusId === 3 || b.hasAFullCreditNote === true,
+                        details: (b.productDetails || b.details || []).map((d: any) => ({
+                          productId: d.productId || d.id || 1,
+                          productName: d.productName || d.description || 'Producto',
+                          productCode: d.barCode || d.barcode || `PROD-${d.productId || 1}`,
+                          quantity: Number(d.quantity || 1),
+                          unitPrice: Number(d.price || d.unitPrice || 0),
+                          total: Number(d.totalAmount || (Number(d.quantity || 1) * Number(d.price || 0))),
+                        })),
+                        paymentMethod: b.billingTypeName || 'Efectivo',
+                        originChannel: 'Facturación Directa',
+                      } as any);
+                    }
+                  }
+                }
+              }
+            } catch {}
+          }
+        }
+      }
+    } catch {}
+
+    return list;
   }
 
   saveLocalSale(sale: SaleResponseDto): void {
     try {
-      const list = this.getLocalSales();
-      const existingIdx = list.findIndex((s) => s.id === sale.id);
-      if (existingIdx >= 0) {
-        list[existingIdx] = sale;
-      } else {
-        list.unshift(sale);
+      if (typeof localStorage === 'undefined') return;
+
+      const keysToSave = [
+        getSalesStorageKey(),
+        SALES_STORAGE_KEY_BASE,
+        'cuadreenv_local_sales',
+      ];
+
+      for (const k of keysToSave) {
+        try {
+          const raw = localStorage.getItem(k);
+          const list: SaleResponseDto[] = raw ? JSON.parse(raw) : [];
+          const existingIdx = list.findIndex(
+            (s) => s.id === sale.id || (sale.invoiceNumber && s.invoiceNumber === sale.invoiceNumber)
+          );
+          if (existingIdx >= 0) {
+            list[existingIdx] = { ...list[existingIdx], ...sale };
+          } else {
+            list.unshift(sale);
+          }
+          localStorage.setItem(k, JSON.stringify(list));
+        } catch {}
       }
-      localStorage.setItem(getSalesStorageKey(), JSON.stringify(list));
     } catch (e) {
       console.error('Error saving local sale cache:', e);
     }
@@ -68,77 +173,65 @@ export class SaleService {
       });
       const apiSales = extractArray<SaleResponseDto>(res);
       const localList = this.getLocalSales();
-      if (localList.length > 0) {
-        const merged = [...apiSales];
-        for (const s of merged) {
+
+      const merged = [...(apiSales || [])];
+      for (const s of merged) {
+        const locMatch = localList.find(
+          (l) => l.id === s.id || (s.invoiceNumber && l.invoiceNumber === s.invoiceNumber)
+        );
+        if (locMatch) {
+          if (!s.originChannel && locMatch.originChannel) {
+            s.originChannel = locMatch.originChannel;
+          }
+          if (!s.notes && locMatch.notes) {
+            s.notes = locMatch.notes;
+          }
+          if (!s.invoiceNumber && locMatch.invoiceNumber) {
+            s.invoiceNumber = locMatch.invoiceNumber;
+          }
+          if (
+            (!s.details || s.details.length === 0) &&
+            locMatch.details &&
+            locMatch.details.length > 0
+          ) {
+            s.details = locMatch.details;
+          }
+        }
+      }
+      for (const loc of localList) {
+        if (!merged.some((m) => m.id === loc.id || (loc.invoiceNumber && m.invoiceNumber === loc.invoiceNumber))) {
+          merged.unshift(loc);
+        }
+      }
+      return { success: true, data: merged };
+    } catch {
+      try {
+        const res2 = await this.api.get<any, any>('/sales', {
+          params: validParams,
+          headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+        });
+        const apiSales2 = extractArray<SaleResponseDto>(res2);
+        const localList = this.getLocalSales();
+        const merged2 = [...(apiSales2 || [])];
+        for (const s of merged2) {
           const locMatch = localList.find((l) => l.id === s.id);
           if (locMatch) {
-            if (!s.originChannel && locMatch.originChannel) {
-              s.originChannel = locMatch.originChannel;
-            }
-            if (!s.notes && locMatch.notes) {
-              s.notes = locMatch.notes;
-            }
-            if (!s.invoiceNumber && locMatch.invoiceNumber) {
-              s.invoiceNumber = locMatch.invoiceNumber;
-            }
-            if (
-              (!s.details || s.details.length === 0) &&
-              locMatch.details &&
-              locMatch.details.length > 0
-            ) {
+            if (!s.originChannel && locMatch.originChannel) s.originChannel = locMatch.originChannel;
+            if (!s.notes && locMatch.notes) s.notes = locMatch.notes;
+            if (!s.invoiceNumber && locMatch.invoiceNumber) s.invoiceNumber = locMatch.invoiceNumber;
+            if ((!s.details || s.details.length === 0) && locMatch.details?.length) {
               s.details = locMatch.details;
             }
           }
         }
         for (const loc of localList) {
-          if (!merged.some((m) => m.id === loc.id)) {
-            merged.unshift(loc);
+          if (!merged2.some((m) => m.id === loc.id)) {
+            merged2.unshift(loc);
           }
         }
-        return { success: true, data: merged };
-      }
-      return { success: true, data: apiSales };
-    } catch (err: any) {
-      if (err?.status === 404) {
-        try {
-          const res2 = await this.api.get<any, any>('/sales', {
-            params: validParams,
-            headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
-          });
-          const apiSales2 = extractArray<SaleResponseDto>(res2);
-          const localList = this.getLocalSales();
-          const merged2 = [...(apiSales2 || [])];
-          for (const s of merged2) {
-            const locMatch = localList.find((l) => l.id === s.id);
-            if (locMatch) {
-              if (!s.originChannel && locMatch.originChannel) {
-                s.originChannel = locMatch.originChannel;
-              }
-              if (!s.notes && locMatch.notes) {
-                s.notes = locMatch.notes;
-              }
-              if (!s.invoiceNumber && locMatch.invoiceNumber) {
-                s.invoiceNumber = locMatch.invoiceNumber;
-              }
-              if (
-                (!s.details || s.details.length === 0) &&
-                locMatch.details &&
-                locMatch.details.length > 0
-              ) {
-                s.details = locMatch.details;
-              }
-            }
-          }
-          for (const loc of localList) {
-            if (!merged2.some((m) => m.id === loc.id)) {
-              merged2.unshift(loc);
-            }
-          }
-          return { success: true, data: merged2 };
-        } catch {
-          // Fallback failed
-        }
+        return { success: true, data: merged2 };
+      } catch {
+        // Fallback to local storage sales cache
       }
       const localFallback = this.getLocalSales();
       return { success: true, data: localFallback };

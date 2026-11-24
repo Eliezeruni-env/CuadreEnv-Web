@@ -151,22 +151,32 @@ export class SalesComponent implements OnInit {
 
   async loadData() {
     this.isLoading.set(true);
+    this.errorMessage.set(null);
     try {
       const [sRes, cRes, pRes] = await Promise.all([
-        this.saleService.getSales(),
-        this.customerService.getCustomers({
-          pageNumber: 1,
-          pageSize: 100,
-        }),
-        this.productService.getPagedProducts(1, 100).catch(() => ({ success: false, data: null })),
+        this.saleService
+          .getSales()
+          .catch(() => ({ success: true, data: this.saleService.getLocalSales() })),
+        this.customerService
+          .getCustomers({
+            pageNumber: 1,
+            pageSize: 100,
+          })
+          .catch(() => ({ success: true, data: [] })),
+        this.productService
+          .getPagedProducts(1, 100)
+          .catch(() => ({ success: false, data: null })),
       ]);
 
-      if (sRes.success && sRes.data) {
-        this.sales.set(sRes.data);
-        this.totalItems.set(this.getFilteredSalesCount());
+      let salesList = sRes?.success && Array.isArray(sRes.data) ? sRes.data : [];
+      if (salesList.length === 0) {
+        salesList = this.saleService.getLocalSales();
       }
 
-      if (cRes.success && cRes.data) {
+      this.sales.set(salesList);
+      this.totalItems.set(this.getFilteredSalesCount());
+
+      if (cRes?.success && Array.isArray(cRes.data)) {
         this.customers.set(cRes.data);
       }
 
@@ -179,9 +189,15 @@ export class SalesComponent implements OnInit {
         }
       }
     } catch (e: any) {
-      this.errorMessage.set(
-        e?.response?.data?.message || e?.message || 'Error loading sales.',
-      );
+      console.warn('Error loading sales, fallback to local storage cache:', e);
+      const fallbackSales = this.saleService.getLocalSales();
+      this.sales.set(fallbackSales);
+      this.totalItems.set(this.getFilteredSalesCount());
+      if (fallbackSales.length === 0) {
+        this.errorMessage.set(
+          e?.response?.data?.message || e?.message || 'Error loading sales.',
+        );
+      }
     } finally {
       this.isLoading.set(false);
     }

@@ -124,10 +124,24 @@ export class ListwarehouseOutletComponent implements OnInit {
     try {
       const res = await this.outletService.getOutlets();
       if (res?.success && res.data) {
-        const safeData = (res.data || []).map((o: any) => ({
-          ...o,
-          productDetails: o.productDetails || o.details || o.items || [],
-        }));
+        const safeData = (res.data || []).map((o: any) => {
+          const details = o.productDetails || o.details || o.items || [];
+          let computedCost = Number(o.totalCost || o.costTotal || o.amount || 0);
+
+          if (computedCost === 0 && details.length > 0) {
+            computedCost = details.reduce((sum: number, it: any) => {
+              const c = Number(it.cost || it.unitCost || it.price || 0);
+              const q = Number(it.quantity || it.cant || 1);
+              return sum + c * q;
+            }, 0);
+          }
+
+          return {
+            ...o,
+            productDetails: details,
+            totalCost: computedCost,
+          };
+        });
         this.outlets.set(safeData);
       }
     } catch {

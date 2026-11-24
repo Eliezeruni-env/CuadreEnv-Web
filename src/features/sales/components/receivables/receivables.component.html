@@ -183,6 +183,7 @@
       <div class="col-md-2 d-flex justify-content-end align-items-center gap-1.5 ms-auto">
         <div class="view-mode-toggle d-flex align-items-center">
           <button
+            type="button"
             class="btn-view-toggle"
             [class.active]="viewMode() === 'table'"
             (click)="viewMode.set('table')"
@@ -198,6 +199,7 @@
             </svg>
           </button>
           <button
+            type="button"
             class="btn-view-toggle"
             [class.active]="viewMode() === 'cards'"
             (click)="viewMode.set('cards')"

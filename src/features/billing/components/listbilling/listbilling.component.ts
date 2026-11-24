@@ -196,11 +196,21 @@ export class ListbillingComponent implements OnInit {
       if (res?.success && res.data && res.data.length > 0) {
         this.billings.set(res.data);
       } else {
-        this.billings.set(this.getSeedBillings());
+        const local = this.billingService.getLocalBillings();
+        if (local.length > 0) {
+          this.billings.set(local);
+        } else {
+          this.billings.set(this.getSeedBillings());
+        }
       }
     } catch (e) {
       console.error('Error loading billings:', e);
-      this.billings.set(this.getSeedBillings());
+      const local = this.billingService.getLocalBillings();
+      if (local.length > 0) {
+        this.billings.set(local);
+      } else {
+        this.billings.set(this.getSeedBillings());
+      }
     } finally {
       this.isLoading.set(false);
     }

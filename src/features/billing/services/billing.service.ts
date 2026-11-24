@@ -19,18 +19,55 @@ export class BillingService {
   private cashRegisterService = inject(CashRegisterService);
   private productService = inject(ProductService);
 
-  private getLocalBillings(): Billing[] {
+  getLocalBillings(): Billing[] {
+    const list: Billing[] = [];
+    const seen = new Set<string>();
+
+    const checkAndAdd = (arr: any[]) => {
+      if (!Array.isArray(arr)) return;
+      for (const item of arr) {
+        if (!item) continue;
+        const key = `${item.id ?? ''}_${item.billingNumber ?? item.invoiceNumber ?? ''}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push(item);
+        }
+      }
+    };
+
     try {
-      const raw = localStorage.getItem(getBillingStorageKey());
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+      if (typeof localStorage !== 'undefined') {
+        const kScoped = getBillingStorageKey();
+        const rawScoped = localStorage.getItem(kScoped);
+        if (rawScoped) {
+          try { checkAndAdd(JSON.parse(rawScoped)); } catch {}
+        }
+
+        const rawBase = localStorage.getItem(BILLING_STORAGE_KEY_BASE);
+        if (rawBase) {
+          try { checkAndAdd(JSON.parse(rawBase)); } catch {}
+        }
+
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(BILLING_STORAGE_KEY_BASE)) {
+            try {
+              const val = localStorage.getItem(k);
+              if (val) checkAndAdd(JSON.parse(val));
+            } catch {}
+          }
+        }
+      }
+    } catch {}
+
+    return list;
   }
 
-  private saveLocalBillings(list: Billing[]): void {
+  saveLocalBillings(list: Billing[]): void {
     try {
+      if (typeof localStorage === 'undefined') return;
       localStorage.setItem(getBillingStorageKey(), JSON.stringify(list));
+      localStorage.setItem(BILLING_STORAGE_KEY_BASE, JSON.stringify(list));
     } catch (e) {
       console.error('Error saving local billings:', e);
     }
@@ -222,14 +259,65 @@ export class BillingService {
   }): Promise<ApiResponse<Billing[]>> {
     let list: Billing[] = [];
     try {
-      const res = await this.api.get<any, any>('/Sale', { params: filters });
+      const res = await this.api.get<any, any>('/Sale', {
+        params: filters,
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const apiList = extractArray<any>(res);
       if (apiList && apiList.length > 0) {
         list = apiList.map((s: any) => this.mapSaleToBilling(s));
       }
     } catch {
-      return { success: false, data: [], message: 'No se pudo conectar con el servidor.' };
+      // Backend unavailable or 500 error, will merge local cache seamlessly
     }
+
+    // Merge with local billings
+    const localBillings = this.getLocalBillings();
+    for (const lb of localBillings) {
+      if (
+        !list.some(
+          (b) =>
+            b.id === lb.id ||
+            (lb.billingNumber && b.billingNumber === lb.billingNumber),
+        )
+      ) {
+        list.unshift(lb);
+      }
+    }
+
+    // Merge with local sales (POS sales, Quick sales, etc.)
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const salesKeys = [
+          'cuadreenv_local_sales_cache',
+          'cuadreenv_local_sales',
+          `cuadreenv_local_sales_cache_${getCompanyId() || 'default'}`,
+        ];
+        for (const sk of salesKeys) {
+          const rawS = localStorage.getItem(sk);
+          if (rawS) {
+            try {
+              const salesArr = JSON.parse(rawS);
+              if (Array.isArray(salesArr)) {
+                for (const saleItem of salesArr) {
+                  const mapped = this.mapSaleToBilling(saleItem);
+                  if (
+                    !list.some(
+                      (b) =>
+                        b.id === mapped.id ||
+                        (mapped.billingNumber &&
+                          b.billingNumber === mapped.billingNumber),
+                    )
+                  ) {
+                    list.unshift(mapped);
+                  }
+                }
+              }
+            } catch {}
+          }
+        }
+      }
+    } catch {}
 
     list = this.applyCreditNotesToBillings(list);
 

@@ -119,10 +119,24 @@ export class ListwarehouseTransferComponent implements OnInit {
     try {
       const res = await this.transferService.getTransfers();
       if (res?.success && res.data) {
-        const safeData = (res.data || []).map((t: any) => ({
-          ...t,
-          productDetails: t.productDetails || t.details || t.items || [],
-        }));
+        const safeData = (res.data || []).map((t: any) => {
+          const details = t.productDetails || t.details || t.items || [];
+          let computedCost = Number(t.totalCost || t.costTotal || t.amount || 0);
+
+          if (computedCost === 0 && details.length > 0) {
+            computedCost = details.reduce((sum: number, it: any) => {
+              const c = Number(it.cost || it.unitCost || it.price || 0);
+              const q = Number(it.quantity || it.cant || 1);
+              return sum + c * q;
+            }, 0);
+          }
+
+          return {
+            ...t,
+            productDetails: details,
+            totalCost: computedCost,
+          };
+        });
         this.transfers.set(safeData);
       }
     } catch {

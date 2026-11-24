@@ -951,4 +951,44 @@ kbd, .kbd-pill {
   animation: live-feed-flash 2.5s ease-out;
 }
 
+// Global View Mode Switcher (Table / Grid / Cards)
+.view-mode-toggle,
+.catalog-view-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  background-color: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  padding: 3px !important;
+  gap: 3px !important;
+
+  .btn-view-toggle {
+    width: 34px !important;
+    height: 32px !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    border-radius: 6px !important;
+    background: transparent !important;
+    color: #64748b !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    transition: all 0.15s ease-in-out !important;
+
+    &:hover {
+      background-color: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+
+    &.active {
+      background-color: #1e293b !important;
+      color: #ffffff !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+    }
+  }
+}
+
 

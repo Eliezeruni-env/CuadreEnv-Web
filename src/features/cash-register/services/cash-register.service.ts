@@ -1281,11 +1281,21 @@ export class CashRegisterService {
           total: it.total || (it.quantity * it.unitPrice),
         })),
       };
-      const raw = localStorage.getItem('cuadreenv_local_sales_cache');
-      const list = raw ? JSON.parse(raw) : [];
-      if (!list.some((s: any) => s.id === localSale.id)) {
-        list.unshift(localSale);
-        localStorage.setItem('cuadreenv_local_sales_cache', JSON.stringify(list));
+      const compId = getCompanyId() || 'default';
+      const keysToSave = [
+        'cuadreenv_local_sales_cache',
+        `cuadreenv_local_sales_cache_${compId}`,
+        'cuadreenv_local_sales',
+      ];
+      for (const k of keysToSave) {
+        try {
+          const raw = localStorage.getItem(k);
+          const list = raw ? JSON.parse(raw) : [];
+          if (!list.some((s: any) => s.id === localSale.id || (localSale.invoiceNumber && s.invoiceNumber === localSale.invoiceNumber))) {
+            list.unshift(localSale);
+            localStorage.setItem(k, JSON.stringify(list));
+          }
+        } catch {}
       }
       // Update session current balance in cache if cash sale
       if (

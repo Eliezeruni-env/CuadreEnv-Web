@@ -159,10 +159,54 @@ export function normalizeWarehouseMovement<T extends WarehouseMovementHeader>(ra
     raw.totalCost ?? raw.TotalCost ?? raw.totalAmount ?? raw.TotalAmount ?? raw.amountTotal ?? raw.amount ?? raw.subtotal ?? 0
   ));
 
-  // If items didn't have cost, try to get from product catalog/stock cache
-  if (computedCost === 0 && rawCost === 0 && productDetails.length > 0) {
+  // If items didn't have cost, try to get from local movement cache or product catalog/stock cache
+  if (computedCost === 0 && rawCost === 0 && typeof window !== 'undefined' && window.localStorage) {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
+      const targetId = Number(raw.id ?? raw.Id ?? 0);
+      const targetNum = String(raw.movementNumber ?? raw.MovementNumber ?? raw.code ?? '').trim().toUpperCase();
+
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const k = window.localStorage.key(i);
+        if (
+          k &&
+          (k.startsWith('cuadreenv_warehouse_entries_db') ||
+            k.startsWith('cuadreenv_warehouse_outlets_db') ||
+            k.startsWith('cuadreenv_warehouse_transfers_db'))
+        ) {
+          try {
+            const rawLocal = window.localStorage.getItem(k);
+            if (rawLocal) {
+              const localArr = JSON.parse(rawLocal);
+              if (Array.isArray(localArr)) {
+                const match = localArr.find((m: any) => {
+                  const mId = Number(m.id ?? 0);
+                  const mNum = String(m.movementNumber ?? m.code ?? '').trim().toUpperCase();
+                  return (targetId > 0 && mId === targetId) || (targetNum && mNum === targetNum);
+                });
+                if (match) {
+                  if (match.totalCost && Number(match.totalCost) > 0) {
+                    computedCost = Number(match.totalCost);
+                  }
+                  if (
+                    productDetails.length === 0 &&
+                    Array.isArray(match.productDetails) &&
+                    match.productDetails.length > 0
+                  ) {
+                    productDetails = match.productDetails.map((d: any) =>
+                      normalizeProductDetail(d, defaultWh),
+                    );
+                  }
+                  if (computedCost > 0) break;
+                }
+              }
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+
+    if (computedCost === 0 && rawCost === 0 && productDetails.length > 0) {
+      try {
         const rawStock = window.localStorage.getItem('cuadreenv_stock_db');
         if (rawStock) {
           const stocks = JSON.parse(rawStock);
@@ -181,12 +225,10 @@ export function normalizeWarehouseMovement<T extends WarehouseMovementHeader>(ra
           }
           computedCost = productDetails.reduce(
             (sum, item) => sum + (item.quantity || 0) * (item.cost || item.price || 0),
-            0
+            0,
           );
         }
-      }
-    } catch {
-      // ignore
+      } catch {}
     }
   }
 
