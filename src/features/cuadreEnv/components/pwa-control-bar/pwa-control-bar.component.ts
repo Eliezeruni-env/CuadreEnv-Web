@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PwaService } from '../../services/pwa.service';
 
@@ -13,12 +13,23 @@ export class PwaControlBarComponent {
   public pwaService = inject(PwaService);
 
   dismissOfflineBanner = false;
-  dismissInstallFloating = typeof window !== 'undefined' && localStorage.getItem('cuadre_pwa_dismissed') === 'true';
+  dismissInstallFloating = signal<boolean>(
+    typeof window !== 'undefined' &&
+      (localStorage.getItem('cuadre_pwa_dismissed') === 'true' ||
+        sessionStorage.getItem('cuadre_pwa_dismissed') === 'true'),
+  );
 
-  dismissFloating(): void {
-    this.dismissInstallFloating = true;
+  dismissFloating(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    this.dismissInstallFloating.set(true);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('cuadre_pwa_dismissed', 'true');
+      try {
+        localStorage.setItem('cuadre_pwa_dismissed', 'true');
+        sessionStorage.setItem('cuadre_pwa_dismissed', 'true');
+      } catch {}
     }
   }
 

@@ -11,6 +11,7 @@ import { PermissionService } from '../../../roles/services/permission.service';
 import { ModuleAccessService } from '../../../cuadreEnv/services/module-access.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
+import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog.service';
 import type { PurchaseDto, ProductDto } from '../../../cuadreEnv/types/api';
 import type { Warehouse } from '../../../../app/models/warehouse';
 import { PurchaseModalComponent } from './purchase-modal.component';
@@ -61,6 +62,7 @@ export class PurchasesComponent implements OnInit {
   private warehouseService = inject(WarehouseService);
   private notificationService = inject(NotificationService);
   private purchaseService = inject(PurchaseService);
+  private confirmService = inject(ConfirmDialogService, { optional: true });
   public authService = inject(AuthService);
   public permissionService = inject(PermissionService);
   private router = inject(Router);
@@ -491,5 +493,36 @@ export class PurchasesComponent implements OnInit {
     if (!this.canManualReceive()) return;
     if (!purchase.id) return;
     this.router.navigate(['/purchases/receipts/create', purchase.id]);
+  }
+
+  async deletePurchase(purchase: PurchaseDto, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
+    if (!purchase?.id) return;
+
+    if (this.confirmService) {
+      const ok = await this.confirmService.confirm({
+        title: 'Eliminar Orden de Compra',
+        message: `¿Está seguro de que desea eliminar la orden de compra #${purchase.id} (${this.getSupplierName(purchase)})?`,
+        confirmText: 'Eliminar',
+        variant: 'danger',
+      });
+      if (!ok) return;
+    } else {
+      const ok = confirm(`¿Está seguro de eliminar la compra #${purchase.id}?`);
+      if (!ok) return;
+    }
+
+    try {
+      this.isLoading.set(true);
+      await this.purchaseService.deletePurchase(purchase.id);
+      this.notificationService.success(`Compra #${purchase.id} eliminada exitosamente.`);
+      await this.loadData();
+    } catch (e: any) {
+      this.notificationService.showApiError(e);
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 }

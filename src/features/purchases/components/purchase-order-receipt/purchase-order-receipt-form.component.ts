@@ -57,9 +57,12 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
     await this.loadAvailableOrders();
     await this.loadCatalogProducts();
 
-    const paramId = this.route.snapshot.paramMap.get('id') || this.route.snapshot.queryParamMap.get('id');
-    if (paramId) {
-      this.searchPoNumber = paramId;
+    const paramId =
+      this.route.snapshot.paramMap.get('id') ||
+      this.route.snapshot.queryParamMap.get('id');
+    const paramNum = this.route.snapshot.queryParamMap.get('orderNumber');
+    if (paramId || paramNum) {
+      this.searchPoNumber = paramNum || paramId || '';
       await this.searchOrder();
     }
   }
@@ -234,6 +237,37 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
         if (single?.success && single.data) {
           found = single.data;
         }
+      }
+
+      // Check local purchases cache if not found in backend POs
+      if (!found && this.purchaseService) {
+        const localPurchases = this.purchaseService.getLocalPurchases();
+        const pMatch = localPurchases.find(
+          (p) =>
+            p.id === targetId ||
+            p.invoiceNumber?.toLowerCase() === term.toLowerCase() ||
+            (p as any).orderNumber?.toLowerCase() === term.toLowerCase() ||
+            `OC-${p.id}`.toLowerCase() === term.toLowerCase(),
+        );
+        if (pMatch) {
+          found = (this.poService as any).mapPurchaseToOrder(pMatch, new Map());
+        }
+      }
+
+      // Check direct local purchase orders storage
+      if (!found && typeof localStorage !== 'undefined') {
+        try {
+          const rawLocal = localStorage.getItem('cuadreenv_purchase_orders_db');
+          if (rawLocal) {
+            const list = JSON.parse(rawLocal);
+            found = list.find(
+              (o: any) =>
+                o.id === targetId ||
+                String(o.orderNumber || '').toLowerCase() === term.toLowerCase() ||
+                `OC-${o.id}`.toLowerCase() === term.toLowerCase(),
+            );
+          }
+        } catch {}
       }
 
       if (found) {

@@ -35,14 +35,14 @@
 }
 
 <!-- 3. Botón Flotante de Instalación A2HS Universal -->
-@if (!pwaService.isInstalled() && pwaService.isOnline() && !dismissInstallFloating) {
+@if (!pwaService.isInstalled() && pwaService.isOnline() && !dismissInstallFloating()) {
   <div class="pwa-install-floating animate-slide-up">
     <div class="pwa-install-pill-wrap d-flex align-items-center shadow-md">
       <button type="button" class="btn pwa-install-btn d-flex align-items-center gap-2" (click)="onInstallClick()" title="Instalar CuadreEnv en este dispositivo">
         <span class="fs-6">📲</span>
         <span class="fw-bold font-size-sm">Instalar App</span>
       </button>
-      <button type="button" class="btn pwa-dismiss-btn" (click)="dismissFloating()" title="Ocultar">
+      <button type="button" class="btn pwa-dismiss-btn" (click)="dismissFloating($event)" title="Ocultar">
         <span aria-hidden="true">&times;</span>
       </button>
     </div>

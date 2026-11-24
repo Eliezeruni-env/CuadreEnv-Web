@@ -8,6 +8,8 @@ import {
   GrossProfitMetric,
 } from '../../services/inventory-intelligence.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
+import { PurchaseService } from '../../../purchases/services/purchase.service';
+import { PurchaseOrderReceiptService } from '../../../purchases/services/purchase-order-receipt.service';
 import { Router } from '@angular/router';
 
 @Component({
@@ -20,6 +22,8 @@ import { Router } from '@angular/router';
 export class InventoryIntelligenceComponent implements OnInit {
   private readonly intelligenceService = inject(InventoryIntelligenceService);
   private readonly notificationService = inject(NotificationService);
+  private readonly purchaseService = inject(PurchaseService, { optional: true });
+  private readonly poReceiptService = inject(PurchaseOrderReceiptService, { optional: true });
   private readonly router = inject(Router);
 
   isLoading = signal<boolean>(false);
@@ -203,7 +207,130 @@ export class InventoryIntelligenceComponent implements OnInit {
     }
   }
 
-  goToCreatePurchaseReceipt(): void {
-    void this.router.navigate(['/purchases/receipts/create']);
+  async goToCreatePurchaseReceipt(): Promise<void> {
+    const selectedIds = this.selectedProductIds();
+    let itemsToOrder = this.filteredReorderSuggestions().filter(
+      (r) => selectedIds.has(r.productId) && r.suggestedPurchaseQty > 0,
+    );
+
+    if (itemsToOrder.length === 0) {
+      itemsToOrder = this.filteredReorderSuggestions().filter(
+        (r) => r.suggestedPurchaseQty > 0,
+      );
+    }
+    if (itemsToOrder.length === 0) {
+      itemsToOrder = this.reorderSuggestions().filter(
+        (r) => r.suggestedPurchaseQty > 0,
+      );
+    }
+
+    if (itemsToOrder.length === 0) {
+      this.notificationService.warning(
+        'No hay productos con cantidades sugeridas para generar la orden de compra.',
+      );
+      return;
+    }
+
+    this.isLoading.set(true);
+
+    try {
+      const numericId = Date.now();
+      const poCode = `OC-${String(numericId).slice(-5)}`;
+      const totalAmount = itemsToOrder.reduce(
+        (sum, it) => sum + (it.estimatedInvestment || it.suggestedPurchaseQty * it.unitCost),
+        0,
+      );
+
+      const orderLines = itemsToOrder.map((it, idx) => ({
+        productId: it.productId,
+        productCode: it.barcode || `PROD-${it.productId}`,
+        barCode: it.barcode || `PROD-${it.productId}`,
+        productName: it.productName,
+        name: it.productName,
+        quantity: it.suggestedPurchaseQty,
+        quantityOrdered: it.suggestedPurchaseQty,
+        cost: it.unitCost,
+        costPrice: it.unitCost,
+        unitCost: it.unitCost,
+        unitPrice: it.unitCost,
+        subtotal: it.estimatedInvestment || it.suggestedPurchaseQty * it.unitCost,
+        subTotal: it.estimatedInvestment || it.suggestedPurchaseQty * it.unitCost,
+        total: it.estimatedInvestment || it.suggestedPurchaseQty * it.unitCost,
+        totalAmount: it.estimatedInvestment || it.suggestedPurchaseQty * it.unitCost,
+      }));
+
+      const purchasePayload: any = {
+        id: numericId,
+        supplierId: 1,
+        supplierName: itemsToOrder[0]?.supplierName || 'Proveedor Sugerido',
+        invoiceNumber: poCode,
+        orderNumber: poCode,
+        date: new Date().toISOString(),
+        warehouse: 'Almacén Principal',
+        warehouseId: 1,
+        paymentCondition: 'Contado',
+        total: totalAmount,
+        subTotal: totalAmount,
+        status: 'PENDING',
+        statusId: 1,
+        statusName: 'Pendiente',
+        items: orderLines,
+        details: orderLines,
+        productDetails: orderLines,
+      };
+
+      let finalOrderId: any = numericId;
+
+      if (this.purchaseService) {
+        try {
+          const res = await this.purchaseService.createPurchase(purchasePayload);
+          if (res?.data?.id) {
+            finalOrderId = res.data.id;
+          }
+        } catch {
+          // Local fallback handled in service
+        }
+      }
+
+      // Also persist explicitly into purchase orders db so it is immediately searchable
+      try {
+        const poOrder: any = {
+          id: finalOrderId,
+          orderNumber: poCode,
+          prefix: 'OC',
+          supplierId: 1,
+          supplierName: purchasePayload.supplierName,
+          warehouseId: 1,
+          warehouseName: 'Almacén Principal',
+          orderDate: new Date().toISOString(),
+          statusId: 1,
+          statusName: 'Pendiente',
+          total: totalAmount,
+          subTotal: totalAmount,
+          items: orderLines,
+          productDetails: orderLines,
+        };
+        const rawLocal = localStorage.getItem('cuadreenv_purchase_orders_db');
+        const localList = rawLocal ? JSON.parse(rawLocal) : [];
+        if (!localList.some((o: any) => o.id === poOrder.id || o.orderNumber === poOrder.orderNumber)) {
+          localList.unshift(poOrder);
+          localStorage.setItem('cuadreenv_purchase_orders_db', JSON.stringify(localList));
+        }
+      } catch {}
+
+      this.notificationService.success(
+        `¡Orden ${poCode} generada con ${itemsToOrder.length} producto(s)! Cargando recepción de mercancía...`,
+      );
+
+      await this.router.navigate(['/purchases/receipts/create', finalOrderId], {
+        queryParams: { id: finalOrderId, orderNumber: poCode },
+      });
+    } catch (e: any) {
+      this.notificationService.error(
+        'Error al generar la solicitud de compra: ' + (e?.message || 'Error desconocido'),
+      );
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 }
