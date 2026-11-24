@@ -13,6 +13,16 @@ export const DEFAULT_CASH_CUSTOMER: CustomerDto = {
   active: true,
 };
 
+export function isCashCustomer(customer?: Partial<CustomerDto> | null): boolean {
+  if (!customer) return false;
+  if (customer.id === 1) return true;
+  const name = (customer.name || '').toLowerCase().trim();
+  if (name === 'cliente contado' || name.startsWith('cliente contado') || name === 'contado') return true;
+  const idStr = (customer.identification || customer.rnc || '').trim();
+  if (idStr === '000-0000000-0' || idStr === '00000000000') return true;
+  return false;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -99,10 +109,8 @@ export class CustomerService {
         let items = extractArray<CustomerDto>(res);
         items = this.mergeWithLocalCustomers(items);
         // Ensure standard cash customer is present if missing
-        const hasCashCustomer = items.some(
-          (c) => c.id === 1 || c.name?.toLowerCase().includes('contado'),
-        );
-        if (!hasCashCustomer && items.length > 0) {
+        const hasCashCustomer = items.some((c) => isCashCustomer(c));
+        if (!hasCashCustomer) {
           items.unshift({ ...DEFAULT_CASH_CUSTOMER });
         }
         const result: ApiResponse<CustomerDto[]> = {
@@ -119,10 +127,8 @@ export class CustomerService {
             });
             let items2 = extractArray<CustomerDto>(res2);
             items2 = this.mergeWithLocalCustomers(items2);
-            const hasCashCustomer2 = items2.some(
-              (c) => c.id === 1 || c.name?.toLowerCase().includes('contado'),
-            );
-            if (!hasCashCustomer2 && items2.length > 0) {
+            const hasCashCustomer2 = items2.some((c) => isCashCustomer(c));
+            if (!hasCashCustomer2) {
               items2.unshift({ ...DEFAULT_CASH_CUSTOMER });
             }
             const fallback: ApiResponse<CustomerDto[]> = {
@@ -267,6 +273,10 @@ export class CustomerService {
   }
 
   async updateCustomer(customer: CustomerDto): Promise<void> {
+    if (isCashCustomer(customer)) {
+      console.warn('El Cliente Contado es el cliente base del sistema y no puede ser modificado.');
+      return;
+    }
     const cleanId =
       (customer.identification || customer.rnc || '').trim() || null;
     const payload: any = {
@@ -308,6 +318,10 @@ export class CustomerService {
   }
 
   async deleteCustomer(id: number): Promise<void> {
+    if (id === 1) {
+      console.warn('El Cliente Contado es el cliente base del sistema y no puede ser eliminado.');
+      return;
+    }
     // Remove from local cache
     const local = this.getLocalCustomers().filter((c) => c.id !== id);
     this.saveLocalCustomers(local);

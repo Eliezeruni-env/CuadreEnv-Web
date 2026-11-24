@@ -227,32 +227,40 @@
   .toolbar-spacer {
     flex: 1;
   }
+}
 
-  .view-mode-toggle {
-    border: 1px solid #cbd5e1;
-    border-radius: 0.5rem;
-    overflow: hidden;
+// Table/Grid View Switcher
+.view-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  padding: 3px;
+  gap: 3px;
 
-    .btn-view-toggle {
-      width: 36px;
-      height: 36px;
-      border: none;
-      background: #ffffff;
-      color: #64748b;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
+  .btn-view-toggle {
+    width: 34px;
+    height: 32px;
+    border: none;
+    border-radius: 0.375rem;
+    background: transparent;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
 
-      &:hover {
-        background-color: #f1f5f9;
-        color: #0f172a;
-      }
+    &:hover {
+      background-color: #e2e8f0;
+      color: #0f172a;
+    }
 
-      &.active {
-        background-color: #1e293b;
-        color: #ffffff;
-      }
+    &.active {
+      background-color: #1e293b;
+      color: #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     }
   }
 }

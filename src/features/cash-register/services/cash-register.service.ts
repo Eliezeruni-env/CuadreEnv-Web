@@ -921,13 +921,16 @@ export class CashRegisterService {
       for (const lm of localMovs) {
         const exists = list.some(apiM => 
           (apiM.id && apiM.id === lm.id) ||
-          (Number(apiM.amount) === (lm.inAmount || lm.outAmount) && apiM.description === lm.description)
+          (apiM.saleId && lm.saleId && apiM.saleId === lm.saleId) ||
+          (Number(apiM.amount) === (lm.inAmount || lm.outAmount) && (apiM.description === lm.description || (apiM.saleId && apiM.saleId === lm.saleId)))
         );
         if (!exists) {
           list.push({
             id: lm.id,
+            saleId: lm.saleId,
             amount: lm.inAmount || lm.outAmount,
             type: lm.type,
+            category: lm.category,
             description: lm.description,
             createdDate: lm.rawDate,
             paymentMethod: lm.paymentMethod,
@@ -957,6 +960,24 @@ export class CashRegisterService {
       for (const m of list) {
         const amt = Number(m.amount) || 0;
         const typeUpper = (m.type != null ? String(m.type) : '').toUpperCase();
+        const desc = m.description || m.reason || m.concept || '';
+
+        // Prevenir duplicación del fondo inicial si la API retorna el movimiento de apertura
+        const isOpeningMov =
+          desc.toLowerCase().includes('apertura') ||
+          desc.toLowerCase().includes('fondo inicial') ||
+          typeUpper === 'OPENING' ||
+          (m.category && String(m.category).toLowerCase().includes('apertura'));
+
+        if (isOpeningMov) {
+          items[0].id = m.id || items[0].id;
+          if (m.createdDate) {
+            items[0].date = formatDateTimeInRD(m.createdDate);
+            items[0].rawDate = m.createdDate;
+          }
+          continue; // Jamás duplicar fila ni sumar doble al balance
+        }
+
         const isIn =
           typeUpper === 'IN' ||
           typeUpper === 'ENTRADA' ||
@@ -966,7 +987,6 @@ export class CashRegisterService {
           typeUpper === '1' ||
           typeUpper === '3' ||
           typeUpper === '4';
-        const desc = m.description || m.reason || '';
 
         let category: CashRegisterMovementItem['category'] = 'Ingresos';
         if (typeUpper === 'SALE' || typeUpper === '3' || desc.toLowerCase().includes('venta')) category = 'Ventas';
@@ -977,10 +997,17 @@ export class CashRegisterService {
         else if (desc.toLowerCase().includes('ajuste')) category = 'Ajuste';
         else if (!isIn) category = 'Retiro';
 
-        if (isIn) {
-          runningBalance += amt;
-        } else {
-          runningBalance = Math.max(0, runningBalance - amt);
+        const paymentMethod = m.paymentMethod || 'Efectivo';
+        const isCash = !paymentMethod ||
+          paymentMethod.toLowerCase().includes('efectivo') ||
+          paymentMethod.toLowerCase().includes('cash');
+
+        if (isCash) {
+          if (isIn) {
+            runningBalance += amt;
+          } else {
+            runningBalance = Math.max(0, runningBalance - amt);
+          }
         }
 
         const dateStr = m.createdDate
@@ -997,7 +1024,7 @@ export class CashRegisterService {
           inAmount: isIn ? amt : null,
           outAmount: isIn ? null : amt,
           balance: runningBalance,
-          paymentMethod: m.paymentMethod || 'Efectivo',
+          paymentMethod,
           reference: m.reference || null,
           saleId: m.saleId || null,
         });
@@ -1266,11 +1293,36 @@ export class CashRegisterService {
         saleData.paymentMethod.toUpperCase() === 'CASH'
       ) {
         const storedSess = this.getStoredSession() ? JSON.stringify(this.getStoredSession()) : null;
+        let newBalance = (session.currentBalance || session.initialAmount || 0) + saleData.total;
         if (storedSess) {
           const sessObj = JSON.parse(storedSess);
           sessObj.currentBalance = (sessObj.currentBalance || sessObj.initialAmount || 0) + saleData.total;
           sessObj.totalIn = (sessObj.totalIn || 0) + saleData.total;
+          newBalance = sessObj.currentBalance;
           this.storeSessionLocally(sessObj);
+        }
+
+        const cashMovementItem: CashRegisterMovementItem = {
+          id: assignedId || Date.now(),
+          date: formatDateTimeInRD(),
+          rawDate: new Date().toISOString(),
+          type: 'Entrada',
+          category: 'Ventas',
+          description: `Venta POS #${assignedId || ''} - ${saleData.customerName || 'Consumidor Final'}`,
+          inAmount: saleData.total,
+          outAmount: null,
+          balance: newBalance,
+          paymentMethod: 'Efectivo',
+          saleId: assignedId || null,
+        };
+        saveLocalMovement(session.id, cashMovementItem);
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('cuadre_cash_register_changed', {
+              detail: { action: 'SALE', session, amount: saleData.total },
+            })
+          );
         }
       }
     } catch (_) {}
