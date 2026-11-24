@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PurchaseOrderReceiptService } from '../../services/purchase-order-receipt.service';
+import { PurchaseService } from '../../services/purchase.service';
+import { ProductService } from '../../../products/services/product.service';
 import { ManageRequestService } from '../../../inventory/services/manage-request.service';
 import { WarehouseService } from '../../../inventory/services/warehouse.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
@@ -12,6 +14,7 @@ import {
 } from '../../../../app/models/purchase-order';
 import { ManageRequestType } from '../../../../app/models/manage-request';
 import type { Warehouse } from '../../../../app/models/warehouse';
+import type { ProductDto } from '../../../cuadreEnv/types/api';
 
 @Component({
   selector: 'app-purchase-order-receipt-form',
@@ -22,6 +25,8 @@ import type { Warehouse } from '../../../../app/models/warehouse';
 })
 export class PurchaseOrderReceiptFormComponent implements OnInit {
   private poService = inject(PurchaseOrderReceiptService);
+  private purchaseService = inject(PurchaseService, { optional: true });
+  private productService = inject(ProductService, { optional: true });
   private manageRequestService = inject(ManageRequestService);
   private warehouseService = inject(WarehouseService);
   private notificationService = inject(NotificationService);
@@ -40,14 +45,34 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
   receiptLines: PurchaseOrderReceiptDetail[] = [];
   receptionComments = '';
 
+  // Selector para agregar productos adicionales en el conteo físico
+  catalogProducts = signal<ProductDto[]>([]);
+  showAddProductRow = signal<boolean>(false);
+  selectedAddProductId = signal<string>('');
+  addProductQty = signal<number>(1);
+  addProductCost = signal<number>(0);
+
   async ngOnInit() {
     await this.loadWarehouses();
     await this.loadAvailableOrders();
+    await this.loadCatalogProducts();
 
     const paramId = this.route.snapshot.paramMap.get('id') || this.route.snapshot.queryParamMap.get('id');
     if (paramId) {
       this.searchPoNumber = paramId;
       await this.searchOrder();
+    }
+  }
+
+  async loadCatalogProducts() {
+    if (!this.productService) return;
+    try {
+      const res = await this.productService.getPagedProducts(1, 100);
+      if (res?.success && res.data?.items) {
+        this.catalogProducts.set(res.data.items);
+      }
+    } catch {
+      this.catalogProducts.set([]);
     }
   }
 
@@ -81,17 +106,108 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
 
     this.selectedOrder = order;
     this.selectedWarehouseId = order.warehouseId || 1;
-    this.receiptLines = (order.productDetails || []).map((d) => ({
-      productId: d.productId,
-      barCode: d.barCode,
-      productName: d.productName,
-      quantityOrdered: d.quantityOrdered,
-      quantityReceived: Math.max(0, d.quantityOrdered - (d.quantityReceived || 0)),
-      unitCost: d.unitCost,
-      subTotal: Math.max(0, d.quantityOrdered - (d.quantityReceived || 0)) * d.unitCost,
-      warehouseId: order.warehouseId || 1,
-    }));
+
+    // Buscar renglones en todas las propiedades posibles
+    let rawList: any[] = [];
+    if (order.productDetails && order.productDetails.length > 0) {
+      rawList = order.productDetails;
+    } else if ((order as any).items && (order as any).items.length > 0) {
+      rawList = (order as any).items;
+    } else if ((order as any).details && (order as any).details.length > 0) {
+      rawList = (order as any).details;
+    }
+
+    // Si aún está vacío, intentar recuperar la compra original de localStorage
+    if (rawList.length === 0 && this.purchaseService) {
+      const localPurchases = this.purchaseService.getLocalPurchases();
+      const match = localPurchases.find(
+        (p) =>
+          p.id === order.id ||
+          p.invoiceNumber === order.orderNumber ||
+          `OC-${p.id}` === order.orderNumber ||
+          `OC-${String(p.id).slice(-6)}` === order.orderNumber,
+      );
+      if (match) {
+        rawList =
+          match.details && match.details.length > 0
+            ? match.details
+            : (match as any).items || [];
+      }
+    }
+
+    this.receiptLines = rawList.map((d: any, idx: number) => {
+      const qtyOrdered = Number(d.quantityOrdered ?? d.quantity ?? 1) || 1;
+      const qtyReceivedPrev = Number(d.quantityReceived ?? 0) || 0;
+      const remaining = Math.max(0, qtyOrdered - qtyReceivedPrev);
+      const unitCost = Number(d.unitCost ?? d.costPrice ?? d.cost ?? 0) || 0;
+      return {
+        productId: Number(d.productId || d.id || idx + 1),
+        barCode: d.barCode || d.productCode || d.code || '',
+        productName: d.productName || d.name || d.description || `Producto #${d.productId || idx + 1}`,
+        quantityOrdered: qtyOrdered,
+        quantityReceived: remaining > 0 ? remaining : qtyOrdered,
+        unitCost: unitCost,
+        subTotal: (remaining > 0 ? remaining : qtyOrdered) * unitCost,
+        warehouseId: order.warehouseId || 1,
+      };
+    });
+
     this.currentStep.set(2);
+  }
+
+  toggleAddProductRow() {
+    this.showAddProductRow.update((v) => !v);
+    if (this.showAddProductRow() && this.catalogProducts().length > 0 && !this.selectedAddProductId()) {
+      const first = this.catalogProducts()[0];
+      this.selectedAddProductId.set(String(first.id));
+      this.addProductCost.set(Number(first.cost || first.price || 0));
+    }
+  }
+
+  onAddProductSelectionChange(pId: string) {
+    this.selectedAddProductId.set(pId);
+    const found = this.catalogProducts().find((p) => String(p.id) === pId);
+    if (found) {
+      this.addProductCost.set(Number(found.cost || found.price || 0));
+    }
+  }
+
+  addProductToReceipt() {
+    const pId = Number(this.selectedAddProductId());
+    if (!pId) {
+      this.notificationService.warning('Seleccione un producto para agregar.');
+      return;
+    }
+    const qty = Math.max(1, Number(this.addProductQty()) || 1);
+    const cost = Math.max(0, Number(this.addProductCost()) || 0);
+
+    const prod = this.catalogProducts().find((p) => p.id === pId);
+    const existing = this.receiptLines.find((l) => l.productId === pId);
+
+    if (existing) {
+      existing.quantityReceived += qty;
+      existing.quantityOrdered += qty;
+      existing.subTotal = existing.quantityReceived * existing.unitCost;
+    } else {
+      this.receiptLines.push({
+        productId: pId,
+        barCode: prod?.barcode || '',
+        productName: prod?.description || `Producto #${pId}`,
+        quantityOrdered: qty,
+        quantityReceived: qty,
+        unitCost: cost,
+        subTotal: qty * cost,
+        warehouseId: this.selectedWarehouseId,
+      });
+    }
+
+    this.showAddProductRow.set(false);
+    this.addProductQty.set(1);
+    this.notificationService.success('Producto agregado a la recepción.');
+  }
+
+  removeLine(idx: number) {
+    this.receiptLines.splice(idx, 1);
   }
 
   async searchOrder() {
@@ -139,9 +255,12 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
 
   hasDiscrepancies(): boolean {
     if (!this.selectedOrder) return false;
+    const details = this.selectedOrder.productDetails || (this.selectedOrder as any).items || (this.selectedOrder as any).details || [];
+    if (details.length === 0) return false;
     return this.receiptLines.some((line) => {
-      const orderedLine = this.selectedOrder!.productDetails.find((d) => d.productId === line.productId);
-      const remaining = orderedLine ? orderedLine.quantityOrdered - orderedLine.quantityReceived : 0;
+      const orderedLine = details.find((d: any) => (d.productId || d.id) === line.productId);
+      if (!orderedLine) return false;
+      const remaining = Math.max(0, Number(orderedLine.quantityOrdered ?? (orderedLine as any).quantity ?? 0) - Number(orderedLine.quantityReceived ?? 0));
       return line.quantityReceived !== remaining;
     });
   }

@@ -73,15 +73,21 @@ export class PurchaseOrderReceiptService {
       (p.supplierId ? suppliersMap.get(p.supplierId) : null) ||
       'Proveedor General';
 
-    const details: PurchaseOrderDetail[] = (p.details || []).map((d: any) => ({
-      productId: d.productId,
-      barCode: d.barCode || '',
-      productName: d.productName || `Producto #${d.productId}`,
-      quantityOrdered: Number(d.quantity || 0),
-      quantityReceived: 0,
-      unitCost: Number(d.costPrice || d.unitCost || 0),
-      subTotal: Number(d.quantity || 0) * Number(d.costPrice || d.unitCost || 0),
-      total: Number(d.quantity || 0) * Number(d.costPrice || d.unitCost || 0),
+    const rawItems: any[] = (p.details && p.details.length > 0)
+      ? p.details
+      : ((p as any).items && (p as any).items.length > 0)
+        ? (p as any).items
+        : [];
+
+    const details: PurchaseOrderDetail[] = rawItems.map((d: any, idx: number) => ({
+      productId: Number(d.productId || d.id || idx + 1),
+      barCode: d.barCode || d.productCode || d.code || '',
+      productName: d.productName || d.name || d.description || `Producto #${d.productId || idx + 1}`,
+      quantityOrdered: Number(d.quantityOrdered || d.quantity || 1),
+      quantityReceived: Number(d.quantityReceived || 0),
+      unitCost: Number(d.costPrice || d.cost || d.unitCost || 0),
+      subTotal: Number(d.subtotal ?? (Number(d.quantity || 1) * Number(d.costPrice || d.cost || 0))),
+      total: Number(d.total ?? d.subtotal ?? (Number(d.quantity || 1) * Number(d.costPrice || d.cost || 0))),
     }));
 
     return {
@@ -101,8 +107,9 @@ export class PurchaseOrderReceiptService {
       subTotal: (p as any).subTotal || p.total || 0,
       itbis: (p as any).itbis || 0,
       total: p.total || 0,
+      items: details,
       productDetails: details,
-    };
+    } as any;
   }
 
   async getPurchaseOrders(): Promise<ApiResponse<PurchaseOrder[]>> {

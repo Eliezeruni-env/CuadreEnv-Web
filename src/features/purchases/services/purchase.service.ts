@@ -68,33 +68,53 @@ export class PurchaseService {
       const p = purchase as any;
       const rawOrders = localStorage.getItem(getPurchaseOrdersStorageKey());
       const orders: any[] = rawOrders ? JSON.parse(rawOrders) : [];
-      const poNum = `OC-${String(purchase.id || Date.now()).slice(-6)}`;
-      
+      const poNum = p.orderNumber || p.invoiceNumber || `OC-${String(purchase.id || Date.now()).slice(-6)}`;
+
+      const rawDetails: any[] = (p.details && p.details.length > 0)
+        ? p.details
+        : ((p.items && p.items.length > 0)
+          ? p.items
+          : []);
+
+      const mappedDetails = rawDetails.map((d: any, idx: number) => ({
+        id: idx + 1,
+        productId: Number(d.productId || d.id || idx + 1),
+        productName: d.product?.name || d.productName || d.name || d.description || `Producto #${d.productId || idx + 1}`,
+        productCode: d.product?.code || d.productCode || d.code || d.barCode || `#${d.productId || idx + 1}`,
+        barCode: d.barCode || d.productCode || d.code || '',
+        quantity: Number(d.quantity || 1),
+        quantityOrdered: Number(d.quantityOrdered || d.quantity || 1),
+        quantityReceived: 0,
+        unitCost: Number(d.cost ?? d.costPrice ?? d.unitCost ?? 0),
+        subTotal: Number(d.subtotal ?? (Number(d.quantity || 1) * Number(d.cost ?? d.costPrice ?? d.unitCost ?? 0))),
+        total: Number(d.total ?? d.subtotal ?? (Number(d.quantity || 1) * Number(d.cost ?? d.costPrice ?? d.unitCost ?? 0))),
+      }));
+
       const newOrder = {
         id: purchase.id || Date.now(),
         orderNumber: poNum,
+        prefix: 'OC',
+        supplierId: p.supplierId || 1,
         supplierName: p.supplier?.name || p.supplierName || 'Proveedor',
-        supplierRnc: p.supplier?.rnc || 'RNC-001',
+        supplierRnc: p.supplier?.rnc || p.supplierRnc || 'RNC-001',
+        warehouseId: p.warehouseId || 1,
+        warehouseName: p.warehouseName || p.warehouse || 'Almacén Principal',
         issueDate: purchase.creationDate || new Date().toISOString(),
+        orderDate: purchase.creationDate || new Date().toISOString(),
         deliveryDate: new Date(Date.now() + 86400000 * 3).toISOString(),
-        paymentTerms: p.paymentTerms || 'Contado',
-        status: 'RECEIVED',
+        expectedDeliveryDate: new Date(Date.now() + 86400000 * 3).toISOString(),
+        paymentTerms: p.paymentTerms || p.paymentCondition || 'Contado',
+        statusId: 1,
+        statusName: 'Pendiente',
         total: purchase.total || 0,
         subtotal: p.subtotal || purchase.total || 0,
+        subTotal: p.subtotal || purchase.total || 0,
         itbis: p.tax || p.itbis || 0,
-        itemsCount: (purchase.details || []).reduce((acc: number, d: any) => acc + (d.quantity || 1), 0),
+        itemsCount: mappedDetails.reduce((acc: number, d: any) => acc + (d.quantity || 1), 0),
         notes: p.notes || 'Generada desde Registro de Compra',
-        receptionStatus: 'Completada',
-        items: (purchase.details || []).map((d: any, idx: number) => ({
-          id: idx + 1,
-          productId: d.productId,
-          productName: d.product?.name || d.productName || `Producto #${d.productId}`,
-          productCode: d.product?.code || d.productCode || `#${d.productId}`,
-          quantity: d.quantity,
-          receivedQuantity: d.quantity,
-          unitCost: d.cost ?? d.costPrice ?? 0,
-          total: (d.quantity || 1) * (d.cost ?? d.costPrice ?? 0),
-        })),
+        receptionStatus: 'Pendiente',
+        items: mappedDetails,
+        productDetails: mappedDetails,
       };
 
       const existingIdx = orders.findIndex((o) => o.id === newOrder.id || o.orderNumber === newOrder.orderNumber);

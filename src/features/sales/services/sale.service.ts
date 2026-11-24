@@ -57,7 +57,9 @@ export class SaleService {
   }): Promise<ApiResponse<SaleResponseDto[]>> {
     const validParams = {
       ...params,
-      pageSize: params?.pageSize ? Math.min(100, Math.max(1, params.pageSize)) : 100,
+      pageSize: params?.pageSize
+        ? Math.min(100, Math.max(1, params.pageSize))
+        : 100,
     };
     try {
       const res = await this.api.get<any, any>('/Sale', {
@@ -80,7 +82,11 @@ export class SaleService {
             if (!s.invoiceNumber && locMatch.invoiceNumber) {
               s.invoiceNumber = locMatch.invoiceNumber;
             }
-            if ((!s.details || s.details.length === 0) && locMatch.details && locMatch.details.length > 0) {
+            if (
+              (!s.details || s.details.length === 0) &&
+              locMatch.details &&
+              locMatch.details.length > 0
+            ) {
               s.details = locMatch.details;
             }
           }
@@ -115,7 +121,11 @@ export class SaleService {
               if (!s.invoiceNumber && locMatch.invoiceNumber) {
                 s.invoiceNumber = locMatch.invoiceNumber;
               }
-              if ((!s.details || s.details.length === 0) && locMatch.details && locMatch.details.length > 0) {
+              if (
+                (!s.details || s.details.length === 0) &&
+                locMatch.details &&
+                locMatch.details.length > 0
+              ) {
                 s.details = locMatch.details;
               }
             }
@@ -162,7 +172,10 @@ export class SaleService {
         if (localMatch) {
           return { success: true, data: localMatch };
         }
-        return { success: false, message: 'Venta no encontrada en el servidor.' };
+        return {
+          success: false,
+          message: 'Venta no encontrada en el servidor.',
+        };
       }
     }
   }
@@ -190,24 +203,28 @@ export class SaleService {
     } catch (err: any) {
       // Fallback a /caja/sales si la API tiene rutas unificadas de caja
       try {
-        const cajaRes = await this.api.post<any, any>('/caja/sales', {
-          idempotencyKey,
-          customerId: sale.customerId || null,
-          cashRegisterId: sale.cashRegisterId || 1,
-          date: new Date().toISOString(),
-          createBy: 'system',
-          items: (sale.details || []).map((it) => ({
-            productId: it.productId,
-            quantity: it.quantity,
-            unitPrice: it.unitPrice,
-          })),
-        }, {
-          headers: { 'X-Idempotency-Key': idempotencyKey },
-        });
+        const cajaRes = await this.api.post<any, any>(
+          '/caja/sales',
+          {
+            idempotencyKey,
+            customerId: sale.customerId || null,
+            cashRegisterId: sale.cashRegisterId || 1,
+            date: new Date().toISOString(),
+            createBy: 'system',
+            items: (sale.details || []).map((it) => ({
+              productId: it.productId,
+              quantity: it.quantity,
+              unitPrice: it.unitPrice,
+            })),
+          },
+          {
+            headers: { 'X-Idempotency-Key': idempotencyKey },
+          },
+        );
         createdSale = (cajaRes?.data || cajaRes) as SaleResponseDto;
       } catch (cajaErr: any) {
         // Propagar el error oficial de la API (ej. stock insuficiente, caja cerrada, etc.)
-        throw (err?.mappedError || err?.error ? err : cajaErr);
+        throw err?.mappedError || err?.error ? err : cajaErr;
       }
     }
 
@@ -215,17 +232,22 @@ export class SaleService {
       throw new Error('No se pudo registrar la venta en el servidor.');
     }
 
-    const isMobileDevice = typeof window !== 'undefined' && (
-      (sale as any).isMobile === true ||
-      (sale as any).originChannel === 'MOBILE' ||
-      (sale as any).originChannel === 'MOBILE_POS' ||
-      window.innerWidth <= 768 ||
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '')
-    );
+    const isMobileDevice =
+      typeof window !== 'undefined' &&
+      ((sale as any).isMobile === true ||
+        (sale as any).originChannel === 'MOBILE' ||
+        (sale as any).originChannel === 'MOBILE_POS' ||
+        window.innerWidth <= 768 ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent || '',
+        ));
 
     if (isMobileDevice) {
       createdSale.isMobile = true;
-      if (!createdSale.originChannel || createdSale.originChannel === 'POS_PRESENCIAL') {
+      if (
+        !createdSale.originChannel ||
+        createdSale.originChannel === 'POS_PRESENCIAL'
+      ) {
         createdSale.originChannel = 'MOBILE_POS';
       }
     }
@@ -239,7 +261,11 @@ export class SaleService {
     if (!createdSale.invoiceNumber && (sale as any).invoiceNumber) {
       createdSale.invoiceNumber = (sale as any).invoiceNumber;
     }
-    if ((!createdSale.details || createdSale.details.length === 0) && sale.details && sale.details.length > 0) {
+    if (
+      (!createdSale.details || createdSale.details.length === 0) &&
+      sale.details &&
+      sale.details.length > 0
+    ) {
       createdSale.details = sale.details.map((d: any) => ({
         productId: d.productId,
         quantity: d.quantity,
@@ -284,7 +310,10 @@ export class SaleService {
     amount: number,
     reference: string,
   ): Promise<void> {
-    await this.api.post<any, any>(`/Sale/${saleId}/payments`, { amount, reference });
+    await this.api.post<any, any>(`/Sale/${saleId}/payments`, {
+      amount,
+      reference,
+    });
   }
 
   async cancelSale(saleId: number, reason: string): Promise<void> {

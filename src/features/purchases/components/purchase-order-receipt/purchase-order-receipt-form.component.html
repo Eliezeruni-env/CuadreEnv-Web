@@ -172,8 +172,73 @@
         </div>
       </div>
 
-      <!-- Physical Counting Grid -->
-      <h6 class="fw-bold text-dark mb-3">Conteo Físico de Productos Recibidos:</h6>
+      <!-- Physical Counting Grid Header & Add Product Action -->
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h6 class="fw-bold text-dark mb-0">Conteo Físico de Productos Recibidos:</h6>
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-primary fw-semibold px-3"
+          (click)="toggleAddProductRow()"
+        >
+          @if (showAddProductRow()) {
+            ✕ Cancelar Agregar
+          } @else {
+            + Agregar Producto Recibido
+          }
+        </button>
+      </div>
+
+      <!-- Quick Product Add Row -->
+      @if (showAddProductRow()) {
+        <div class="p-3 bg-light border border-primary-subtle rounded-3 mb-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+              <label class="form-label small fw-semibold text-secondary mb-1">Producto a Recibir:</label>
+              <select
+                class="form-select form-select-sm"
+                [ngModel]="selectedAddProductId()"
+                (ngModelChange)="onAddProductSelectionChange($event)"
+              >
+                @for (prod of catalogProducts(); track prod.id) {
+                  <option [value]="prod.id">
+                    {{ prod.description }} ({{ prod.barcode || 'S/C' }}) - Costo: RD$ {{ (prod.cost || prod.price || 0) | number:'1.2-2' }}
+                  </option>
+                }
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small fw-semibold text-secondary mb-1">Cant. Física:</label>
+              <input
+                type="number"
+                min="1"
+                class="form-control form-control-sm text-center fw-bold"
+                [ngModel]="addProductQty()"
+                (ngModelChange)="addProductQty.set($event)"
+              />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary mb-1">Costo Unit. (RD$):</label>
+              <input
+                type="number"
+                min="0"
+                class="form-control form-control-sm text-end fw-bold"
+                [ngModel]="addProductCost()"
+                (ngModelChange)="addProductCost.set($event)"
+              />
+            </div>
+            <div class="col-md-2">
+              <button
+                type="button"
+                class="btn btn-sm btn-primary w-100 fw-semibold"
+                (click)="addProductToReceipt()"
+              >
+                + Añadir
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
       <div class="table-responsive border rounded-3 mb-4">
         <table class="table table-hover align-middle mb-0 small">
           <thead class="table-light">
@@ -184,31 +249,57 @@
               <th class="text-center" style="width: 150px;">Cant. Recibida (Físico)</th>
               <th class="text-end" style="width: 130px;">Costo Unit.</th>
               <th class="text-end pe-3" style="width: 140px;">Subtotal</th>
+              <th class="text-center" style="width: 60px;">Acción</th>
             </tr>
           </thead>
           <tbody>
-            @for (line of receiptLines; track line.productId) {
+            @if (receiptLines.length === 0) {
               <tr>
-                <td class="ps-3">
-                  <div class="fw-bold text-dark">{{ line.productName }}</div>
-                </td>
-                <td class="font-monospace text-secondary">{{ line.barCode || '-' }}</td>
-                <td class="text-center font-monospace fs-6">{{ line.quantityOrdered }} uds</td>
-                <td class="text-center">
-                  <input
-                    type="number"
-                    min="0"
-                    class="form-control form-control-sm text-center font-monospace fw-bold"
-                    [ngModel]="line.quantityReceived"
-                    (ngModelChange)="updateReceivedQty(line, $event)"
-                    style="max-width: 100px; margin: 0 auto;"
-                  />
-                </td>
-                <td class="text-end font-monospace">RD$ {{ line.unitCost | number:'1.2-2' }}</td>
-                <td class="text-end pe-3 font-monospace fw-bold text-primary">
-                  RD$ {{ line.subTotal | number:'1.2-2' }}
+                <td colspan="7" class="text-center py-4 text-muted">
+                  <div class="mb-2">⚠️ Esta orden no tiene renglones de productos precargados.</div>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-primary px-3 shadow-xs"
+                    (click)="toggleAddProductRow()"
+                  >
+                    + Agregar Producto a la Recepción
+                  </button>
                 </td>
               </tr>
+            } @else {
+              @for (line of receiptLines; track line.productId; let idx = $index) {
+                <tr>
+                  <td class="ps-3">
+                    <div class="fw-bold text-dark">{{ line.productName }}</div>
+                  </td>
+                  <td class="font-monospace text-secondary">{{ line.barCode || '-' }}</td>
+                  <td class="text-center font-monospace fs-6">{{ line.quantityOrdered }} uds</td>
+                  <td class="text-center">
+                    <input
+                      type="number"
+                      min="0"
+                      class="form-control form-control-sm text-center font-monospace fw-bold"
+                      [ngModel]="line.quantityReceived"
+                      (ngModelChange)="updateReceivedQty(line, $event)"
+                      style="max-width: 100px; margin: 0 auto;"
+                    />
+                  </td>
+                  <td class="text-end font-monospace">RD$ {{ line.unitCost | number:'1.2-2' }}</td>
+                  <td class="text-end pe-3 font-monospace fw-bold text-primary">
+                    RD$ {{ line.subTotal | number:'1.2-2' }}
+                  </td>
+                  <td class="text-center">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-link text-danger p-0"
+                      (click)="removeLine(idx)"
+                      title="Quitar de la recepción"
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              }
             }
           </tbody>
           <tfoot class="table-light">
@@ -219,6 +310,7 @@
               <td class="text-end pe-3 font-monospace fw-bold text-primary fs-6">
                 RD$ {{ totalReceiptAmount | number:'1.2-2' }}
               </td>
+              <td></td>
             </tr>
           </tfoot>
         </table>
