@@ -120,7 +120,9 @@ export class PaymentService {
     }
 
     try {
-      const res = await this.api.post<any, any>('/Payment', payload);
+      const res = await this.api.post<any, any>('/Payment', payload, {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const created = (res?.data ?? res) as PaymentDto;
       const finalPayment = {
         ...fullPayment,

@@ -37,7 +37,10 @@ export class SupplierService {
     pageSize?: number;
   }): Promise<ApiResponse<any[]>> {
     try {
-      const res = await this.api.get<any, any>('/Supplier', { params });
+      const res = await this.api.get<any, any>('/Supplier', {
+        params,
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const list = extractArray<any>(res);
       if (list && list.length > 0) {
         this.saveLocalSuppliers(list);
@@ -69,7 +72,9 @@ export class SupplierService {
     };
 
     try {
-      const res = await this.api.post<any, any>('/Supplier', fullSupplier);
+      const res = await this.api.post<any, any>('/Supplier', fullSupplier, {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const created = res?.data ?? res ?? fullSupplier;
       const list = this.getLocalSuppliers();
       list.unshift(created);

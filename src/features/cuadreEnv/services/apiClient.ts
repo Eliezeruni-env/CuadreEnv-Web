@@ -71,6 +71,7 @@ export type TelemetryErrorCallback = (errorData: {
 }) => void;
 
 let customTelemetryHandler: TelemetryErrorCallback | null = null;
+let lastOutageNotificationTime = 0;
 
 export function registerTelemetryHandler(handler: TelemetryErrorCallback) {
   customTelemetryHandler = handler;
@@ -670,6 +671,9 @@ export class ApiClientService {
           url.includes('/Warehouse') ||
           url.includes('/AccountReceivable') ||
           url.includes('/Customer') ||
+          url.includes('/Supplier') ||
+          url.includes('/Payment') ||
+          url.includes('/Purchase') ||
           url.includes('/Sale') ||
           url.includes('/sales') ||
           url.includes('/quotation'));
@@ -691,18 +695,22 @@ export class ApiClientService {
 
       // Display server outage notification only on user actions (mutations), never on background GET data fetching or silenced requests
       const isMutation = method !== 'GET';
+      const now = Date.now();
       if (
         !isSilencedReq &&
+        !isSilentHeader &&
         isMutation &&
         (statusCode === 0 ||
           statusCode >= 500 ||
-          mapped.errorCode === 'SERVER_OUTAGE')
+          mapped.errorCode === 'SERVER_OUTAGE') &&
+        now - lastOutageNotificationTime > 20000
       ) {
+        lastOutageNotificationTime = now;
         this.notificationService?.show(
           mapped.title,
           mapped.message,
           'danger',
-          10000,
+          8000,
           {
             isCritical: true,
             requestId: mapped.requestId,

@@ -392,14 +392,15 @@ export class ProductService {
           } catch {}
         }
 
+        const localItems = this.getLocalProducts();
         const emptyRes: ApiResponse<PagedProductsResponse> = {
-          success: false,
+          success: true,
           data: {
-            items: [],
+            items: localItems,
             pageSize: validSize,
             pageCount: 1,
-            totalItemCount: 0,
-            total: 0,
+            totalItemCount: localItems.length,
+            total: localItems.length,
             page: pageNumber,
           },
         };
@@ -610,9 +611,40 @@ export class ProductService {
     return clean;
   }
 
+  private readonly LOCAL_PRODUCTS_KEY = 'cuadreenv_local_products_cache';
+
+  public getLocalProducts(): ProductDto[] {
+    if (typeof window === 'undefined') return [];
+    try {
+      const compId = getCompanyId() || 'default';
+      const raw = localStorage.getItem(`${this.LOCAL_PRODUCTS_KEY}_${compId}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public saveLocalProduct(product: ProductDto): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const compId = getCompanyId() || 'default';
+      const key = `${this.LOCAL_PRODUCTS_KEY}_${compId}`;
+      const list = this.getLocalProducts();
+      const idx = list.findIndex(
+        (p) => p.id === product.id || (product.barcode && p.barcode === product.barcode)
+      );
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...product };
+      } else {
+        list.unshift(product);
+      }
+      localStorage.setItem(key, JSON.stringify(list));
+    } catch {}
+  }
+
   /**
    * Crear nuevo producto:
-   * POST /v1/product con fallback a /v1/Product
+   * POST /v1/product con fallback a /v1/Product y contingencia local ante 500
    */
   async createProduct(product: ProductDto): Promise<ApiResponse<ProductDto>> {
     const payload = this.sanitizeProductPayload(product);
@@ -629,10 +661,24 @@ export class ProductService {
           return await firstValueFrom(
             this.http.post<ApiResponse<ProductDto>>(url2, payload),
           );
-        } catch {
-          // Relanzar el error original con los datos de validación
-          throw err;
-        }
+        } catch {}
+      }
+
+      // Modo contingencia local ante avería 500 del servidor
+      if (err?.status >= 500 || err?.status === 0) {
+        const offId = Date.now();
+        const localProduct: ProductDto = {
+          ...payload,
+          id: offId,
+          code: payload.barcode || `PROD-${offId}`,
+        };
+        this.saveLocalProduct(localProduct);
+        this.clearCache();
+        return {
+          success: true,
+          data: localProduct,
+          message: 'Producto guardado localmente (modo contingencia ante mantenimiento de servidor).',
+        };
       }
       throw err;
     }
@@ -640,7 +686,7 @@ export class ProductService {
 
   /**
    * Actualizar producto existente:
-   * PUT /v1/product con fallback a /v1/Product
+   * PUT /v1/product con fallback a /v1/Product y contingencia local ante 500
    */
   async updateProduct(product: ProductDto): Promise<ApiResponse<any>> {
     const payload = this.sanitizeProductPayload(product);
@@ -656,9 +702,17 @@ export class ProductService {
           return await firstValueFrom(
             this.http.put<ApiResponse<any>>(url2, payload),
           );
-        } catch {
-          throw err;
-        }
+        } catch {}
+      }
+
+      if (err?.status >= 500 || err?.status === 0) {
+        this.saveLocalProduct(payload as ProductDto);
+        this.clearCache();
+        return {
+          success: true,
+          data: payload,
+          message: 'Producto actualizado localmente (modo contingencia ante mantenimiento de servidor).',
+        };
       }
       throw err;
     }
@@ -669,8 +723,26 @@ export class ProductService {
    * DELETE /v1/product/{id}
    */
   async deleteProduct(id: number): Promise<ApiResponse<any>> {
-    const url = `${this.baseUrl}/product/${id}`;
-    return firstValueFrom(this.http.delete<ApiResponse<any>>(url));
+    try {
+      const url = `${this.baseUrl}/product/${id}`;
+      return await firstValueFrom(this.http.delete<ApiResponse<any>>(url));
+    } catch (err: any) {
+      if (err?.status >= 500 || err?.status === 0) {
+        if (typeof window !== 'undefined') {
+          const compId = getCompanyId() || 'default';
+          const key = `${this.LOCAL_PRODUCTS_KEY}_${compId}`;
+          const list = this.getLocalProducts().filter((p) => p.id !== id);
+          localStorage.setItem(key, JSON.stringify(list));
+        }
+        this.clearCache();
+        return {
+          success: true,
+          data: null,
+          message: 'Producto eliminado localmente (modo contingencia).',
+        };
+      }
+      throw err;
+    }
   }
 
   /**
