@@ -59,7 +59,9 @@ export class WarehouseEntryService {
     let isApiConnected = false;
 
     try {
-      const res = await this.api.get<any, any>('/WarehouseEntry');
+      const res = await this.api.get<any, any>('/WarehouseEntry', {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const list = extractArray<WarehouseEntry>(res);
       if (list && list.length > 0) {
         apiList = list.map((item) => normalizeWarehouseMovement<WarehouseEntry>(item));
@@ -67,7 +69,10 @@ export class WarehouseEntryService {
       isApiConnected = true;
     } catch {
       try {
-        const res2 = await this.api.get<any, any>('/inventory/movements', { params: { type: 'Inbound' } });
+        const res2 = await this.api.get<any, any>('/inventory/movements', {
+          params: { type: 'Inbound' },
+          headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+        });
         const list2 = extractArray<any>(res2);
         if (list2 && list2.length > 0) {
           apiList = list2.map((item) => normalizeWarehouseMovement<WarehouseEntry>({ ...item, type: 'ENTRY' }));
@@ -143,7 +148,9 @@ export class WarehouseEntryService {
 
   async getEntry(id: number): Promise<ApiResponse<WarehouseEntry>> {
     try {
-      const res = await this.api.get<any, any>(`/WarehouseEntry/${id}`);
+      const res = await this.api.get<any, any>(`/WarehouseEntry/${id}`, {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       if (res) {
         const entry = normalizeWarehouseMovement<WarehouseEntry>(res.data ?? res);
         return { success: true, data: entry };

@@ -546,12 +546,33 @@ export class ApiClientService {
         error.fieldErrors = mapped.fieldErrors;
       }
 
-      const isSilencedReq = Boolean(
+      const isSilentHeader = Boolean(
+        headers['X-Silent-Error'] ||
+        headers['x-silent-error'] ||
+        headers['X-Silent-500'] ||
+        headers['x-silent-500'] ||
         options.headers?.['X-Silent-Error'] ||
         options.headers?.['x-silent-error'] ||
         options.headers?.['X-Silent-500'] ||
         options.headers?.['x-silent-500']
       );
+
+      const isKnownFallbackGet = method.toUpperCase() === 'GET' && (
+        url.includes('/WarehouseEntry') ||
+        url.includes('/WarehouseOutlet') ||
+        url.includes('/WarehouseTransfer') ||
+        url.includes('/inventory/movements') ||
+        url.includes('/inventory/low-stock') ||
+        url.includes('/warehouse') ||
+        url.includes('/Warehouse') ||
+        url.includes('/AccountReceivable') ||
+        url.includes('/Customer') ||
+        url.includes('/Sale') ||
+        url.includes('/sales') ||
+        url.includes('/quotation')
+      );
+
+      const isSilencedReq = isSilentHeader || isKnownFallbackGet;
 
       if (!isSilencedReq) {
         logRequestError(method, url, error, mapped);
@@ -560,6 +581,8 @@ export class ApiClientService {
         if (statusCode >= 500) {
           dispatchTelemetry(method, url, statusCode, mapped, error);
         }
+      } else if (isKnownFallbackGet && statusCode >= 500) {
+        debugLog(`[ApiClient] Silenciado 500 en GET de contingencia: ${method} ${url} -> Fallback local activo`);
       }
 
       // Display server outage notification only on user actions (mutations), never on background GET data fetching or silenced requests

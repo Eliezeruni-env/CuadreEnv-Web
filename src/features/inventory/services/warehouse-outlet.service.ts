@@ -59,7 +59,9 @@ export class WarehouseOutletService {
     let isApiConnected = false;
 
     try {
-      const res = await this.api.get<any, any>('/WarehouseOutlet');
+      const res = await this.api.get<any, any>('/WarehouseOutlet', {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const list = extractArray<WarehouseOutlet>(res);
       if (list && list.length > 0) {
         apiList = list.map((item) => normalizeWarehouseMovement<WarehouseOutlet>(item));
@@ -67,7 +69,10 @@ export class WarehouseOutletService {
       isApiConnected = true;
     } catch {
       try {
-        const res2 = await this.api.get<any, any>('/inventory/movements', { params: { type: 'Outbound' } });
+        const res2 = await this.api.get<any, any>('/inventory/movements', {
+          params: { type: 'Outbound' },
+          headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+        });
         const list2 = extractArray<any>(res2);
         if (list2 && list2.length > 0) {
           apiList = list2.map((item) => normalizeWarehouseMovement<WarehouseOutlet>({ ...item, type: 'OUTLET' }));
@@ -142,7 +147,9 @@ export class WarehouseOutletService {
 
   async getOutlet(id: number): Promise<ApiResponse<WarehouseOutlet>> {
     try {
-      const res = await this.api.get<any, any>(`/WarehouseOutlet/${id}`);
+      const res = await this.api.get<any, any>(`/WarehouseOutlet/${id}`, {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       if (res) {
         const outlet = normalizeWarehouseMovement<WarehouseOutlet>(res.data ?? res);
         return { success: true, data: outlet };

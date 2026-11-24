@@ -59,7 +59,9 @@ export class WarehouseTransferService {
     let isApiConnected = false;
 
     try {
-      const res = await this.api.get<any, any>('/WarehouseTransfer');
+      const res = await this.api.get<any, any>('/WarehouseTransfer', {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const list = extractArray<WarehouseTransfer>(res);
       if (list && list.length > 0) {
         apiList = list.map((item) => normalizeWarehouseMovement<WarehouseTransfer>(item));
@@ -67,7 +69,10 @@ export class WarehouseTransferService {
       isApiConnected = true;
     } catch {
       try {
-        const res2 = await this.api.get<any, any>('/inventory/movements', { params: { type: 'Transfer' } });
+        const res2 = await this.api.get<any, any>('/inventory/movements', {
+          params: { type: 'Transfer' },
+          headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+        });
         const list2 = extractArray<any>(res2);
         if (list2 && list2.length > 0) {
           apiList = list2.map((item) => normalizeWarehouseMovement<WarehouseTransfer>({ ...item, type: 'TRANSFER' }));
@@ -141,7 +146,9 @@ export class WarehouseTransferService {
 
   async getTransfer(id: number): Promise<ApiResponse<WarehouseTransfer>> {
     try {
-      const res = await this.api.get<any, any>(`/WarehouseTransfer/${id}`);
+      const res = await this.api.get<any, any>(`/WarehouseTransfer/${id}`, {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       if (res) {
         const transfer = normalizeWarehouseMovement<WarehouseTransfer>(res.data ?? res);
         return { success: true, data: transfer };

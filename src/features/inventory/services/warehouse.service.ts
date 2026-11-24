@@ -219,7 +219,9 @@ export class WarehouseService {
 
     this.inFlightWarehousesPromise = (async () => {
       try {
-        const res = await this.api.get<any, any>('/warehouse');
+        const res = await this.api.get<any, any>('/warehouse', {
+          headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+        });
 
         const list = extractArray<any>(res);
         if (list && list.length > 0) {
