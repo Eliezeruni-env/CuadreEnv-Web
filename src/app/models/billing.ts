@@ -35,6 +35,8 @@ export interface Billing {
   clientRnc?: string;
   billingTypeId: number;
   billingTypeName?: string;
+  isMobile?: boolean;
+  originChannel?: string;
   voucherTypeId: number;
   voucherTypeName?: string;
   ncf?: string;

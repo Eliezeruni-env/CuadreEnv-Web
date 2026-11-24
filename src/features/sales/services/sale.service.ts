@@ -212,6 +212,21 @@ export class SaleService {
       throw new Error('No se pudo registrar la venta en el servidor.');
     }
 
+    const isMobileDevice = typeof window !== 'undefined' && (
+      (sale as any).isMobile === true ||
+      (sale as any).originChannel === 'MOBILE' ||
+      (sale as any).originChannel === 'MOBILE_POS' ||
+      window.innerWidth <= 768 ||
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '')
+    );
+
+    if (isMobileDevice) {
+      createdSale.isMobile = true;
+      if (!createdSale.originChannel || createdSale.originChannel === 'POS_PRESENCIAL') {
+        createdSale.originChannel = 'MOBILE_POS';
+      }
+    }
+
     if (!createdSale.originChannel && (sale as any).originChannel) {
       createdSale.originChannel = (sale as any).originChannel;
     }

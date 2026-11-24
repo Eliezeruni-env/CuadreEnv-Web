@@ -519,7 +519,19 @@ export class SalesComponent implements OnInit {
     return name;
   }
 
+  isMobileSale(sale: SaleResponseDto): boolean {
+    return Boolean(
+      sale.isMobile ||
+      sale.originChannel === 'MOBILE' ||
+      sale.originChannel === 'MOBILE_POS' ||
+      (sale.notes && sale.notes.toLowerCase().includes('móvil'))
+    );
+  }
+
   getOriginLabel(sale: SaleResponseDto): string {
+    if (this.isMobileSale(sale)) {
+      return 'Móvil';
+    }
     if (sale.originChannel === 'POS_PRESENCIAL' || (!sale.originChannel && sale.cashRegisterId)) {
       return 'POS';
     }

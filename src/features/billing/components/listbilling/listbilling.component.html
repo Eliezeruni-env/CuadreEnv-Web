@@ -267,21 +267,32 @@
                     </td>
                     <td>
                       <span class="badge border font-monospace px-2.5 py-1 rounded-2"
-                            [ngClass]="b.billingTypeName?.includes('POS') ? 'bg-primary-subtle text-primary border-primary-subtle' : 'bg-secondary-subtle text-secondary border-secondary-subtle'"
+                            [ngClass]="{
+                              'bg-purple-subtle text-purple border-purple-subtle': isMobileBilling(b),
+                              'bg-primary-subtle text-primary border-primary-subtle': !isMobileBilling(b) && b.billingTypeName?.includes('POS'),
+                              'bg-secondary-subtle text-secondary border-secondary-subtle': !isMobileBilling(b) && !b.billingTypeName?.includes('POS')
+                            }"
                             style="font-size: 0.75rem;">
-                        @if (b.billingTypeName?.includes('POS')) {
+                        @if (isMobileBilling(b)) {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                          </svg>
+                          <span>Móvil</span>
+                        } @else if (b.billingTypeName?.includes('POS')) {
                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
                             <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                             <line x1="8" y1="21" x2="16" y2="21"></line>
                             <line x1="12" y1="17" x2="12" y2="21"></line>
                           </svg>
+                          {{ b.billingTypeName }}
                         } @else {
                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                             <polyline points="14 2 14 8 20 8"></polyline>
                           </svg>
+                          {{ b.billingTypeName || 'Facturación directa' }}
                         }
-                        {{ b.billingTypeName || 'Facturación directa' }}
                       </span>
                     </td>
                     <td class="text-end fw-bold text-dark font-monospace">

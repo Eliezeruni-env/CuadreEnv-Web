@@ -454,6 +454,16 @@ export class ListbillingComponent implements OnInit {
     });
   }
 
+  isMobileBilling(b: any): boolean {
+    return Boolean(
+      b.isMobile ||
+      b.originChannel === 'MOBILE' ||
+      b.originChannel === 'MOBILE_POS' ||
+      b.billingTypeName?.toLowerCase().includes('móvil') ||
+      (b.notes && b.notes.toLowerCase().includes('móvil'))
+    );
+  }
+
   async printInvoice(billing: Billing) {
     await this.openReceiptModal(billing);
   }

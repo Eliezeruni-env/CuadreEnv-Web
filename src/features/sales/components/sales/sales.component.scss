@@ -63,6 +63,25 @@
   font-weight: 500;
   border-radius: 6px;
   padding: 3px 8px;
+
+  &.origin-tag-mobile {
+    background-color: #f3e8ff;
+    border-color: #d8b4fe;
+    color: #7e22ce;
+    font-weight: 600;
+  }
+
+  &.origin-tag-pos {
+    background-color: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1d4ed8;
+  }
+
+  &.origin-tag-credit {
+    background-color: #fffbeb;
+    border-color: #fde68a;
+    color: #b45309;
+  }
 }
 
 .status-pill-paid {

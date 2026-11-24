@@ -370,6 +370,10 @@ export class QuotationListComponent implements OnInit {
     if (event) {
       event.stopPropagation();
     }
+    if (item.status === 'CONVERTED' || item.convertedSaleId != null) {
+      this.notificationService.warning(`La cotización ${item.quotationNumber} ya fue convertida en la venta ${item.convertedSaleCode || ('#' + item.convertedSaleId)}.`);
+      return;
+    }
     try {
       this.notificationService.info(`Convirtiendo cotización ${item.quotationNumber} en venta...`);
       const res = await this.quotationService.convertToSale(item.id);

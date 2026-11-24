@@ -170,12 +170,26 @@
                       <div class="text-secondary small font-monospace">ID Cliente: {{ sale.customerId || 1 }}</div>
                     </td>
                     <td>
-                      <span class="origin-pill-tag d-inline-flex align-items-center gap-1.5 px-2.5 py-1 rounded-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                          <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        <span>{{ getOriginLabel(sale) }}</span>
+                      <span class="origin-pill-tag d-inline-flex align-items-center gap-1.5 px-2.5 py-1 rounded-2"
+                        [ngClass]="{
+                          'origin-tag-mobile': isMobileSale(sale),
+                          'origin-tag-pos': !isMobileSale(sale) && (sale.originChannel === 'POS_PRESENCIAL' || (!sale.originChannel && sale.cashRegisterId)),
+                          'origin-tag-credit': !isMobileSale(sale) && sale.originChannel === 'CREDITO'
+                        }"
+                      >
+                        @if (isMobileSale(sale)) {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                          </svg>
+                          <span>Móvil</span>
+                        } @else {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                          </svg>
+                          <span>{{ getOriginLabel(sale) }}</span>
+                        }
                       </span>
                     </td>
                     <td class="text-dark fw-bold font-monospace fs-6">

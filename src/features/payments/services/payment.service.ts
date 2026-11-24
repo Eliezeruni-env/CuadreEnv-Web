@@ -72,21 +72,86 @@ export class PaymentService {
     };
 
     try {
-      const payload = { ...fullPayment, companyId: compId ? Number(compId) : undefined };
+      // Omit huge client-generated id (Date.now()) on POST to prevent 400 Bad Request in ASP.NET Core int32 Identity
+      const payload: any = {
+        amount: Number(payment.amount),
+        method: payment.method || 'Efectivo',
+        paymentMethod: payment.method || 'Efectivo',
+        reference: payment.reference || '',
+        notes: (payment as any).notes || payment.reference || '',
+        purchaseId: payment.purchaseId ? Number(payment.purchaseId) : null,
+        saleId: payment.saleId ? Number(payment.saleId) : null,
+        companyId: compId ? Number(compId) : undefined,
+      };
+
       const res = await this.api.post<any, any>('/Payment', payload);
       const created = (res?.data ?? res) as PaymentDto;
-      const finalPayment = { ...fullPayment, ...(created || {}) };
+      const finalPayment = { ...fullPayment, ...(created || {}), id: created?.id || fullPayment.id };
       
       const local = this.getLocalPayments();
       local.unshift(finalPayment);
       this.saveLocalPayments(local);
+      this.syncPaymentWithPurchase(finalPayment);
       return { success: true, data: finalPayment };
-    } catch {
+    } catch (apiErr) {
+      console.warn('API /Payment warning/fallback, persisting locally:', apiErr);
       // Local fallback
       const local = this.getLocalPayments();
       local.unshift(fullPayment);
       this.saveLocalPayments(local);
+      this.syncPaymentWithPurchase(fullPayment);
       return { success: true, data: fullPayment };
+    }
+  }
+
+  private syncPaymentWithPurchase(payment: PaymentDto): void {
+    if (!payment.purchaseId || typeof window === 'undefined' || !window.localStorage) return;
+    try {
+      // 1. Update purchase in Purchases cache
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('cuadreenv_purchases_db')) {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            try {
+              const list: any[] = JSON.parse(raw);
+              const p = list.find((it) => it.id === payment.purchaseId);
+              if (p) {
+                p.paidAmount = Math.round(((p.paidAmount || 0) + payment.amount) * 100) / 100;
+                if (p.paidAmount >= (p.total || 0) - 0.01) {
+                  p.status = 'PAID';
+                  p.paymentStatus = 'PAID';
+                }
+                localStorage.setItem(k, JSON.stringify(list));
+              }
+            } catch {}
+          }
+        }
+      }
+
+      // 2. Update in Purchase Orders cache as well
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('cuadreenv_purchase_orders_db')) {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            try {
+              const list: any[] = JSON.parse(raw);
+              const po = list.find((it) => it.id === payment.purchaseId);
+              if (po) {
+                po.paidAmount = Math.round(((po.paidAmount || 0) + payment.amount) * 100) / 100;
+                if (po.paidAmount >= (po.total || 0) - 0.01) {
+                  po.paymentStatus = 'PAID';
+                  po.status = 'PAID';
+                }
+                localStorage.setItem(k, JSON.stringify(list));
+              }
+            } catch {}
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Could not sync payment with purchase record:', e);
     }
   }
 
