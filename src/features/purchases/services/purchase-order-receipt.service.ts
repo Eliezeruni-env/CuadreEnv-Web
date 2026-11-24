@@ -232,8 +232,8 @@ export class PurchaseOrderReceiptService {
       prefix: 'REC',
       purchaseOrderId: receipt.purchaseOrderId || 0,
       purchaseOrderNumber: receipt.purchaseOrderNumber || `OC-${receipt.purchaseOrderId}`,
-      warehouseId: receipt.warehouseId || 0,
-      warehouseName: receipt.warehouseName || '',
+      warehouseId: receipt.warehouseId || 1,
+      warehouseName: receipt.warehouseName || 'Almacén Principal',
       supplierId: receipt.supplierId || 1,
       supplierName: receipt.supplierName || 'Proveedor',
       receiptDate: new Date().toISOString(),
@@ -279,9 +279,10 @@ export class PurchaseOrderReceiptService {
                   newWeightedCost,
                 );
 
-                // Ajuste automático de costo unitario por fletes/aumentos de proveedor
+                // Ajuste automático de stock y costo unitario promedio en catálogo
                 await this.productService.updateProduct({
                   ...currentProd,
+                  stock: currentStock + item.quantityReceived,
                   cost: newWeightedCost,
                 });
 
@@ -325,6 +326,19 @@ export class PurchaseOrderReceiptService {
         po.statusId = allCompleted ? 3 : 2; // 3: Completada, 2: Parcial
         po.statusName = allCompleted ? 'Completada' : 'Recepción Parcial';
         this.saveLocalOrders(orders);
+      }
+
+      if (this.purchaseService && newReceipt.purchaseOrderId) {
+        try {
+          const localPurchases = this.purchaseService.getLocalPurchases();
+          const pMatch = localPurchases.find((p) => p.id === newReceipt.purchaseOrderId);
+          if (pMatch) {
+            (pMatch as any).statusId = 3;
+            (pMatch as any).statusName = 'Recibida';
+            (pMatch as any).receptionCompleted = true;
+            this.purchaseService.saveLocalPurchases(localPurchases);
+          }
+        } catch {}
       }
     }
 

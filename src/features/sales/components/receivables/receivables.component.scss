@@ -231,36 +231,40 @@
 
 // Table/Grid View Switcher
 .view-mode-toggle {
-  display: inline-flex;
-  align-items: center;
-  background-color: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
-  padding: 3px;
-  gap: 3px;
+  display: inline-flex !important;
+  align-items: center !important;
+  background-color: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 0.5rem !important;
+  padding: 3px !important;
+  gap: 3px !important;
 
   .btn-view-toggle {
-    width: 34px;
-    height: 32px;
-    border: none;
-    border-radius: 0.375rem;
-    background: transparent;
-    color: #64748b;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.15s ease-in-out;
+    width: 34px !important;
+    height: 32px !important;
+    border: none !important;
+    outline: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    border-radius: 0.375rem !important;
+    background: transparent !important;
+    color: #64748b !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    transition: all 0.15s ease-in-out !important;
 
     &:hover {
-      background-color: #e2e8f0;
-      color: #0f172a;
+      background-color: #e2e8f0 !important;
+      color: #0f172a !important;
     }
 
     &.active {
-      background-color: #1e293b;
-      color: #ffffff;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+      background-color: #1e293b !important;
+      color: #ffffff !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
     }
   }
 }

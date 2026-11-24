@@ -8,6 +8,7 @@ import {
   FormsModule,
 } from '@angular/forms';
 import { SupplierService } from '../../services/supplier.service';
+import { PurchaseService } from '../../services/purchase.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
@@ -40,6 +41,7 @@ export interface SupplierItem {
   contactPerson?: string | null;
   additionalContacts?: SupplierContact[];
   active?: boolean;
+  pendingBalance?: number;
 }
 
 const SUPPLIER_CONTACTS_KEY = 'cuadreenv_supplier_extra_contacts';
@@ -64,6 +66,7 @@ const SUPPLIER_CONTACTS_KEY = 'cuadreenv_supplier_extra_contacts';
 export class SuppliersComponent implements OnInit {
   readonly translationService = inject(TranslationService);
   private readonly supplierService = inject(SupplierService);
+  private readonly purchaseService = inject(PurchaseService, { optional: true });
   private readonly notificationService = inject(NotificationService);
   private readonly confirmService = inject(ConfirmDialogService);
   private readonly fb = inject(FormBuilder);
@@ -160,6 +163,9 @@ export class SuppliersComponent implements OnInit {
   readonly activeSuppliersCount = computed(
     () => this.suppliers().filter((s) => s.active !== false).length,
   );
+  readonly totalCxpBalance = computed(() => {
+    return this.suppliers().reduce((acc, s) => acc + (s.pendingBalance || 0), 0);
+  });
 
   constructor() {
     this.supplierForm = this.fb.group({
@@ -202,12 +208,23 @@ export class SuppliersComponent implements OnInit {
     try {
       const res = await this.supplierService.getSuppliers();
       const contactsMap = this.getContactsStorage();
+      const localPurchases = this.purchaseService ? this.purchaseService.getLocalPurchases() : [];
+
       if (res.success && res.data) {
         const enriched = res.data.map((s: SupplierItem) => {
           const key = String(s.id ?? s.name);
+          const sPurchases = localPurchases.filter((p: any) =>
+            (p.supplierId === s.id || (p.supplierName && p.supplierName.toLowerCase() === (s.name || '').toLowerCase())) &&
+            p.statusName !== 'Pagada' &&
+            p.paymentCondition !== 'Contado'
+          );
+          const pendingBalance = sPurchases.reduce((acc: number, p: any) =>
+            acc + Math.max(0, (Number(p.total || 0) - Number(p.paidAmount || 0))), 0);
+
           return {
             ...s,
             additionalContacts: s.additionalContacts || contactsMap[key] || [],
+            pendingBalance,
           };
         });
         this.suppliers.set(enriched);
@@ -323,8 +340,24 @@ export class SuppliersComponent implements OnInit {
       return;
     }
 
-    this.isLoading.set(true);
     const val = this.supplierForm.value;
+    const rncVal = (val.rnc || '').trim();
+    const cedulaVal = (val.cedula || '').trim();
+
+    if (rncVal) {
+      const cleanRnc = rncVal.replace(/\D/g, '');
+      if (cleanRnc.length !== 9 && cleanRnc.length !== 11) {
+        this.notificationService.warning('Aviso RNC: El RNC dominicano debe constar de 9 dígitos numéricos (o 11 si es persona física).');
+      }
+    }
+    if (cedulaVal) {
+      const cleanCed = cedulaVal.replace(/\D/g, '');
+      if (cleanCed.length !== 11) {
+        this.notificationService.warning('Aviso Cédula: La cédula personal dominicana debe constar de 11 dígitos numéricos.');
+      }
+    }
+
+    this.isLoading.set(true);
     const cleanContacts = this.additionalContacts().filter(
       (c) => c.name.trim().length > 0,
     );

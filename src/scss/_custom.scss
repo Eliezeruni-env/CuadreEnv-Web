@@ -728,6 +728,27 @@ app-default-header,
     }
   }
 
+  &.btn-action-invoice-square {
+    color: #059669;
+    border-color: #a7f3d0;
+    background: #ecfdf5;
+
+    &:hover:not(:disabled) {
+      background: #d1fae5;
+      color: #047857;
+      border-color: #6ee7b7;
+    }
+
+    &:disabled,
+    &.btn-action-converted {
+      background-color: #f1f5f9;
+      border-color: #e2e8f0;
+      color: #94a3b8;
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+  }
+
   &.btn-action-danger {
     color: var(--ce-danger, #DC2626);
     &:hover {
@@ -749,6 +770,27 @@ app-default-header,
     &:hover {
       background: #ECFDF5;
       border-color: #A7F3D0;
+    }
+  }
+
+  &.btn-action-invoice-square {
+    color: #059669;
+    border-color: #a7f3d0;
+    background: #ecfdf5;
+
+    &:hover:not(:disabled) {
+      background: #d1fae5;
+      color: #047857;
+      border-color: #6ee7b7;
+    }
+
+    &:disabled,
+    &.btn-action-converted {
+      background-color: #f1f5f9;
+      border-color: #e2e8f0;
+      color: #94a3b8;
+      cursor: not-allowed;
+      opacity: 0.55;
     }
   }
 }

@@ -155,6 +155,17 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
       };
     });
 
+    if (this.receiptLines.length === 0) {
+      this.showAddProductRow.set(true);
+      if (this.catalogProducts().length > 0) {
+        const first = this.catalogProducts()[0];
+        this.selectedAddProductId.set(String(first.id));
+        this.addProductCost.set(Number(first.cost || first.price || 0));
+      }
+    } else {
+      this.showAddProductRow.set(false);
+    }
+
     this.currentStep.set(2);
   }
 
@@ -352,10 +363,14 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
         }
       } else {
         // Direct reception
+        const whName =
+          this.warehouses.find((w) => w.id === this.selectedWarehouseId)?.name ||
+          'Almacén Principal';
         const res = await this.poService.createReceipt({
           purchaseOrderId: this.selectedOrder.id,
           purchaseOrderNumber: this.selectedOrder.orderNumber,
           warehouseId: this.selectedWarehouseId,
+          warehouseName: whName,
           supplierId: this.selectedOrder.supplierId,
           supplierName: this.selectedOrder.supplierName,
           comments: this.receptionComments,

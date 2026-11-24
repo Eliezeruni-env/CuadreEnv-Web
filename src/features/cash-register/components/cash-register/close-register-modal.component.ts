@@ -140,6 +140,11 @@ export class CloseRegisterModalComponent {
     this.denominations().some((d) => d.count > 0),
   );
 
+  // Desglose de cobros esperados en el turno (Efectivo, Tarjetas, Transferencias)
+  expectedCards = signal<number>(0);
+  expectedTransfers = signal<number>(0);
+  expectedCashSales = signal<number>(0);
+
   readonly cashierInitials = computed(() => {
     const name = this.session?.cashierName || 'C';
     return name
@@ -289,6 +294,34 @@ export class CloseRegisterModalComponent {
     this.updateNotesValidation();
     this.visible = true;
     this.visibleChange.emit(true);
+
+    // Calcular cobros esperados del turno por método de pago
+    this.expectedCards.set(0);
+    this.expectedTransfers.set(0);
+    this.expectedCashSales.set(0);
+    this.loadExpectedPaymentBreakdown(activeSession);
+  }
+
+  async loadExpectedPaymentBreakdown(activeSession: CashRegisterSessionDto) {
+    try {
+      const sessId = activeSession.sessionId || activeSession.cashRegisterId || activeSession.id || 0;
+      const details = await this.cashRegisterService.getSessionDetail(sessId, activeSession);
+      if (details) {
+        this.expectedCards.set(Number(details.cardSales) || 0);
+        this.expectedTransfers.set(Number(details.transferSales) || 0);
+        this.expectedCashSales.set(Number(details.cashSales) || 0);
+      }
+    } catch {}
+  }
+
+  copyExpectedCards() {
+    this.form.patchValue({ declaredCards: this.expectedCards() });
+    this.updateNotesValidation();
+  }
+
+  copyExpectedTransfers() {
+    this.form.patchValue({ declaredTransfers: this.expectedTransfers() });
+    this.updateNotesValidation();
   }
 
   async syncOfflineSalesNow(): Promise<void> {

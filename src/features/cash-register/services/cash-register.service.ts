@@ -1443,16 +1443,51 @@ export class CashRegisterService {
       console.warn('Error fetching sales for session:', e);
     }
 
-    // Fallback: check local sales cache if backend filter returns 0
-    if (sales.length === 0) {
-      try {
-        const local = localStorage.getItem('cuadreenv_local_sales');
-        if (local) {
-          const parsed = JSON.parse(local);
-          sales = parsed.filter((s: any) => s.cashRegisterId === sessionId || s.cashSessionId === sessionId);
+    // Fallback & local integration: scan all local sales storage keys
+    try {
+      const localSalesKeys = ['cuadreenv_local_sales', 'cuadreenv_local_sales_cache'];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('cuadreenv_local_sales_cache_') && !localSalesKeys.includes(k)) {
+          localSalesKeys.push(k);
         }
-      } catch {}
-    }
+      }
+
+      const allLocalList: any[] = [];
+      for (const k of localSalesKeys) {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          try {
+            const arr = JSON.parse(raw);
+            if (Array.isArray(arr)) {
+              allLocalList.push(...arr);
+            }
+          } catch {}
+        }
+      }
+
+      const sessionOpenedTime = basicSession?.openedAt ? new Date(basicSession.openedAt).getTime() : 0;
+      const sessionClosedTime = basicSession?.closedAt ? new Date(basicSession.closedAt).getTime() : Date.now();
+
+      const matchedLocal = allLocalList.filter((s: any) => {
+        if (!s) return false;
+        if (s.cashRegisterId === sessionId || s.cashSessionId === sessionId) return true;
+        if (sessionOpenedTime > 0) {
+          const sTime = s.creationDate ? new Date(s.creationDate).getTime() : (s.date ? new Date(s.date).getTime() : 0);
+          if (sTime >= (sessionOpenedTime - 120000) && sTime <= (sessionClosedTime + 120000)) {
+            return true;
+          }
+        }
+        return false;
+      });
+
+      for (const mls of matchedLocal) {
+        const exists = sales.some((s) => s.id === mls.id || (s.invoiceNumber && s.invoiceNumber === mls.invoiceNumber));
+        if (!exists) {
+          sales.push(mls);
+        }
+      }
+    } catch {}
 
     // Calculate totals
     let cashSales = 0;
@@ -1463,11 +1498,14 @@ export class CashRegisterService {
     sales.forEach((s) => {
       const amt = Number(s.total || s.paidAmount || 0);
       totalSales += amt;
-      const pm = (s.paymentMethod || '').toUpperCase();
-      if (pm.includes('EFECT') || pm.includes('CASH')) cashSales += amt;
-      else if (pm.includes('TARJ') || pm.includes('CARD')) cardSales += amt;
-      else if (pm.includes('TRANSF')) transferSales += amt;
-      else cashSales += amt;
+      const pm = (s.paymentMethod || s.method || '').toUpperCase();
+      if (pm.includes('TARJ') || pm.includes('CARD') || pm.includes('VISA') || pm.includes('MASTER')) {
+        cardSales += amt;
+      } else if (pm.includes('TRANSF') || pm.includes('WIRE') || pm.includes('BANCO')) {
+        transferSales += amt;
+      } else {
+        cashSales += amt;
+      }
     });
 
     let cashIn = 0;

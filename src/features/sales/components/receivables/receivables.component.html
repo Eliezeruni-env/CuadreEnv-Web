@@ -181,10 +181,10 @@
 
       <!-- Table/Grid View Switcher -->
       <div class="col-md-2 d-flex justify-content-end align-items-center gap-1.5 ms-auto">
-        <div class="view-mode-toggle d-flex align-items-center">
+        <div class="view-mode-toggle d-flex align-items-center p-1 bg-slate-100 rounded-3 border">
           <button
             type="button"
-            class="btn-view-toggle"
+            class="btn-view-toggle btn btn-sm p-0 d-inline-flex align-items-center justify-content-center border-0"
             [class.active]="viewMode() === 'table'"
             (click)="viewMode.set('table')"
             title="Vista en tabla"
@@ -200,7 +200,7 @@
           </button>
           <button
             type="button"
-            class="btn-view-toggle"
+            class="btn-view-toggle btn btn-sm p-0 d-inline-flex align-items-center justify-content-center border-0"
             [class.active]="viewMode() === 'cards'"
             (click)="viewMode.set('cards')"
             title="Vista en tarjetas"

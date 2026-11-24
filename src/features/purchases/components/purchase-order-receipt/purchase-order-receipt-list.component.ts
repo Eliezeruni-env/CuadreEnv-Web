@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PurchaseOrderReceiptService } from '../../services/purchase-order-receipt.service';
+import { CompanyService } from '../../../companies/services/company.service';
 import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/kt-paginator.component';
 import type { PurchaseOrderReceipt } from '../../../../app/models/purchase-order';
 
@@ -15,6 +16,7 @@ import type { PurchaseOrderReceipt } from '../../../../app/models/purchase-order
 })
 export class PurchaseOrderReceiptListComponent implements OnInit {
   private receiptService = inject(PurchaseOrderReceiptService);
+  private companyService = inject(CompanyService);
   private router = inject(Router);
 
   receipts = signal<PurchaseOrderReceipt[]>([]);
@@ -142,12 +144,150 @@ export class PurchaseOrderReceiptListComponent implements OnInit {
   }
 
   printReceipt() {
-    setTimeout(() => {
-      window.print();
-    }, 150);
+    this.printVoucher();
   }
 
-  printVoucher() {
-    this.printReceipt();
+  printVoucher(receipt?: PurchaseOrderReceipt) {
+    const r = receipt || this.selectedReceipt;
+    if (!r) return;
+
+    const company = this.companyService.currentSettings();
+    const companyName = company.commercialName || (company as any).businessName || (company as any).name || 'CuadreEnv Negocio';
+    const dateStr = new Date(r.receiptDate).toLocaleDateString('es-DO', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+    const timeStr = new Date(r.receiptDate).toLocaleTimeString('es-DO', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    const items = r.productDetails || [];
+    const totalQty = items.reduce((acc, i) => acc + (Number(i.quantityReceived) || 0), 0);
+    const totalAmount = items.reduce((acc, i) => acc + (Number(i.subTotal) || ((Number(i.quantityReceived) || 0) * (Number(i.unitCost) || 0))), 0);
+
+    const itemsHtml = items.map((item) => `
+      <div style="margin-bottom: 5px; font-size: 11px;">
+        <div style="font-weight: bold;">${item.productName}</div>
+        <div style="display: flex; justify-content: space-between; color: #333;">
+          <span>${item.barCode || 'S/C'} · ${item.quantityReceived} uds @ RD$ ${Number(item.unitCost || 0).toFixed(2)}</span>
+          <span style="font-weight: bold;">RD$ ${Number(item.subTotal || ((item.quantityReceived || 0) * (item.unitCost || 0))).toFixed(2)}</span>
+        </div>
+      </div>
+    `).join('');
+
+    const printWin = window.open('', '_blank', 'width=420,height=680');
+    if (!printWin) {
+      window.print();
+      return;
+    }
+
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Recepción ${r.receiptNumber}</title>
+          <style>
+            body {
+              font-family: 'Courier New', Courier, monospace;
+              font-size: 12px;
+              line-height: 1.3;
+              padding: 10px;
+              color: #000;
+              background: #fff;
+              max-width: 80mm;
+              margin: 0 auto;
+            }
+            .text-center { text-align: center; }
+            .fw-bold { font-weight: bold; }
+            .divider {
+              border-top: 1px dashed #000;
+              margin: 8px 0;
+            }
+            .double-divider {
+              border-top: 2px solid #000;
+              margin: 8px 0;
+            }
+            .row-data {
+              display: flex;
+              justify-content: space-between;
+              margin: 2px 0;
+            }
+            .signatures {
+              margin-top: 35px;
+              display: flex;
+              justify-content: space-between;
+              gap: 15px;
+            }
+            .sign-box {
+              flex: 1;
+              text-align: center;
+              border-top: 1px solid #000;
+              padding-top: 4px;
+              font-size: 10px;
+            }
+            @media print {
+              body { padding: 0; }
+              @page { margin: 0; size: 80mm auto; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="text-center">
+            <div class="fw-bold" style="font-size: 14px;">${companyName}</div>
+            ${company.rnc ? `<div>RNC: ${company.rnc}</div>` : ''}
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+            <div class="double-divider"></div>
+            <div class="fw-bold" style="font-size: 13px;">COMPROBANTE DE RECEPCIÓN</div>
+            <div class="fw-bold font-monospace" style="font-size: 14px;"># ${r.receiptNumber}</div>
+            <div class="divider"></div>
+          </div>
+
+          <div class="row-data"><span>Orden de Compra:</span><span class="fw-bold">${r.purchaseOrderNumber || 'N/A'}</span></div>
+          <div class="row-data"><span>Fecha / Hora:</span><span>${dateStr} ${timeStr}</span></div>
+          <div class="row-data"><span>Proveedor:</span><span class="fw-bold">${r.supplierName || 'General'}</span></div>
+          <div class="row-data"><span>Almacén Receptor:</span><span>${r.warehouseName || 'Almacén Principal'}</span></div>
+
+          <div class="divider"></div>
+          <div class="fw-bold" style="font-size: 11px; margin-bottom: 6px;">ARTÍCULOS RECIBIDOS EN ALMACÉN:</div>
+          ${itemsHtml || '<div class="text-center" style="font-size: 11px; font-style: italic;">Sin artículos detallados</div>'}
+
+          <div class="double-divider"></div>
+          <div class="row-data fw-bold" style="font-size: 13px;">
+            <span>Total Unidades:</span>
+            <span>${totalQty} uds</span>
+          </div>
+          <div class="row-data fw-bold" style="font-size: 13px;">
+            <span>Valor Total Recibido:</span>
+            <span>RD$ ${totalAmount.toFixed(2)}</span>
+          </div>
+
+          ${r.comments ? `
+            <div class="divider"></div>
+            <div style="font-size: 11px;"><strong>Observaciones:</strong> ${r.comments}</div>
+          ` : ''}
+
+          <div class="signatures">
+            <div class="sign-box">Recibido (Almacén)</div>
+            <div class="sign-box">Entregado (Transporte)</div>
+          </div>
+
+          <div class="text-center" style="margin-top: 20px; font-size: 10px;">
+            <div>*** COPIA DE ALMACÉN ***</div>
+            <div>CuadreEnv ERP Cloud</div>
+          </div>
+        </body>
+      </html>
+    `);
+
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => {
+      printWin.print();
+      printWin.close();
+    }, 250);
   }
 }

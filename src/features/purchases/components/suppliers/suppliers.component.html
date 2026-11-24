@@ -66,6 +66,23 @@
         </div>
       </div>
     </div>
+
+    <div class="col-sm-12 col-md-4">
+      <div class="card border-0 rounded-4 p-3 bg-white shadow-sm h-100">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-secondary small fw-semibold">CXP Pendiente Suplidores</div>
+            <h3 class="fw-bold text-amber-600 mb-0 font-monospace">RD$ {{ totalCxpBalance() | number:'1.2-2' }}</h3>
+          </div>
+          <div class="p-3 bg-warning-subtle text-warning-emphasis rounded-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <line x1="2" y1="10" x2="22" y2="10"></line>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Search Filter -->
@@ -155,6 +172,9 @@
                     {{ sortColumn() === 'email' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
                   </span>
                 </th>
+                <th class="th-sortable text-end" (click)="toggleSort('balance')">
+                  Balance CXP
+                </th>
                 <th class="th-sortable text-center" (click)="toggleSort('status')">
                   Estado
                   <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
@@ -194,6 +214,17 @@
                     }
                   </td>
                   <td class="small text-secondary">{{ s.email || '-' }}</td>
+                  <td class="text-end">
+                    @if ((s.pendingBalance || 0) > 0) {
+                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-monospace px-2 py-1">
+                        RD$ {{ s.pendingBalance | number:'1.2-2' }}
+                      </span>
+                    } @else {
+                      <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace px-2 py-1">
+                        Al día
+                      </span>
+                    }
+                  </td>
                   <td class="text-center">
                     @if (s.active !== false) {
                       <span class="badge bg-success-subtle text-success border border-success px-2 py-1">Activo</span>
