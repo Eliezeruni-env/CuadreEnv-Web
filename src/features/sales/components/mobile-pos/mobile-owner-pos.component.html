@@ -3100,14 +3100,51 @@
 
       <!-- Presets de pesaje o unidades -->
       <div class="mb-3">
-        <label class="cuadre-input-label">Cantidades rápidas sugeridas:</label>
+        <!-- Dual Inputs: Cantidad / Peso y Monto en RD$ -->
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="cuadre-input-label">⚖️ Cantidad / Peso:</label>
+            <div class="cuadre-money-input-group">
+              <input
+                type="number"
+                class="money-input-field"
+                [ngModel]="measurementQuantity()"
+                (ngModelChange)="onMeasurementQtyChange($event)"
+                [step]="isProductMeasurable(prod) ? '0.01' : '1'"
+                min="0.01"
+                placeholder="0.00"
+              />
+              <div class="money-prefix">{{ getProductUnitSymbol(prod) }}</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <label class="cuadre-input-label">💵 O Monto (RD$):</label>
+            <div class="cuadre-money-input-group">
+              <input
+                type="number"
+                class="money-input-field"
+                [ngModel]="selectedSaleAmountMoney()"
+                (ngModelChange)="onMeasurementMoneyChange($event)"
+                step="1"
+                min="1"
+                placeholder="0.00"
+              />
+              <div class="money-prefix">RD$</div>
+            </div>
+          </div>
+        </div>
+
+        <label class="cuadre-input-label">⚡ Pesajes Rápidos:</label>
         <div class="d-flex flex-wrap gap-2 mb-2">
           @if (isProductMeasurable(prod)) {
             <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 0.25" (click)="setPresetQuantity(0.25)">0.25 {{ getProductUnitSymbol(prod) }}</button>
-            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 0.5" (click)="setPresetQuantity(0.5)">0.50 {{ getProductUnitSymbol(prod) }} (1/2)</button>
-            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 0.75" (click)="setPresetQuantity(0.75)">0.75 {{ getProductUnitSymbol(prod) }} (3/4)</button>
+            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 0.5" (click)="setPresetQuantity(0.5)">0.50 {{ getProductUnitSymbol(prod) }}</button>
             <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 1" (click)="setPresetQuantity(1)">1.00 {{ getProductUnitSymbol(prod) }}</button>
             <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 2" (click)="setPresetQuantity(2)">2.00 {{ getProductUnitSymbol(prod) }}</button>
+            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 5" (click)="setPresetQuantity(5)">5.00 {{ getProductUnitSymbol(prod) }}</button>
+            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 10" (click)="setPresetQuantity(10)">10 {{ getProductUnitSymbol(prod) }}</button>
+            <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 25" (click)="setPresetQuantity(25)">25 {{ getProductUnitSymbol(prod) }}</button>
+            <button type="button" class="cuadre-chip fw-bold text-primary" [class.active]="measurementQuantity() === 50" (click)="setPresetQuantity(50)">50 {{ getProductUnitSymbol(prod) }}</button>
           } @else {
             <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 1" (click)="setPresetQuantity(1)">1 {{ getProductUnitSymbol(prod) }}</button>
             <button type="button" class="cuadre-chip" [class.active]="measurementQuantity() === 2" (click)="setPresetQuantity(2)">2 {{ getProductUnitSymbol(prod) }}</button>
@@ -3117,18 +3154,17 @@
           }
         </div>
 
-        <label class="cuadre-input-label">O introduce la cantidad exacta:</label>
-        <div class="cuadre-money-input-group mb-2">
-          <input
-            type="number"
-            class="money-input-field"
-            [(ngModel)]="measurementQuantity"
-            [step]="isProductMeasurable(prod) ? '0.01' : '1'"
-            min="0.01"
-            placeholder="0.00"
-          />
-          <div class="money-prefix">{{ getProductUnitSymbol(prod) }}</div>
-        </div>
+        @if (isProductMeasurable(prod)) {
+          <label class="cuadre-input-label">💵 Dinero Exacto en Pesos:</label>
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <button type="button" class="cuadre-chip" (click)="setDetailSaleByMoney(25)">RD$ 25</button>
+            <button type="button" class="cuadre-chip" (click)="setDetailSaleByMoney(50)">RD$ 50</button>
+            <button type="button" class="cuadre-chip" (click)="setDetailSaleByMoney(100)">RD$ 100</button>
+            <button type="button" class="cuadre-chip" (click)="setDetailSaleByMoney(200)">RD$ 200</button>
+            <button type="button" class="cuadre-chip" (click)="setDetailSaleByMoney(500)">RD$ 500</button>
+            <button type="button" class="cuadre-chip text-success fw-bold" (click)="setDetailSaleByMoney(1000)">RD$ 1,000</button>
+          </div>
+        }
       </div>
 
       <div class="cierre-resumen-card mb-4">

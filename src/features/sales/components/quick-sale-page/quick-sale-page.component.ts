@@ -399,6 +399,23 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
     this.measurementQuantity.set(calculatedQty);
   }
 
+  onMeasurementQtyChange(qty: any): void {
+    const val = Math.max(0, Number(qty) || 0);
+    this.measurementQuantity.set(val);
+    const unitPrice = this.getEffectiveUnitPrice() || 1;
+    this.selectedSaleAmountMoney.set(Math.round(val * unitPrice * 100) / 100);
+  }
+
+  onMeasurementMoneyChange(amount: any): void {
+    const money = Math.max(0, Number(amount) || 0);
+    this.selectedSaleAmountMoney.set(money);
+    const unitPrice = this.getEffectiveUnitPrice() || 1;
+    if (unitPrice > 0) {
+      const calculatedQty = Math.round((money / unitPrice) * 1000) / 1000;
+      this.measurementQuantity.set(calculatedQty);
+    }
+  }
+
   // Discounts & Payments
   discountType = signal<'percent' | 'fixed'>('percent');
   discountValue = signal<number>(0);
@@ -2437,6 +2454,8 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       const isMeasurable = this.isProductMeasurable(product);
       this.measurementQuantity.set(isMeasurable ? 1.0 : 1);
     }
+    const effPrice = this.getEffectiveUnitPrice() || Number(product.price || product.priceList || 0);
+    this.selectedSaleAmountMoney.set(Math.round(this.measurementQuantity() * effPrice * 100) / 100);
     this.isMeasurementModalOpen.set(true);
   }
 
@@ -2508,6 +2527,8 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
   setPresetQuantity(qty: number): void {
     this.measurementQuantity.set(qty);
+    const effPrice = this.getEffectiveUnitPrice() || 1;
+    this.selectedSaleAmountMoney.set(Math.round(qty * effPrice * 100) / 100);
   }
 
   confirmMeasurementModal(): void {

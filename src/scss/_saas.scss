@@ -400,6 +400,7 @@ c-sidebar-nav {
   --cui-sidebar-nav-link-active-border-color: transparent !important;
   --cui-sidebar-nav-link-hover-border-width: 0px !important;
   --cui-sidebar-nav-link-hover-border-color: transparent !important;
+  --cui-sidebar-nav-link-icon-margin: 0.65rem !important;
   --cui-focus-ring-width: 0px !important;
   --cui-focus-ring-color: transparent !important;
   --cui-focus-ring-box-shadow: none !important;
@@ -425,9 +426,9 @@ c-sidebar .sidebar-nav .nav-group-items {
 c-sidebar .sidebar-nav .nav-group-items .nav-link,
 .sidebar-nav .nav-group-items c-sidebar-nav-link .nav-link,
 c-sidebar .sidebar-nav .nav-group-items c-sidebar-nav-link .nav-link {
-  padding: 0.5rem 0.85rem 0.5rem 2.25rem !important;
-  padding-left: 2.25rem !important;
-  padding-inline-start: 2.25rem !important;
+  padding: 0.5rem 0.85rem !important;
+  padding-left: 1.5rem !important;
+  padding-inline-start: 1.5rem !important;
   margin: 2px 0.5rem !important;
   font-size: 0.8125rem !important;
   border-radius: 6px !important;
@@ -442,21 +443,38 @@ c-sidebar .sidebar-nav .nav-group-items c-sidebar-nav-link .nav-link {
   gap: 0.65rem !important;
 }
 
+// Override CoreUI negative margin on .nav-group .nav-icon which pulls submenu icons off-screen
+.sidebar-nav .nav-group .nav-icon,
+.sidebar-nav .nav-group svg.nav-icon,
 .sidebar-nav .nav-group-items .nav-icon,
 .sidebar-nav .nav-group-items svg.nav-icon,
+.sidebar .sidebar-nav .nav-group .nav-icon,
+.sidebar .sidebar-nav .nav-group svg.nav-icon,
 .sidebar .sidebar-nav .nav-group-items .nav-icon,
 .sidebar .sidebar-nav .nav-group-items svg.nav-icon,
+c-sidebar .sidebar-nav .nav-group .nav-icon,
+c-sidebar .sidebar-nav .nav-group svg.nav-icon,
 c-sidebar .sidebar-nav .nav-group-items .nav-icon,
-c-sidebar .sidebar-nav .nav-group-items svg.nav-icon {
+c-sidebar .sidebar-nav .nav-group-items svg.nav-icon,
+c-sidebar-nav .nav-group .nav-icon,
+c-sidebar-nav .nav-group svg.nav-icon,
+c-sidebar-nav .nav-group-items .nav-icon,
+c-sidebar-nav .nav-group-items svg.nav-icon {
   margin: 0 !important;
-  margin-right: 0.45rem !important;
-  margin-inline-end: 0.45rem !important;
+  margin-inline-start: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0.65rem !important;
+  margin-inline-end: 0.65rem !important;
   width: 1.15rem !important;
   height: 1.15rem !important;
   min-width: 1.15rem !important;
   flex-shrink: 0 !important;
   position: static !important;
   transform: none !important;
+  float: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .sidebar-nav .nav-link,
@@ -464,7 +482,9 @@ c-sidebar .sidebar-nav .nav-group-items svg.nav-icon {
 .sidebar .sidebar-nav .nav-link,
 .sidebar .sidebar-nav .nav-group-toggle,
 c-sidebar .sidebar-nav .nav-link,
-c-sidebar .sidebar-nav .nav-group-toggle {
+c-sidebar .sidebar-nav .nav-group-toggle,
+c-sidebar-nav .nav-link,
+c-sidebar-nav .nav-group-toggle {
   border: 0px none transparent !important;
   border-left: 0px none transparent !important;
   border-right: 0px none transparent !important;
@@ -493,7 +513,9 @@ c-sidebar .sidebar-nav .nav-group-toggle {
 .sidebar .sidebar-nav .nav-link.active,
 .sidebar .sidebar-nav .nav-link.router-link-active,
 c-sidebar .sidebar-nav .nav-link.active,
-c-sidebar .sidebar-nav .nav-link.router-link-active {
+c-sidebar .sidebar-nav .nav-link.router-link-active,
+c-sidebar-nav .nav-link.active,
+c-sidebar-nav .nav-link.router-link-active {
   border-left: 0px none transparent !important;
   border-inline-start: 0px none transparent !important;
   border: 0px none transparent !important;
@@ -501,6 +523,13 @@ c-sidebar .sidebar-nav .nav-link.router-link-active {
   box-shadow: none !important;
   -webkit-box-shadow: none !important;
   background-color: var(--ce-sidebar-active, #253047) !important;
+
+  &::before,
+  &::after {
+    display: none !important;
+    content: none !important;
+    border: none !important;
+  }
 }
 
 // ------------------------------------------------------------

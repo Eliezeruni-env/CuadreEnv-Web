@@ -153,9 +153,18 @@ export class PaymentModalComponent implements OnInit {
       if (saleRes?.success && saleRes.data) {
         this.sales.set(saleRes.data);
       }
+      let purList: PurchaseDto[] = [];
       if (purchaseRes?.success && purchaseRes.data) {
-        this.purchases.set(purchaseRes.data);
+        purList = [...purchaseRes.data];
       }
+      const localPurs = this.purchaseService.getLocalPurchases();
+      for (const lp of localPurs) {
+        if (!purList.some((p) => p.id === lp.id)) {
+          purList.unshift(lp);
+        }
+      }
+      this.purchases.set(purList);
+
       if (supRes?.success && supRes.data) {
         this.suppliers.set(supRes.data);
       }
@@ -212,8 +221,22 @@ export class PaymentModalComponent implements OnInit {
 
     await this.loadData();
 
-    const targetId = defaultPurchaseId ? Number(defaultPurchaseId) : (this.purchases()[0]?.id || 0);
-    const found = this.purchases().find((p) => p.id === targetId) || this.purchases()[0];
+    const targetId = defaultPurchaseId
+      ? Number(defaultPurchaseId)
+      : this.purchases()[0]?.id || 0;
+    let found = this.purchases().find((p) => p.id === targetId);
+    if (!found && defaultPurchaseId) {
+      const localMatch = this.purchaseService
+        .getLocalPurchases()
+        .find((p) => p.id === Number(defaultPurchaseId));
+      if (localMatch) {
+        found = localMatch;
+        this.purchases.update((list) => [localMatch, ...list]);
+      }
+    }
+    if (!found && this.purchases().length > 0) {
+      found = this.purchases()[0];
+    }
 
     if (found) {
       this.paymentForm.reset({
@@ -296,15 +319,24 @@ export class PaymentModalComponent implements OnInit {
     const { methodFormatted, referenceFormatted } =
       this.buildPaymentReference();
 
+    const purId =
+      this.paymentType() === 'purchase'
+        ? Number(formVal.purchaseId) || null
+        : null;
+    const saleId =
+      this.paymentType() === 'sale' ? Number(formVal.saleId) || null : null;
+
+    if (this.paymentType() === 'purchase' && !purId) {
+      this.notificationService.warning(
+        'Por favor seleccione la compra u orden de compra a la que desea aplicar el pago.',
+      );
+      this.isLoading.set(false);
+      return;
+    }
+
     const payload: PaymentDto = {
-      saleId:
-        this.paymentType() === 'sale' && formVal.saleId
-          ? parseInt(formVal.saleId, 10)
-          : null,
-      purchaseId:
-        this.paymentType() === 'purchase' && formVal.purchaseId
-          ? parseInt(formVal.purchaseId, 10)
-          : null,
+      saleId,
+      purchaseId: purId,
       amount: Number(formVal.amount),
       method: methodFormatted,
       reference: referenceFormatted,

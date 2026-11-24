@@ -160,6 +160,11 @@ export class PaymentsComponent implements OnInit {
       this.activeTab.set('pending');
       this.paySpecificPurchase(Number(paramPurchaseId));
     }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('cuadre_payment_registered', () => {
+        void this.loadData();
+      });
+    }
   }
 
   async loadData() {
@@ -176,7 +181,15 @@ export class PaymentsComponent implements OnInit {
         this.payments.set(payRes.data);
       }
       if (purRes?.success && purRes.data) {
-        this.purchases.set(purRes.data);
+        const purs = [...purRes.data];
+        for (const lp of this.purchaseService.getLocalPurchases()) {
+          if (!purs.some((p) => p.id === lp.id)) {
+            purs.unshift(lp);
+          }
+        }
+        this.purchases.set(purs);
+      } else {
+        this.purchases.set(this.purchaseService.getLocalPurchases());
       }
       if (supRes?.success && supRes.data) {
         this.suppliers.set(supRes.data);

@@ -2154,37 +2154,66 @@
         </div>
 
         <div style="margin-bottom: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <label style="font-size: 13px; font-weight: 700; color: var(--cuadre-text-main); margin: 0;">
-              Cantidad a Vender ({{ getEffectiveUnitLabel() }})
+              Ingresa Peso o Monto en Dinero
             </label>
             <span class="cuadre-badge badge-neutral" style="font-variant-numeric: tabular-nums;">
-              Precio: RD$ {{ getEffectiveUnitPrice() | number:'1.2-2' }}
+              Precio Unitario: RD$ {{ getEffectiveUnitPrice() | number:'1.2-2' }} / {{ getEffectiveUnitLabel() }}
             </span>
           </div>
 
-          <div class="pos-money-input-56" style="margin-bottom: 10px;">
-            <input
-              type="number"
-              class="money-input-field-22"
-              style="text-align: center;"
-              [step]="isProductMeasurable(selectedProductForMeasurement()!) && measurementMode() === 'detail' ? '0.01' : '1'"
-              min="0.01"
-              [ngModel]="measurementQuantity()"
-              (ngModelChange)="measurementQuantity.set($event)"
-              placeholder="1"
-            />
-            <div class="money-prefix-block">{{ getEffectiveUnitLabel() }}</div>
+          <!-- Dual inputs interactivos sincronizados: Cantidad y Monto en Pesos -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <!-- Input 1: Cantidad / Peso -->
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">
+                ⚖️ CANTIDAD / PESO ({{ getEffectiveUnitLabel() }})
+              </label>
+              <div class="pos-money-input-56">
+                <input
+                  type="number"
+                  class="money-input-field-22"
+                  style="text-align: center;"
+                  [step]="isProductMeasurable(selectedProductForMeasurement()!) && measurementMode() === 'detail' ? '0.01' : '1'"
+                  min="0.01"
+                  [ngModel]="measurementQuantity()"
+                  (ngModelChange)="onMeasurementQtyChange($event)"
+                  placeholder="1.00"
+                />
+                <div class="money-prefix-block">{{ getEffectiveUnitLabel() }}</div>
+              </div>
+            </div>
+
+            <!-- Input 2: Monto en Pesos RD$ -->
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--cuadre-text-muted); display: block; margin-bottom: 4px;">
+                💵 O MONTO EN DINERO (RD$)
+              </label>
+              <div class="pos-money-input-56">
+                <input
+                  type="number"
+                  class="money-input-field-22"
+                  style="text-align: center;"
+                  step="1"
+                  min="1"
+                  [ngModel]="selectedSaleAmountMoney()"
+                  (ngModelChange)="onMeasurementMoneyChange($event)"
+                  placeholder="0.00"
+                />
+                <div class="money-prefix-block">RD$</div>
+              </div>
+            </div>
           </div>
 
           <!-- Presets y Balanza -->
           @if (measurementMode() === 'detail') {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span style="font-size: 12px; font-weight: 600; color: var(--cuadre-text-muted);">Pesaje rápido:</span>
+              <span style="font-size: 11px; font-weight: 700; color: var(--cuadre-text-muted); text-transform: uppercase;">⚡ Accesos Rápidos de Peso:</span>
               <button
                 type="button"
                 class="btn-pos-outline btn-40"
-                style="height: 32px; font-size: 12px; color: var(--cuadre-color-success-text); border-color: var(--cuadre-color-success-border); background-color: var(--cuadre-color-success-light);"
+                style="height: 28px; font-size: 11px; font-weight: 600; color: var(--cuadre-color-success-text); border-color: var(--cuadre-color-success-border); background-color: var(--cuadre-color-success-light); padding: 0 8px;"
                 (click)="readWeightFromScale()"
                 [disabled]="isReadingScale()"
                 title="Capturar peso desde USB"
@@ -2196,27 +2225,34 @@
                 }
               </button>
             </div>
-            <!-- Venta al Detalle por Dinero Exacto (RD$ 10, RD$ 25, RD$ 50, etc.) -->
-            <div class="mt-2 mb-2 p-2 rounded-3" style="background-color: var(--cuadre-bg-subtle); border: 1px dashed var(--cuadre-border-color);">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <span style="font-size: 11px; font-weight: 700; color: var(--cuadre-color-primary);">💵 Venta por Dinero (Pesos):</span>
-                <span style="font-size: 10px; color: var(--cuadre-text-muted);">Calcula cantidad exacta según precio</span>
-              </div>
-              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 12px; font-weight: 700; padding: 0 10px;" (click)="setDetailSaleByMoney(10)">RD$ 10</button>
-                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 12px; font-weight: 700; padding: 0 10px;" (click)="setDetailSaleByMoney(25)">RD$ 25</button>
-                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 12px; font-weight: 700; padding: 0 10px;" (click)="setDetailSaleByMoney(50)">RD$ 50</button>
-                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 12px; font-weight: 700; padding: 0 10px;" (click)="setDetailSaleByMoney(100)">RD$ 100</button>
-              </div>
+
+            <!-- Botones rápidos de Peso / Cantidad (hasta 50 lbs) -->
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;">
+              <button type="button" class="btn-pos-outline" style="height: 30px; font-size: 12px; font-weight: 600; padding: 0 10px;" (click)="setPresetQuantity(0.25)">¼ {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn-pos-outline" style="height: 30px; font-size: 12px; font-weight: 600; padding: 0 10px;" (click)="setPresetQuantity(0.5)">½ {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn-pos-outline" style="height: 30px; font-size: 12px; font-weight: 600; padding: 0 10px;" (click)="setPresetQuantity(1)">1 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn-pos-outline" style="height: 30px; font-size: 12px; font-weight: 600; padding: 0 10px;" (click)="setPresetQuantity(2)">2 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn-pos-outline" style="height: 30px; font-size: 12px; font-weight: 600; padding: 0 10px;" (click)="setPresetQuantity(5)">5 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn-pos-outline" style="height: 30px; font-size: 12px; font-weight: 600; padding: 0 10px;" (click)="setPresetQuantity(10)">10 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn-pos-outline" style="height: 30px; font-size: 12px; font-weight: 600; padding: 0 10px;" (click)="setPresetQuantity(25)">25 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+              <button type="button" class="btn-pos-outline" style="height: 30px; font-size: 12px; font-weight: 700; padding: 0 10px; color: var(--ce-accent, #4F46E5); border-color: var(--ce-accent, #4F46E5);" (click)="setPresetQuantity(50)">50 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
             </div>
 
-            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(0.25)">¼ {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
-              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(0.5)">½ {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
-              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(1)">1 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
-              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(2)">2 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
-              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(3)">3 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
-              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(5)">5 {{ getProductUnitSymbol(selectedProductForMeasurement()!) }}</button>
+            <!-- Botones rápidos de Dinero Exacto (RD$ 25 a RD$ 1,000) -->
+            <div class="p-2 rounded-3" style="background-color: var(--cuadre-bg-subtle); border: 1px dashed var(--cuadre-border-color); margin-bottom: 8px;">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span style="font-size: 11px; font-weight: 700; color: var(--cuadre-color-primary);">💵 Venta por Dinero Exacto:</span>
+                <span style="font-size: 10px; color: var(--cuadre-text-muted);">Calcula automáticamente el peso en base al precio</span>
+              </div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 11px; font-weight: 600; padding: 0 8px;" (click)="setDetailSaleByMoney(25)">RD$ 25</button>
+                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 11px; font-weight: 600; padding: 0 8px;" (click)="setDetailSaleByMoney(50)">RD$ 50</button>
+                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 11px; font-weight: 600; padding: 0 8px;" (click)="setDetailSaleByMoney(100)">RD$ 100</button>
+                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 11px; font-weight: 600; padding: 0 8px;" (click)="setDetailSaleByMoney(200)">RD$ 200</button>
+                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 11px; font-weight: 600; padding: 0 8px;" (click)="setDetailSaleByMoney(300)">RD$ 300</button>
+                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 11px; font-weight: 600; padding: 0 8px;" (click)="setDetailSaleByMoney(500)">RD$ 500</button>
+                <button type="button" class="btn-pos-outline" style="height: 28px; font-size: 11px; font-weight: 700; padding: 0 8px; color: #059669; border-color: #059669;" (click)="setDetailSaleByMoney(1000)">RD$ 1,000</button>
+              </div>
             </div>
           } @else {
             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
@@ -2224,6 +2260,7 @@
               <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(2)">2 unid.</button>
               <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(3)">3 unid.</button>
               <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(5)">5 unid.</button>
+              <button type="button" class="btn-pos-outline" style="height: 32px; font-size: 12px; padding: 0 10px;" (click)="setPresetQuantity(10)">10 unid.</button>
             </div>
           }
         </div>

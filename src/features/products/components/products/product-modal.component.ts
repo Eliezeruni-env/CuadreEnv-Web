@@ -196,6 +196,35 @@ export class ProductModalComponent {
     this.router.navigate(['/products/settings']);
   }
 
+  setSaleType(type: 'unit' | 'weight') {
+    if (type === 'weight') {
+      this.productForm.patchValue({
+        allowFractional: true,
+      });
+      const lbUnit = this.units().find(
+        (u) =>
+          u.symbol?.toLowerCase() === 'lb' ||
+          u.name?.toLowerCase().includes('libra') ||
+          u.allowsDecimals === true,
+      );
+      if (lbUnit && lbUnit.id) {
+        this.productForm.patchValue({ unitOfMeasurementId: lbUnit.id });
+      }
+    } else {
+      this.productForm.patchValue({
+        allowFractional: false,
+      });
+      const undUnit = this.units().find(
+        (u) =>
+          u.symbol?.toLowerCase() === 'und' ||
+          u.name?.toLowerCase().includes('unidad'),
+      );
+      if (undUnit && undUnit.id) {
+        this.productForm.patchValue({ unitOfMeasurementId: undUnit.id });
+      }
+    }
+  }
+
   async openCreate() {
     this.isEditMode = false;
     this.selectedProductId = null;

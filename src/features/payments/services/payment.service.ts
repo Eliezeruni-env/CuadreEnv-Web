@@ -36,17 +36,36 @@ export class PaymentService {
     } catch {}
   }
 
+  private mergeWithLocalPayments(remoteItems: PaymentDto[]): PaymentDto[] {
+    const local = this.getLocalPayments();
+    const result = [...remoteItems];
+    for (const loc of local) {
+      const exists = result.some(
+        (r) =>
+          (r.id && loc.id && r.id === loc.id) ||
+          (r.purchaseId &&
+            loc.purchaseId &&
+            r.purchaseId === loc.purchaseId &&
+            Math.abs((r.amount || 0) - (loc.amount || 0)) < 0.01 &&
+            r.reference === loc.reference),
+      );
+      if (!exists) {
+        result.unshift(loc);
+      }
+    }
+    return result;
+  }
+
   async getPayments(params?: {
     pageNumber?: number;
     pageSize?: number;
   }): Promise<ApiResponse<PaymentDto[]>> {
     try {
       const res = await this.api.get<any, any>('/Payment', { params });
-      const list = extractArray<PaymentDto>(res);
-      if (list && list.length > 0) {
-        this.saveLocalPayments(list);
-        return { success: true, data: list };
-      }
+      let list = extractArray<PaymentDto>(res);
+      list = this.mergeWithLocalPayments(list);
+      this.saveLocalPayments(list);
+      return { success: true, data: list };
     } catch {}
     return { success: true, data: this.getLocalPayments() };
   }
@@ -71,31 +90,51 @@ export class PaymentService {
       creationDate: payment.creationDate || new Date().toISOString(),
     };
 
-    try {
-      // Omit huge client-generated id (Date.now()) on POST to prevent 400 Bad Request in ASP.NET Core int32 Identity
-      const payload: any = {
-        amount: Number(payment.amount),
-        method: payment.method || 'Efectivo',
-        paymentMethod: payment.method || 'Efectivo',
-        reference: payment.reference || '',
-        notes: (payment as any).notes || payment.reference || '',
-        purchaseId: payment.purchaseId ? Number(payment.purchaseId) : null,
-        saleId: payment.saleId ? Number(payment.saleId) : null,
-        companyId: compId ? Number(compId) : undefined,
-      };
+    const pmStr = String(payment.method || 'Efectivo');
+    const pmUpper = pmStr.toUpperCase();
+    const methodInt = pmUpper.includes('TRANS')
+      ? 1
+      : pmUpper.includes('TARJ') || pmUpper.includes('CARD')
+      ? 2
+      : pmUpper.includes('CHEQ') || pmUpper.includes('CHECK')
+      ? 3
+      : 0;
 
+    const payload: any = {
+      amount: Number(payment.amount),
+      method: methodInt,
+      paymentMethod: methodInt,
+      methodName: payment.method || 'Efectivo',
+      reference: payment.reference || '',
+      notes: (payment as any).notes || payment.reference || '',
+      date: fullPayment.creationDate,
+    };
+    if (payment.purchaseId) {
+      payload.purchaseId = Number(payment.purchaseId);
+    }
+    if (payment.saleId) {
+      payload.saleId = Number(payment.saleId);
+    }
+    if (compId) {
+      payload.companyId = Number(compId);
+    }
+
+    try {
       const res = await this.api.post<any, any>('/Payment', payload);
       const created = (res?.data ?? res) as PaymentDto;
-      const finalPayment = { ...fullPayment, ...(created || {}), id: created?.id || fullPayment.id };
-      
+      const finalPayment = {
+        ...fullPayment,
+        ...(created || {}),
+        id: created?.id || fullPayment.id,
+      };
+
       const local = this.getLocalPayments();
       local.unshift(finalPayment);
       this.saveLocalPayments(local);
       this.syncPaymentWithPurchase(finalPayment);
       return { success: true, data: finalPayment };
     } catch (apiErr) {
-      console.warn('API /Payment warning/fallback, persisting locally:', apiErr);
-      // Local fallback
+      console.warn('API /Payment fallback, persisting payment locally:', apiErr);
       const local = this.getLocalPayments();
       local.unshift(fullPayment);
       this.saveLocalPayments(local);
@@ -149,6 +188,12 @@ export class PaymentService {
             } catch {}
           }
         }
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('cuadre_payment_registered', { detail: payment }),
+        );
       }
     } catch (e) {
       console.warn('Could not sync payment with purchase record:', e);

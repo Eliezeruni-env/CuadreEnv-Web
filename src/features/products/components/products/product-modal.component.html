@@ -43,6 +43,44 @@
               }
             </div>
 
+            <!-- Modalidad de Venta Rápida (Por Unidad vs. Por Peso / Granel) -->
+            <div class="mb-3 p-2.5 rounded-3 bg-light border">
+              <div class="d-flex justify-content-between align-items-center mb-1.5">
+                <label class="small fw-bold text-dark mb-0">Modalidad de Venta *</label>
+                <span class="badge border font-monospace" [ngClass]="productForm.get('allowFractional')?.value ? 'bg-primary-subtle text-primary border-primary-subtle' : 'bg-secondary-subtle text-secondary'" style="font-size: 11px;">
+                  {{ productForm.get('allowFractional')?.value ? '⚖️ Venta por Peso / Fracción (Libras)' : '📦 Venta por Unidad Entera' }}
+                </span>
+              </div>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm flex-fill d-flex align-items-center justify-content-center gap-2 py-2 rounded-2 fw-semibold border transition-all"
+                  [ngClass]="!productForm.get('allowFractional')?.value ? 'btn-primary text-white shadow-xs' : 'btn-light text-secondary'"
+                  (click)="setSaleType('unit')"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                  </svg>
+                  <span>Por Unidad (Pieza, Caja, Botella)</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm flex-fill d-flex align-items-center justify-content-center gap-2 py-2 rounded-2 fw-semibold border transition-all"
+                  [ngClass]="productForm.get('allowFractional')?.value ? 'btn-primary text-white shadow-xs' : 'btn-light text-secondary'"
+                  (click)="setSaleType('weight')"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="3" x2="12" y2="21"></line>
+                    <path d="M4 7l8-4 8 4"></path>
+                    <path d="M6 18H2v-4l4-2 4 2v4H6z"></path>
+                    <path d="M22 18h-4v-4l4-2 4 2v4h-4z"></path>
+                  </svg>
+                  <span>Por Peso / Granel (Libras, Kg, Pesos)</span>
+                </button>
+              </div>
+            </div>
+
             <!-- 2. Código de Barra y Referencia -->
             <c-row>
               <c-col md="6" class="mb-3">
@@ -217,7 +255,9 @@
               </c-col>
 
               <c-col md="4" class="mb-3">
-                <label class="small fw-bold text-dark mb-1">Precio Unitario de Venta *</label>
+                <label class="small fw-bold text-dark mb-1">
+                  {{ productForm.get('allowFractional')?.value ? 'Precio de Venta por Libra / Fracción *' : 'Precio Unitario de Venta *' }}
+                </label>
                 <div class="input-group">
                   <span class="input-group-text bg-primary-subtle text-primary fw-bold">RD$</span>
                   <input formControlName="price" type="number" step="0.01" cFormControl class="fw-bold text-primary" placeholder="0.00" />
