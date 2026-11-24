@@ -339,16 +339,17 @@ export class CreditNoteService {
     currentList.unshift(newNote);
     this.saveLocalCreditNotes(currentList);
 
-    // Actualizar factura original deduciendo los productos y actualizando montos
+    // Actualizar factura/venta original deduciendo los productos y actualizando montos
     try {
       const keysToUpdate = [
         BILLING_STORAGE_KEY,
         `cuadreenv_billing_invoices_db_default`,
         `cuadreenv_billing_invoices_db_1`,
+        'cuadreenv_local_sales_cache',
       ];
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (k && k.startsWith('cuadreenv_billing_invoices_db')) {
+        if (k && (k.startsWith('cuadreenv_billing_invoices_db') || k.startsWith('cuadreenv_local_sales_cache'))) {
           if (!keysToUpdate.includes(k)) keysToUpdate.push(k);
         }
       }
@@ -363,11 +364,12 @@ export class CreditNoteService {
             const isMatch =
               (note.billingId && b.id === note.billingId) ||
               (b.billingNumber && note.billingNumber && b.billingNumber.toLowerCase() === note.billingNumber.toLowerCase()) ||
+              (b.invoiceNumber && note.billingNumber && b.invoiceNumber.toLowerCase() === note.billingNumber.toLowerCase()) ||
               (b.ncf && note.originalNcf && b.ncf.toLowerCase() === note.originalNcf.toLowerCase());
 
             if (isMatch) {
               changed = true;
-              const details = b.productDetails || b.details || [];
+              const details = b.productDetails || b.details || b.items || b.saleDetails || [];
               mappedDetails.forEach((cd: any) => {
                 const line = details.find((p: any) => (p.productId || p.id) === cd.productId);
                 if (line) {
@@ -376,26 +378,41 @@ export class CreditNoteService {
                   line.quantity = Math.max(0, Math.round((line.originalQuantity - line.creditedQuantity) * 100) / 100);
 
                   const pPrice = line.price || line.unitPrice || 0;
-                  const discPerc = line.discountPercentage || 0;
+                  const discPerc = line.discountPercentage || line.discount || 0;
                   const discAmt = Math.round(pPrice * line.quantity * (discPerc / 100) * 100) / 100;
                   line.discountAmount = discAmt;
                   line.subTotal = Math.round((pPrice * line.quantity - discAmt) * 100) / 100;
+                  line.subtotal = line.subTotal;
                   line.itbisAmount = Math.round(line.subTotal * 0.18 * 100) / 100;
+                  line.itbis = line.itbisAmount;
                   line.totalAmount = Math.round((line.subTotal + line.itbisAmount) * 100) / 100;
+                  line.total = line.totalAmount;
                 }
               });
 
               const allCredited = details.length > 0 && details.every((it: any) => it.quantity === 0);
-              b.amountSubTotal = Math.round(details.reduce((sum: number, it: any) => sum + (it.subTotal || 0), 0) * 100) / 100;
-              b.amountItbis = Math.round(details.reduce((sum: number, it: any) => sum + (it.itbisAmount || 0), 0) * 100) / 100;
-              b.amountTotal = Math.round(details.reduce((sum: number, it: any) => sum + (it.totalAmount || 0), 0) * 100) / 100;
+              const newSubTotal = Math.round(details.reduce((sum: number, it: any) => sum + (it.subTotal || it.subtotal || 0), 0) * 100) / 100;
+              const newItbis = Math.round(details.reduce((sum: number, it: any) => sum + (it.itbisAmount || it.itbis || 0), 0) * 100) / 100;
+              const newTotal = Math.round(details.reduce((sum: number, it: any) => sum + (it.totalAmount || it.total || 0), 0) * 100) / 100;
+
+              b.amountSubTotal = newSubTotal;
+              b.subtotal = newSubTotal;
+              b.amountItbis = newItbis;
+              b.itbis = newItbis;
+              b.amountTotal = newTotal;
+              b.total = newTotal;
+
               b.hasPartialCreditNote = !allCredited;
               b.hasAFullCreditNote = allCredited;
               b.creditNoteNumber = assignedNumber;
               b.creditNoteNcf = assignedNCF;
               b.creditNoteStatus = allCredited ? 'NC Total' : 'NC Parcial';
               b.statusName = allCredited ? 'Anulada por NC' : 'NC Parcial Aplicada';
-              b.statusId = allCredited ? 3 : b.statusId;
+              if (allCredited) {
+                b.status = 4;
+                b.statusId = 3;
+                b.isCancelled = true;
+              }
             }
           });
 

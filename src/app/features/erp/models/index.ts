@@ -129,6 +129,12 @@ export interface SaleResponseDto {
   dueDate?: string | null;
   isCancelled: boolean;
   creationDate: string;
+  hasPartialCreditNote?: boolean;
+  hasAFullCreditNote?: boolean;
+  creditNoteNumber?: string;
+  creditNoteNcf?: string;
+  creditNoteStatus?: string;
+  statusName?: string;
   details: {
     productId: number;
     quantity: number;

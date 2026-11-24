@@ -395,6 +395,12 @@ export interface SaleResponseDto {
   paymentMethod?: string;
   invoiceNumber?: string;
   notes?: string;
+  hasPartialCreditNote?: boolean;
+  hasAFullCreditNote?: boolean;
+  creditNoteNumber?: string;
+  creditNoteNcf?: string;
+  creditNoteStatus?: string;
+  statusName?: string;
   details: {
     productId: number;
     quantity: number;

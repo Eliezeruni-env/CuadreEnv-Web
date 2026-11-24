@@ -185,9 +185,19 @@
                       RD$ {{ sale.paidAmount | number:'1.2-2' }}
                     </td>
                     <td class="text-center">
-                      <span class="badge status-pill-paid">
-                        {{ (sale.status === 4 || sale.isCancelled) ? 'Anulada' : 'Pagada' }}
-                      </span>
+                      @if (sale.hasPartialCreditNote || sale.creditNoteStatus === 'NC Parcial' || sale.statusName === 'NC Parcial Aplicada') {
+                        <span class="badge border border-warning-subtle bg-warning-subtle text-warning-emphasis fw-bold">
+                          ⚠ NC Parcial
+                        </span>
+                      } @else if (sale.status === 4 || sale.isCancelled || sale.hasAFullCreditNote || sale.statusName === 'Anulada por NC') {
+                        <span class="badge border border-danger-subtle bg-danger-subtle text-danger fw-bold">
+                          ✕ Anulada
+                        </span>
+                      } @else {
+                        <span class="badge status-pill-paid">
+                          Pagada
+                        </span>
+                      }
                     </td>
                     <td class="text-center pe-3" style="width: 110px;">
                       <div class="d-inline-flex align-items-center gap-1.5">
@@ -289,6 +299,11 @@
                                       </td>
                                       <td class="text-center">
                                         <span class="quantity-badge font-monospace">{{ item.quantity }}</span>
+                                        @if (item.creditedQuantity && item.creditedQuantity > 0) {
+                                          <div class="text-danger small font-monospace mt-1" style="font-size: 0.72rem;">
+                                            -{{ item.creditedQuantity }} NC ({{ item.originalQuantity || (item.quantity + item.creditedQuantity) }} inicial)
+                                          </div>
+                                        }
                                       </td>
                                       <td class="text-end font-monospace text-muted">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
                                       <td class="text-center">
