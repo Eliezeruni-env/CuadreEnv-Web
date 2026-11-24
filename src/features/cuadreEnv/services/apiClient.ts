@@ -10,7 +10,10 @@ import { firstValueFrom } from 'rxjs';
 import type { TokenResponseDto } from '../types/api';
 import { environment } from '../../../environments/environment';
 import { NotificationService } from './notification.service';
-import { mapApiErrorToUserMessage, MappedApiError } from '../utils/api-error-mapper';
+import {
+  mapApiErrorToUserMessage,
+  MappedApiError,
+} from '../utils/api-error-mapper';
 import { logger } from './logger.service';
 
 export const API_BASE_URL = environment.API_BASE_URL;
@@ -19,7 +22,7 @@ export function validateApiConfiguration(): void {
   if (!environment.apiUrl || !environment.API_BASE_URL) {
     console.error(
       '[CuadreEnv Config Validation] Configuración de API incompleta en environment.',
-      { apiUrl: environment.apiUrl, API_BASE_URL: environment.API_BASE_URL }
+      { apiUrl: environment.apiUrl, API_BASE_URL: environment.API_BASE_URL },
     );
   }
 }
@@ -29,7 +32,10 @@ export function resolveApiUrl(url: string): string {
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url.replace(/\/v1\/v1(?=\/|$)/g, '/v1');
   }
-  const rawBase = (environment.apiUrl || 'http://localhost:8080/v1').replace(/\/$/, '');
+  const rawBase = (environment.apiUrl || 'http://localhost:8080/v1').replace(
+    /\/$/,
+    '',
+  );
   const rootBase = rawBase.replace(/\/v1$/, '');
   let path = url.startsWith('/') ? url : `/${url}`;
 
@@ -37,7 +43,11 @@ export function resolveApiUrl(url: string): string {
   path = path.replace(/^\/v1\/v1(?=\/|$)/, '/v1');
 
   // Endpoints at root: /hc, /swagger, SignalR hubs (/hubs)
-  if (path.startsWith('/hc') || path.startsWith('/hubs') || path.startsWith('/swagger')) {
+  if (
+    path.startsWith('/hc') ||
+    path.startsWith('/hubs') ||
+    path.startsWith('/swagger')
+  ) {
     return `${rootBase}${path}`;
   }
 
@@ -76,10 +86,18 @@ function debugLog(message: string, ...params: any[]) {
 }
 
 export function generateCorrelationId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
     return crypto.randomUUID();
   }
-  return 'fe-' + Math.random().toString(36).substring(2, 11) + '-' + Date.now().toString(36);
+  return (
+    'fe-' +
+    Math.random().toString(36).substring(2, 11) +
+    '-' +
+    Date.now().toString(36)
+  );
 }
 
 let currentSessionEpoch = 0;
@@ -193,14 +211,17 @@ export function getAccessToken(): string | null {
   if (typeof window !== 'undefined') {
     const sessionToken =
       window.sessionStorage &&
-      (sessionStorage.getItem('accessToken') || sessionStorage.getItem('auth_token'));
+      (sessionStorage.getItem('accessToken') ||
+        sessionStorage.getItem('auth_token'));
     if (sessionToken) {
       accessToken = sessionToken;
       return sessionToken;
     }
 
     if (isRememberMe() && window.localStorage) {
-      const localToken = localStorage.getItem('accessToken') || localStorage.getItem('auth_token');
+      const localToken =
+        localStorage.getItem('accessToken') ||
+        localStorage.getItem('auth_token');
       if (localToken) {
         accessToken = localToken;
         return localToken;
@@ -217,14 +238,18 @@ export function getRefreshToken(): string | null {
   if (typeof window !== 'undefined') {
     const sessionRefresh =
       window.sessionStorage &&
-      (sessionStorage.getItem('refreshToken') || sessionStorage.getItem('auth_refresh_token'));
+      (sessionStorage.getItem('refreshToken') ||
+        sessionStorage.getItem('auth_refresh_token'));
     if (sessionRefresh) {
       memoryRefreshToken = sessionRefresh;
       return sessionRefresh;
     }
 
     if (isRememberMe() && window.localStorage) {
-      return localStorage.getItem('refreshToken') || localStorage.getItem('auth_refresh_token');
+      return (
+        localStorage.getItem('refreshToken') ||
+        localStorage.getItem('auth_refresh_token')
+      );
     }
   }
   return null;
@@ -263,7 +288,10 @@ export function setRefreshToken(token?: string | null) {
 let activeCompanyId: string | null = null;
 
 export function setCompanyId(companyId: string | number | null) {
-  activeCompanyId = companyId && String(companyId) !== '0' && String(companyId) !== 'null' ? String(companyId) : null;
+  activeCompanyId =
+    companyId && String(companyId) !== '0' && String(companyId) !== 'null'
+      ? String(companyId)
+      : null;
   if (typeof window !== 'undefined') {
     if (activeCompanyId) {
       if (window.sessionStorage) {
@@ -304,7 +332,12 @@ export function getCompanyId(): string | null {
         window.localStorage?.getItem('auth_company_id') ||
         window.localStorage?.getItem('companyId') ||
         window.localStorage?.getItem('cuadre_company_id');
-      if (explicit && explicit !== 'null' && explicit !== 'undefined' && explicit !== '0') {
+      if (
+        explicit &&
+        explicit !== 'null' &&
+        explicit !== 'undefined' &&
+        explicit !== '0'
+      ) {
         activeCompanyId = explicit;
         return activeCompanyId;
       }
@@ -333,9 +366,17 @@ export function getCompanyId(): string | null {
             payload.tenantId ??
             payload.TenantId ??
             payload.tenant_id ??
-            payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid'] ??
-            payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/sid'];
-          if (compClaim !== undefined && compClaim !== null && compClaim !== '') {
+            payload[
+              'http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid'
+            ] ??
+            payload[
+              'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/sid'
+            ];
+          if (
+            compClaim !== undefined &&
+            compClaim !== null &&
+            compClaim !== ''
+          ) {
             activeCompanyId = String(compClaim);
             return activeCompanyId;
           }
@@ -351,9 +392,22 @@ export function getCompanyId(): string | null {
   if (typeof window !== 'undefined') {
     try {
       const fromStorage =
-        (window.localStorage && (localStorage.getItem('currentCompanyId') || localStorage.getItem('auth_company_id') || localStorage.getItem('companyId') || localStorage.getItem('CompanyId'))) ||
-        (window.sessionStorage && (sessionStorage.getItem('currentCompanyId') || sessionStorage.getItem('auth_company_id') || sessionStorage.getItem('companyId') || sessionStorage.getItem('CompanyId')));
-      if (fromStorage && fromStorage !== 'null' && fromStorage !== 'undefined' && fromStorage !== '0') {
+        (window.localStorage &&
+          (localStorage.getItem('currentCompanyId') ||
+            localStorage.getItem('auth_company_id') ||
+            localStorage.getItem('companyId') ||
+            localStorage.getItem('CompanyId'))) ||
+        (window.sessionStorage &&
+          (sessionStorage.getItem('currentCompanyId') ||
+            sessionStorage.getItem('auth_company_id') ||
+            sessionStorage.getItem('companyId') ||
+            sessionStorage.getItem('CompanyId')));
+      if (
+        fromStorage &&
+        fromStorage !== 'null' &&
+        fromStorage !== 'undefined' &&
+        fromStorage !== '0'
+      ) {
         activeCompanyId = fromStorage;
         return activeCompanyId;
       }
@@ -402,7 +456,10 @@ export class ApiClientService {
 
   get<T = any, R = T>(
     url: string,
-    options?: { params?: Record<string, any>; headers?: Record<string, string> },
+    options?: {
+      params?: Record<string, any>;
+      headers?: Record<string, string>;
+    },
   ): Promise<R> {
     return this.request<T, R>('GET', url, options);
   }
@@ -410,7 +467,10 @@ export class ApiClientService {
   post<T = any, R = T>(
     url: string,
     body?: any,
-    options?: { params?: Record<string, any>; headers?: Record<string, string> },
+    options?: {
+      params?: Record<string, any>;
+      headers?: Record<string, string>;
+    },
   ): Promise<R> {
     return this.request<T, R>('POST', url, { body, ...options });
   }
@@ -418,7 +478,10 @@ export class ApiClientService {
   put<T = any, R = T>(
     url: string,
     body?: any,
-    options?: { params?: Record<string, any>; headers?: Record<string, string> },
+    options?: {
+      params?: Record<string, any>;
+      headers?: Record<string, string>;
+    },
   ): Promise<R> {
     return this.request<T, R>('PUT', url, { body, ...options });
   }
@@ -426,14 +489,20 @@ export class ApiClientService {
   patch<T = any, R = T>(
     url: string,
     body?: any,
-    options?: { params?: Record<string, any>; headers?: Record<string, string> },
+    options?: {
+      params?: Record<string, any>;
+      headers?: Record<string, string>;
+    },
   ): Promise<R> {
     return this.request<T, R>('PATCH', url, { body, ...options });
   }
 
   delete<T = any, R = T>(
     url: string,
-    options?: { params?: Record<string, any>; headers?: Record<string, string> },
+    options?: {
+      params?: Record<string, any>;
+      headers?: Record<string, string>;
+    },
   ): Promise<R> {
     return this.request<T, R>('DELETE', url, options);
   }
@@ -475,9 +544,9 @@ export class ApiClientService {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      Accept: 'application/json',
       'X-Correlation-ID': correlationId,
-      ...(!isPublicAuth && token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...(!isPublicAuth && token ? { Authorization: `Bearer ${token}` } : {}),
       ...(!isPublicAuth && compId ? { 'X-Company-Id': String(compId) } : {}),
       ...(options.headers || {}),
     };
@@ -486,27 +555,53 @@ export class ApiClientService {
       delete headers['Content-Type'];
     }
 
-    if (method.toUpperCase() === 'POST' && (url.toLowerCase() === '/sale' || url.toLowerCase() === '/v1/sale' || url.toLowerCase().startsWith('/sale'))) {
-      if (!headers['X-Idempotency-Key'] || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(headers['X-Idempotency-Key'])) {
-        headers['X-Idempotency-Key'] = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-          const r = (Math.random() * 16) | 0;
-          return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-        });
+    if (
+      method.toUpperCase() === 'POST' &&
+      (url.toLowerCase() === '/sale' ||
+        url.toLowerCase() === '/v1/sale' ||
+        url.toLowerCase().startsWith('/sale'))
+    ) {
+      if (
+        !headers['X-Idempotency-Key'] ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          headers['X-Idempotency-Key'],
+        )
+      ) {
+        headers['X-Idempotency-Key'] =
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                const r = (Math.random() * 16) | 0;
+                return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+              });
       }
     }
-    
+
     const rawParams = options.params || {};
     const cleanParams: Record<string, any> = {};
     const seenLower = new Set<string>();
     for (const [key, value] of Object.entries(rawParams)) {
-      if (value !== null && value !== undefined && value !== '' && value !== 'null') {
+      if (
+        value !== null &&
+        value !== undefined &&
+        value !== '' &&
+        value !== 'null'
+      ) {
         const lower = key.toLowerCase();
         if (!seenLower.has(lower)) {
           seenLower.add(lower);
           // Backend limits pageSize to max 100
-          if ((lower === 'pagesize' || lower === 'page_size') && typeof value === 'number' && value > 100) {
+          if (
+            (lower === 'pagesize' || lower === 'page_size') &&
+            typeof value === 'number' &&
+            value > 100
+          ) {
             cleanParams[key] = 100;
-          } else if ((lower === 'pagesize' || lower === 'page_size') && typeof value === 'string' && parseInt(value, 10) > 100) {
+          } else if (
+            (lower === 'pagesize' || lower === 'page_size') &&
+            typeof value === 'string' &&
+            parseInt(value, 10) > 100
+          ) {
             cleanParams[key] = '100';
           } else {
             cleanParams[key] = value;
@@ -529,15 +624,22 @@ export class ApiClientService {
         }),
       );
       if (requestEpoch !== currentSessionEpoch) {
-        debugLog(`[TenantIsolation] In-flight response discarded due to session/tenant change: [${method}] ${url}`);
-        const cancelledError: any = new Error('Request discarded: session or tenant changed');
+        debugLog(
+          `[TenantIsolation] In-flight response discarded due to session/tenant change: [${method}] ${url}`,
+        );
+        const cancelledError: any = new Error(
+          'Request discarded: session or tenant changed',
+        );
         cancelledError.isStaleSession = true;
         throw cancelledError;
       }
       return unwrap<R>(body);
     } catch (error: any) {
       const mapped = mapApiErrorToUserMessage(error);
-      const statusCode = error instanceof HttpErrorResponse ? error.status : (mapped.statusCode || 0);
+      const statusCode =
+        error instanceof HttpErrorResponse
+          ? error.status
+          : mapped.statusCode || 0;
 
       // Enhance error object with mapped details for calling components
       if (error && typeof error === 'object') {
@@ -554,23 +656,23 @@ export class ApiClientService {
         options.headers?.['X-Silent-Error'] ||
         options.headers?.['x-silent-error'] ||
         options.headers?.['X-Silent-500'] ||
-        options.headers?.['x-silent-500']
+        options.headers?.['x-silent-500'],
       );
 
-      const isKnownFallbackGet = method.toUpperCase() === 'GET' && (
-        url.includes('/WarehouseEntry') ||
-        url.includes('/WarehouseOutlet') ||
-        url.includes('/WarehouseTransfer') ||
-        url.includes('/inventory/movements') ||
-        url.includes('/inventory/low-stock') ||
-        url.includes('/warehouse') ||
-        url.includes('/Warehouse') ||
-        url.includes('/AccountReceivable') ||
-        url.includes('/Customer') ||
-        url.includes('/Sale') ||
-        url.includes('/sales') ||
-        url.includes('/quotation')
-      );
+      const isKnownFallbackGet =
+        method.toUpperCase() === 'GET' &&
+        (url.includes('/WarehouseEntry') ||
+          url.includes('/WarehouseOutlet') ||
+          url.includes('/WarehouseTransfer') ||
+          url.includes('/inventory/movements') ||
+          url.includes('/inventory/low-stock') ||
+          url.includes('/warehouse') ||
+          url.includes('/Warehouse') ||
+          url.includes('/AccountReceivable') ||
+          url.includes('/Customer') ||
+          url.includes('/Sale') ||
+          url.includes('/sales') ||
+          url.includes('/quotation'));
 
       const isSilencedReq = isSilentHeader || isKnownFallbackGet;
 
@@ -582,18 +684,30 @@ export class ApiClientService {
           dispatchTelemetry(method, url, statusCode, mapped, error);
         }
       } else if (isKnownFallbackGet && statusCode >= 500) {
-        debugLog(`[ApiClient] Silenciado 500 en GET de contingencia: ${method} ${url} -> Fallback local activo`);
+        debugLog(
+          `[ApiClient] Silenciado 500 en GET de contingencia: ${method} ${url} -> Fallback local activo`,
+        );
       }
 
       // Display server outage notification only on user actions (mutations), never on background GET data fetching or silenced requests
       const isMutation = method !== 'GET';
-      if (!isSilencedReq && isMutation && (statusCode === 0 || statusCode >= 500 || mapped.errorCode === 'SERVER_OUTAGE')) {
+      if (
+        !isSilencedReq &&
+        isMutation &&
+        (statusCode === 0 ||
+          statusCode >= 500 ||
+          mapped.errorCode === 'SERVER_OUTAGE')
+      ) {
         this.notificationService?.show(
           mapped.title,
           mapped.message,
           'danger',
           10000,
-          { isCritical: true, requestId: mapped.requestId, errorCode: mapped.errorCode }
+          {
+            isCritical: true,
+            requestId: mapped.requestId,
+            errorCode: mapped.errorCode,
+          },
         );
       }
 
@@ -603,7 +717,12 @@ export class ApiClientService {
   }
 }
 
-function logRequestError(method: string, url: string, error: any, mapped?: MappedApiError) {
+function logRequestError(
+  method: string,
+  url: string,
+  error: any,
+  mapped?: MappedApiError,
+) {
   const status = error?.status || mapped?.statusCode || 0;
   const msg = mapped?.message || error?.message || 'Error de petición';
   logger.logApiError(method, url, status, msg, {
@@ -710,26 +829,39 @@ export async function doForgotPassword(
 ): Promise<{ success: boolean; message: string; data?: any }> {
   const cleanEmail = (email || '').trim().toLowerCase();
   try {
-    const res: any = await client.post<any, any>('/auth/forgot-password', { email: cleanEmail });
+    const res: any = await client.post<any, any>('/auth/forgot-password', {
+      email: cleanEmail,
+    });
     return {
       success: res?.success !== false,
-      message: res?.message || 'Si el correo electrónico está registrado, recibirás un enlace de recuperación.',
+      message:
+        res?.message ||
+        'Si el correo electrónico está registrado, recibirás un enlace de recuperación.',
       data: res?.data ?? res,
     };
   } catch (err: any) {
     try {
-      const res2: any = await client.post<any, any>('/Auth/forgot-password', { email: cleanEmail });
+      const res2: any = await client.post<any, any>('/Auth/forgot-password', {
+        email: cleanEmail,
+      });
       return {
         success: res2?.success !== false,
-        message: res2?.message || 'Si el correo electrónico está registrado, recibirás un enlace de recuperación.',
+        message:
+          res2?.message ||
+          'Si el correo electrónico está registrado, recibirás un enlace de recuperación.',
         data: res2?.data ?? res2,
       };
     } catch {
       try {
-        const res3: any = await client.post<any, any>('/auth/reset-password-request', { email: cleanEmail });
+        const res3: any = await client.post<any, any>(
+          '/auth/reset-password-request',
+          { email: cleanEmail },
+        );
         return {
           success: res3?.success !== false,
-          message: res3?.message || 'Si el correo electrónico está registrado, recibirás un enlace de recuperación.',
+          message:
+            res3?.message ||
+            'Si el correo electrónico está registrado, recibirás un enlace de recuperación.',
           data: res3?.data ?? res3,
         };
       } catch (finalErr: any) {
@@ -737,7 +869,8 @@ export async function doForgotPassword(
         // devolver respuesta segura estándar de la industria (no enumeración de emails)
         return {
           success: true,
-          message: 'Si el correo electrónico está registrado, recibirás un enlace con instrucciones para restablecer tu contraseña.',
+          message:
+            'Si el correo electrónico está registrado, recibirás un enlace con instrucciones para restablecer tu contraseña.',
         };
       }
     }
@@ -749,7 +882,10 @@ export async function doResetPassword(
   payload: { email: string; token: string; newPassword: string },
 ): Promise<{ success: boolean; message: string; data?: any }> {
   try {
-    const res: any = await client.post<any, any>('/auth/reset-password', payload);
+    const res: any = await client.post<any, any>(
+      '/auth/reset-password',
+      payload,
+    );
     return {
       success: res?.success !== false,
       message: res?.message || 'Contraseña restablecida exitosamente.',
@@ -757,7 +893,10 @@ export async function doResetPassword(
     };
   } catch (err: any) {
     try {
-      const res2: any = await client.post<any, any>('/Auth/reset-password', payload);
+      const res2: any = await client.post<any, any>(
+        '/Auth/reset-password',
+        payload,
+      );
       return {
         success: res2?.success !== false,
         message: res2?.message || 'Contraseña restablecida exitosamente.',
@@ -765,14 +904,20 @@ export async function doResetPassword(
       };
     } catch {
       try {
-        const res3: any = await client.post<any, any>('/auth/confirm-reset-password', payload);
+        const res3: any = await client.post<any, any>(
+          '/auth/confirm-reset-password',
+          payload,
+        );
         return {
           success: res3?.success !== false,
           message: res3?.message || 'Contraseña restablecida exitosamente.',
           data: res3?.data ?? res3,
         };
       } catch (finalErr: any) {
-        const msg = finalErr?.error?.message || finalErr?.message || 'El enlace de recuperación es inválido o ha expirado.';
+        const msg =
+          finalErr?.error?.message ||
+          finalErr?.message ||
+          'El enlace de recuperación es inválido o ha expirado.';
         throw new Error(msg);
       }
     }
@@ -796,10 +941,13 @@ export async function doRefresh(
     }
 
     try {
-      const res: any = await client.postWithoutInterceptors<any, any>('/auth/refresh', {
-        refreshToken: currentRefresh,
-        accessToken: currentAccess,
-      });
+      const res: any = await client.postWithoutInterceptors<any, any>(
+        '/auth/refresh',
+        {
+          refreshToken: currentRefresh,
+          accessToken: currentAccess,
+        },
+      );
 
       const token =
         res?.accessToken ||
@@ -810,9 +958,7 @@ export async function doRefresh(
         res?.data?.token;
 
       const refresh =
-        res?.refreshToken ||
-        res?.RefreshToken ||
-        res?.data?.refreshToken;
+        res?.refreshToken || res?.RefreshToken || res?.data?.refreshToken;
 
       if (!token) {
         throw new Error('La API no devolvió un token de acceso renovado.');
@@ -839,7 +985,9 @@ export async function logout(client?: ApiClientService) {
   const currentRefresh = getRefreshToken();
   if (client && currentRefresh) {
     try {
-      await client.post('/auth/revoke', { refreshToken: currentRefresh }).catch(() => {});
+      await client
+        .post('/auth/revoke', { refreshToken: currentRefresh })
+        .catch(() => {});
     } catch {
       // ignore
     }
@@ -860,7 +1008,11 @@ export function extractArray<T>(resData: any): T[] {
   if (Array.isArray(resData)) return resData;
 
   const dataPayload = resData.data !== undefined ? resData.data : resData.Data;
-  if (dataPayload !== undefined && dataPayload !== null && dataPayload !== resData) {
+  if (
+    dataPayload !== undefined &&
+    dataPayload !== null &&
+    dataPayload !== resData
+  ) {
     return extractArray<T>(dataPayload);
   }
 

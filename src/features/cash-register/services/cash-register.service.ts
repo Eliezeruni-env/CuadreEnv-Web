@@ -1,5 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { ApiClientService, extractArray, getCompanyId } from '../../cuadreEnv/services/apiClient';
+import {
+  ApiClientService,
+  extractArray,
+  getCompanyId,
+} from '../../cuadreEnv/services/apiClient';
 import {
   CashRegisterDto,
   CashMovementDto,
@@ -8,7 +12,10 @@ import {
 } from '../../cuadreEnv/types/api';
 import { logger } from '../../cuadreEnv/services/logger.service';
 import { RealtimeAlertService } from '../../cuadreEnv/services/realtime-alert.service';
-import { formatDateTimeInRD, formatTimeInRD } from '../../cuadreEnv/utils/rd-date.util';
+import {
+  formatDateTimeInRD,
+  formatTimeInRD,
+} from '../../cuadreEnv/utils/rd-date.util';
 
 export interface CashRegisterSessionDto {
   id: number;
@@ -39,7 +46,15 @@ export interface CashRegisterMovementItem {
   date: string;
   rawDate: string;
   type: 'Saldo inicial' | 'Entrada' | 'Salida';
-  category: 'Apertura' | 'Ventas' | 'Cobros' | 'Ingresos' | 'Compras' | 'Gastos' | 'Retiro' | 'Ajuste';
+  category:
+    | 'Apertura'
+    | 'Ventas'
+    | 'Cobros'
+    | 'Ingresos'
+    | 'Compras'
+    | 'Gastos'
+    | 'Retiro'
+    | 'Ajuste';
   description: string;
   inAmount: number | null;
   outAmount: number | null;
@@ -66,7 +81,9 @@ function getClosedRegisterIds(): number[] {
   if (typeof window === 'undefined' || !window.localStorage) return [];
   try {
     const key = getClosedRegistersKey();
-    const raw = window.localStorage.getItem(key) || window.localStorage.getItem(CLOSED_REGISTERS_STORAGE_KEY);
+    const raw =
+      window.localStorage.getItem(key) ||
+      window.localStorage.getItem(CLOSED_REGISTERS_STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -79,8 +96,14 @@ function markRegisterAsClosed(id: number) {
     const closed = getClosedRegisterIds();
     if (!closed.includes(id)) {
       closed.push(id);
-      window.localStorage.setItem(getClosedRegistersKey(), JSON.stringify(closed));
-      window.localStorage.setItem(CLOSED_REGISTERS_STORAGE_KEY, JSON.stringify(closed));
+      window.localStorage.setItem(
+        getClosedRegistersKey(),
+        JSON.stringify(closed),
+      );
+      window.localStorage.setItem(
+        CLOSED_REGISTERS_STORAGE_KEY,
+        JSON.stringify(closed),
+      );
     }
   } catch {
     // ignore
@@ -91,8 +114,14 @@ function unmarkRegisterAsClosed(id: number) {
   if (typeof window === 'undefined' || !window.localStorage) return;
   try {
     const closed = getClosedRegisterIds().filter((cId) => cId !== id);
-    window.localStorage.setItem(getClosedRegistersKey(), JSON.stringify(closed));
-    window.localStorage.setItem(CLOSED_REGISTERS_STORAGE_KEY, JSON.stringify(closed));
+    window.localStorage.setItem(
+      getClosedRegistersKey(),
+      JSON.stringify(closed),
+    );
+    window.localStorage.setItem(
+      CLOSED_REGISTERS_STORAGE_KEY,
+      JSON.stringify(closed),
+    );
   } catch {
     // ignore
   }
@@ -113,28 +142,31 @@ function getLocalMovements(sessionId: number): CashRegisterMovementItem[] {
   }
 }
 
-function saveLocalMovement(sessionId: number, movement: CashRegisterMovementItem): void {
+function saveLocalMovement(
+  sessionId: number,
+  movement: CashRegisterMovementItem,
+): void {
   if (typeof window === 'undefined' || !window.localStorage) return;
   try {
     const list = getLocalMovements(sessionId);
     list.push(movement);
-    window.localStorage.setItem(getLocalMovementsKey(sessionId), JSON.stringify(list));
+    window.localStorage.setItem(
+      getLocalMovementsKey(sessionId),
+      JSON.stringify(list),
+    );
   } catch {}
 }
 
 @Injectable({
   providedIn: 'root',
 })
-
-
-
 export class CashRegisterService {
   private api: ApiClientService;
   private realtimeAlertService?: RealtimeAlertService;
 
   constructor(
     api?: ApiClientService,
-    realtimeAlertService?: RealtimeAlertService
+    realtimeAlertService?: RealtimeAlertService,
   ) {
     if (api) {
       this.api = api;
@@ -150,7 +182,8 @@ export class CashRegisterService {
       this.realtimeAlertService = realtimeAlertService;
     } else {
       try {
-        this.realtimeAlertService = inject(RealtimeAlertService, { optional: true }) ?? undefined;
+        this.realtimeAlertService =
+          inject(RealtimeAlertService, { optional: true }) ?? undefined;
       } catch {
         this.realtimeAlertService = undefined;
       }
@@ -165,7 +198,9 @@ export class CashRegisterService {
         const raw =
           window.localStorage.getItem(tenantKey) ||
           window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY) ||
-          window.localStorage.getItem('cuadreenv_active_cash_register_session') ||
+          window.localStorage.getItem(
+            'cuadreenv_active_cash_register_session',
+          ) ||
           window.localStorage.getItem('cuadre_active_cash_register_session');
         if (raw) return JSON.parse(raw);
       } catch {
@@ -180,7 +215,10 @@ export class CashRegisterService {
       try {
         const tenantKey = getActiveSessionKey();
         window.localStorage.setItem(tenantKey, JSON.stringify(session));
-        window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(session));
+        window.localStorage.setItem(
+          ACTIVE_SESSION_STORAGE_KEY,
+          JSON.stringify(session),
+        );
       } catch {}
     }
   }
@@ -191,22 +229,32 @@ export class CashRegisterService {
         const tenantKey = getActiveSessionKey();
         window.localStorage.removeItem(tenantKey);
         this.removeStoredSessionLocally();
-        window.localStorage.removeItem('cuadreenv_active_cash_register_session');
+        window.localStorage.removeItem(
+          'cuadreenv_active_cash_register_session',
+        );
         window.localStorage.removeItem('cuadre_active_cash_register_session');
       } catch {}
     }
   }
 
   // Active Session & Lifecycle directly against DB
-  async getActiveSession(): Promise<ApiResponse<CashRegisterSessionDto | null>> {
+  async getActiveSession(): Promise<
+    ApiResponse<CashRegisterSessionDto | null>
+  > {
     const stored = this.getStoredSession();
     const closedIds = getClosedRegisterIds();
 
     // 1. Probar ruta canónica GET /v1/cash-sessions/active-session
     try {
-      const canonicalRes = await this.api.get<any, any>('/cash-sessions/active-session');
+      const canonicalRes = await this.api.get<any, any>(
+        '/cash-sessions/active-session',
+      );
       // Si la API responde con éxito y data es null, significa explícitamente que NO hay sesión activa de caja
-      if (canonicalRes && canonicalRes.success && (canonicalRes.data === null || canonicalRes.data === undefined)) {
+      if (
+        canonicalRes &&
+        canonicalRes.success &&
+        (canonicalRes.data === null || canonicalRes.data === undefined)
+      ) {
         this.removeStoredSessionLocally();
         return { success: true, data: null };
       }
@@ -220,14 +268,14 @@ export class CashRegisterService {
           data.status === 2 ||
           (data.closedAt && !data.isOpen);
 
-        const isOpen = !isExplicitlyClosed && (
-          data.isOpen === true ||
-          data.status === 1 ||
-          data.status === 'Open' ||
-          data.status === 'OPEN' ||
-          data.status === 'Active' ||
-          data.status === 'ACTIVE'
-        );
+        const isOpen =
+          !isExplicitlyClosed &&
+          (data.isOpen === true ||
+            data.status === 1 ||
+            data.status === 'Open' ||
+            data.status === 'OPEN' ||
+            data.status === 'Active' ||
+            data.status === 'ACTIVE');
 
         if (isOpen) {
           const regId = Number(data.cashRegisterId || data.id || 1);
@@ -239,10 +287,34 @@ export class CashRegisterService {
             sessionId: sessId,
             name: data.name || stored?.name || 'Caja Principal',
             cashierName: data.cashierName || stored?.cashierName || 'Cajero',
-            cashierId: data.cashierUserId || data.cashierId || stored?.cashierId || null,
-            openedAt: data.openedAt || data.creationDate || stored?.openedAt || formatDateTimeInRD(),
-            initialAmount: Number(data.openingAmount ?? data.OpeningAmount ?? data.initialAmount ?? data.InitialAmount ?? data.balance ?? data.Balance ?? stored?.initialAmount ?? 0),
-            currentBalance: Number(data.currentBalance ?? data.CurrentBalance ?? data.declaredCash ?? data.DeclaredCash ?? data.openingAmount ?? data.OpeningAmount ?? data.initialAmount ?? stored?.currentBalance ?? 0),
+            cashierId:
+              data.cashierUserId || data.cashierId || stored?.cashierId || null,
+            openedAt:
+              data.openedAt ||
+              data.creationDate ||
+              stored?.openedAt ||
+              formatDateTimeInRD(),
+            initialAmount: Number(
+              data.openingAmount ??
+                data.OpeningAmount ??
+                data.initialAmount ??
+                data.InitialAmount ??
+                data.balance ??
+                data.Balance ??
+                stored?.initialAmount ??
+                0,
+            ),
+            currentBalance: Number(
+              data.currentBalance ??
+                data.CurrentBalance ??
+                data.declaredCash ??
+                data.DeclaredCash ??
+                data.openingAmount ??
+                data.OpeningAmount ??
+                data.initialAmount ??
+                stored?.currentBalance ??
+                0,
+            ),
             totalIn: Number(data.totalIn) || 0,
             totalOut: Number(data.totalOut) || 0,
             isOpen: true,
@@ -270,24 +342,33 @@ export class CashRegisterService {
     try {
       const regRes = await this.api.get<any, any>('/CashRegister');
       const list = extractArray<any>(regRes);
-      const openReg = list.find((r) => 
-        r.isOpen === true &&
-        r.openedByUserId != null &&
-        (r.status === 0 || r.status === 'OPEN' || r.status === 'Open') &&
-        r.status !== 2 &&
-        r.status !== 'CLOSED' &&
-        r.status !== 'Closed' &&
-        !r.closedAt &&
-        r.isClosed !== true &&
-        r.closingAmount == null
+      const openReg = list.find(
+        (r) =>
+          r.isOpen === true &&
+          r.openedByUserId != null &&
+          (r.status === 0 || r.status === 'OPEN' || r.status === 'Open') &&
+          r.status !== 2 &&
+          r.status !== 'CLOSED' &&
+          r.status !== 'Closed' &&
+          !r.closedAt &&
+          r.isClosed !== true &&
+          r.closingAmount == null,
       );
 
       if (openReg && openReg.id) {
         unmarkRegisterAsClosed(openReg.id);
         const regId = Number(openReg.id);
-        const sessId = Number(openReg.activeSessionId || openReg.sessionId || openReg.id);
+        const sessId = Number(
+          openReg.activeSessionId || openReg.sessionId || openReg.id,
+        );
 
-        let calculatedBalance = Number(openReg.openingAmount ?? openReg.initialAmount ?? stored?.initialAmount ?? openReg.balance ?? 0);
+        let calculatedBalance = Number(
+          openReg.openingAmount ??
+            openReg.initialAmount ??
+            stored?.initialAmount ??
+            openReg.balance ??
+            0,
+        );
         let totalIn = 0;
         let totalOut = 0;
         try {
@@ -298,7 +379,9 @@ export class CashRegisterService {
           const mList = extractArray<any>(movRes);
           for (const m of mList) {
             const amt = Number(m.amount) || 0;
-            const typeUpper = (m.type != null ? String(m.type) : '').toUpperCase();
+            const typeUpper = (
+              m.type != null ? String(m.type) : ''
+            ).toUpperCase();
             const isIn =
               typeUpper === 'IN' ||
               typeUpper === 'ENTRADA' ||
@@ -314,7 +397,10 @@ export class CashRegisterService {
               totalOut += amt;
             }
           }
-          calculatedBalance = Math.max(0, calculatedBalance + totalIn - totalOut);
+          calculatedBalance = Math.max(
+            0,
+            calculatedBalance + totalIn - totalOut,
+          );
         } catch {}
 
         const session: CashRegisterSessionDto = {
@@ -323,9 +409,22 @@ export class CashRegisterService {
           sessionId: sessId,
           name: openReg.name || stored?.name || `Caja #${openReg.id}`,
           cashierName: openReg.cashierName || stored?.cashierName || 'Cajero',
-          cashierId: openReg.cashierUserId || openReg.cashierId || stored?.cashierId || null,
-          openedAt: openReg.openedAt || openReg.createdDate || stored?.openedAt || formatDateTimeInRD(),
-          initialAmount: openReg.openingAmount ?? openReg.initialAmount ?? stored?.initialAmount ?? openReg.balance ?? 0,
+          cashierId:
+            openReg.cashierUserId ||
+            openReg.cashierId ||
+            stored?.cashierId ||
+            null,
+          openedAt:
+            openReg.openedAt ||
+            openReg.createdDate ||
+            stored?.openedAt ||
+            formatDateTimeInRD(),
+          initialAmount:
+            openReg.openingAmount ??
+            openReg.initialAmount ??
+            stored?.initialAmount ??
+            openReg.balance ??
+            0,
           currentBalance: calculatedBalance,
           totalIn,
           totalOut,
@@ -373,11 +472,16 @@ export class CashRegisterService {
     let currentUserId = params.cashierId ?? null;
     if (!currentUserId && typeof window !== 'undefined') {
       try {
-        const u = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || '{}');
+        const u = JSON.parse(
+          localStorage.getItem('currentUser') ||
+            sessionStorage.getItem('currentUser') ||
+            '{}',
+        );
         if (u?.id) currentUserId = Number(u.id);
       } catch {}
     }
-    const resolvedUserId = currentUserId && currentUserId > 0 ? currentUserId : 1;
+    const resolvedUserId =
+      currentUserId && currentUserId > 0 ? currentUserId : 1;
     const activeCompanyId = Number(getCompanyId()) || 0;
 
     try {
@@ -396,12 +500,14 @@ export class CashRegisterService {
           notes: params.notes || '',
           ...(activeCompanyId > 0 ? { companyId: activeCompanyId } : {}),
         },
-        { headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' } }
+        { headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' } },
       );
       backendId = res?.id || res?.data?.id || 1;
     } catch (err: any) {
-      const errMsg = String(err?.message || err?.error || err?.response?.data?.message || err || '');
-      
+      const errMsg = String(
+        err?.message || err?.error || err?.response?.data?.message || err || '',
+      );
+
       const isAlreadyOpen =
         errMsg.toLowerCase().includes('already has an open') ||
         errMsg.toLowerCase().includes('sesion abierta') ||
@@ -417,7 +523,11 @@ export class CashRegisterService {
         const existingActive = await this.getActiveSession();
         if (existingActive.success && existingActive.data) {
           if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('cuadre_cash_register_changed', { detail: { action: 'OPEN', id: existingActive.data.id } }));
+            window.dispatchEvent(
+              new CustomEvent('cuadre_cash_register_changed', {
+                detail: { action: 'OPEN', id: existingActive.data.id },
+              }),
+            );
           }
           return { success: true, data: existingActive.data };
         }
@@ -438,7 +548,11 @@ export class CashRegisterService {
         };
         if (typeof window !== 'undefined' && window.localStorage) {
           this.storeSessionLocally(recoveredSession);
-          window.dispatchEvent(new CustomEvent('cuadre_cash_register_changed', { detail: { action: 'OPEN', id: 1 } }));
+          window.dispatchEvent(
+            new CustomEvent('cuadre_cash_register_changed', {
+              detail: { action: 'OPEN', id: 1 },
+            }),
+          );
         }
         return { success: true, data: recoveredSession };
       }
@@ -457,13 +571,16 @@ export class CashRegisterService {
             cashRegisterId: params.cashRegisterId || 10,
             ...(activeCompanyId > 0 ? { companyId: activeCompanyId } : {}),
           },
-          { headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' } }
+          { headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' } },
         );
         backendId = canonicalOpen?.data?.id || canonicalOpen?.id || 1;
       } catch (secondErr: any) {
         try {
           const existingActive = await this.getActiveSession();
-          if (existingActive?.data?.id && Number(existingActive.data.id) <= 2147483647) {
+          if (
+            existingActive?.data?.id &&
+            Number(existingActive.data.id) <= 2147483647
+          ) {
             backendId = Number(existingActive.data.id);
           } else {
             backendId = 1;
@@ -500,19 +617,33 @@ export class CashRegisterService {
 
     if (typeof window !== 'undefined' && window.localStorage) {
       this.storeSessionLocally(session);
-      window.dispatchEvent(new CustomEvent('cuadre_cash_register_changed', { detail: { action: 'OPEN', id: backendId } }));
+      window.dispatchEvent(
+        new CustomEvent('cuadre_cash_register_changed', {
+          detail: { action: 'OPEN', id: backendId },
+        }),
+      );
     }
 
-    logger.info(`Caja "${regName}" aperturada por ${params.cashierName || 'Cajero'}. Fondo Inicial: RD$ ${initialAmt}`, 'Caja Registradora', { cashierId: params.cashierId });
+    logger.info(
+      `Caja "${regName}" aperturada por ${params.cashierName || 'Cajero'}. Fondo Inicial: RD$ ${initialAmt}`,
+      'Caja Registradora',
+      { cashierId: params.cashierId },
+    );
 
     return { success: true, data: session };
   }
 
-  async pauseSession(reason: string, notes?: string): Promise<ApiResponse<CashRegisterSessionDto>> {
+  async pauseSession(
+    reason: string,
+    notes?: string,
+  ): Promise<ApiResponse<CashRegisterSessionDto>> {
     const sessionRes = await this.getActiveSession();
     const session = sessionRes?.data;
     if (!session) {
-      return { success: false, message: 'No hay una sesión de caja activa para pausar.' };
+      return {
+        success: false,
+        message: 'No hay una sesión de caja activa para pausar.',
+      };
     }
 
     const now = formatTimeInRD();
@@ -528,7 +659,11 @@ export class CashRegisterService {
       this.storeSessionLocally(updatedSession);
     }
 
-    logger.info(`Caja "${session.name}" pausada. Motivo: ${reason}`, 'Caja Registradora', { notes });
+    logger.info(
+      `Caja "${session.name}" pausada. Motivo: ${reason}`,
+      'Caja Registradora',
+      { notes },
+    );
 
     return { success: true, data: updatedSession };
   }
@@ -537,7 +672,10 @@ export class CashRegisterService {
     const sessionRes = await this.getActiveSession();
     const session = sessionRes?.data;
     if (!session) {
-      return { success: false, message: 'No hay una sesión de caja para reanudar.' };
+      return {
+        success: false,
+        message: 'No hay una sesión de caja para reanudar.',
+      };
     }
 
     const updatedSession: CashRegisterSessionDto = {
@@ -552,7 +690,10 @@ export class CashRegisterService {
       this.storeSessionLocally(updatedSession);
     }
 
-    logger.info(`Caja "${session.name}" reanudada tras pausa.`, 'Caja Registradora');
+    logger.info(
+      `Caja "${session.name}" reanudada tras pausa.`,
+      'Caja Registradora',
+    );
 
     return { success: true, data: updatedSession };
   }
@@ -575,7 +716,17 @@ export class CashRegisterService {
     session?: CashRegisterSessionDto;
     force?: boolean;
     timeoutMs?: number;
-  }): Promise<ApiResponse<{ expected: number; actual: number; diff: number; status: 'EXACT' | 'SHORTAGE' | 'SURPLUS'; isBalanced?: boolean; isOutOfTolerance?: boolean; requiresSupervisorAuth?: boolean }>> {
+  }): Promise<
+    ApiResponse<{
+      expected: number;
+      actual: number;
+      diff: number;
+      status: 'EXACT' | 'SHORTAGE' | 'SURPLUS';
+      isBalanced?: boolean;
+      isOutOfTolerance?: boolean;
+      requiresSupervisorAuth?: boolean;
+    }>
+  > {
     const actual = Number(params.closingAmount) || 0;
 
     // Si se solicita forzar cierre de emergencia inmediato sin esperar red
@@ -604,7 +755,7 @@ export class CashRegisterService {
       try {
         const sessionPromise = this.getActiveSession();
         const timeoutPromise = new Promise<any>((_, reject) =>
-          setTimeout(() => reject(new Error('TIMEOUT')), 3500)
+          setTimeout(() => reject(new Error('TIMEOUT')), 3500),
         );
         const sessionRes = await Promise.race([sessionPromise, timeoutPromise]);
         session = sessionRes?.data || undefined;
@@ -633,10 +784,14 @@ export class CashRegisterService {
     }
 
     if (!session) {
-      return { success: false, message: 'No hay una sesión de caja abierta actualmente.' };
+      return {
+        success: false,
+        message: 'No hay una sesión de caja abierta actualmente.',
+      };
     }
 
-    const rawRegisterId = params.cashRegisterId || session.cashRegisterId || session.id;
+    const rawRegisterId =
+      params.cashRegisterId || session.cashRegisterId || session.id;
     const isLocalTimestampId =
       typeof rawRegisterId === 'number' &&
       (rawRegisterId > 2147483647 || rawRegisterId > 1000000000);
@@ -649,9 +804,12 @@ export class CashRegisterService {
       // Intentamos resolver si en el servidor existe una caja abierta con un ID canónico válido (<= 2,147,483,647).
       targetRegisterId = null;
       try {
-        const canonical = await this.api.get<any, any>('/cash-sessions/active-session', {
-          headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' },
-        });
+        const canonical = await this.api.get<any, any>(
+          '/cash-sessions/active-session',
+          {
+            headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' },
+          },
+        );
         const cData = canonical?.data || canonical;
         const cid = Number(cData?.cashRegisterId || cData?.id || 0);
         if (cid > 0 && cid <= 2147483647 && (cData.isOpen || !cData.isClosed)) {
@@ -665,16 +823,17 @@ export class CashRegisterService {
             headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' },
           });
           const list = extractArray<any>(regRes);
-          const openReg = list.find((r) =>
-            r.isOpen === true &&
-            (r.status === 0 || r.status === 'OPEN' || r.status === 'Open') &&
-            r.status !== 2 &&
-            r.status !== 'CLOSED' &&
-            r.status !== 'Closed' &&
-            !r.closedAt &&
-            r.isClosed !== true &&
-            Number(r.id) > 0 &&
-            Number(r.id) <= 2147483647
+          const openReg = list.find(
+            (r) =>
+              r.isOpen === true &&
+              (r.status === 0 || r.status === 'OPEN' || r.status === 'Open') &&
+              r.status !== 2 &&
+              r.status !== 'CLOSED' &&
+              r.status !== 'Closed' &&
+              !r.closedAt &&
+              r.isClosed !== true &&
+              Number(r.id) > 0 &&
+              Number(r.id) <= 2147483647,
           );
           if (openReg?.id) {
             targetRegisterId = Number(openReg.id);
@@ -684,7 +843,9 @@ export class CashRegisterService {
     }
 
     const breakdownStr = params.denominations
-      ? (typeof params.denominations === 'string' ? params.denominations : JSON.stringify(params.denominations))
+      ? typeof params.denominations === 'string'
+        ? params.denominations
+        : JSON.stringify(params.denominations)
       : null;
 
     // Payload esperado por el backend .NET CashRegisterController: CloseCashRegisterRequest
@@ -712,7 +873,7 @@ export class CashRegisterService {
       // Sincronizar cierre localmente sin enviar ID de timestamp inválido al backend.
       logger.info(
         `Caja "${session.name}" (sesión local resiliente, ID: ${rawRegisterId}) cerrada exitosamente a nivel local.`,
-        'Caja Registradora'
+        'Caja Registradora',
       );
       this.forceCloseSessionLocal(rawRegisterId);
       if (session.id && session.id !== rawRegisterId) {
@@ -723,21 +884,28 @@ export class CashRegisterService {
       // Protegida con Promise.race para evitar que la interfaz se quede frisada ante cuelgues del backend
       try {
         const endpoint = `/CashRegister/${targetRegisterId}/close?closingAmount=${actual}`;
-        const postPromise = this.api.post<any, any>(endpoint, backendClosePayload);
+        const postPromise = this.api.post<any, any>(
+          endpoint,
+          backendClosePayload,
+        );
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('TIMEOUT_EXCEEDED')), timeoutMs)
+          setTimeout(() => reject(new Error('TIMEOUT_EXCEEDED')), timeoutMs),
         );
         apiRes = await Promise.race([postPromise, timeoutPromise]);
       } catch (err: any) {
         if (err?.message === 'TIMEOUT_EXCEEDED') {
-          logger.warn(`El servidor tardó más de ${timeoutMs}ms en responder al cierre. Sincronizando estado local a cerrado para evitar bloqueo.`, 'Caja Registradora');
+          logger.warn(
+            `El servidor tardó más de ${timeoutMs}ms en responder al cierre. Sincronizando estado local a cerrado para evitar bloqueo.`,
+            'Caja Registradora',
+          );
           this.forceCloseSessionLocal(rawRegisterId);
           if (targetRegisterId !== rawRegisterId) {
             this.forceCloseSessionLocal(targetRegisterId);
           }
           return {
             success: true,
-            message: 'Cierre registrado localmente (el servidor demoró en responder).',
+            message:
+              'Cierre registrado localmente (el servidor demoró en responder).',
             data: {
               expected: session.currentBalance ?? actual,
               actual,
@@ -748,18 +916,30 @@ export class CashRegisterService {
           };
         }
 
-        const statusCode = Number(err?.status || err?.response?.status || err?.statusCode || 0);
+        const statusCode = Number(
+          err?.status || err?.response?.status || err?.statusCode || 0,
+        );
         const payload = err?.error || err?.response?.data || {};
-        const errorCode = String(payload?.errorCode || payload?.code || err?.errorCode || '').trim().toUpperCase();
-        const rawMsg = String(payload?.message || payload?.error || err?.message || '');
+        const errorCode = String(
+          payload?.errorCode || payload?.code || err?.errorCode || '',
+        )
+          .trim()
+          .toUpperCase();
+        const rawMsg = String(
+          payload?.message || payload?.error || err?.message || '',
+        );
 
         const isPendingOperations =
           errorCode === 'OPEN_CASH_OPERATIONS' ||
           rawMsg.includes('OPEN_CASH_OPERATIONS') ||
-          (rawMsg.toLowerCase().includes('venta') && (rawMsg.toLowerCase().includes('espera') || rawMsg.toLowerCase().includes('pendiente')));
+          (rawMsg.toLowerCase().includes('venta') &&
+            (rawMsg.toLowerCase().includes('espera') ||
+              rawMsg.toLowerCase().includes('pendiente')));
 
         if (statusCode === 400 && isPendingOperations) {
-          const userMsg = rawMsg || 'Existen ventas pendientes o en espera en el POS que deben completarse o anularse antes de realizar el cierre de caja.';
+          const userMsg =
+            rawMsg ||
+            'Existen ventas pendientes o en espera en el POS que deben completarse o anularse antes de realizar el cierre de caja.';
           return {
             success: false,
             code: 'OPEN_CASH_OPERATIONS',
@@ -776,15 +956,14 @@ export class CashRegisterService {
 
         const isNotFoundOrInvalidId =
           statusCode === 404 ||
-          (statusCode === 400 && (
-            rawMsg.toLowerCase().includes('not found') ||
-            rawMsg.toLowerCase().includes('no encontrada') ||
-            rawMsg.toLowerCase().includes('no existe') ||
-            rawMsg.toLowerCase().includes('not valid') ||
-            rawMsg.toLowerCase().includes('is not valid') ||
-            rawMsg.toLowerCase().includes('sequence contains no elements') ||
-            rawMsg.toLowerCase().includes('bad request')
-          ));
+          (statusCode === 400 &&
+            (rawMsg.toLowerCase().includes('not found') ||
+              rawMsg.toLowerCase().includes('no encontrada') ||
+              rawMsg.toLowerCase().includes('no existe') ||
+              rawMsg.toLowerCase().includes('not valid') ||
+              rawMsg.toLowerCase().includes('is not valid') ||
+              rawMsg.toLowerCase().includes('sequence contains no elements') ||
+              rawMsg.toLowerCase().includes('bad request')));
 
         if (isAlreadyClosed || isNotFoundOrInvalidId || isLocalTimestampId) {
           this.forceCloseSessionLocal(rawRegisterId);
@@ -796,11 +975,16 @@ export class CashRegisterService {
           }
           logger.info(
             `Caja "${session.name}" sincronizada a cerrada localmente (${isAlreadyClosed ? 'ya cerrada en servidor' : 'no encontrada en servidor o ID local'}).`,
-            'Caja Registradora'
+            'Caja Registradora',
           );
         } else {
-          const errMsg = rawMsg || err?.mappedError?.message || 'Error al procesar el cierre de caja en el servidor.';
-          logger.error(`Error al cerrar caja: ${errMsg}`, 'Caja Registradora', { error: err });
+          const errMsg =
+            rawMsg ||
+            err?.mappedError?.message ||
+            'Error al procesar el cierre de caja en el servidor.';
+          logger.error(`Error al cerrar caja: ${errMsg}`, 'Caja Registradora', {
+            error: err,
+          });
           return {
             success: false,
             code: errorCode || 'CLOSE_ERROR',
@@ -811,8 +995,12 @@ export class CashRegisterService {
     }
 
     const data = apiRes?.data || apiRes || {};
-    const expected = data.expectedAmount ?? data.expected ?? session.currentBalance;
-    const diff = data.difference ?? data.diff ?? (Math.round((actual - expected) * 100) / 100);
+    const expected =
+      data.expectedAmount ?? data.expected ?? session.currentBalance;
+    const diff =
+      data.difference ??
+      data.diff ??
+      Math.round((actual - expected) * 100) / 100;
     const isBalanced = Math.abs(diff) < 0.01;
     const isOutOfTolerance = Math.abs(diff) > 50; // Umbral de tolerancia de caja RD$ 50
 
@@ -851,17 +1039,35 @@ export class CashRegisterService {
           totalIn: session.totalIn || 0,
           totalOut: session.totalOut || 0,
         };
-        const raw = window.localStorage.getItem('cuadreenv_closed_sessions_cache');
+        const raw = window.localStorage.getItem(
+          'cuadreenv_closed_sessions_cache',
+        );
         const list = raw ? JSON.parse(raw) : [];
-        const updated = [closedEntry, ...list.filter((x: any) => x.id !== session.id && x.id !== rawRegisterId)].slice(0, 50);
-        window.localStorage.setItem('cuadreenv_closed_sessions_cache', JSON.stringify(updated));
+        const updated = [
+          closedEntry,
+          ...list.filter(
+            (x: any) => x.id !== session.id && x.id !== rawRegisterId,
+          ),
+        ].slice(0, 50);
+        window.localStorage.setItem(
+          'cuadreenv_closed_sessions_cache',
+          JSON.stringify(updated),
+        );
       } catch (cacheErr) {
         console.warn('Could not cache closed session:', cacheErr);
       }
-      window.dispatchEvent(new CustomEvent('cuadre_cash_register_changed', { detail: { action: 'CLOSE' } }));
+      window.dispatchEvent(
+        new CustomEvent('cuadre_cash_register_changed', {
+          detail: { action: 'CLOSE' },
+        }),
+      );
     }
 
-    logger.info(`Caja "${session.name}" cerrada exitosamente. Esperado: RD$ ${expected}, Físico: RD$ ${actual}, Diferencia: RD$ ${diff}`, 'Caja Registradora', { notes: params.notes });
+    logger.info(
+      `Caja "${session.name}" cerrada exitosamente. Esperado: RD$ ${expected}, Físico: RD$ ${actual}, Diferencia: RD$ ${diff}`,
+      'Caja Registradora',
+      { notes: params.notes },
+    );
 
     return {
       success: true,
@@ -889,7 +1095,11 @@ export class CashRegisterService {
       this.removeStoredSessionLocally();
       window.localStorage.removeItem('cuadreenv_active_cash_register_session');
       window.localStorage.removeItem('cuadre_active_cash_register_session');
-      window.dispatchEvent(new CustomEvent('cuadre_cash_register_changed', { detail: { action: 'CLOSE', id } }));
+      window.dispatchEvent(
+        new CustomEvent('cuadre_cash_register_changed', {
+          detail: { action: 'CLOSE', id },
+        }),
+      );
     }
   }
 
@@ -901,13 +1111,17 @@ export class CashRegisterService {
     }
 
     try {
-      const isLocalTimestampId = typeof session.id === 'number' && session.id > 10000000000;
+      const isLocalTimestampId =
+        typeof session.id === 'number' && session.id > 10000000000;
       let list: any[] = [];
 
       if (!isLocalTimestampId) {
         try {
           const res = await this.api.get<any, any>('/CashMovement', {
-            params: { cashRegisterId: session.cashRegisterId || session.id, cashSessionId: session.id },
+            params: {
+              cashRegisterId: session.cashRegisterId || session.id,
+              cashSessionId: session.id,
+            },
             headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' },
           });
           list = extractArray<any>(res);
@@ -919,10 +1133,13 @@ export class CashRegisterService {
       // Combinar con movimientos guardados localmente para respuesta instantánea y offline
       const localMovs = getLocalMovements(session.id);
       for (const lm of localMovs) {
-        const exists = list.some(apiM => 
-          (apiM.id && apiM.id === lm.id) ||
-          (apiM.saleId && lm.saleId && apiM.saleId === lm.saleId) ||
-          (Number(apiM.amount) === (lm.inAmount || lm.outAmount) && (apiM.description === lm.description || (apiM.saleId && apiM.saleId === lm.saleId)))
+        const exists = list.some(
+          (apiM) =>
+            (apiM.id && apiM.id === lm.id) ||
+            (apiM.saleId && lm.saleId && apiM.saleId === lm.saleId) ||
+            (Number(apiM.amount) === (lm.inAmount || lm.outAmount) &&
+              (apiM.description === lm.description ||
+                (apiM.saleId && apiM.saleId === lm.saleId))),
         );
         if (!exists) {
           list.push({
@@ -989,16 +1206,33 @@ export class CashRegisterService {
           typeUpper === '4';
 
         let category: CashRegisterMovementItem['category'] = 'Ingresos';
-        if (typeUpper === 'SALE' || typeUpper === '3' || desc.toLowerCase().includes('venta')) category = 'Ventas';
-        else if (typeUpper === 'RECEIVABLEPAYMENT' || typeUpper === '4' || desc.toLowerCase().includes('cobro')) category = 'Cobros';
+        if (
+          typeUpper === 'SALE' ||
+          typeUpper === '3' ||
+          desc.toLowerCase().includes('venta')
+        )
+          category = 'Ventas';
+        else if (
+          typeUpper === 'RECEIVABLEPAYMENT' ||
+          typeUpper === '4' ||
+          desc.toLowerCase().includes('cobro')
+        )
+          category = 'Cobros';
         else if (desc.toLowerCase().includes('compra')) category = 'Compras';
         else if (desc.toLowerCase().includes('gasto')) category = 'Gastos';
-        else if (desc.toLowerCase().includes('retiro') || typeUpper === 'CASHOUT' || typeUpper === '2' || typeUpper === 'SALIDA') category = 'Retiro';
+        else if (
+          desc.toLowerCase().includes('retiro') ||
+          typeUpper === 'CASHOUT' ||
+          typeUpper === '2' ||
+          typeUpper === 'SALIDA'
+        )
+          category = 'Retiro';
         else if (desc.toLowerCase().includes('ajuste')) category = 'Ajuste';
         else if (!isIn) category = 'Retiro';
 
         const paymentMethod = m.paymentMethod || 'Efectivo';
-        const isCash = !paymentMethod ||
+        const isCash =
+          !paymentMethod ||
           paymentMethod.toLowerCase().includes('efectivo') ||
           paymentMethod.toLowerCase().includes('cash');
 
@@ -1020,7 +1254,9 @@ export class CashRegisterService {
           rawDate: m.createdDate || new Date().toISOString(),
           type: isIn ? 'Entrada' : 'Salida',
           category,
-          description: desc || (isIn ? 'Entrada manual de efectivo' : 'Salida manual de efectivo'),
+          description:
+            desc ||
+            (isIn ? 'Entrada manual de efectivo' : 'Salida manual de efectivo'),
           inAmount: isIn ? amt : null,
           outAmount: isIn ? null : amt,
           balance: runningBalance,
@@ -1044,7 +1280,14 @@ export class CashRegisterService {
 
   async addMovement(item: {
     type: 'Entrada' | 'Salida';
-    category: 'Ventas' | 'Cobros' | 'Ingresos' | 'Compras' | 'Gastos' | 'Retiro' | 'Ajuste';
+    category:
+      | 'Ventas'
+      | 'Cobros'
+      | 'Ingresos'
+      | 'Compras'
+      | 'Gastos'
+      | 'Retiro'
+      | 'Ajuste';
     description: string;
     amount: number;
     paymentMethod?: string;
@@ -1053,7 +1296,10 @@ export class CashRegisterService {
     const sessionRes = await this.getActiveSession();
     const session = sessionRes?.data;
     if (!session) {
-      return { success: false, message: 'No hay una caja abierta para registrar movimientos.' };
+      return {
+        success: false,
+        message: 'No hay una caja abierta para registrar movimientos.',
+      };
     }
 
     const amt = Number(item.amount);
@@ -1064,13 +1310,16 @@ export class CashRegisterService {
     const typeStr = item.type === 'Entrada' ? 'In' : 'Out';
     const movTypeEnum = item.type === 'Entrada' ? 1 : 2;
     let res: any = null;
-    const isLocalTimestampId = typeof session.id === 'number' && session.id > 10000000000;
+    const isLocalTimestampId =
+      typeof session.id === 'number' && session.id > 10000000000;
     try {
       res = await this.api.post<any, any>(
         '/CashMovement',
         {
-          cashRegisterId: session.cashRegisterId || (isLocalTimestampId ? 1 : session.id),
-          cashSessionId: session.sessionId || (isLocalTimestampId ? 1 : session.id),
+          cashRegisterId:
+            session.cashRegisterId || (isLocalTimestampId ? 1 : session.id),
+          cashSessionId:
+            session.sessionId || (isLocalTimestampId ? 1 : session.id),
           sessionId: session.sessionId || (isLocalTimestampId ? 1 : session.id),
           amount: amt,
           type: typeStr,
@@ -1081,10 +1330,13 @@ export class CashRegisterService {
           description: `${item.category}: ${item.description}`,
           category: item.category,
         },
-        { headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' } }
+        { headers: { 'X-Silent-Error': 'true', 'X-Silent-500': 'true' } },
       );
     } catch (postErr) {
-      console.warn('[Caja] No se pudo persistir movimiento en backend remoto, operando localmente:', postErr);
+      console.warn(
+        '[Caja] No se pudo persistir movimiento en backend remoto, operando localmente:',
+        postErr,
+      );
     }
 
     // Actualizar balance de la sesión de caja localmente de inmediato
@@ -1114,14 +1366,29 @@ export class CashRegisterService {
     saveLocalMovement(session.id, localMov);
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('cuadre_cash_register_changed', { detail: { action: 'MOVEMENT', session } }));
+      window.dispatchEvent(
+        new CustomEvent('cuadre_cash_register_changed', {
+          detail: { action: 'MOVEMENT', session },
+        }),
+      );
     }
 
     // Auditoría de Seguridad en Tiempo Real (SignalR / BroadcastHub)
     if (item.type === 'Salida' && amt >= 5000) {
-      this.realtimeAlertService?.triggerHighCashDrop(amt, session.name, item.description);
-    } else if ((item.category as string) === 'Apertura' || (item.description || '').toLowerCase().includes('sin venta') || (item.description || '').toLowerCase().includes('gaveta')) {
-      this.realtimeAlertService?.triggerDrawerOpenedNoSale(session.name, session.cashierName);
+      this.realtimeAlertService?.triggerHighCashDrop(
+        amt,
+        session.name,
+        item.description,
+      );
+    } else if (
+      (item.category as string) === 'Apertura' ||
+      (item.description || '').toLowerCase().includes('sin venta') ||
+      (item.description || '').toLowerCase().includes('gaveta')
+    ) {
+      this.realtimeAlertService?.triggerDrawerOpenedNoSale(
+        session.name,
+        session.cashierName,
+      );
     }
 
     return {
@@ -1155,7 +1422,10 @@ export class CashRegisterService {
     const sessionRes = await this.getActiveSession();
     const session = sessionRes?.data;
     if (!session) {
-      return { success: false, message: 'Debes tener una caja abierta para registrar ventas.' };
+      return {
+        success: false,
+        message: 'Debes tener una caja abierta para registrar ventas.',
+      };
     }
 
     const idempotencyKey =
@@ -1179,7 +1449,8 @@ export class CashRegisterService {
           cashRegisterId: session.cashRegisterId || session.id,
           cashSessionId: session.sessionId || session.id,
           date: new Date().toISOString(),
-          notes: saleData.notes || `Venta rápida POS - ${saleData.paymentMethod}`,
+          notes:
+            saleData.notes || `Venta rápida POS - ${saleData.paymentMethod}`,
           originChannel: saleData.originChannel || 'POS_PRESENCIAL',
           paymentMethod: saleData.paymentMethod,
           paymentReference: saleData.paymentReference || saleData.paymentMethod,
@@ -1200,7 +1471,11 @@ export class CashRegisterService {
       try {
         // 2. Fallback to /Sale
         const pmUpper = (saleData.paymentMethod || '').toUpperCase();
-        const methodEnum = pmUpper.includes('TRANSFER') ? 1 : (pmUpper.includes('TARJ') || pmUpper.includes('CARD') ? 2 : 0);
+        const methodEnum = pmUpper.includes('TRANSFER')
+          ? 1
+          : pmUpper.includes('TARJ') || pmUpper.includes('CARD')
+            ? 2
+            : 0;
 
         saleRes = await this.api.post<any, any>(
           '/Sale',
@@ -1211,12 +1486,13 @@ export class CashRegisterService {
             cashRegisterId: session.cashRegisterId || session.id,
             cashSessionId: session.sessionId || session.id,
             originChannel: saleData.originChannel || 'POS_PRESENCIAL',
-            notes: saleData.notes || `Venta rápida POS - ${saleData.paymentMethod}`,
+            notes:
+              saleData.notes || `Venta rápida POS - ${saleData.paymentMethod}`,
             payment: {
               method: methodEnum,
               amountReceived: saleData.amountReceived,
               changeAmount: saleData.change,
-              reference: saleData.paymentReference || saleData.paymentMethod
+              reference: saleData.paymentReference || saleData.paymentMethod,
             },
             details: saleData.items.map((it) => ({
               productId: it.productId,
@@ -1243,20 +1519,36 @@ export class CashRegisterService {
           markRegisterAsClosed(session.cashRegisterId || session.id);
           if (typeof window !== 'undefined' && window.localStorage) {
             window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
-            window.localStorage.removeItem('cuadreenv_active_cash_register_session');
+            window.localStorage.removeItem(
+              'cuadreenv_active_cash_register_session',
+            );
           }
-          logger.error(`Fallo al registrar venta en el backend: ${errorMsg}`, 'Venta POS', { saleErr, cajaErr });
+          logger.error(
+            `Fallo al registrar venta en el backend: ${errorMsg}`,
+            'Venta POS',
+            { saleErr, cajaErr },
+          );
           return {
             success: false,
             message: errorMsg,
           };
         }
 
-        const statusCode = Number(saleErr?.status || saleErr?.response?.status || cajaErr?.status || cajaErr?.response?.status || 0);
-        const isServerOutage = statusCode >= 500 || statusCode === 0 || !saleErr?.response;
+        const statusCode = Number(
+          saleErr?.status ||
+            saleErr?.response?.status ||
+            cajaErr?.status ||
+            cajaErr?.response?.status ||
+            0,
+        );
+        const isServerOutage =
+          statusCode >= 500 || statusCode === 0 || !saleErr?.response;
 
         if (isServerOutage) {
-          logger.warn(`Servidor no disponible o averiado (status ${statusCode}). Procesando venta en modo contingencia local...`, 'Venta POS');
+          logger.warn(
+            `Servidor no disponible o averiado (status ${statusCode}). Procesando venta en modo contingencia local...`,
+            'Venta POS',
+          );
           const offId = Date.now();
           saleRes = {
             id: offId,
@@ -1264,7 +1556,11 @@ export class CashRegisterService {
             isOffline: true,
           };
         } else {
-          logger.error(`Fallo al registrar venta en el backend: ${errorMsg}`, 'Venta POS', { saleErr, cajaErr });
+          logger.error(
+            `Fallo al registrar venta en el backend: ${errorMsg}`,
+            'Venta POS',
+            { saleErr, cajaErr },
+          );
           return {
             success: false,
             message: errorMsg,
@@ -1289,15 +1585,18 @@ export class CashRegisterService {
         originChannel: saleData.originChannel || 'POS_PRESENCIAL',
         isCancelled: false,
         creationDate: new Date().toISOString(),
-        customerName: saleData.customerName || (saleData.customerId ? 'Cliente Registrado' : 'Consumidor Final'),
+        customerName:
+          saleData.customerName ||
+          (saleData.customerId ? 'Cliente Registrado' : 'Consumidor Final'),
         paymentMethod: saleData.paymentMethod || 'Efectivo',
         details: saleData.items.map((it: any) => ({
           productId: it.productId,
-          productName: it.productName || it.description || `Producto #${it.productId}`,
+          productName:
+            it.productName || it.description || `Producto #${it.productId}`,
           productCode: it.productCode || it.barcode || `PROD-${it.productId}`,
           quantity: it.quantity,
           unitPrice: it.unitPrice,
-          total: it.total || (it.quantity * it.unitPrice),
+          total: it.total || it.quantity * it.unitPrice,
         })),
       };
       const compId = getCompanyId() || 'default';
@@ -1310,7 +1609,14 @@ export class CashRegisterService {
         try {
           const raw = localStorage.getItem(k);
           const list = raw ? JSON.parse(raw) : [];
-          if (!list.some((s: any) => s.id === localSale.id || (localSale.invoiceNumber && s.invoiceNumber === localSale.invoiceNumber))) {
+          if (
+            !list.some(
+              (s: any) =>
+                s.id === localSale.id ||
+                (localSale.invoiceNumber &&
+                  s.invoiceNumber === localSale.invoiceNumber),
+            )
+          ) {
             list.unshift(localSale);
             localStorage.setItem(k, JSON.stringify(list));
           }
@@ -1321,11 +1627,17 @@ export class CashRegisterService {
         saleData.paymentMethod.toUpperCase() === 'EFECTIVO' ||
         saleData.paymentMethod.toUpperCase() === 'CASH'
       ) {
-        const storedSess = this.getStoredSession() ? JSON.stringify(this.getStoredSession()) : null;
-        let newBalance = (session.currentBalance || session.initialAmount || 0) + saleData.total;
+        const storedSess = this.getStoredSession()
+          ? JSON.stringify(this.getStoredSession())
+          : null;
+        let newBalance =
+          (session.currentBalance || session.initialAmount || 0) +
+          saleData.total;
         if (storedSess) {
           const sessObj = JSON.parse(storedSess);
-          sessObj.currentBalance = (sessObj.currentBalance || sessObj.initialAmount || 0) + saleData.total;
+          sessObj.currentBalance =
+            (sessObj.currentBalance || sessObj.initialAmount || 0) +
+            saleData.total;
           sessObj.totalIn = (sessObj.totalIn || 0) + saleData.total;
           newBalance = sessObj.currentBalance;
           this.storeSessionLocally(sessObj);
@@ -1350,14 +1662,20 @@ export class CashRegisterService {
           window.dispatchEvent(
             new CustomEvent('cuadre_cash_register_changed', {
               detail: { action: 'SALE', session, amount: saleData.total },
-            })
+            }),
           );
         }
       }
       // Si la venta se procesó en modo offline/contingencia, encolar en la cola de sincronización offline
-      if ((saleRes as any)?.isOffline && typeof window !== 'undefined' && window.localStorage) {
+      if (
+        (saleRes as any)?.isOffline &&
+        typeof window !== 'undefined' &&
+        window.localStorage
+      ) {
         try {
-          const offlineQueueRaw = localStorage.getItem('cuadreenv_offline_sales_queue');
+          const offlineQueueRaw = localStorage.getItem(
+            'cuadreenv_offline_sales_queue',
+          );
           const queue = offlineQueueRaw ? JSON.parse(offlineQueueRaw) : [];
           queue.push({
             id: 'OFFLINE-' + assignedId,
@@ -1372,12 +1690,18 @@ export class CashRegisterService {
               subtotal: saleData.total,
               total: saleData.total,
               amountReceived: saleData.amountReceived || saleData.total,
-              change: Math.max(0, (saleData.amountReceived || saleData.total) - saleData.total),
+              change: Math.max(
+                0,
+                (saleData.amountReceived || saleData.total) - saleData.total,
+              ),
               items: saleData.items,
             },
             localReceipt: localSale,
           });
-          localStorage.setItem('cuadreenv_offline_sales_queue', JSON.stringify(queue));
+          localStorage.setItem(
+            'cuadreenv_offline_sales_queue',
+            JSON.stringify(queue),
+          );
         } catch {}
       }
     } catch (_) {}
@@ -1389,7 +1713,9 @@ export class CashRegisterService {
         : 'Venta registrada exitosamente',
       data: {
         id: assignedId,
-        invoiceNumber: (saleRes as any)?.invoiceNumber || `VTA-${String(assignedId).padStart(6, '0')}`,
+        invoiceNumber:
+          (saleRes as any)?.invoiceNumber ||
+          `VTA-${String(assignedId).padStart(6, '0')}`,
         sale: saleRes,
         isOffline: Boolean((saleRes as any)?.isOffline),
       },
@@ -1411,20 +1737,41 @@ export class CashRegisterService {
 
       const history: CashRegisterSessionDto[] = closedList.map((r: any) => {
         const localMatch = localClosed.find((lc) => lc.id === r.id);
-        const opened = r.openedAt || r.creationDate || r.createdDate || localMatch?.openedAt;
-        const closed = r.closedAt || r.modificationDate || r.updatedDate || localMatch?.closedAt;
-        const initial = Number(r.initialAmount ?? r.openingAmount ?? localMatch?.initialAmount ?? 0);
-        const closing = Number(r.closingAmount ?? r.physicalCountAmount ?? localMatch?.closingAmount ?? 0);
-        const expected = Number(r.expectedAmount ?? localMatch?.expectedAmount ?? initial);
-        const diff = Number(r.differenceAmount ?? localMatch?.difference ?? (closing - expected));
+        const opened =
+          r.openedAt || r.creationDate || r.createdDate || localMatch?.openedAt;
+        const closed =
+          r.closedAt ||
+          r.modificationDate ||
+          r.updatedDate ||
+          localMatch?.closedAt;
+        const initial = Number(
+          r.initialAmount ?? r.openingAmount ?? localMatch?.initialAmount ?? 0,
+        );
+        const closing = Number(
+          r.closingAmount ??
+            r.physicalCountAmount ??
+            localMatch?.closingAmount ??
+            0,
+        );
+        const expected = Number(
+          r.expectedAmount ?? localMatch?.expectedAmount ?? initial,
+        );
+        const diff = Number(
+          r.differenceAmount ?? localMatch?.difference ?? closing - expected,
+        );
 
         return {
           id: r.id || 0,
           name: r.name || `Caja #${r.id || 0}`,
-          cashierName: r.cashierName || localMatch?.cashierName || 'Administrador',
+          cashierName:
+            r.cashierName || localMatch?.cashierName || 'Administrador',
           cashierId: r.openedByUserId || null,
-          openedAt: opened ? formatDateTimeInRD(opened) : (localMatch?.openedAt || 'N/A'),
-          closedAt: closed ? formatDateTimeInRD(closed) : (localMatch?.closedAt || '-'),
+          openedAt: opened
+            ? formatDateTimeInRD(opened)
+            : localMatch?.openedAt || 'N/A',
+          closedAt: closed
+            ? formatDateTimeInRD(closed)
+            : localMatch?.closedAt || '-',
           initialAmount: initial,
           currentBalance: closing,
           closingAmount: closing,
@@ -1447,10 +1794,14 @@ export class CashRegisterService {
     }
   }
 
-  async getSessionDetail(sessionId: number, basicSession?: CashRegisterSessionDto): Promise<any> {
+  async getSessionDetail(
+    sessionId: number,
+    basicSession?: CashRegisterSessionDto,
+  ): Promise<any> {
     // 1. Fetch movements for this register & combine with local
     let movements: any[] = [];
-    const isLocalTimestampId = typeof sessionId === 'number' && sessionId > 10000000000;
+    const isLocalTimestampId =
+      typeof sessionId === 'number' && sessionId > 10000000000;
     if (!isLocalTimestampId) {
       try {
         const movRes = await this.api.get<any, any>('/CashMovement', {
@@ -1465,7 +1816,12 @@ export class CashRegisterService {
 
     const localMovs = getLocalMovements(sessionId);
     for (const lm of localMovs) {
-      const exists = movements.some(m => m.id === lm.id || (Number(m.amount) === (lm.inAmount || lm.outAmount) && m.description === lm.description));
+      const exists = movements.some(
+        (m) =>
+          m.id === lm.id ||
+          (Number(m.amount) === (lm.inAmount || lm.outAmount) &&
+            m.description === lm.description),
+      );
       if (!exists) {
         movements.push({
           id: lm.id,
@@ -1484,9 +1840,9 @@ export class CashRegisterService {
     try {
       const saleRes = await this.api.get<any, any>('/Sale');
       const allSales = extractArray<any>(saleRes);
-      sales = allSales.filter((s: any) =>
-        s.cashRegisterId === sessionId ||
-        s.cashSessionId === sessionId
+      sales = allSales.filter(
+        (s: any) =>
+          s.cashRegisterId === sessionId || s.cashSessionId === sessionId,
       );
     } catch (e) {
       console.warn('Error fetching sales for session:', e);
@@ -1494,10 +1850,17 @@ export class CashRegisterService {
 
     // Fallback & local integration: scan all local sales storage keys
     try {
-      const localSalesKeys = ['cuadreenv_local_sales', 'cuadreenv_local_sales_cache'];
+      const localSalesKeys = [
+        'cuadreenv_local_sales',
+        'cuadreenv_local_sales_cache',
+      ];
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (k && k.startsWith('cuadreenv_local_sales_cache_') && !localSalesKeys.includes(k)) {
+        if (
+          k &&
+          k.startsWith('cuadreenv_local_sales_cache_') &&
+          !localSalesKeys.includes(k)
+        ) {
           localSalesKeys.push(k);
         }
       }
@@ -1515,15 +1878,27 @@ export class CashRegisterService {
         }
       }
 
-      const sessionOpenedTime = basicSession?.openedAt ? new Date(basicSession.openedAt).getTime() : 0;
-      const sessionClosedTime = basicSession?.closedAt ? new Date(basicSession.closedAt).getTime() : Date.now();
+      const sessionOpenedTime = basicSession?.openedAt
+        ? new Date(basicSession.openedAt).getTime()
+        : 0;
+      const sessionClosedTime = basicSession?.closedAt
+        ? new Date(basicSession.closedAt).getTime()
+        : Date.now();
 
       const matchedLocal = allLocalList.filter((s: any) => {
         if (!s) return false;
-        if (s.cashRegisterId === sessionId || s.cashSessionId === sessionId) return true;
+        if (s.cashRegisterId === sessionId || s.cashSessionId === sessionId)
+          return true;
         if (sessionOpenedTime > 0) {
-          const sTime = s.creationDate ? new Date(s.creationDate).getTime() : (s.date ? new Date(s.date).getTime() : 0);
-          if (sTime >= (sessionOpenedTime - 120000) && sTime <= (sessionClosedTime + 120000)) {
+          const sTime = s.creationDate
+            ? new Date(s.creationDate).getTime()
+            : s.date
+              ? new Date(s.date).getTime()
+              : 0;
+          if (
+            sTime >= sessionOpenedTime - 120000 &&
+            sTime <= sessionClosedTime + 120000
+          ) {
             return true;
           }
         }
@@ -1531,7 +1906,11 @@ export class CashRegisterService {
       });
 
       for (const mls of matchedLocal) {
-        const exists = sales.some((s) => s.id === mls.id || (s.invoiceNumber && s.invoiceNumber === mls.invoiceNumber));
+        const exists = sales.some(
+          (s) =>
+            s.id === mls.id ||
+            (s.invoiceNumber && s.invoiceNumber === mls.invoiceNumber),
+        );
         if (!exists) {
           sales.push(mls);
         }
@@ -1548,9 +1927,18 @@ export class CashRegisterService {
       const amt = Number(s.total || s.paidAmount || 0);
       totalSales += amt;
       const pm = (s.paymentMethod || s.method || '').toUpperCase();
-      if (pm.includes('TARJ') || pm.includes('CARD') || pm.includes('VISA') || pm.includes('MASTER')) {
+      if (
+        pm.includes('TARJ') ||
+        pm.includes('CARD') ||
+        pm.includes('VISA') ||
+        pm.includes('MASTER')
+      ) {
         cardSales += amt;
-      } else if (pm.includes('TRANSF') || pm.includes('WIRE') || pm.includes('BANCO')) {
+      } else if (
+        pm.includes('TRANSF') ||
+        pm.includes('WIRE') ||
+        pm.includes('BANCO')
+      ) {
         transferSales += amt;
       } else {
         cashSales += amt;
@@ -1585,14 +1973,18 @@ export class CashRegisterService {
     });
 
     // Product breakdown
-    const prodMap = new Map<string, { name: string; code: string; quantity: number; total: number }>();
+    const prodMap = new Map<
+      string,
+      { name: string; code: string; quantity: number; total: number }
+    >();
     sales.forEach((s) => {
       const details = s.details || s.items || [];
       details.forEach((d: any) => {
-        const name = d.productName || d.product?.name || `Producto #${d.productId}`;
+        const name =
+          d.productName || d.product?.name || `Producto #${d.productId}`;
         const code = d.productCode || d.product?.code || `#${d.productId}`;
         const qty = Number(d.quantity || 1);
-        const tot = Number(d.total || (d.unitPrice * qty) || 0);
+        const tot = Number(d.total || d.unitPrice * qty || 0);
 
         if (prodMap.has(name)) {
           const cur = prodMap.get(name)!;
@@ -1604,7 +1996,9 @@ export class CashRegisterService {
       });
     });
 
-    const productSummary = Array.from(prodMap.values()).sort((a, b) => b.total - a.total);
+    const productSummary = Array.from(prodMap.values()).sort(
+      (a, b) => b.total - a.total,
+    );
 
     return {
       session: basicSession || {
@@ -1637,15 +2031,21 @@ export class CashRegisterService {
   }): Promise<ApiResponse<CashRegisterDto[]>> {
     const validParams = {
       ...params,
-      pageSize: params?.pageSize ? Math.min(100, Math.max(1, params.pageSize)) : 100,
+      pageSize: params?.pageSize
+        ? Math.min(100, Math.max(1, params.pageSize))
+        : 100,
     };
     try {
-      const res = await this.api.get<any, any>('/CashRegister', { params: validParams });
+      const res = await this.api.get<any, any>('/CashRegister', {
+        params: validParams,
+      });
       const list = extractArray<CashRegisterDto>(res);
       return { success: true, data: list };
     } catch {
       try {
-        const res2 = await this.api.get<any, any>('/cash-register', { params: validParams });
+        const res2 = await this.api.get<any, any>('/cash-register', {
+          params: validParams,
+        });
         return { success: true, data: extractArray<CashRegisterDto>(res2) };
       } catch {
         return { success: true, data: [] };
@@ -1663,7 +2063,11 @@ export class CashRegisterService {
     return { success: true, data: res as CashRegisterDto };
   }
 
-  async closeCashRegister(id: number, closingAmount: number, notes?: string): Promise<void> {
+  async closeCashRegister(
+    id: number,
+    closingAmount: number,
+    notes?: string,
+  ): Promise<void> {
     await this.closeSession({ closingAmount, notes });
   }
 
