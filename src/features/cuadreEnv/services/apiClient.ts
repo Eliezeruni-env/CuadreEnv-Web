@@ -546,20 +546,23 @@ export class ApiClientService {
         error.fieldErrors = mapped.fieldErrors;
       }
 
-      logRequestError(method, url, error, mapped);
-
-      // Telemetry dispatch on server errors (statusCode >= 500)
-      if (statusCode >= 500) {
-        dispatchTelemetry(method, url, statusCode, mapped, error);
-      }
-
-      // Display server outage notification only on user actions (mutations), never on background GET data fetching or silenced requests
       const isSilencedReq = Boolean(
         options.headers?.['X-Silent-Error'] ||
         options.headers?.['x-silent-error'] ||
         options.headers?.['X-Silent-500'] ||
         options.headers?.['x-silent-500']
       );
+
+      if (!isSilencedReq) {
+        logRequestError(method, url, error, mapped);
+
+        // Telemetry dispatch on server errors (statusCode >= 500)
+        if (statusCode >= 500) {
+          dispatchTelemetry(method, url, statusCode, mapped, error);
+        }
+      }
+
+      // Display server outage notification only on user actions (mutations), never on background GET data fetching or silenced requests
       const isMutation = method !== 'GET';
       if (!isSilencedReq && isMutation && (statusCode === 0 || statusCode >= 500 || mapped.errorCode === 'SERVER_OUTAGE')) {
         this.notificationService?.show(

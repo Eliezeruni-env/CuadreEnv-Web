@@ -105,6 +105,7 @@ export class CustomerService {
       try {
         const res = await this.api.get<any, any>('/Customer', {
           params: validParams,
+          headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
         });
         let items = extractArray<CustomerDto>(res);
         items = this.mergeWithLocalCustomers(items);

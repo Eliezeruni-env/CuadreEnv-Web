@@ -135,18 +135,13 @@ export class InventoryService {
     try {
       const res = await this.api.get<any, any>('/inventory/movements', {
         params: queryParams,
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
       });
       const data = extractArray<MovementDto>(res);
       return { success: true, data: data || [] };
     } catch {
-      // Try fallback endpoint
-      try {
-        const res2 = await this.api.get<any, any>('/v1/inventory/movements', { params: queryParams });
-        const data2 = extractArray<MovementDto>(res2);
-        return { success: true, data: data2 || [] };
-      } catch {
-        return { success: false, data: [], message: 'No se pudo conectar con el servidor.' };
-      }
+      // Fallback a movimientos locales del inventario
+      return { success: true, data: this.getLocalMovements() };
     }
   }
 

@@ -14,7 +14,9 @@ export class AccountReceivableService {
    */
   async getOverdue(): Promise<ApiResponse<any[]>> {
     try {
-      const res = await this.api.get<any, any>('/AccountReceivable');
+      const res = await this.api.get<any, any>('/AccountReceivable', {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const items = extractArray<any>(res);
       const now = new Date();
       
@@ -47,7 +49,9 @@ export class AccountReceivableService {
     } catch {
       // Fallback: calculate from all accounts
       try {
-        const res = await this.api.get<any, any>('/AccountReceivable');
+        const res = await this.api.get<any, any>('/AccountReceivable', {
+          headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+        });
         const items = extractArray<any>(res);
         const now = new Date();
         const limitDate = new Date();

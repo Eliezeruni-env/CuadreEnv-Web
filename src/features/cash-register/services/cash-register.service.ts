@@ -1234,7 +1234,7 @@ export class CashRegisterService {
           saleErr?.response?.data?.error ||
           cajaErr?.response?.data?.message ||
           saleErr?.message ||
-          'Error del servidor al registrar la venta. La transacción ha sido cancelada.';
+          'Error del servidor al registrar la venta.';
         if (
           errorMsg.toLowerCase().includes('must be open') ||
           errorMsg.toLowerCase().includes('caja cerrada') ||
@@ -1245,12 +1245,31 @@ export class CashRegisterService {
             window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
             window.localStorage.removeItem('cuadreenv_active_cash_register_session');
           }
+          logger.error(`Fallo al registrar venta en el backend: ${errorMsg}`, 'Venta POS', { saleErr, cajaErr });
+          return {
+            success: false,
+            message: errorMsg,
+          };
         }
-        logger.error(`Fallo al registrar venta en el backend: ${errorMsg}`, 'Venta POS', { saleErr, cajaErr });
-        return {
-          success: false,
-          message: errorMsg,
-        };
+
+        const statusCode = Number(saleErr?.status || saleErr?.response?.status || cajaErr?.status || cajaErr?.response?.status || 0);
+        const isServerOutage = statusCode >= 500 || statusCode === 0 || !saleErr?.response;
+
+        if (isServerOutage) {
+          logger.warn(`Servidor no disponible o averiado (status ${statusCode}). Procesando venta en modo contingencia local...`, 'Venta POS');
+          const offId = Date.now();
+          saleRes = {
+            id: offId,
+            invoiceNumber: `VTA-LOCAL-${offId.toString().slice(-6)}`,
+            isOffline: true,
+          };
+        } else {
+          logger.error(`Fallo al registrar venta en el backend: ${errorMsg}`, 'Venta POS', { saleErr, cajaErr });
+          return {
+            success: false,
+            message: errorMsg,
+          };
+        }
       }
     }
 
@@ -1335,14 +1354,44 @@ export class CashRegisterService {
           );
         }
       }
+      // Si la venta se procesó en modo offline/contingencia, encolar en la cola de sincronización offline
+      if ((saleRes as any)?.isOffline && typeof window !== 'undefined' && window.localStorage) {
+        try {
+          const offlineQueueRaw = localStorage.getItem('cuadreenv_offline_sales_queue');
+          const queue = offlineQueueRaw ? JSON.parse(offlineQueueRaw) : [];
+          queue.push({
+            id: 'OFFLINE-' + assignedId,
+            idempotencyKey,
+            createdAt: new Date().toISOString(),
+            retryCount: 0,
+            payload: {
+              cashRegisterId: session.id,
+              customerId: saleData.customerId || null,
+              customerName: saleData.customerName || 'Consumidor final',
+              paymentMethod: saleData.paymentMethod || 'Efectivo',
+              subtotal: saleData.total,
+              total: saleData.total,
+              amountReceived: saleData.amountReceived || saleData.total,
+              change: Math.max(0, (saleData.amountReceived || saleData.total) - saleData.total),
+              items: saleData.items,
+            },
+            localReceipt: localSale,
+          });
+          localStorage.setItem('cuadreenv_offline_sales_queue', JSON.stringify(queue));
+        } catch {}
+      }
     } catch (_) {}
 
     return {
       success: true,
+      message: (saleRes as any)?.isOffline
+        ? 'Venta registrada localmente (modo contingencia offline por avería de servidor).'
+        : 'Venta registrada exitosamente',
       data: {
         id: assignedId,
-        invoiceNumber: `VTA-${String(assignedId).padStart(6, '0')}`,
+        invoiceNumber: (saleRes as any)?.invoiceNumber || `VTA-${String(assignedId).padStart(6, '0')}`,
         sale: saleRes,
+        isOffline: Boolean((saleRes as any)?.isOffline),
       },
     };
   }

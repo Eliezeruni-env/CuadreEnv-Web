@@ -316,8 +316,25 @@ export class SaleService {
         );
         createdSale = (cajaRes?.data || cajaRes) as SaleResponseDto;
       } catch (cajaErr: any) {
-        // Propagar el error oficial de la API (ej. stock insuficiente, caja cerrada, etc.)
-        throw err?.mappedError || err?.error ? err : cajaErr;
+        const statusCode = Number(err?.status || err?.response?.status || cajaErr?.status || cajaErr?.response?.status || 0);
+        if (statusCode >= 500 || statusCode === 0) {
+          const offId = Date.now();
+          createdSale = {
+            id: offId,
+            customerId: sale.customerId || null,
+            total: sale.total,
+            paidAmount: sale.paidAmount || sale.total,
+            creationDate: new Date().toISOString(),
+            isCancelled: false,
+            invoiceNumber: (sale as any).invoiceNumber || `VTA-LOCAL-${offId.toString().slice(-6)}`,
+            paymentMethod: (sale as any).paymentMethod || 'Efectivo',
+            details: sale.details,
+            isOffline: true,
+          } as any;
+        } else {
+          // Propagar el error oficial de la API (ej. stock insuficiente, caja cerrada, etc.)
+          throw err?.mappedError || err?.error ? err : cajaErr;
+        }
       }
     }
 

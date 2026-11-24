@@ -210,7 +210,9 @@ export class ReceivableService {
 
     // 1. Intentar cargar desde el endpoint oficial de Cuentas por Cobrar (/AccountReceivable)
     try {
-      const arRes = await this.api.get<any, any>('/AccountReceivable');
+      const arRes = await this.api.get<any, any>('/AccountReceivable', {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const arList = extractArray<any>(arRes);
       if (arList && arList.length > 0) {
         for (const ar of arList) {
@@ -290,7 +292,9 @@ export class ReceivableService {
 
     // 2. Integrar ventas a crédito desde /Sale
     try {
-      const salesRes = await this.api.get<any, any>('/Sale');
+      const salesRes = await this.api.get<any, any>('/Sale', {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const sales = extractArray<SaleResponseDto>(salesRes);
 
       if (sales && sales.length > 0) {

@@ -4347,6 +4347,11 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         if (this.autoPrintTicket()) {
           this.triggerDirectTicketPrint(completedData);
         }
+        if ((res as any)?.isOffline) {
+          this.notificationService.warning('Venta registrada en modo contingencia local (servidor en mantenimiento). Se sincronizará automáticamente.');
+        } else {
+          this.notificationService.success('¡Venta cobrada exitosamente!');
+        }
         this.checkoutStep.set(3);
         this.cartItems.set([]);
         this.discountValue.set(0);
