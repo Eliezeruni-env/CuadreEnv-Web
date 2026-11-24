@@ -289,7 +289,11 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   selectedCustomerId: number | null = 1;
   readonly selectedCustomer = computed(() => {
     const id = this.selectedCustomerId ?? 1;
-    return this.customers().find((c) => c.id === id) || this.customers().find((c) => c.id === 1) || null;
+    return (
+      this.customers().find((c) => c.id === id) ||
+      this.customers().find((c) => c.id === 1) ||
+      null
+    );
   });
   catalogSearchTerm = signal<string>('');
   selectedCategory = signal<number | null>(null);
@@ -2639,7 +2643,11 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     const pkg = product.id
       ? this.packagingService.getPackaging(product.id)
       : undefined;
-    if (this.isFractionalSaleMode() || this.isProductMeasurable(product) || (pkg && pkg.hasPackaging)) {
+    if (
+      this.isFractionalSaleMode() ||
+      this.isProductMeasurable(product) ||
+      (pkg && pkg.hasPackaging)
+    ) {
       this.openMeasurementModal(product);
       return;
     }

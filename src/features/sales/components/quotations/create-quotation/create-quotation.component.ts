@@ -3,14 +3,20 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { QuotationService } from '../../../services/quotation.service';
-import { CustomerService, DEFAULT_CASH_CUSTOMER } from '../../../../customers/services/customer.service';
+import {
+  CustomerService,
+  DEFAULT_CASH_CUSTOMER,
+} from '../../../../customers/services/customer.service';
 import { ProductService } from '../../../../products/services/product.service';
 import { WarehouseService } from '../../../../inventory/services/warehouse.service';
 import { StockService } from '../../../../inventory/services/stock.service';
 import { NotificationService } from '../../../../cuadreEnv/services/notification.service';
 import type { CustomerDto, ProductDto } from '../../../../cuadreEnv/types/api';
 import type { Warehouse } from '../../../../../app/models/warehouse';
-import type { QuotationStatus, CreateQuotationDto } from '../../../types/quotation.types';
+import type {
+  QuotationStatus,
+  CreateQuotationDto,
+} from '../../../types/quotation.types';
 
 export interface QuotationFormItem {
   productId: number;
@@ -49,7 +55,7 @@ export class CreateQuotationComponent implements OnInit {
   warehouseId = signal<number>(1); // Almacén seleccionado para la cotización
   issueDate = signal<string>(new Date().toISOString().substring(0, 10));
   expirationDate = signal<string>(
-    new Date(Date.now() + 15 * 86400000).toISOString().substring(0, 10)
+    new Date(Date.now() + 15 * 86400000).toISOString().substring(0, 10),
   );
   paymentCondition = signal<string>('Contado');
   sellerId = signal<number | null>(null);
@@ -75,7 +81,7 @@ export class CreateQuotationComponent implements OnInit {
   readonly totalProductsCount = computed(() => this.items().length);
 
   readonly totalUnitsCount = computed(() =>
-    this.items().reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
+    this.items().reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
   );
 
   readonly subtotal = computed(() =>
@@ -84,7 +90,7 @@ export class CreateQuotationComponent implements OnInit {
       const p = Number(item.unitPrice) || 0;
       const d = Number(item.discountRate) || 0;
       return sum + q * p * (1 - d / 100);
-    }, 0)
+    }, 0),
   );
 
   readonly discountTotal = computed(() =>
@@ -93,7 +99,7 @@ export class CreateQuotationComponent implements OnInit {
       const p = Number(item.unitPrice) || 0;
       const d = Number(item.discountRate) || 0;
       return sum + q * p * (d / 100);
-    }, 0)
+    }, 0),
   );
 
   readonly itbisTotal = computed(() =>
@@ -104,7 +110,7 @@ export class CreateQuotationComponent implements OnInit {
       const base = q * p * (1 - d / 100);
       const rate = Number(item.itbisRate) || 0;
       return sum + base * (rate / 100);
-    }, 0)
+    }, 0),
   );
 
   readonly grandTotal = computed(() => this.subtotal() + this.itbisTotal());
@@ -208,7 +214,8 @@ export class CreateQuotationComponent implements OnInit {
         this.status.set(q.status);
         this.customerId.set(q.customerId);
         if (q.issueDate) this.issueDate.set(q.issueDate.substring(0, 10));
-        if (q.expirationDate) this.expirationDate.set(q.expirationDate.substring(0, 10));
+        if (q.expirationDate)
+          this.expirationDate.set(q.expirationDate.substring(0, 10));
         this.paymentCondition.set(q.paymentCondition || 'Contado');
         this.observations.set(q.notes || '');
 
@@ -223,7 +230,7 @@ export class CreateQuotationComponent implements OnInit {
               discountRate: d.discountRate,
               itbisRate: d.itbisRate,
               notes: d.notes,
-            }))
+            })),
           );
         }
       }
@@ -252,7 +259,10 @@ export class CreateQuotationComponent implements OnInit {
 
       // Excluir productos con 0 stock a menos que permitan facturar sin stock
       const allowWithoutStock = (p as any).invoiceWithoutStock === true;
-      const currentStock = p.id != null && stockMap.has(p.id) ? (stockMap.get(p.id) || 0) : ((p as any).stock || 0);
+      const currentStock =
+        p.id != null && stockMap.has(p.id)
+          ? stockMap.get(p.id) || 0
+          : (p as any).stock || 0;
       return allowWithoutStock || currentStock > 0;
     });
     this.filteredProducts.set(matches.slice(0, 8));
@@ -271,7 +281,8 @@ export class CreateQuotationComponent implements OnInit {
         {
           productId: pId,
           productCode: product.reference || product.barcode || `PROD-${pId}`,
-          productName: product.description || product.shortDescription || 'Producto',
+          productName:
+            product.description || product.shortDescription || 'Producto',
           quantity: 1,
           unitPrice: Number(product.price) || Number(product.cost) || 100,
           discountRate: 0,
@@ -320,13 +331,17 @@ export class CreateQuotationComponent implements OnInit {
 
   async save(statusToSave: QuotationStatus = 'DRAFT'): Promise<void> {
     if (this.items().length === 0) {
-      this.notificationService.warning('Debe agregar al menos un producto a la cotización.');
+      this.notificationService.warning(
+        'Debe agregar al menos un producto a la cotización.',
+      );
       return;
     }
 
     this.isSaving.set(true);
     try {
-      const selectedCustomer = this.customers().find((c) => c.id === this.customerId());
+      const selectedCustomer = this.customers().find(
+        (c) => c.id === this.customerId(),
+      );
       const payload: CreateQuotationDto = {
         customerId: this.customerId(),
         customerName: selectedCustomer?.name || 'Comercial Duarte',
@@ -352,21 +367,27 @@ export class CreateQuotationComponent implements OnInit {
         this.notificationService.success(
           statusToSave === 'SENT'
             ? 'Cotización guardada y enviada al cliente exitosamente.'
-            : 'Cotización guardada en borrador exitosamente.'
+            : 'Cotización guardada en borrador exitosamente.',
         );
         this.router.navigate(['/sales/quotations']);
       } else {
-        this.notificationService.error(res.message || 'Error al guardar cotización');
+        this.notificationService.error(
+          res.message || 'Error al guardar cotización',
+        );
       }
     } catch (e: any) {
-      this.notificationService.error(e?.message || 'Error al guardar cotización');
+      this.notificationService.error(
+        e?.message || 'Error al guardar cotización',
+      );
     } finally {
       this.isSaving.set(false);
     }
   }
 
   showPdfPreview(): void {
-    this.notificationService.info('Generando vista previa de cotización en formato PDF...');
+    this.notificationService.info(
+      'Generando vista previa de cotización en formato PDF...',
+    );
     window.print();
   }
 }

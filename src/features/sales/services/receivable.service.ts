@@ -1,9 +1,17 @@
 import { Injectable, inject } from '@angular/core';
-import { ApiClientService, extractArray, getCompanyId } from '../../cuadreEnv/services/apiClient';
+import {
+  ApiClientService,
+  extractArray,
+  getCompanyId,
+} from '../../cuadreEnv/services/apiClient';
 import { CustomerService } from '../../customers/services/customer.service';
 import { CashRegisterService } from '../../cash-register/services/cash-register.service';
 import { WarehouseOutletService } from '../../inventory/services/warehouse-outlet.service';
-import type { ApiResponse, CustomerDto, SaleResponseDto } from '../../cuadreEnv/types/api';
+import type {
+  ApiResponse,
+  CustomerDto,
+  SaleResponseDto,
+} from '../../cuadreEnv/types/api';
 
 export interface PaymentPlanDto {
   installmentAmount: number;
@@ -128,7 +136,9 @@ export class ReceivableService {
       this.customerService = customerService;
     } else {
       try {
-        this.customerService = inject(CustomerService, { optional: true }) as any;
+        this.customerService = inject(CustomerService, {
+          optional: true,
+        }) as any;
       } catch {
         this.customerService = undefined as any;
       }
@@ -138,7 +148,9 @@ export class ReceivableService {
       this.cashRegisterService = cashRegisterService;
     } else {
       try {
-        this.cashRegisterService = inject(CashRegisterService, { optional: true }) as any;
+        this.cashRegisterService = inject(CashRegisterService, {
+          optional: true,
+        }) as any;
       } catch {
         this.cashRegisterService = undefined;
       }
@@ -148,7 +160,9 @@ export class ReceivableService {
       this.warehouseOutletService = warehouseOutletService;
     } else {
       try {
-        this.warehouseOutletService = inject(WarehouseOutletService, { optional: true }) as any;
+        this.warehouseOutletService = inject(WarehouseOutletService, {
+          optional: true,
+        }) as any;
       } catch {
         this.warehouseOutletService = undefined;
       }
@@ -156,7 +170,8 @@ export class ReceivableService {
   }
 
   private get storageKey(): string {
-    const compId = typeof window !== 'undefined' ? (getCompanyId() || 'default') : 'default';
+    const compId =
+      typeof window !== 'undefined' ? getCompanyId() || 'default' : 'default';
     return `cuadre_receivables_store_v1_${compId}`;
   }
 
@@ -200,12 +215,16 @@ export class ReceivableService {
       if (arList && arList.length > 0) {
         for (const ar of arList) {
           const id = ar.id ?? ar.saleId;
-          const pending = Math.max(0, (ar.totalAmount || ar.total || 0) - (ar.paidAmount || 0));
+          const pending = Math.max(
+            0,
+            (ar.totalAmount || ar.total || 0) - (ar.paidAmount || 0),
+          );
           const existing = stored.find((r) => r.id === id);
           const colorIdx = (id || 1) % AVATAR_COLORS.length;
 
           if (existing) {
-            const isSettled = existing.status === 'Pagado' || existing.pendingAmount <= 0.01;
+            const isSettled =
+              existing.status === 'Pagado' || existing.pendingAmount <= 0.01;
             if (isSettled) {
               existing.pendingAmount = 0;
               existing.status = 'Pagado';
@@ -213,29 +232,51 @@ export class ReceivableService {
                 existing.settledDate = new Date().toISOString();
               }
             } else {
-              existing.totalAmount = ar.totalAmount || ar.total || existing.totalAmount;
-              existing.paidAmount = Math.max(existing.paidAmount || 0, ar.paidAmount || 0);
-              existing.pendingAmount = Math.max(0, Math.round((existing.totalAmount - existing.paidAmount) * 100) / 100);
-              existing.status = existing.pendingAmount < 0.01 ? 'Pagado' : existing.paidAmount > 0 ? 'Parcial' : 'Pendiente';
+              existing.totalAmount =
+                ar.totalAmount || ar.total || existing.totalAmount;
+              existing.paidAmount = Math.max(
+                existing.paidAmount || 0,
+                ar.paidAmount || 0,
+              );
+              existing.pendingAmount = Math.max(
+                0,
+                Math.round((existing.totalAmount - existing.paidAmount) * 100) /
+                  100,
+              );
+              existing.status =
+                existing.pendingAmount < 0.01
+                  ? 'Pagado'
+                  : existing.paidAmount > 0
+                    ? 'Parcial'
+                    : 'Pendiente';
               if (existing.status === 'Pagado') {
                 existing.pendingAmount = 0;
-                if (!existing.settledDate) existing.settledDate = new Date().toISOString();
+                if (!existing.settledDate)
+                  existing.settledDate = new Date().toISOString();
               }
             }
           } else {
             stored.unshift({
               id: id,
-              invoiceNumber: ar.invoiceNumber || `INV-${String(id).padStart(6, '0')}`,
+              invoiceNumber:
+                ar.invoiceNumber || `INV-${String(id).padStart(6, '0')}`,
               customerId: ar.customerId,
-              customerName: ar.customerName || `Cliente #${ar.customerId || id}`,
+              customerName:
+                ar.customerName || `Cliente #${ar.customerId || id}`,
               customerPhone: ar.customerPhone || '',
               customerEmail: ar.customerEmail || '',
               description: ar.description || 'Cuenta por Cobrar',
               totalAmount: ar.totalAmount || ar.total || 0,
               paidAmount: ar.paidAmount || 0,
               pendingAmount: pending,
-              status: pending === 0 ? 'Pagado' : (ar.paidAmount > 0 ? 'Parcial' : 'Pendiente'),
-              creationDate: ar.creationDate || ar.createdAt || new Date().toISOString(),
+              status:
+                pending === 0
+                  ? 'Pagado'
+                  : ar.paidAmount > 0
+                    ? 'Parcial'
+                    : 'Pendiente',
+              creationDate:
+                ar.creationDate || ar.createdAt || new Date().toISOString(),
               dueDate: ar.dueDate,
               avatarColor: AVATAR_COLORS[colorIdx].bg,
               payments: ar.payments || [],
@@ -265,8 +306,12 @@ export class ReceivableService {
 
           if (existing) {
             // Si la cuenta ya fue saldada localmente, preservar su estado de liquidación
-            const isSettled = existing.status === 'Pagado' || existing.pendingAmount <= 0.01;
-            existing.paidAmount = Math.max(existing.paidAmount || 0, s.paidAmount || 0);
+            const isSettled =
+              existing.status === 'Pagado' || existing.pendingAmount <= 0.01;
+            existing.paidAmount = Math.max(
+              existing.paidAmount || 0,
+              s.paidAmount || 0,
+            );
             if (isSettled) {
               existing.pendingAmount = 0;
               existing.status = 'Pagado';
@@ -274,8 +319,19 @@ export class ReceivableService {
                 existing.settledDate = new Date().toISOString();
               }
             } else {
-              existing.pendingAmount = Math.max(0, Math.round(((s.total || existing.totalAmount) - existing.paidAmount) * 100) / 100);
-              existing.status = existing.pendingAmount < 0.01 ? 'Pagado' : existing.paidAmount > 0 ? 'Parcial' : 'Pendiente';
+              existing.pendingAmount = Math.max(
+                0,
+                Math.round(
+                  ((s.total || existing.totalAmount) - existing.paidAmount) *
+                    100,
+                ) / 100,
+              );
+              existing.status =
+                existing.pendingAmount < 0.01
+                  ? 'Pagado'
+                  : existing.paidAmount > 0
+                    ? 'Parcial'
+                    : 'Pendiente';
               if (existing.status === 'Pagado') {
                 existing.pendingAmount = 0;
                 if (!existing.settledDate) {
@@ -283,32 +339,46 @@ export class ReceivableService {
                 }
               }
             }
-          } else if (s.originChannel === 'CREDITO' || s.paymentMethod?.toLowerCase().includes('crédito') || pending > 0 || (s.paidAmount > 0 && s.paidAmount < s.total)) {
+          } else if (
+            s.originChannel === 'CREDITO' ||
+            s.paymentMethod?.toLowerCase().includes('crédito') ||
+            pending > 0 ||
+            (s.paidAmount > 0 && s.paidAmount < s.total)
+          ) {
             stored.unshift({
               id: s.id,
               invoiceNumber: `INV-${String(s.id).padStart(6, '0')}`,
               customerId: s.customerId,
-              customerName: customer?.name || `Cliente #${s.customerId || s.id}`,
+              customerName:
+                customer?.name || `Cliente #${s.customerId || s.id}`,
               customerPhone: customer?.phone || '',
               customerEmail: customer?.email || '',
               description: 'Venta a crédito',
               totalAmount: s.total,
               paidAmount: s.paidAmount || 0,
               pendingAmount: pending,
-              status: pending === 0 ? 'Pagado' : s.paidAmount > 0 ? 'Parcial' : 'Pendiente',
+              status:
+                pending === 0
+                  ? 'Pagado'
+                  : s.paidAmount > 0
+                    ? 'Parcial'
+                    : 'Pendiente',
               creationDate: s.creationDate || new Date().toISOString(),
               dueDate: s.dueDate,
               settledDate: pending === 0 ? new Date().toISOString() : undefined,
               avatarColor: AVATAR_COLORS[colorIdx].bg,
-              payments: s.paidAmount > 0 ? [
-                {
-                  id: 1,
-                  amount: s.paidAmount,
-                  date: new Date().toLocaleDateString('es-DO'),
-                  method: 'Efectivo',
-                  reference: 'Abono inicial',
-                }
-              ] : [],
+              payments:
+                s.paidAmount > 0
+                  ? [
+                      {
+                        id: 1,
+                        amount: s.paidAmount,
+                        date: new Date().toLocaleDateString('es-DO'),
+                        method: 'Efectivo',
+                        reference: 'Abono inicial',
+                      },
+                    ]
+                  : [],
             });
           }
         }
@@ -338,16 +408,17 @@ export class ReceivableService {
     const colorIdx = nextId % AVATAR_COLORS.length;
 
     const freqMap: Record<string, string> = {
-      'Mensual': 'Monthly',
-      'Quincenal': 'Biweekly',
-      'Semanal': 'Weekly',
-      'Diaria': 'Daily',
+      Mensual: 'Monthly',
+      Quincenal: 'Biweekly',
+      Semanal: 'Weekly',
+      Diaria: 'Daily',
     };
 
     let backendId = nextId;
     const downPayment = Math.max(0, Number(dto.downPayment) || 0);
     const pendingAmount = Math.max(0, dto.totalAmount - downPayment);
-    const initialStatus: ReceivableDto['status'] = pendingAmount <= 0 ? 'Pagado' : downPayment > 0 ? 'Parcial' : 'Pendiente';
+    const initialStatus: ReceivableDto['status'] =
+      pendingAmount <= 0 ? 'Pagado' : downPayment > 0 ? 'Parcial' : 'Pendiente';
 
     // Attempt to record in new backend AccountReceivable API
     try {
@@ -366,7 +437,10 @@ export class ReceivableService {
         },
       };
 
-      const res = await this.api.post<any, any>('/AccountReceivable', arPayload);
+      const res = await this.api.post<any, any>(
+        '/AccountReceivable',
+        arPayload,
+      );
       if (res?.id) {
         backendId = res.id;
       }
@@ -378,35 +452,39 @@ export class ReceivableService {
           total: dto.totalAmount,
           paidAmount: downPayment,
           dueDate: dto.startDate,
-          details: (dto.items && dto.items.length > 0)
-            ? dto.items.map((it) => ({
-                productId: it.productId,
-                quantity: it.quantity,
-                unitPrice: it.unitPrice,
-              }))
-            : [
-                {
-                  productId: 1,
-                  quantity: 1,
-                  unitPrice: dto.totalAmount,
-                },
-              ],
+          details:
+            dto.items && dto.items.length > 0
+              ? dto.items.map((it) => ({
+                  productId: it.productId,
+                  quantity: it.quantity,
+                  unitPrice: it.unitPrice,
+                }))
+              : [
+                  {
+                    productId: 1,
+                    quantity: 1,
+                    unitPrice: dto.totalAmount,
+                  },
+                ],
         });
       } catch {
         // ignore
       }
     }
 
-    const initialPayments: PaymentRecordDto[] = downPayment > 0 ? [
-      {
-        id: 1,
-        amount: downPayment,
-        date: new Date().toISOString(),
-        method: 'Efectivo',
-        notes: 'Abono inicial / Monto de apartado',
-        isCurrent: true,
-      }
-    ] : [];
+    const initialPayments: PaymentRecordDto[] =
+      downPayment > 0
+        ? [
+            {
+              id: 1,
+              amount: downPayment,
+              date: new Date().toISOString(),
+              method: 'Efectivo',
+              notes: 'Abono inicial / Monto de apartado',
+              isCurrent: true,
+            },
+          ]
+        : [];
 
     const newReceivable: ReceivableDto = {
       id: backendId,
@@ -440,7 +518,12 @@ export class ReceivableService {
     this.saveStoredReceivables(list);
 
     // 1. Descontar existencias de almacén inmediatamente si se especificaron productos
-    if (dto.items && dto.items.length > 0 && dto.deductStock !== false && this.warehouseOutletService) {
+    if (
+      dto.items &&
+      dto.items.length > 0 &&
+      dto.deductStock !== false &&
+      this.warehouseOutletService
+    ) {
       try {
         const whId = dto.warehouseId || 1;
         await this.warehouseOutletService.createOutlet({
@@ -459,7 +542,10 @@ export class ReceivableService {
           })),
         });
       } catch (outletErr) {
-        console.warn('Could not register automatic warehouse outlet for credit sale:', outletErr);
+        console.warn(
+          'Could not register automatic warehouse outlet for credit sale:',
+          outletErr,
+        );
       }
     }
 
@@ -474,7 +560,10 @@ export class ReceivableService {
           paymentMethod: 'Efectivo',
         });
       } catch (cashErr) {
-        console.warn('Could not record down payment in cash register:', cashErr);
+        console.warn(
+          'Could not record down payment in cash register:',
+          cashErr,
+        );
       }
     }
 
@@ -509,7 +598,7 @@ export class ReceivableService {
       bank: payment.bank || null,
       reference: payment.reference || null,
       notes: payment.notes || null,
-      registerInCash: payment.registerInCash ?? (payment.method === 'Efectivo'),
+      registerInCash: payment.registerInCash ?? payment.method === 'Efectivo',
       voucherAttachment: payment.voucherAttachment || null,
       isCurrent: true,
     };
@@ -518,8 +607,14 @@ export class ReceivableService {
     item.payments.forEach((p) => (p.isCurrent = false));
     item.payments.push(newRecord);
 
-    item.paidAmount = Math.round(item.payments.reduce((acc, p) => acc + (p.amount || 0), 0) * 100) / 100;
-    item.pendingAmount = Math.max(0, Math.round((item.totalAmount - item.paidAmount) * 100) / 100);
+    item.paidAmount =
+      Math.round(
+        item.payments.reduce((acc, p) => acc + (p.amount || 0), 0) * 100,
+      ) / 100;
+    item.pendingAmount = Math.max(
+      0,
+      Math.round((item.totalAmount - item.paidAmount) * 100) / 100,
+    );
     if (item.pendingAmount < 0.01 || item.paidAmount >= item.totalAmount) {
       item.pendingAmount = 0;
       item.paidAmount = item.totalAmount;
@@ -544,7 +639,14 @@ export class ReceivableService {
       }
     }
 
-    const methodCode = payment.method === 'Efectivo' ? 'CASH' : payment.method === 'Transferencia' ? 'TRANSFER' : payment.method === 'Tarjeta' ? 'CARD' : 'CHECK';
+    const methodCode =
+      payment.method === 'Efectivo'
+        ? 'CASH'
+        : payment.method === 'Transferencia'
+          ? 'TRANSFER'
+          : payment.method === 'Tarjeta'
+            ? 'CARD'
+            : 'CHECK';
 
     // Post to AccountReceivable payments endpoint with fallback
     try {
@@ -556,7 +658,7 @@ export class ReceivableService {
           reference: payment.reference || null,
           cashRegisterId: cashRegisterId,
         },
-        { headers: { 'X-Silent-Error': 'true', 'X-Silent-404': 'true' } }
+        { headers: { 'X-Silent-Error': 'true', 'X-Silent-404': 'true' } },
       );
     } catch {
       // Fallback to Sale payments
@@ -569,7 +671,7 @@ export class ReceivableService {
             method: methodCode,
             cashRegisterId: cashRegisterId,
           },
-          { headers: { 'X-Silent-Error': 'true', 'X-Silent-404': 'true' } }
+          { headers: { 'X-Silent-Error': 'true', 'X-Silent-404': 'true' } },
         );
       } catch {
         // ignore - payment recorded in local state and cash register
@@ -616,15 +718,25 @@ export class ReceivableService {
       }
     }
 
-    const methodCode = params.method === 'Efectivo' ? 'CASH' : params.method === 'Transferencia' ? 'TRANSFER' : params.method === 'Tarjeta' ? 'CARD' : 'CHECK';
+    const methodCode =
+      params.method === 'Efectivo'
+        ? 'CASH'
+        : params.method === 'Transferencia'
+          ? 'TRANSFER'
+          : params.method === 'Tarjeta'
+            ? 'CARD'
+            : 'CHECK';
 
     // Try posting to backend pay installment endpoint
     try {
-      await this.api.post(`/AccountReceivable/${receivableId}/installments/${installmentId}/pay`, {
-        amount: params.amount,
-        method: methodCode,
-        cashRegisterId: cashRegisterId,
-      });
+      await this.api.post(
+        `/AccountReceivable/${receivableId}/installments/${installmentId}/pay`,
+        {
+          amount: params.amount,
+          method: methodCode,
+          cashRegisterId: cashRegisterId,
+        },
+      );
     } catch {
       // ignore
     }
@@ -668,16 +780,35 @@ export class ReceivableService {
       amount: payment.amount,
       date: payment.date || item.payments[payIdx].date,
       method: payment.method,
-      bank: payment.bank !== undefined ? payment.bank : item.payments[payIdx].bank,
-      reference: payment.reference !== undefined ? payment.reference : item.payments[payIdx].reference,
-      notes: payment.notes !== undefined ? payment.notes : item.payments[payIdx].notes,
-      registerInCash: payment.registerInCash !== undefined ? payment.registerInCash : item.payments[payIdx].registerInCash,
-      voucherAttachment: payment.voucherAttachment !== undefined ? payment.voucherAttachment : item.payments[payIdx].voucherAttachment,
+      bank:
+        payment.bank !== undefined ? payment.bank : item.payments[payIdx].bank,
+      reference:
+        payment.reference !== undefined
+          ? payment.reference
+          : item.payments[payIdx].reference,
+      notes:
+        payment.notes !== undefined
+          ? payment.notes
+          : item.payments[payIdx].notes,
+      registerInCash:
+        payment.registerInCash !== undefined
+          ? payment.registerInCash
+          : item.payments[payIdx].registerInCash,
+      voucherAttachment:
+        payment.voucherAttachment !== undefined
+          ? payment.voucherAttachment
+          : item.payments[payIdx].voucherAttachment,
     };
 
     // Recalculate total paid & pending balance
-    item.paidAmount = Math.round(item.payments.reduce((acc, p) => acc + (p.amount || 0), 0) * 100) / 100;
-    item.pendingAmount = Math.max(0, Math.round((item.totalAmount - item.paidAmount) * 100) / 100);
+    item.paidAmount =
+      Math.round(
+        item.payments.reduce((acc, p) => acc + (p.amount || 0), 0) * 100,
+      ) / 100;
+    item.pendingAmount = Math.max(
+      0,
+      Math.round((item.totalAmount - item.paidAmount) * 100) / 100,
+    );
     if (item.pendingAmount < 0.01 || item.paidAmount >= item.totalAmount) {
       item.pendingAmount = 0;
       item.paidAmount = item.totalAmount;
@@ -700,7 +831,7 @@ export class ReceivableService {
       reference?: string;
       notes?: string;
       registerInCash?: boolean;
-    } = {}
+    } = {},
   ): Promise<ApiResponse<ReceivableDto>> {
     const list = this.getStoredReceivables();
     const item = list.find((r) => r.id === receivableId);
@@ -735,8 +866,14 @@ export class ReceivableService {
     item.payments.splice(payIdx, 1);
 
     // Recalculate total paid & pending balance
-    item.paidAmount = Math.round(item.payments.reduce((acc, p) => acc + (p.amount || 0), 0) * 100) / 100;
-    item.pendingAmount = Math.max(0, Math.round((item.totalAmount - item.paidAmount) * 100) / 100);
+    item.paidAmount =
+      Math.round(
+        item.payments.reduce((acc, p) => acc + (p.amount || 0), 0) * 100,
+      ) / 100;
+    item.pendingAmount = Math.max(
+      0,
+      Math.round((item.totalAmount - item.paidAmount) * 100) / 100,
+    );
     if (item.pendingAmount < 0.01 || item.paidAmount >= item.totalAmount) {
       item.pendingAmount = 0;
       item.paidAmount = item.totalAmount;
@@ -781,7 +918,10 @@ export class ReceivableService {
     return { success: true, data: true };
   }
 
-  async reopenReceivable(id: number, reason?: string): Promise<ApiResponse<ReceivableDto>> {
+  async reopenReceivable(
+    id: number,
+    reason?: string,
+  ): Promise<ApiResponse<ReceivableDto>> {
     const list = this.getStoredReceivables();
     const item = list.find((r) => r.id === id);
     if (!item) {
@@ -807,6 +947,10 @@ export class ReceivableService {
       // offline fallback
     }
 
-    return { success: true, data: item, message: 'Cuenta por cobrar reactivada correctamente.' };
+    return {
+      success: true,
+      data: item,
+      message: 'Cuenta por cobrar reactivada correctamente.',
+    };
   }
 }

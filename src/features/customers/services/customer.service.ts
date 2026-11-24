@@ -19,7 +19,10 @@ export const DEFAULT_CASH_CUSTOMER: CustomerDto = {
 export class CustomerService {
   private readonly api = inject(ApiClientService);
   private inFlightMap = new Map<string, Promise<ApiResponse<CustomerDto[]>>>();
-  private cacheMap = new Map<string, { time: number; data: ApiResponse<CustomerDto[]> }>();
+  private cacheMap = new Map<
+    string,
+    { time: number; data: ApiResponse<CustomerDto[]> }
+  >();
   private readonly CACHE_TTL = 10000;
 
   private getLocalCustomers(): CustomerDto[] {
@@ -41,7 +44,11 @@ export class CustomerService {
     const local = this.getLocalCustomers();
     const result = [...remoteItems];
     for (const loc of local) {
-      const existingIdx = result.findIndex((c) => c.id === loc.id || (loc.identification && c.identification === loc.identification));
+      const existingIdx = result.findIndex(
+        (c) =>
+          c.id === loc.id ||
+          (loc.identification && c.identification === loc.identification),
+      );
       if (existingIdx !== -1) {
         result[existingIdx] = { ...result[existingIdx], ...loc };
       } else {
@@ -56,14 +63,19 @@ export class CustomerService {
     this.inFlightMap.clear();
   }
 
-  async getCustomers(params?: {
-    pageNumber?: number;
-    pageSize?: number;
-    search?: string;
-  }, forceRefresh = false): Promise<ApiResponse<CustomerDto[]>> {
+  async getCustomers(
+    params?: {
+      pageNumber?: number;
+      pageSize?: number;
+      search?: string;
+    },
+    forceRefresh = false,
+  ): Promise<ApiResponse<CustomerDto[]>> {
     const validParams = {
       ...params,
-      pageSize: params?.pageSize ? Math.min(100, Math.max(1, params.pageSize)) : 100,
+      pageSize: params?.pageSize
+        ? Math.min(100, Math.max(1, params.pageSize))
+        : 100,
     };
     const key = JSON.stringify(validParams);
     const now = Date.now();
@@ -81,34 +93,53 @@ export class CustomerService {
 
     const promise = (async () => {
       try {
-        const res = await this.api.get<any, any>('/Customer', { params: validParams });
+        const res = await this.api.get<any, any>('/Customer', {
+          params: validParams,
+        });
         let items = extractArray<CustomerDto>(res);
         items = this.mergeWithLocalCustomers(items);
         // Ensure standard cash customer is present if missing
-        const hasCashCustomer = items.some((c) => c.id === 1 || c.name?.toLowerCase().includes('contado'));
+        const hasCashCustomer = items.some(
+          (c) => c.id === 1 || c.name?.toLowerCase().includes('contado'),
+        );
         if (!hasCashCustomer && items.length > 0) {
           items.unshift({ ...DEFAULT_CASH_CUSTOMER });
         }
-        const result: ApiResponse<CustomerDto[]> = { success: true, data: items };
+        const result: ApiResponse<CustomerDto[]> = {
+          success: true,
+          data: items,
+        };
         this.cacheMap.set(key, { time: Date.now(), data: result });
         return result;
       } catch (err: any) {
         if (err?.status === 404) {
           try {
-            const res2 = await this.api.get<any, any>('/customers', { params: validParams });
+            const res2 = await this.api.get<any, any>('/customers', {
+              params: validParams,
+            });
             let items2 = extractArray<CustomerDto>(res2);
             items2 = this.mergeWithLocalCustomers(items2);
-            const hasCashCustomer2 = items2.some((c) => c.id === 1 || c.name?.toLowerCase().includes('contado'));
+            const hasCashCustomer2 = items2.some(
+              (c) => c.id === 1 || c.name?.toLowerCase().includes('contado'),
+            );
             if (!hasCashCustomer2 && items2.length > 0) {
               items2.unshift({ ...DEFAULT_CASH_CUSTOMER });
             }
-            const fallback: ApiResponse<CustomerDto[]> = { success: true, data: items2 };
+            const fallback: ApiResponse<CustomerDto[]> = {
+              success: true,
+              data: items2,
+            };
             this.cacheMap.set(key, { time: Date.now(), data: fallback });
             return fallback;
           } catch {}
         }
-        const localOnly = this.mergeWithLocalCustomers([{ ...DEFAULT_CASH_CUSTOMER }]);
-        const empty: ApiResponse<CustomerDto[]> = { success: true, data: localOnly };
+        const localOnly = this.mergeWithLocalCustomers([
+          { ...DEFAULT_CASH_CUSTOMER },
+        ]);
+        const empty: ApiResponse<CustomerDto[]> = {
+          success: true,
+          data: localOnly,
+        };
         this.cacheMap.set(key, { time: Date.now(), data: empty });
         return empty;
       } finally {
@@ -138,18 +169,29 @@ export class CustomerService {
     }
   }
 
-  async getCorporateCustomers(params?: { search?: string; status?: string }): Promise<ApiResponse<any[]>> {
+  async getCorporateCustomers(params?: {
+    search?: string;
+    status?: string;
+  }): Promise<ApiResponse<any[]>> {
     try {
-      const res = await this.api.get<any, any>('/Customer/corporate', { params });
+      const res = await this.api.get<any, any>('/Customer/corporate', {
+        params,
+      });
       const items = Array.isArray(res) ? res : res?.data || [];
       return { success: true, data: items };
     } catch {
       try {
-        const res2 = await this.api.get<any, any>('/customers/corporate', { params });
+        const res2 = await this.api.get<any, any>('/customers/corporate', {
+          params,
+        });
         const items2 = Array.isArray(res2) ? res2 : res2?.data || [];
         return { success: true, data: items2 };
       } catch (err: any) {
-        return { success: false, data: [], message: err?.message || 'Error al obtener clientes corporativos.' };
+        return {
+          success: false,
+          data: [],
+          message: err?.message || 'Error al obtener clientes corporativos.',
+        };
       }
     }
   }
@@ -174,7 +216,8 @@ export class CustomerService {
   async createCustomer(
     customer: CustomerDto,
   ): Promise<ApiResponse<CustomerDto>> {
-    const cleanId = (customer.identification || customer.rnc || '').trim() || null;
+    const cleanId =
+      (customer.identification || customer.rnc || '').trim() || null;
     const payload: any = {
       name: (customer.name || '').trim(),
       customerName: (customer.name || '').trim(),
@@ -224,7 +267,8 @@ export class CustomerService {
   }
 
   async updateCustomer(customer: CustomerDto): Promise<void> {
-    const cleanId = (customer.identification || customer.rnc || '').trim() || null;
+    const cleanId =
+      (customer.identification || customer.rnc || '').trim() || null;
     const payload: any = {
       id: customer.id,
       name: (customer.name || '').trim(),
