@@ -1,7 +1,14 @@
 import { Injectable, inject } from '@angular/core';
-import { ApiClientService, extractArray } from '../../cuadreEnv/services/apiClient';
+import {
+  ApiClientService,
+  extractArray,
+  getCompanyId,
+} from '../../cuadreEnv/services/apiClient';
 import type { ApiResponse } from '../../cuadreEnv/types/api';
-import type { Warehouse, WarehouseConcept } from '../../../app/models/warehouse';
+import type {
+  Warehouse,
+  WarehouseConcept,
+} from '../../../app/models/warehouse';
 
 const WAREHOUSES_STORAGE_KEY = 'cuadreenv_warehouses_db';
 
@@ -9,28 +16,121 @@ const DEFAULT_WAREHOUSES: Warehouse[] = [];
 
 const DEFAULT_CONCEPTS: WarehouseConcept[] = [
   // Conceptos de Entrada (ENTRY)
-  { id: 1, name: 'Compra / Recepción de Mercancía', type: 'ENTRY', description: 'Ingreso directo por compras a proveedores' },
-  { id: 2, name: 'Producción / Fraccionamiento al Detalle', type: 'ENTRY', description: 'Envasado o conversión de sacos/bultos a unidades menores o libras' },
-  { id: 3, name: 'Ajuste de Inventario (+)', type: 'ENTRY', description: 'Corrección de conteo físico sobrante' },
-  { id: 4, name: 'Devolución de Cliente / Nota de Crédito', type: 'ENTRY', description: 'Reingreso por devolución de mercancía vendida' },
-  { id: 5, name: 'Retorno de Surtidor / Liquidación de Ruta', type: 'ENTRY', description: 'Retorno de mercancía no vendida por el chofer o surtidor' },
-  { id: 6, name: 'Entrada por Muestra Comercial o Donación', type: 'ENTRY', description: 'Ingreso de artículos promocionales o muestras' },
+  {
+    id: 1,
+    name: 'Compra / Recepción de Mercancía',
+    type: 'ENTRY',
+    description: 'Ingreso directo por compras a proveedores',
+  },
+  {
+    id: 2,
+    name: 'Producción / Fraccionamiento al Detalle',
+    type: 'ENTRY',
+    description:
+      'Envasado o conversión de sacos/bultos a unidades menores o libras',
+  },
+  {
+    id: 3,
+    name: 'Ajuste de Inventario (+)',
+    type: 'ENTRY',
+    description: 'Corrección de conteo físico sobrante',
+  },
+  {
+    id: 4,
+    name: 'Devolución de Cliente / Nota de Crédito',
+    type: 'ENTRY',
+    description: 'Reingreso por devolución de mercancía vendida',
+  },
+  {
+    id: 5,
+    name: 'Retorno de Surtidor / Liquidación de Ruta',
+    type: 'ENTRY',
+    description: 'Retorno de mercancía no vendida por el chofer o surtidor',
+  },
+  {
+    id: 6,
+    name: 'Entrada por Muestra Comercial o Donación',
+    type: 'ENTRY',
+    description: 'Ingreso de artículos promocionales o muestras',
+  },
 
   // Conceptos de Salida (OUTLET)
-  { id: 7, name: 'Venta Directa / Despacho a Cliente', type: 'OUTLET', description: 'Salida por facturación comercial al cliente' },
-  { id: 8, name: 'Carga a Surtidor / Despacho a Ruta', type: 'OUTLET', description: 'Asignación de mercancía al vehículo del surtidor para reparto' },
-  { id: 9, name: 'Consumo Interno / Uso Operativo', type: 'OUTLET', description: 'Salida de insumos, limpieza o uso en instalaciones' },
-  { id: 10, name: 'Merma / Avería / Daño Físico', type: 'OUTLET', description: 'Producto deteriorado, roto o inutilizable' },
-  { id: 11, name: 'Vencimiento / Caducidad', type: 'OUTLET', description: 'Retiro y descarte de productos con fecha de vencimiento cumplida' },
-  { id: 12, name: 'Ajuste de Inventario (-)', type: 'OUTLET', description: 'Corrección de faltante físico en auditoría' },
-  { id: 13, name: 'Devolución a Proveedor por Defecto', type: 'OUTLET', description: 'Retorno de mercancía defectuosa al suplidor' },
-  { id: 14, name: 'Muestra Comercial / Degustación', type: 'OUTLET', description: 'Entrega de producto como prueba comercial' },
+  {
+    id: 7,
+    name: 'Venta Directa / Despacho a Cliente',
+    type: 'OUTLET',
+    description: 'Salida por facturación comercial al cliente',
+  },
+  {
+    id: 8,
+    name: 'Carga a Surtidor / Despacho a Ruta',
+    type: 'OUTLET',
+    description:
+      'Asignación de mercancía al vehículo del surtidor para reparto',
+  },
+  {
+    id: 9,
+    name: 'Consumo Interno / Uso Operativo',
+    type: 'OUTLET',
+    description: 'Salida de insumos, limpieza o uso en instalaciones',
+  },
+  {
+    id: 10,
+    name: 'Merma / Avería / Daño Físico',
+    type: 'OUTLET',
+    description: 'Producto deteriorado, roto o inutilizable',
+  },
+  {
+    id: 11,
+    name: 'Vencimiento / Caducidad',
+    type: 'OUTLET',
+    description:
+      'Retiro y descarte de productos con fecha de vencimiento cumplida',
+  },
+  {
+    id: 12,
+    name: 'Ajuste de Inventario (-)',
+    type: 'OUTLET',
+    description: 'Corrección de faltante físico en auditoría',
+  },
+  {
+    id: 13,
+    name: 'Devolución a Proveedor por Defecto',
+    type: 'OUTLET',
+    description: 'Retorno de mercancía defectuosa al suplidor',
+  },
+  {
+    id: 14,
+    name: 'Muestra Comercial / Degustación',
+    type: 'OUTLET',
+    description: 'Entrega de producto como prueba comercial',
+  },
 
   // Conceptos de Transferencia (TRANSFER)
-  { id: 15, name: 'Transferencia Inter-Sucursales', type: 'TRANSFER', description: 'Reubicación de existencias entre almacenes centrales' },
-  { id: 16, name: 'Envío a Almacén Móvil / Camión de Ruta', type: 'TRANSFER', description: 'Transferencia a unidad móvil para venta en calle' },
-  { id: 17, name: 'Retorno desde Móvil a Depósito Central', type: 'TRANSFER', description: 'Descarga de mercancía sobrante de ruta hacia almacén' },
-  { id: 18, name: 'Reubicación a Zona de Cuarentena / Revisión', type: 'TRANSFER', description: 'Aislamiento preventivo para control de calidad' },
+  {
+    id: 15,
+    name: 'Transferencia Inter-Sucursales',
+    type: 'TRANSFER',
+    description: 'Reubicación de existencias entre almacenes centrales',
+  },
+  {
+    id: 16,
+    name: 'Envío a Almacén Móvil / Camión de Ruta',
+    type: 'TRANSFER',
+    description: 'Transferencia a unidad móvil para venta en calle',
+  },
+  {
+    id: 17,
+    name: 'Retorno desde Móvil a Depósito Central',
+    type: 'TRANSFER',
+    description: 'Descarga de mercancía sobrante de ruta hacia almacén',
+  },
+  {
+    id: 18,
+    name: 'Reubicación a Zona de Cuarentena / Revisión',
+    type: 'TRANSFER',
+    description: 'Aislamiento preventivo para control de calidad',
+  },
 ];
 
 @Injectable({
@@ -39,9 +139,22 @@ const DEFAULT_CONCEPTS: WarehouseConcept[] = [
 export class WarehouseService {
   private api = inject(ApiClientService);
 
+  private inFlightWarehousesPromise: Promise<ApiResponse<Warehouse[]>> | null =
+    null;
+  private lastWarehousesFetch = 0;
+  private cachedWarehousesRes: ApiResponse<Warehouse[]> | null = null;
+  private readonly WAREHOUSES_CACHE_TTL = 15000; // 15s cache to avoid rapid refetch storms
+
+  private getWarehousesKey(): string {
+    const compId = getCompanyId();
+    return compId
+      ? `${WAREHOUSES_STORAGE_KEY}_${compId}`
+      : WAREHOUSES_STORAGE_KEY;
+  }
+
   public getLocalWarehouses(): Warehouse[] {
     try {
-      const raw = localStorage.getItem(WAREHOUSES_STORAGE_KEY);
+      const raw = localStorage.getItem(this.getWarehousesKey());
       if (!raw) {
         return [];
       }
@@ -53,7 +166,7 @@ export class WarehouseService {
 
   public saveLocalWarehouses(list: Warehouse[]): void {
     try {
-      localStorage.setItem(WAREHOUSES_STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(this.getWarehousesKey(), JSON.stringify(list));
     } catch (e) {
       console.error('Error saving local warehouses:', e);
     }
@@ -91,57 +204,106 @@ export class WarehouseService {
     return warehouses;
   }
 
-  async getWarehouses(): Promise<ApiResponse<Warehouse[]>> {
-    try {
-      const res = await this.api.get<any, any>('/warehouse');
-
-      const list = extractArray<any>(res);
-      if (list && list.length > 0) {
-        const normalized: Warehouse[] = list.map((item: any, idx: number) => {
-          const id = item.id ?? item.warehouseId ?? (idx + 1);
-          return {
-            id,
-            name: item.name || item.description || item.warehouseName || `Almacén #${id}`,
-            code: item.code || item.warehouseCode || `ALM-${String(id).padStart(2, '0')}`,
-            address: item.address || '',
-            phone: item.phone || '',
-            managerName: item.managerName || '',
-            isMain: item.isMain === true,
-            isActive: item.isActive !== false,
-            createdAt: item.createdAt || new Date().toISOString(),
-          };
-        });
-
-        // Combinar con almacenes locales para que nunca se pierda un almacén creado por el usuario
-        const local = this.getLocalWarehouses();
-        const map = new Map<string | number, Warehouse>();
-        normalized.forEach((w) => map.set(w.id, w));
-        local.forEach((w) => {
-          if (!map.has(w.id)) {
-            map.set(w.id, w);
-          }
-        });
-        const combined = this.enforceSingleMainWarehouse(Array.from(map.values()));
-        this.saveLocalWarehouses(combined);
-        return { success: true, data: combined };
-      }
-
-      // Si el servidor devolvió lista vacía, usar almacenes locales
-      let local = this.enforceSingleMainWarehouse(this.getLocalWarehouses());
-      if (local.length === 0) {
-        local = [this.createDefaultMainWarehouse()];
-        this.saveLocalWarehouses(local);
-      }
-      return { success: true, data: local };
-    } catch {
-      // Si la API falla por MODULE_NOT_LICENSED, restricciones de plan o modo offline:
-      let local = this.enforceSingleMainWarehouse(this.getLocalWarehouses());
-      if (local.length === 0) {
-        local = [this.createDefaultMainWarehouse()];
-        this.saveLocalWarehouses(local);
-      }
-      return { success: true, data: local, message: 'Almacenes cargados correctamente.' };
+  async getWarehouses(forceRefresh = false): Promise<ApiResponse<Warehouse[]>> {
+    const now = Date.now();
+    if (
+      !forceRefresh &&
+      this.cachedWarehousesRes &&
+      now - this.lastWarehousesFetch < this.WAREHOUSES_CACHE_TTL
+    ) {
+      return this.cachedWarehousesRes;
     }
+    if (this.inFlightWarehousesPromise) {
+      return this.inFlightWarehousesPromise;
+    }
+
+    this.inFlightWarehousesPromise = (async () => {
+      try {
+        const res = await this.api.get<any, any>('/warehouse', {
+          headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+        });
+
+        const list = extractArray<any>(res);
+        if (list && list.length > 0) {
+          const normalized: Warehouse[] = list.map((item: any, idx: number) => {
+            const id = item.id ?? item.warehouseId ?? idx + 1;
+            return {
+              id,
+              name:
+                item.name ||
+                item.description ||
+                item.warehouseName ||
+                `Almacén #${id}`,
+              code:
+                item.code ||
+                item.warehouseCode ||
+                `ALM-${String(id).padStart(2, '0')}`,
+              address: item.address || '',
+              phone: item.phone || '',
+              managerName: item.managerName || '',
+              isMain: item.isMain === true,
+              isActive: item.isActive !== false,
+              createdAt: item.createdAt || new Date().toISOString(),
+            };
+          });
+
+          // Deduplicación estricta y sincronización: El servidor es la fuente de verdad.
+          const serverNames = new Set(
+            normalized.map((w) => w.name.trim().toLowerCase()),
+          );
+          const serverIds = new Set(normalized.map((w) => w.id));
+
+          // Solo conservamos almacenes locales que no colisionen por ID ni por nombre con el backend
+          const local = this.getLocalWarehouses();
+          const cleanList = [...normalized];
+          local.forEach((w) => {
+            const nameKey = (w.name || '').trim().toLowerCase();
+            if (!serverIds.has(w.id) && !serverNames.has(nameKey)) {
+              cleanList.push(w);
+            }
+          });
+
+          const combined = this.enforceSingleMainWarehouse(cleanList);
+          this.saveLocalWarehouses(combined);
+          const response: ApiResponse<Warehouse[]> = {
+            success: true,
+            data: combined,
+          };
+          this.lastWarehousesFetch = Date.now();
+          this.cachedWarehousesRes = response;
+          return response;
+        }
+
+        // Si el servidor devolvió lista vacía, usar almacenes locales sin autogenerar por defecto
+        const local = this.enforceSingleMainWarehouse(
+          this.getLocalWarehouses(),
+        );
+        const response: ApiResponse<Warehouse[]> = {
+          success: true,
+          data: local,
+        };
+        this.lastWarehousesFetch = Date.now();
+        this.cachedWarehousesRes = response;
+        return response;
+      } catch {
+        // Si la API falla por MODULE_NOT_LICENSED, restricciones de plan o modo offline:
+        const local = this.enforceSingleMainWarehouse(
+          this.getLocalWarehouses(),
+        );
+        const fallback: ApiResponse<Warehouse[]> = {
+          success: true,
+          data: local,
+          message: 'Almacenes cargados correctamente.',
+        };
+        this.lastWarehousesFetch = Date.now();
+        this.cachedWarehousesRes = fallback;
+        return fallback;
+      } finally {
+        this.inFlightWarehousesPromise = null;
+      }
+    })();
+
+    return this.inFlightWarehousesPromise;
   }
 
   async getWarehouse(id: number): Promise<ApiResponse<Warehouse>> {
@@ -151,39 +313,87 @@ export class WarehouseService {
     return { success: false, message: 'Almacén no encontrado.' };
   }
 
-  async createWarehouse(wh: Partial<Warehouse>): Promise<ApiResponse<Warehouse>> {
+  async createWarehouse(
+    wh: Partial<Warehouse>,
+  ): Promise<ApiResponse<Warehouse>> {
     const list = this.getLocalWarehouses();
-    const newId = list.length > 0 ? Math.max(...list.map((w) => w.id)) + 1 : 1;
-    const newWarehouse: Warehouse = {
-      id: newId,
-      name: wh.name || `Almacén #${newId}`,
-      code: wh.code || `ALM-${String(newId).padStart(2, '0')}`,
-      address: wh.address || '',
-      phone: wh.phone || '',
-      managerName: wh.managerName || '',
-      isMain: wh.isMain || false,
-      isActive: wh.isActive ?? true,
-      createdAt: new Date().toISOString(),
-    };
+    const fallbackId =
+      list.length > 0 ? Math.max(...list.map((w) => w.id)) + 1 : 1;
 
-    if (newWarehouse.isMain) {
-      list.forEach((w) => (w.isMain = false));
-    }
-
-    list.push(newWarehouse);
-    this.saveLocalWarehouses(list);
-
+    let serverData: any = null;
     try {
-      await this.api.post<any, any>('/warehouse', newWarehouse);
+      const res = await this.api.post<any, any>('/warehouse', {
+        name: wh.name,
+        code: wh.code,
+        address: wh.address || '',
+        phone: wh.phone || '',
+        managerName: wh.managerName || '',
+        isMain: wh.isMain || false,
+        isActive: wh.isActive ?? true,
+      });
+      if (res?.data) {
+        serverData = res.data;
+      }
     } catch {
       try {
-        await this.api.post<any, any>('/Warehouse', newWarehouse);
+        const res = await this.api.post<any, any>('/Warehouse', {
+          name: wh.name,
+          code: wh.code,
+          address: wh.address || '',
+          phone: wh.phone || '',
+          managerName: wh.managerName || '',
+          isMain: wh.isMain || false,
+          isActive: wh.isActive ?? true,
+        });
+        if (res?.data) {
+          serverData = res.data;
+        }
       } catch {
-        // offline fallback
+        // Fallback offline
       }
     }
 
-    return { success: true, data: newWarehouse, message: 'Almacén registrado exitosamente.' };
+    const realId = serverData?.id ? Number(serverData.id) : fallbackId;
+    const realCode =
+      serverData?.code || wh.code || `ALM-${String(realId).padStart(2, '0')}`;
+
+    const newWarehouse: Warehouse = {
+      id: realId,
+      name: serverData?.name || wh.name || `Almacén #${realId}`,
+      code: realCode,
+      address: serverData?.address || wh.address || '',
+      phone: serverData?.phone || wh.phone || '',
+      managerName: serverData?.managerName || wh.managerName || '',
+      isMain: wh.isMain ?? (serverData?.isMain || false),
+      isActive: wh.isActive ?? serverData?.isActive ?? true,
+      createdAt: serverData?.createdAt || new Date().toISOString(),
+    };
+
+    // Eliminar cualquier duplicado previo por ID o por nombre
+    const targetName = (newWarehouse.name || '').trim().toLowerCase();
+    const cleanList = list.filter(
+      (w) =>
+        w.id !== newWarehouse.id &&
+        (w.name || '').trim().toLowerCase() !== targetName,
+    );
+
+    if (newWarehouse.isMain) {
+      cleanList.forEach((w) => (w.isMain = false));
+    }
+
+    cleanList.push(newWarehouse);
+    const combined = this.enforceSingleMainWarehouse(cleanList);
+    this.saveLocalWarehouses(combined);
+
+    // Invalidar caché
+    this.cachedWarehousesRes = null;
+    this.lastWarehousesFetch = 0;
+
+    return {
+      success: true,
+      data: newWarehouse,
+      message: 'Almacén registrado exitosamente.',
+    };
   }
 
   async updateWarehouse(wh: Warehouse): Promise<ApiResponse<Warehouse>> {
@@ -222,7 +432,11 @@ export class WarehouseService {
       }
     }
 
-    return { success: true, data: list[idx], message: 'Almacén actualizado correctamente.' };
+    return {
+      success: true,
+      data: list[idx],
+      message: 'Almacén actualizado correctamente.',
+    };
   }
 
   async deleteWarehouse(id: number): Promise<ApiResponse<boolean>> {

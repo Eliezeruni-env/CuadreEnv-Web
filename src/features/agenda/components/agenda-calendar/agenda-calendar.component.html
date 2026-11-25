@@ -1,0 +1,71 @@
+<div class="agenda-calendar-container">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="page-title mb-1">Calendario de citas</h2>
+      <p class="text-muted mb-0">Visualiza y gestiona la agenda en tiempo real</p>
+    </div>
+
+    <!-- Navigation & View Buttons -->
+    <div class="d-flex align-items-center gap-2">
+      <div class="btn-group">
+        <button class="btn btn-outline-secondary btn-sm" (click)="navigate('prev')">&larr;</button>
+        <button class="btn btn-outline-secondary btn-sm" (click)="navigate('today')">Hoy</button>
+        <button class="btn btn-outline-secondary btn-sm" (click)="navigate('next')">&rarr;</button>
+      </div>
+
+      <div class="date-display fw-semibold px-2">
+        {{ currentDate() | date:'MMMM yyyy' }}
+      </div>
+
+      <select class="form-select form-select-sm w-auto" [ngModel]="selectedProfessionalId()" (ngModelChange)="selectedProfessionalId.set($event ? +$event : null); loadData()">
+        <option [ngValue]="null">Todos los profesionales</option>
+        @for (p of professionals(); track p.id) {
+          <option [value]="p.id">{{ p.fullName }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- Calendar Grid -->
+  <div class="calendar-card">
+    @if (isLoading()) {
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+      </div>
+    } @else {
+      <div class="calendar-table-responsive">
+        <table class="calendar-grid-table">
+          <thead>
+            <tr>
+              <th class="time-col-header">Hora</th>
+              @for (day of weekDays(); track day.name) {
+                <th class="day-col-header" [class.today]="(day.date | date:'yyyy-MM-dd') === (currentDate() | date:'yyyy-MM-dd')">
+                  <div class="day-name">{{ day.name }}</div>
+                  <div class="day-number">{{ day.date | date:'d' }}</div>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (h of hours; track h) {
+              <tr>
+                <td class="time-cell">{{ h < 10 ? '0' + h : h }}:00</td>
+                @for (day of weekDays(); track day.name) {
+                  <td class="slot-cell">
+                    @for (appt of getAppointmentsForSlot(day.date, h); track appt.id) {
+                      <div class="calendar-event-pill" [ngClass]="getStatusClass(appt.status)">
+                        <div class="event-time">{{ appt.startAt | date:'HH:mm' }}</div>
+                        <div class="event-title">{{ appt.customerName }}</div>
+                        <div class="event-service">{{ appt.serviceName }}</div>
+                      </div>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

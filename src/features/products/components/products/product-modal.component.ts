@@ -6,6 +6,7 @@ import { ProductService } from '../../services/product.service';
 import { ProductTypeService } from '../../services/product-type.service';
 import { CategoryService } from '../../services/category.service';
 import { UnitOfMeasurementService, type UnitOfMeasurement } from '../../services/unit-of-measurement.service';
+import { StockService } from '../../../inventory/services/stock.service';
 import { ProductPackagingService, type ProductPackaging } from '../../services/product-packaging.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
@@ -16,6 +17,8 @@ import {
   type ProductDto,
 } from '../../../cuadreEnv/types/api';
 import { generateDominicanEan13 } from '../../../cuadreEnv/utils/barcode.util';
+import { BarcodeLookupService, type UniversalProductMetadata } from '../../services/barcode-lookup.service';
+import { CameraBarcodeModalComponent } from '../../../../app/shared/components/camera-barcode-modal/camera-barcode-modal.component';
 import {
   ButtonDirective,
   ColComponent,
@@ -38,7 +41,8 @@ import { IconDirective } from '@coreui/icons-angular';
     RowComponent,
     ColComponent,
     SpinnerComponent,
-    IconDirective
+    IconDirective,
+    CameraBarcodeModalComponent
   ],
   templateUrl: './product-modal.component.html',
   styleUrls: ['./product-modal.component.scss']
@@ -50,11 +54,18 @@ export class ProductModalComponent {
   private categoryService = inject(CategoryService);
   private unitService = inject(UnitOfMeasurementService);
   private packagingService = inject(ProductPackagingService);
+  private stockService = inject(StockService);
   private notificationService = inject(NotificationService);
   private confirmService = inject(ConfirmDialogService);
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private barcodeLookupService = inject(BarcodeLookupService);
+
+  isLookingUpBarcode = signal<boolean>(false);
+  isDecodingBarcodeImage = signal<boolean>(false);
+  isCameraScannerOpen = signal<boolean>(false);
+  detectedGlobalProduct = signal<UniversalProductMetadata | null>(null);
 
   @Input() visible = false;
   @Output() visibleChange = new EventEmitter<boolean>();
@@ -111,44 +122,70 @@ export class ProductModalComponent {
 
     let typeItems: any[] = [];
     let catItems: any[] = [];
+    let unitItems: any[] = [];
 
     // 1. Product Types
     try {
       const typesRes = await this.productTypeService.getProductTypes();
-      typeItems = Array.isArray(typesRes?.data) ? typesRes.data : [];
+      const rawTypes = Array.isArray(typesRes?.data) ? typesRes.data : [];
+      typeItems = rawTypes
+        .filter((t: any) => {
+          const id = Number(t.id ?? t.Id);
+          const name = (t.name || t.Name || t.description || t.Description || '').toLowerCase();
+          return id !== 2 && !name.includes('serv');
+        })
+        .map((t: any) => ({
+          id: Number(t.id ?? t.Id) || 1,
+          name: t.name ?? t.Name ?? t.description ?? t.Description ?? 'Estándar',
+          description: t.description ?? t.Description ?? t.name ?? t.Name ?? 'Estándar'
+        }));
+      if (typeItems.length === 0) {
+        typeItems = [{ id: 1, name: 'Estándar', description: 'Estándar' }];
+      }
       this.productTypes.set(typeItems);
     } catch {
-      this.productTypes.set([]);
+      typeItems = [{ id: 1, name: 'Estándar', description: 'Estándar' }];
+      this.productTypes.set(typeItems);
     }
 
     // 2. Categories
     try {
       const catsRes = await this.categoryService.getCategories();
-      catItems = Array.isArray(catsRes?.data) ? catsRes.data : [];
+      let rawCats = Array.isArray(catsRes?.data) ? catsRes.data : [];
+      if (rawCats.length === 0) {
+        try {
+          const created = await this.categoryService.createCategory({ description: 'General' });
+          const createdData = created?.data?.data || created?.data || { id: 1, description: 'General', name: 'General' };
+          rawCats = [createdData];
+        } catch {
+          rawCats = [{ id: 1, description: 'General', name: 'General' }];
+        }
+      }
+      catItems = rawCats.map((c: any) => ({
+        id: Number(c.id ?? c.Id) || 1,
+        name: c.name ?? c.Name ?? c.description ?? c.Description ?? 'General',
+        description: c.description ?? c.Description ?? c.name ?? c.Name ?? 'General'
+      }));
       this.categories.set(catItems);
     } catch {
-      this.categories.set([]);
+      catItems = [{ id: 1, description: 'General', name: 'General' }];
+      this.categories.set(catItems);
     }
 
     // 3. Units of Measurement
     try {
       const unitsRes = await this.unitService.getUnitsOfMeasurement();
-      const unitItems = Array.isArray(unitsRes?.data) ? unitsRes.data : [];
+      const rawUnits = Array.isArray(unitsRes?.data) ? unitsRes.data : [];
+      unitItems = (rawUnits.length > 0 ? rawUnits : [{ id: 1, name: 'Unidad', symbol: 'und' }]).map((u: any) => ({
+        id: Number(u.id ?? u.Id) || 1,
+        name: u.name ?? u.Name ?? u.description ?? u.Description ?? 'Unidad',
+        symbol: u.symbol ?? u.Symbol ?? 'und',
+        allowsDecimals: Boolean(u.allowsDecimals ?? u.AllowsDecimals)
+      }));
       this.units.set(unitItems);
     } catch {
-      this.units.set([]);
-    }
-
-    if (typeItems.length === 0 || catItems.length === 0) {
-      const missingParts: string[] = [];
-      if (typeItems.length === 0) missingParts.push('Tipos de Producto');
-      if (catItems.length === 0) missingParts.push('Categorías');
-
-      this.missingLookups.set(true);
-      this.missingLookupMessage.set(
-        `Para crear un producto es indispensable tener al menos una opción en: ${missingParts.join(' y ')}. Por favor, créalos en la sección de configuración primero.`
-      );
-      return false;
+      unitItems = [{ id: 1, name: 'Unidad', symbol: 'und', allowsDecimals: false }];
+      this.units.set(unitItems);
     }
 
     return true;
@@ -159,17 +196,47 @@ export class ProductModalComponent {
     this.router.navigate(['/products/settings']);
   }
 
+  setSaleType(type: 'unit' | 'weight') {
+    if (type === 'weight') {
+      this.productForm.patchValue({
+        allowFractional: true,
+      });
+      const lbUnit = this.units().find(
+        (u) =>
+          u.symbol?.toLowerCase() === 'lb' ||
+          u.name?.toLowerCase().includes('libra') ||
+          u.allowsDecimals === true,
+      );
+      if (lbUnit && lbUnit.id) {
+        this.productForm.patchValue({ unitOfMeasurementId: lbUnit.id });
+      }
+    } else {
+      this.productForm.patchValue({
+        allowFractional: false,
+      });
+      const undUnit = this.units().find(
+        (u) =>
+          u.symbol?.toLowerCase() === 'und' ||
+          u.name?.toLowerCase().includes('unidad'),
+      );
+      if (undUnit && undUnit.id) {
+        this.productForm.patchValue({ unitOfMeasurementId: undUnit.id });
+      }
+    }
+  }
+
   async openCreate() {
     this.isEditMode = false;
     this.selectedProductId = null;
+    this.detectedGlobalProduct.set(null);
     await this.loadLookups();
     this.productForm.reset({
       description: '',
       barcode: '',
       reference: '',
-      productTypeId: this.productTypes().length > 0 ? this.productTypes()[0].id : null,
-      categoryId: this.categories().length > 0 ? this.categories()[0].id : null,
-      unitOfMeasurementId: this.units().length > 0 ? this.units()[0].id : 1,
+      productTypeId: this.productTypes().length > 0 ? (this.productTypes()[0].id ?? this.productTypes()[0].Id ?? 1) : 1,
+      categoryId: this.categories().length > 0 ? (this.categories()[0].id ?? this.categories()[0].Id ?? 1) : 1,
+      unitOfMeasurementId: this.units().length > 0 ? (this.units()[0].id || 1) : 1,
       cost: 0,
       stock: 0,
       shortDescription: '',
@@ -233,6 +300,7 @@ export class ProductModalComponent {
   }
 
   close() {
+    this.detectedGlobalProduct.set(null);
     this.visible = false;
     this.visibleChange.emit(false);
   }
@@ -270,6 +338,91 @@ export class ProductModalComponent {
     const generated = generateDominicanEan13(catId, name || ref);
     this.productForm.patchValue({ barcode: generated });
     this.notificationService.info(`Código de barra EAN-13 generado: ${generated}`);
+  }
+
+  openCameraScanner(): void {
+    this.isCameraScannerOpen.set(true);
+  }
+
+  onCameraBarcodeScanned(code: string): void {
+    this.isCameraScannerOpen.set(false);
+    this.productForm.patchValue({ barcode: code });
+    this.notificationService.success(`¡Código escaneado con la cámara: ${code}!`);
+    void this.lookupGlobalBarcode(code);
+  }
+
+  async onBarcodeImageSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    this.isDecodingBarcodeImage.set(true);
+    try {
+      const barcode = await this.barcodeLookupService.decodeBarcodeFromImage(file);
+      this.productForm.patchValue({ barcode });
+      this.notificationService.success(`Código decodificado exitosamente de la imagen: ${barcode}`);
+      void this.lookupGlobalBarcode(barcode);
+    } catch (err: any) {
+      this.notificationService.warning(err.message || 'No se pudo decodificar el código de barra de la imagen.');
+    } finally {
+      this.isDecodingBarcodeImage.set(false);
+      input.value = '';
+    }
+  }
+
+  async lookupGlobalBarcode(codeOverride?: string): Promise<void> {
+    const code = String(codeOverride || this.productForm.get('barcode')?.value || '').trim();
+    if (!code) {
+      this.notificationService.warning('Por favor ingresa o escanea un código de barra primero.');
+      return;
+    }
+    this.isLookingUpBarcode.set(true);
+    this.detectedGlobalProduct.set(null);
+    try {
+      const meta = await this.barcodeLookupService.lookupUniversalProduct(code);
+      if (meta) {
+        this.detectedGlobalProduct.set(meta);
+        const currentDesc = String(this.productForm.get('description')?.value || '').trim();
+        const currentRef = String(this.productForm.get('reference')?.value || '').trim();
+        const currentImg = String(this.productForm.get('imageUrl')?.value || '').trim();
+
+        const patchPayload: any = {};
+        if (!currentDesc || currentDesc.length < 3 || currentDesc.toLowerCase().startsWith('producto') || (meta.name && !currentDesc.toLowerCase().includes(meta.name.toLowerCase()))) {
+          patchPayload.description = meta.description;
+        }
+        if (!currentRef) {
+          patchPayload.reference = meta.brand ? `${meta.brand.slice(0, 4).toUpperCase()}-${meta.barcode.slice(-4)}` : `REF-${meta.barcode.slice(-4)}`;
+        }
+        if (!currentImg && meta.imageUrl) {
+          patchPayload.imageUrl = meta.imageUrl;
+        }
+
+        if (meta.category && this.categories().length > 0 && !this.productForm.get('categoryId')?.value) {
+          const matchCat = this.categories().find(c => {
+            const cName = (c.name || c.description || '').toLowerCase();
+            return cName.includes(meta.category!.toLowerCase()) || meta.category!.toLowerCase().includes(cName);
+          });
+          if (matchCat) {
+            patchPayload.categoryId = matchCat.id;
+          }
+        }
+
+        if (Object.keys(patchPayload).length > 0) {
+          this.productForm.patchValue(patchPayload);
+        }
+
+        this.notificationService.success(
+          `✨ Producto identificado en Base de Datos Global: "${meta.name}". Datos autocompletados.`
+        );
+      } else {
+        this.notificationService.info(
+          `Código ${code} no encontrado en la Base de Datos Global. Puedes registrar sus datos manualmente.`
+        );
+      }
+    } catch {
+      this.notificationService.info(`No se pudo consultar el código ${code} en este momento.`);
+    } finally {
+      this.isLookingUpBarcode.set(false);
+    }
   }
 
   onPhotoSelected(event: Event): void {
@@ -347,6 +500,16 @@ export class ProductModalComponent {
       }
     }
 
+    if (!formVal.categoryId || !formVal.unitOfMeasurementId) {
+      this.notificationService.warning('Debe seleccionar una Categoría y una Unidad de Medida válidas antes de guardar.');
+      this.isLoading.set(false);
+      return;
+    }
+
+    const defaultTypeId = this.productTypes().length > 0 ? Number(this.productTypes()[0].id) : 1;
+    const defaultCatId = this.categories().length > 0 ? Number(this.categories()[0].id) : 1;
+    const defaultUnitId = this.units().length > 0 ? Number(this.units()[0].id) : 1;
+
     const payload: ProductDto = {
       description: name,
       cost: Number(formVal.cost) || 0,
@@ -360,10 +523,10 @@ export class ProductModalComponent {
       shortDescription: String(formVal.shortDescription || '').trim(),
       minimumQuantity: Number(formVal.minimumQuantity) || 0,
       maximumQuantity: Number(formVal.maximumQuantity) || 0,
-      unitOfMeasurementId: Number(formVal.unitOfMeasurementId) || 1,
-      productTypeId: formVal.productTypeId ? Number(formVal.productTypeId) : undefined,
-      categoryId: formVal.categoryId ? Number(formVal.categoryId) : undefined,
-      expirationDate: formVal.expirationDate || null,
+      unitOfMeasurementId: formVal.unitOfMeasurementId ? Number(formVal.unitOfMeasurementId) : defaultUnitId,
+      productTypeId: formVal.productTypeId ? Number(formVal.productTypeId) : defaultTypeId,
+      categoryId: formVal.categoryId ? Number(formVal.categoryId) : defaultCatId,
+      expirationDate: formVal.expirationDate ? String(formVal.expirationDate).trim() : null,
       isOrganic: Boolean(formVal.isOrganic),
     };
 
@@ -390,6 +553,9 @@ export class ProductModalComponent {
       }
 
       if (savedId) {
+        if (!this.isEditMode && Number(formVal.stock) > 0) {
+          void this.stockService.setInitialStock(savedId, Number(formVal.stock), formVal.description, barcode, Number(formVal.cost), Number(formVal.price));
+        }
         if (formVal.imageUrl) {
           this.productService.saveProductPhoto(savedId, formVal.imageUrl);
           if (barcode) {

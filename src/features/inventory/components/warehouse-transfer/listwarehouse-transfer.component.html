@@ -51,14 +51,50 @@
           <thead class="table-light text-secondary text-uppercase font-size-xs">
             <tr>
               <th style="width: 44px;" class="ps-3 text-center"></th>
-              <th>No. Transferencia</th>
-              <th>Origen (Emisor)</th>
+              <th class="th-sortable" (click)="toggleSort('movement')">
+                No. Transferencia
+                <span class="sort-indicator" [class.active]="sortColumn() === 'movement'">
+                  {{ sortColumn() === 'movement' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('origin')">
+                Origen (Emisor)
+                <span class="sort-indicator" [class.active]="sortColumn() === 'origin'">
+                  {{ sortColumn() === 'origin' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
               <th class="text-center" style="width: 40px;">→</th>
-              <th>Destino (Receptor)</th>
-              <th>Fecha</th>
-              <th class="text-center">Total Uds</th>
-              <th class="text-center">Estado</th>
-              <th class="text-center pe-3" style="width: 100px;">Acciones</th>
+              <th class="th-sortable" (click)="toggleSort('destination')">
+                Destino (Receptor)
+                <span class="sort-indicator" [class.active]="sortColumn() === 'destination'">
+                  {{ sortColumn() === 'destination' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('date')">
+                Fecha
+                <span class="sort-indicator" [class.active]="sortColumn() === 'date'">
+                  {{ sortColumn() === 'date' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable text-center" (click)="toggleSort('quantity')">
+                Total Uds
+                <span class="sort-indicator" [class.active]="sortColumn() === 'quantity'">
+                  {{ sortColumn() === 'quantity' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable text-end" (click)="toggleSort('cost')">
+                Costo Total
+                <span class="sort-indicator" [class.active]="sortColumn() === 'cost'">
+                  {{ sortColumn() === 'cost' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable text-center" (click)="toggleSort('status')">
+                Estado
+                <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
+                  {{ sortColumn() === 'status' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="text-center pe-3" style="width: 80px;">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -81,13 +117,21 @@
                 <tr [class.table-active]="isTransferExpanded(t.id)" class="master-row">
                   <td class="ps-3 text-center">
                     <button
-                      class="expand-btn"
+                      class="btn-expand-chevron"
                       [class.expanded]="isTransferExpanded(t.id)"
                       type="button"
                       (click)="toggleDetail(t)"
                       [title]="isTransferExpanded(t.id) ? 'Colapsar detalle' : 'Expandir productos transferidos'"
                     >
-                      {{ isTransferExpanded(t.id) ? '−' : '+' }}
+                      @if (isTransferExpanded(t.id)) {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                      }
                     </button>
                   </td>
                   <td>
@@ -109,20 +153,23 @@
                   <td class="text-center font-monospace fw-bold text-dark fs-6">
                     {{ (t.totalQuantity || 0) | number:'1.0-2' }} uds
                   </td>
+                  <td class="text-end font-monospace fw-bold text-dark fs-6">
+                    RD$ {{ (t.totalCost || 0) | number:'1.2-2' }}
+                  </td>
                   <td class="text-center">
                     <span class="badge status-badge-success px-2.5 py-1 rounded-pill">
                       {{ t.statusName || 'Aplicado' }}
                     </span>
                   </td>
                   <td class="text-center pe-3">
-                    <div class="action-btn-group justify-content-center">
+                    <div class="d-flex align-items-center justify-content-center">
                       <button
                         type="button"
-                        class="btn-action-icon btn-action-view"
+                        class="btn-action-square btn-action-view"
                         (click)="viewDetail(t)"
                         title="Ver Comprobante de Transferencia"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                           <circle cx="12" cy="12" r="3"></circle>
                         </svg>
@@ -134,37 +181,77 @@
                 <!-- Detail Row Expandible (Subtabla de Productos Transferidos) -->
                 @if (isTransferExpanded(t.id)) {
                   <tr class="detail-row">
-                    <td colspan="9">
-                      <div class="card border border-secondary-subtle shadow-xs rounded-3 overflow-hidden">
-                        <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                          <span class="fw-bold small text-secondary text-uppercase d-flex align-items-center gap-2">
-                            Detalle de Artículos en Tránsito ({{ (t.productDetails.length || 0) }} ítems)
-                          </span>
-                          <div class="small font-monospace">
-                            <span class="text-muted me-3">Origen: <strong>{{ t.warehouseOfOriginName }}</strong></span>
-                            <span class="text-muted me-3">Destino: <strong>{{ t.destinationWarehouseName }}</strong></span>
-                            <span class="text-primary fw-bold">Total Transferido: {{ (t.totalQuantity || 0) | number:'1.0-2' }} uds</span>
+                    <td colspan="9" class="p-3 bg-slate-50">
+                      <div class="billing-detail-card" style="border-top-color: #8B5CF6;">
+                        <div class="billing-detail-header">
+                          <div class="d-flex align-items-center gap-2">
+                            <div class="detail-header-icon" style="background: #F5F3FF; color: #7C3AED;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m16 3 4 4-4 4"></path>
+                                <path d="M20 7H4"></path>
+                                <path d="m8 21-4-4 4-4"></path>
+                                <path d="M4 17h16"></path>
+                              </svg>
+                            </div>
+                            <span class="detail-header-title">Detalle de Artículos en Tránsito</span>
+                            <span class="detail-items-count-badge">
+                              {{ (t.productDetails.length || 0) }} {{ (t.productDetails.length || 0) === 1 ? 'ítem' : 'ítems' }}
+                            </span>
+                          </div>
+
+                          <div class="detail-summary-pills">
+                            <span class="summary-pill">
+                              <span class="pill-label">Origen</span>
+                              <strong class="pill-value">{{ t.warehouseOfOriginName }}</strong>
+                            </span>
+                            <span class="summary-pill">
+                              <span class="pill-label">Destino</span>
+                              <strong class="pill-value">{{ t.destinationWarehouseName }}</strong>
+                            </span>
+                            <span class="summary-pill">
+                              <span class="pill-label">Total Uds</span>
+                              <strong class="pill-value">{{ (t.totalQuantity || 0) | number:'1.0-2' }} uds</strong>
+                            </span>
+                            <span class="summary-pill total-pill">
+                              <span class="pill-label">Costo Estimado</span>
+                              <strong class="pill-value text-dark">RD$ {{ (t.totalCost || 0) | number:'1.2-2' }}</strong>
+                            </span>
                           </div>
                         </div>
-                        <div class="card-body p-0">
-                          <table class="table table-sm table-bordered mb-0 align-middle">
-                            <thead class="table-light text-muted font-size-xs">
-                              <tr>
-                                <th class="ps-3">Código</th>
-                                <th>Descripción del Producto</th>
-                                <th class="text-center pe-3">Cant. Transferida</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              @for (item of (t.productDetails || []); track $index) {
+
+                        <div class="billing-detail-body">
+                          <div class="table-responsive">
+                            <table class="table billing-subtable mb-0 align-middle">
+                              <thead>
                                 <tr>
-                                  <td class="ps-3 font-monospace small text-secondary">{{ item.barCode || 'PROD-' + item.productId }}</td>
-                                  <td class="fw-semibold text-dark">{{ item.productName }}</td>
-                                  <td class="text-center pe-3 font-monospace fw-bold text-primary">{{ item.quantity }} uds</td>
+                                  <th class="ps-3" style="width: 140px;">Código</th>
+                                  <th>Descripción</th>
+                                  <th class="text-center" style="width: 130px;">Cant. Transferida</th>
+                                  <th class="text-end" style="width: 130px;">Costo Unit.</th>
+                                  <th class="text-end pe-3" style="width: 140px;">Subtotal Costo</th>
                                 </tr>
-                              }
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                @for (item of (t.productDetails || []); track $index) {
+                                  <tr>
+                                    <td class="ps-3">
+                                      <span class="product-code-pill font-monospace">{{ item.barCode || 'PROD-' + item.productId }}</span>
+                                    </td>
+                                    <td>
+                                      <span class="product-name-text">{{ item.productName }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                      <span class="quantity-badge font-monospace">{{ item.quantity }} uds</span>
+                                    </td>
+                                    <td class="text-end font-monospace text-muted">RD$ {{ (item.cost || item.price || 0) | number:'1.2-2' }}</td>
+                                    <td class="text-end pe-3 font-monospace fw-bold text-dark">
+                                      RD$ {{ (item.quantity * (item.cost || item.price || 0)) | number:'1.2-2' }}
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -187,167 +274,9 @@
   </div>
 </div>
 
-<!-- Modal Detail Voucher -->
-@if (selectedTransfer) {
-  <div class="custom-modal-backdrop" (click)="selectedTransfer = null">
-    <div class="custom-modal-content modal-lg shadow-lg border-0 rounded-4 overflow-hidden" (click)="$event.stopPropagation()" style="max-width: 760px;">
-      <!-- Header Moderno -->
-      <div class="p-4 bg-white border-bottom d-flex justify-content-between align-items-center d-print-none">
-        <div class="d-flex align-items-center gap-3">
-          <div class="rounded-3 p-2.5 d-flex align-items-center justify-content-center" style="background: rgba(13, 110, 253, 0.1); color: #0d6efd; width: 44px; height: 44px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3"/>
-            </svg>
-          </div>
-          <div>
-            <div class="d-flex align-items-center gap-2">
-              <h5 class="fw-bold text-dark mb-0">Comprobante de Transferencia de Almacén</h5>
-              <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1" style="font-size: 0.75rem;">
-                Transferencia Aplicada
-              </span>
-            </div>
-            <div class="text-muted small mt-0.5">
-              Movimiento: <span class="fw-semibold text-primary font-monospace">{{ selectedTransfer.movementNumber }}</span>
-            </div>
-          </div>
-        </div>
-        <button type="button" class="btn-close shadow-none" (click)="selectedTransfer = null"></button>
-      </div>
-
-      <div class="p-4 bg-light-subtle" id="transferVoucherPrint">
-        <!-- 4 Metadatos Cards -->
-        <div class="row g-3 mb-4">
-          <div class="col-sm-6 col-md-3">
-            <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white h-100">
-              <div class="text-muted small mb-1" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Comprobante</div>
-              <div class="fw-bold text-primary font-monospace" style="font-size: 0.88rem;">{{ selectedTransfer.movementNumber }}</div>
-              <div class="text-secondary small" style="font-size: 0.75rem;">Traspaso de Stock</div>
-            </div>
-          </div>
-
-          <div class="col-sm-6 col-md-3">
-            <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white h-100">
-              <div class="text-muted small mb-1" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Almacén Origen</div>
-              <div class="fw-bold text-dark text-truncate" style="font-size: 0.88rem;" [title]="selectedTransfer.warehouseOfOriginName">
-                {{ selectedTransfer.warehouseOfOriginName }}
-              </div>
-              <div class="text-secondary small" style="font-size: 0.75rem;">Emisor / Salida</div>
-            </div>
-          </div>
-
-          <div class="col-sm-6 col-md-3">
-            <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white h-100">
-              <div class="text-muted small mb-1" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Almacén Destino</div>
-              <div class="fw-bold text-primary text-truncate" style="font-size: 0.88rem;" [title]="selectedTransfer.destinationWarehouseName">
-                {{ selectedTransfer.destinationWarehouseName }}
-              </div>
-              <div class="text-secondary small" style="font-size: 0.75rem;">Receptor / Entrada</div>
-            </div>
-          </div>
-
-          <div class="col-sm-6 col-md-3">
-            <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white h-100">
-              <div class="text-muted small mb-1" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Fecha y Concepto</div>
-              <div class="fw-bold text-dark" style="font-size: 0.88rem;">{{ selectedTransfer.createDate | date:'dd/MM/yyyy' }}</div>
-              <div class="text-secondary small text-truncate" style="font-size: 0.75rem;">
-                {{ selectedTransfer.conceptName || 'Transferencia de Almacén' }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        @if (selectedTransfer.commentary) {
-          <div class="card border-0 shadow-2xs rounded-3 p-3 bg-white mb-3">
-            <div class="d-flex align-items-center gap-2 text-muted small mb-1" style="font-size: 0.75rem; font-weight: 600;">
-              <span>OBSERVACIONES / COMENTARIOS</span>
-            </div>
-            <div class="text-dark small mb-0">{{ selectedTransfer.commentary }}</div>
-          </div>
-        }
-
-        <!-- Tabla de Artículos Transferidos -->
-        <div class="card border-0 shadow-2xs rounded-3 overflow-hidden bg-white mb-2">
-          <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white">
-            <h6 class="fw-bold text-dark mb-0" style="font-size: 0.88rem;">
-              Artículos Transferidos ({{ (selectedTransfer.productDetails || []).length }})
-            </h6>
-            <span class="badge bg-light text-secondary border font-monospace" style="font-size: 0.72rem;">
-              Traspaso Directo
-            </span>
-          </div>
-
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.84rem;">
-              <thead class="table-light text-secondary" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                <tr>
-                  <th class="ps-3 py-2.5">Producto / Descripción</th>
-                  <th class="py-2.5">Cód. Barra</th>
-                  <th class="text-center py-2.5" style="width: 130px;">Cant. Transferida</th>
-                  <th class="text-end py-2.5" style="width: 140px;">Costo Ref.</th>
-                  <th class="text-end pe-3 py-2.5" style="width: 150px;">Valor Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (item of (selectedTransfer.productDetails || []); track $index) {
-                  <tr>
-                    <td class="ps-3 py-3">
-                      <div class="fw-bold text-dark">{{ item.productName }}</div>
-                      <div class="text-muted small font-monospace" style="font-size: 0.72rem;">ID: #{{ item.productId }}</div>
-                    </td>
-                    <td class="py-3 font-monospace text-secondary">{{ item.barCode || '—' }}</td>
-                    <td class="text-center py-3">
-                      <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill font-monospace fw-bold">
-                        {{ item.quantity }} uds
-                      </span>
-                    </td>
-                    <td class="text-end py-3 font-monospace text-secondary">
-                      RD$ {{ (item.cost || item.price || 0) | number:'1.2-2' }}
-                    </td>
-                    <td class="text-end pe-3 py-3 font-monospace fw-bold text-dark">
-                      RD$ {{ (item.quantity * (item.cost || item.price || 0)) | number:'1.2-2' }}
-                    </td>
-                  </tr>
-                }
-                @if ((selectedTransfer.productDetails || []).length === 0) {
-                  <tr>
-                    <td colspan="5" class="text-center py-4 text-muted">
-                      No hay artículos especificados en este movimiento.
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Total Resumen Card -->
-          <div class="p-3 bg-light border-top d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-2">
-              <span class="text-muted small fw-semibold">Total Unidades Transferidas:</span>
-              <span class="badge bg-primary text-white font-monospace px-2.5 py-1 rounded-pill">
-                {{ selectedTransfer.totalQuantity }} uds
-              </span>
-            </div>
-            <div class="text-end">
-              <div class="text-muted small" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600;">Valor Total Transferido</div>
-              <div class="fs-4 fw-bold text-primary font-monospace mb-0">
-                RD$ {{ selectedTransfer.totalCost | number:'1.2-2' }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-3 bg-white border-top d-flex justify-content-end gap-2 d-print-none">
-        <button type="button" class="btn btn-light border rounded-pill px-4 py-1.5 fw-semibold" style="font-size: 0.84rem;" (click)="selectedTransfer = null">Cerrar</button>
-        <button type="button" class="btn btn-primary rounded-pill px-4 py-1.5 fw-semibold" style="font-size: 0.84rem;" (click)="printVoucher()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
-            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-            <rect x="6" y="14" width="12" height="8"></rect>
-          </svg>
-          Imprimir Comprobante
-        </button>
-      </div>
-    </div>
-  </div>
-}
+<!-- Modal Detail Voucher (Diseño Unificado según imagen de referencia) -->
+<app-warehouse-movement-receipt-modal
+  [isOpen]="isReceiptModalOpen()"
+  [data]="selectedReceiptData"
+  (close)="isReceiptModalOpen.set(false)"
+></app-warehouse-movement-receipt-modal>

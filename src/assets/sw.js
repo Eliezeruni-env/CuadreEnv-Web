@@ -47,6 +47,20 @@ self.addEventListener('message', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Bypass automático en localhost y módulos de desarrollo Vite / Angular HMR
+  if (event.request && event.request.url) {
+    const rawUrl = event.request.url;
+    if (
+      rawUrl.includes('localhost') ||
+      rawUrl.includes('127.0.0.1') ||
+      rawUrl.includes('/@ng/') ||
+      rawUrl.includes('/@vite/') ||
+      rawUrl.includes('/@fs/') ||
+      rawUrl.includes('?t=')
+    ) {
+      return;
+    }
+  }
   // Ignorar peticiones no-HTTP(S) o que no sean GET (como chrome-extension://, moz-extension://)
   if (!event.request || event.request.method !== 'GET') return;
   if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) return;
@@ -101,10 +115,10 @@ self.addEventListener('fetch', (event) => {
         });
         return networkResponse;
       }).catch(() => {
-        // Fallback básico para imágenes
         if (event.request.destination === 'image') {
           return caches.match('/assets/brand/favicon-32x32.png');
         }
+        return new Response('', { status: 408, statusText: 'Offline' });
       });
     })
   );

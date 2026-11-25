@@ -19,3 +19,4 @@ export * from './splashscreen/splashscreen.component';
 export * from './status-indicator/status-indicator.component';
 export * from './supplier-search/supplier-search.component';
 export * from './send-invoice-email-modal/send-invoice-email-modal.component';
+export * from './warehouse-movement-form/warehouse-movement-form.component';

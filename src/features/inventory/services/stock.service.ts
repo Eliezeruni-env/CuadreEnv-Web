@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { ApiClientService, extractArray } from '../../cuadreEnv/services/apiClient';
+import { ApiClientService, extractArray, getCompanyId } from '../../cuadreEnv/services/apiClient';
 import { WarehouseService } from './warehouse.service';
 import { ProductService } from '../../products/services/product.service';
 import type { ApiResponse } from '../../cuadreEnv/types/api';
@@ -15,9 +15,18 @@ export class StockService {
   private warehouseService = inject(WarehouseService);
   private productService = inject(ProductService);
 
+  private isInitializing = false;
+  private lastInitAttempt = 0;
+  private readonly INIT_COOLDOWN_MS = 15000;
+
+  private getStockKey(): string {
+    const compId = getCompanyId();
+    return compId ? `${STOCK_STORAGE_KEY}_${compId}` : STOCK_STORAGE_KEY;
+  }
+
   private getLocalStock(): Stock[] {
     try {
-      const raw = localStorage.getItem(STOCK_STORAGE_KEY);
+      const raw = localStorage.getItem(this.getStockKey());
       if (raw) return JSON.parse(raw);
     } catch {
       // fallback
@@ -27,7 +36,7 @@ export class StockService {
 
   private saveLocalStock(list: Stock[]): void {
     try {
-      localStorage.setItem(STOCK_STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(this.getStockKey(), JSON.stringify(list));
     } catch (e) {
       console.error('Error saving local stock:', e);
     }
@@ -37,15 +46,39 @@ export class StockService {
     const current = this.getLocalStock();
     if (current.length > 0) return;
 
-    // Build initial stock matrix from warehouses and products
-    const whRes = await this.warehouseService.getWarehouses();
-    const prodRes = await this.productService.getPagedProducts(1, 100);
-
-    const warehouses = whRes?.data || [];
-    const products = prodRes?.data?.items || [];
-    if (warehouses.length === 0 || products.length === 0) {
+    const now = Date.now();
+    if (this.isInitializing || now - this.lastInitAttempt < this.INIT_COOLDOWN_MS) {
       return;
     }
+    this.isInitializing = true;
+    this.lastInitAttempt = now;
+
+    try {
+      // Build initial stock matrix from warehouses and physical products only (services have NO stock)
+      const [whRes, prodRes] = await Promise.all([
+        this.warehouseService.getWarehouses().catch(() => null),
+        this.productService.getPagedProducts(1, 100).catch(() => null),
+      ]);
+
+      const warehouses = whRes?.data || [];
+      const allProducts = prodRes?.data?.items || [];
+      const products = allProducts.filter((p: any) => {
+        const isService =
+          p.isService === true ||
+          p.type === 'service' ||
+          p.type === 'Servicio' ||
+          p.productTypeId === 2 ||
+          p.ProductTypeId === 2 ||
+          p.invoiceWithoutStock === true ||
+          String(p.barcode || p.reference || '').toUpperCase().startsWith('SERV') ||
+          String(p.productTypeName || p.productType?.name || '').toLowerCase().includes('serv') ||
+          String(p.categoryName || p.category?.name || '').toLowerCase().includes('serv');
+        return !isService;
+      });
+
+      if (warehouses.length === 0 || products.length === 0) {
+        return;
+      }
 
     const initialStock: Stock[] = [];
     let idCounter = 1;
@@ -68,7 +101,7 @@ export class StockService {
           barcode: pBarcode,
           quantity: baseQty,
           minimumQuantity: p.minimumQuantity || 5,
-          maximumQuantity: p.maximumQuantity || 100,
+          maximumQuantity: p.maximumQuantity || 0,
           cost: pCost,
           price: pPrice,
           lastUpdated: new Date().toISOString(),
@@ -76,7 +109,71 @@ export class StockService {
       }
     }
 
-    this.saveLocalStock(initialStock);
+      this.saveLocalStock(initialStock);
+    } catch (err) {
+      console.warn('[StockService] initializeStockIfEmpty encountered an error:', err);
+    } finally {
+      this.isInitializing = false;
+    }
+  }
+
+  async syncMissingCatalogProducts(currentList: Stock[]): Promise<void> {
+    try {
+      const prodRes = await this.productService.getPagedProducts(1, 100).catch(() => null);
+      const allProducts = prodRes?.data?.items || [];
+      if (!allProducts || allProducts.length === 0) return;
+
+      const physicalProducts = allProducts.filter((p: any) => {
+        const isService =
+          p.isService === true ||
+          p.type === 'service' ||
+          p.type === 'Servicio' ||
+          p.productTypeId === 2 ||
+          p.ProductTypeId === 2 ||
+          p.invoiceWithoutStock === true ||
+          String(p.barcode || p.reference || '').toUpperCase().startsWith('SERV');
+        return !isService;
+      });
+
+      const existingProductIds = new Set(currentList.map((s) => s.productId));
+      const whRes = await this.warehouseService.getWarehouses().catch(() => null);
+      const warehouses = whRes?.data || [];
+      const defaultWh = warehouses.find((w) => w.isMain) || warehouses[0] || { id: 1, name: 'Almacén Principal' };
+
+      let modified = false;
+      let idCounter = Date.now();
+
+      for (const p of physicalProducts) {
+        const pId = p.id || 0;
+        if (!pId) continue;
+        if (!existingProductIds.has(pId)) {
+          const pCost = p.cost || 0;
+          const pPrice = (p as any).priceList || (p as any).price || (pCost ? pCost * 1.3 : 0);
+          const baseQty = Number(p.stock) || 0;
+
+          currentList.push({
+            id: idCounter++,
+            warehouseId: defaultWh.id,
+            warehouseName: defaultWh.name,
+            productId: pId,
+            productName: p.description || `Producto #${pId}`,
+            barcode: p.barcode || undefined,
+            quantity: baseQty,
+            minimumQuantity: p.minimumQuantity || 5,
+            maximumQuantity: p.maximumQuantity || 0,
+            cost: pCost,
+            price: pPrice,
+            lastUpdated: new Date().toISOString(),
+          });
+          existingProductIds.add(pId);
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        this.saveLocalStock(currentList);
+      }
+    } catch {}
   }
 
   async getStock(filters?: {
@@ -86,6 +183,8 @@ export class StockService {
   }): Promise<ApiResponse<Stock[]>> {
     await this.initializeStockIfEmpty();
     let list = this.getLocalStock();
+    await this.syncMissingCatalogProducts(list);
+    list = this.getLocalStock();
 
     if (filters?.warehouseId) {
       list = list.filter((s) => s.warehouseId === Number(filters.warehouseId));
@@ -113,6 +212,48 @@ export class StockService {
     return item ? item.quantity : 0;
   }
 
+  async setInitialStock(
+    productId: number,
+    initialStock: number,
+    productName: string,
+    barcode?: string,
+    cost?: number,
+    price?: number,
+    warehouseId: number = 1,
+  ): Promise<void> {
+    await this.initializeStockIfEmpty();
+    const list = this.getLocalStock();
+    let item = list.find((s) => s.warehouseId === warehouseId && s.productId === productId);
+
+    if (item) {
+      item.quantity = initialStock;
+      item.lastUpdated = new Date().toISOString();
+      if (productName) item.productName = productName;
+      if (barcode) item.barcode = barcode;
+      if (cost !== undefined) item.cost = cost;
+      if (price !== undefined) item.price = price;
+    } else {
+      const whRes = await this.warehouseService.getWarehouse(warehouseId).catch(() => null);
+      const whName = whRes?.data?.name || `Almacén #${warehouseId}`;
+      item = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        warehouseId,
+        warehouseName: whName,
+        productId,
+        productName: productName || `Producto #${productId}`,
+        barcode: barcode || '',
+        quantity: initialStock,
+        minimumQuantity: 5,
+        maximumQuantity: 100,
+        cost: cost || 0,
+        price: price || (cost ? cost * 1.3 : 0),
+        lastUpdated: new Date().toISOString(),
+      };
+      list.push(item);
+    }
+    this.saveLocalStock(list);
+  }
+
   async updateStock(
     warehouseId: number,
     productId: number,
@@ -125,8 +266,22 @@ export class StockService {
     let item = list.find((s) => s.warehouseId === warehouseId && s.productId === productId);
 
     if (!item) {
-      const whRes = await this.warehouseService.getWarehouse(warehouseId);
+      const whRes = await this.warehouseService.getWarehouse(warehouseId).catch(() => null);
       const whName = whRes?.data?.name || `Almacén #${warehouseId}`;
+
+      // Si el producto no existía en el almacén pero tenía stock inicial registrado en su catálogo:
+      let baseInitialQty = 0;
+      let pCost = 0;
+      let pPrice = 0;
+      try {
+        const prodRes = await this.productService.getProduct(productId);
+        if (prodRes?.data) {
+          baseInitialQty = Number(prodRes.data.stock) || 0;
+          pCost = Number(prodRes.data.cost) || 0;
+          pPrice = Number(prodRes.data.price || (prodRes.data as any).priceList) || 0;
+        }
+      } catch {}
+
       item = {
         id: Date.now() + Math.floor(Math.random() * 1000),
         warehouseId,
@@ -134,9 +289,11 @@ export class StockService {
         productId,
         productName: productName || `Producto #${productId}`,
         barcode: barcode || '',
-        quantity: 0,
+        quantity: baseInitialQty, // Preserva el stock inicial al registrar la primera entrada
         minimumQuantity: 5,
         maximumQuantity: 100,
+        cost: pCost,
+        price: pPrice,
         lastUpdated: new Date().toISOString(),
       };
       list.push(item);
@@ -169,7 +326,7 @@ export class StockService {
   getStockStatus(
     quantity: number,
     minQty: number = 5,
-    maxQty: number = 100,
+    maxQty?: number | null,
   ): { label: string; badgeClass: string; color: string; type: 'CRITICAL' | 'LOW' | 'NORMAL' | 'OVERSTOCK' } {
     if (quantity <= 0) {
       return {
@@ -187,7 +344,7 @@ export class StockService {
         type: 'LOW',
       };
     }
-    if (quantity >= maxQty) {
+    if (maxQty != null && maxQty > 0 && quantity >= maxQty) {
       return {
         label: 'Sobre-stock',
         badgeClass: 'status-badge-subtle-primary px-2.5 py-1 rounded-pill',

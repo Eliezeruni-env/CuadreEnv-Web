@@ -1,0 +1,234 @@
+<div class="agenda-services-container">
+  <!-- Top bar -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="page-title mb-1">Servicios reservables</h2>
+      <p class="text-muted mb-0">Define los servicios que tus clientes pueden reservar en línea, con su duración, precio y profesionales asignados.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-primary d-flex align-items-center gap-2" (click)="openCreateModal()">
+        <i class="cil-link"></i>
+        <span>Vincular catálogo</span>
+      </button>
+      <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openCreateModal()">
+        <i class="cil-plus"></i>
+        <span>Nuevo servicio</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-purple">
+          <i class="cil-cut"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Servicios activos</span>
+          <h3 class="kpi-value">{{ activeServicesCount }}</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-blue">
+          <i class="cil-clock"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Duración promedio</span>
+          <h3 class="kpi-value">{{ averageDuration }} min</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-green">
+          <i class="cil-globe-alt"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Reservables en línea</span>
+          <h3 class="kpi-value">{{ publicServicesCount }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="table-card mb-4">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Servicio</th>
+            <th>Duración</th>
+            <th>Precio</th>
+            <th>Profesionales asignados</th>
+            <th>Reserva pública</th>
+            <th>Estado</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading()) {
+            <tr>
+              <td colspan="7" class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-primary"></div>
+                <span class="ms-2">Cargando servicios...</span>
+              </td>
+            </tr>
+          } @else if (services().length === 0) {
+            <tr>
+              <td colspan="7" class="text-center py-4 text-muted">
+                No hay servicios reservables configurados. Haz clic en "Vincular catálogo" para comenzar.
+              </td>
+            </tr>
+          } @else {
+            @for (s of services(); track s.id) {
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="service-color-dot" [style.background-color]="s.colorHex || '#4f46e5'"></div>
+                    <div>
+                      <div class="fw-semibold text-dark">{{ s.productName }}</div>
+                      <small class="text-muted">{{ s.categoryName || 'General' }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-1">
+                    <i class="cil-clock text-muted"></i>
+                    <span>{{ s.durationMinutes }} min</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="fw-semibold">RD${{ s.price | number:'1.2-2' }}</span>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">
+                    {{ s.assignedProfessionalsCount }} profesionales
+                  </span>
+                </td>
+                <td>
+                  <div class="form-check form-switch mb-0">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      [checked]="s.isPublic"
+                      (change)="togglePublicStatus(s)"
+                    />
+                  </div>
+                </td>
+                <td>
+                  <span class="badge" [class.bg-success]="s.isActive" [class.bg-secondary]="!s.isActive">
+                    {{ s.isActive ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-secondary" (click)="openEditModal(s)">
+                    <i class="cil-pencil"></i>
+                  </button>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Explanatory note -->
+  <div class="callout-card d-flex align-items-center gap-3">
+    <i class="cil-info text-primary" style="font-size: 1.25rem;"></i>
+    <p class="mb-0 small text-muted">
+      Estos servicios provienen de tu catálogo y se reutilizan para la facturación. Puedes configurar su duración y disponibilidad para reservas en línea.
+    </p>
+  </div>
+</div>
+
+<!-- Modal Vincular / Editar Servicio -->
+@if (isModalOpen()) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal fade show d-block" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ editingService() ? 'Editar Servicio' : 'Vincular Servicio desde Catálogo' }}</h5>
+          <button type="button" class="btn-close" (click)="isModalOpen.set(false)"></button>
+        </div>
+        <div class="modal-body">
+          @if (!editingService()) {
+            <div class="mb-3">
+              <label class="form-label">Producto / Servicio del catálogo *</label>
+              <select class="form-select" [(ngModel)]="formProductId">
+                @for (prod of catalogProducts(); track prod.id) {
+                  <option [value]="prod.id">{{ prod.description }} - RD${{ prod.price }}</option>
+                }
+              </select>
+            </div>
+          } @else {
+            <div class="mb-3">
+              <label class="form-label text-muted">Servicio</label>
+              <h6>{{ editingService()?.productName }}</h6>
+            </div>
+          }
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label">Duración (minutos) *</label>
+              <input type="number" class="form-control" [(ngModel)]="formDurationMinutes" min="5" step="5" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Tiempo de limpieza / Buffer</label>
+              <input type="number" class="form-control" [(ngModel)]="formBufferMinutes" min="0" step="5" />
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Color distintivo</label>
+            <input type="color" class="form-control form-control-color w-100" [(ngModel)]="formColorHex" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Profesionales que realizan este servicio</label>
+            <div class="professionals-checkbox-list">
+              @for (prof of professionals(); track prof.id) {
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    [id]="'prof-' + prof.id"
+                    [checked]="selectedProfessionalIds.includes(prof.id)"
+                    (change)="toggleProfessional(prof.id)"
+                  />
+                  <label class="form-check-label" [for]="'prof-' + prof.id">
+                    {{ prof.fullName }} ({{ prof.specialties || 'General' }})
+                  </label>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center gap-4">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="publicSwitch" [(ngModel)]="formIsPublic" />
+              <label class="form-check-label" for="publicSwitch">Visible en portal público</label>
+            </div>
+            @if (editingService()) {
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="activeSwitch" [(ngModel)]="formIsActive" />
+                <label class="form-check-label" for="activeSwitch">Activo</label>
+              </div>
+            }
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" (click)="isModalOpen.set(false)">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="saveService()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

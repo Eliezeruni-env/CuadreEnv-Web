@@ -1,0 +1,270 @@
+<div class="agenda-professionals-container">
+  <!-- Top bar -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="page-title mb-1">Personal y disponibilidad</h2>
+      <p class="text-muted mb-0">Gestiona tu equipo, sus servicios y horarios de atención.</p>
+    </div>
+    <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openCreateModal()">
+      <i class="cil-plus"></i>
+      <span>Nuevo colaborador</span>
+    </button>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left column: Professionals list -->
+    <div class="col-12 col-lg-5">
+      <div class="professionals-card">
+        <div class="card-header-bar d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Profesionales</h5>
+          <span class="badge bg-light text-dark border">{{ professionals().length }} activos</span>
+        </div>
+
+        <div class="list-group list-group-flush">
+          @if (isLoading()) {
+            <div class="text-center py-4">
+              <div class="spinner-border spinner-border-sm text-primary"></div>
+            </div>
+          } @else {
+            @for (prof of professionals(); track prof.id) {
+              <div
+                class="list-group-item list-group-item-action d-flex align-items-center gap-3 p-3"
+                [class.active-prof]="selectedProfessional()?.id === prof.id"
+                (click)="selectProfessional(prof)"
+              >
+                <div class="prof-avatar" [style.background-color]="prof.colorHex || '#2563eb'">
+                  {{ prof.fullName.charAt(0).toUpperCase() }}
+                </div>
+                <div class="flex-grow-1">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 text-dark fw-bold">{{ prof.fullName }}</h6>
+                    <span class="badge bg-success-subtle text-success small">Activo</span>
+                  </div>
+                  <small class="text-muted d-block">{{ prof.specialties || 'Servicios generales' }}</small>
+                  <small class="text-secondary"><i class="cil-clock"></i> Lun - Sáb 09:00 - 18:00</small>
+                </div>
+              </div>
+            }
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: Availability details for selected professional -->
+    <div class="col-12 col-lg-7">
+      @if (selectedProfessional()) {
+        <div class="availability-card">
+          <div class="card-header-bar d-flex align-items-center gap-3">
+            <div class="prof-avatar" [style.background-color]="selectedProfessional()?.colorHex || '#2563eb'">
+              {{ selectedProfessional()?.fullName?.charAt(0)?.toUpperCase() }}
+            </div>
+            <div>
+              <h5 class="mb-0 fw-bold">{{ selectedProfessional()?.fullName }}</h5>
+              <span class="text-muted small">{{ selectedProfessional()?.specialties || 'Servicios' }}</span>
+            </div>
+          </div>
+
+          <div class="card-body p-4">
+            <h6 class="fw-bold mb-1">Disponibilidad semanal</h6>
+            <p class="text-muted small mb-3">Define los días y horarios en los que atiende este profesional.</p>
+
+            <div class="row g-3 mb-3">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Horario de trabajo</label>
+                <div class="d-flex align-items-center gap-2">
+                  <input type="time" class="form-control form-control-sm" [(ngModel)]="workStartTime" />
+                  <span>-</span>
+                  <input type="time" class="form-control form-control-sm" [(ngModel)]="workEndTime" />
+                </div>
+              </div>
+
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Pausa (descanso)</label>
+                <div class="d-flex align-items-center gap-2">
+                  <input type="time" class="form-control form-control-sm" [(ngModel)]="breakStartTime" />
+                  <span>-</span>
+                  <input type="time" class="form-control form-control-sm" [(ngModel)]="breakEndTime" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Days checkboxes -->
+            <div class="mb-4">
+              <label class="form-label small fw-semibold d-block">Días de atención</label>
+              <div class="d-flex flex-wrap gap-3">
+                @for (d of [1, 2, 3, 4, 5, 6, 0]; track d) {
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      [id]="'dayCheck-' + d"
+                      [checked]="activeDays.includes(d)"
+                      (change)="toggleDay(d)"
+                    />
+                    <label class="form-check-label small" [for]="'dayCheck-' + d">
+                      {{ dayNames[d] }}
+                    </label>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Schedule summary table -->
+            <div class="table-responsive mb-4">
+              <table class="table table-sm table-bordered mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Día</th>
+                    <th>Horario</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (d of [1, 2, 3, 4, 5, 6]; track d) {
+                    <tr>
+                      <td class="fw-medium">{{ dayNames[d] }}</td>
+                      <td>
+                        @if (activeDays.includes(d)) {
+                          <span>{{ workStartTime }} - {{ workEndTime }} (Pausa: {{ breakStartTime }} - {{ breakEndTime }})</span>
+                        } @else {
+                          <span class="text-muted">No laborable</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Exceptions blocker section -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div>
+                <h6 class="fw-bold mb-0">Excepciones</h6>
+                <small class="text-muted">Bloquea horarios específicos en fechas concretas (vacaciones, permisos, etc.).</small>
+              </div>
+              <button class="btn btn-sm btn-outline-primary" (click)="openExceptionModal()">
+                <i class="cil-calendar me-1"></i> Bloquear horario
+              </button>
+            </div>
+
+            <div class="exceptions-list mb-4">
+              @if (selectedProfessional()?.exceptions?.length === 0) {
+                <div class="text-muted small py-2">No hay bloqueos ni excepciones registradas.</div>
+              } @else {
+                @for (ex of selectedProfessional()?.exceptions; track ex.id) {
+                  <div class="exception-item d-flex justify-content-between align-items-center p-2 rounded bg-light mb-1 border">
+                    <div>
+                      <i class="cil-calendar me-2 text-warning"></i>
+                      <span class="fw-semibold">{{ ex.startDateTime | date:'EEE, d MMM yyyy' }}</span>
+                      <small class="text-muted ms-2">{{ ex.reason || 'No disponible' }}</small>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+              <button class="btn btn-primary" (click)="saveSchedule()">Guardar cambios</button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nuevo Colaborador -->
+@if (isCreateModalOpen()) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal fade show d-block" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Nuevo Colaborador</h5>
+          <button type="button" class="btn-close" (click)="isCreateModalOpen.set(false)"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Nombre completo *</label>
+            <input type="text" class="form-control" [(ngModel)]="formFullName" placeholder="Carlos Pérez" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Especialidades / Título</label>
+            <input type="text" class="form-control" [(ngModel)]="formSpecialties" placeholder="Barbero / Estilista" />
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label">Teléfono</label>
+              <input type="tel" class="form-control" [(ngModel)]="formPhone" placeholder="(809) 555-0100" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Correo electrónico</label>
+              <input type="email" class="form-control" [(ngModel)]="formEmail" placeholder="barbero@cuadreenv.com" />
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Color en calendario</label>
+            <input type="color" class="form-control form-control-color w-100" [(ngModel)]="formColorHex" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Servicios que puede atender</label>
+            <div class="services-list-scroll">
+              @for (svc of services(); track svc.id) {
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    [id]="'svc-' + svc.id"
+                    [checked]="selectedServiceIds.includes(svc.id)"
+                    (change)="toggleService(svc.id)"
+                  />
+                  <label class="form-check-label" [for]="'svc-' + svc.id">
+                    {{ svc.productName }} ({{ svc.durationMinutes }} min)
+                  </label>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" (click)="isCreateModalOpen.set(false)">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="submitCreateProfessional()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal Bloquear Horario -->
+@if (isExceptionModalOpen()) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal fade show d-block" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Bloquear Horario / Excepción</h5>
+          <button type="button" class="btn-close" (click)="isExceptionModalOpen.set(false)"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label">Fecha Inicio *</label>
+              <input type="date" class="form-control" [(ngModel)]="exceptionStartDate" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Fecha Fin *</label>
+              <input type="date" class="form-control" [(ngModel)]="exceptionEndDate" />
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Motivo o razón</label>
+            <input type="text" class="form-control" [(ngModel)]="exceptionReason" placeholder="Vacaciones, permiso médico, capacitación" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" (click)="isExceptionModalOpen.set(false)">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="submitException()">Bloquear Horario</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

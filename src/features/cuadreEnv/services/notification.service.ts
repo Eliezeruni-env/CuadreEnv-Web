@@ -40,10 +40,22 @@ export class NotificationService {
       copied: false,
     };
 
-    // Prevent duplicate toast if already showing the exact same title & message
-    const existing = this.toasts().find(
-      (t) => t.visible && t.title === title && t.message === message,
-    );
+    // Prevent duplicate toast if already showing the exact same title & message,
+    // or if a danger toast for server error/outage with the same requestId is already visible
+    const existing = this.toasts().find((t) => {
+      if (!t.visible) return false;
+      if (t.title === title && t.message === message) return true;
+      if (
+        color === 'danger' &&
+        t.color === 'danger' &&
+        ((meta?.requestId && t.requestId === meta.requestId) ||
+          ((t.title.includes('Servidor') || t.title.includes('Avería')) &&
+           (title.includes('Servidor') || title.includes('Avería'))))
+      ) {
+        return true;
+      }
+      return false;
+    });
     if (existing) {
       return existing.id;
     }

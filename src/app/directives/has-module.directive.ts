@@ -1,10 +1,10 @@
-import { Directive, Input, TemplateRef, ViewContainerRef, inject, effect } from '@angular/core';
+import { Directive, Input, TemplateRef, ViewContainerRef, inject, effect, signal } from '@angular/core';
 import { ModuleAccessService } from '../../features/cuadreEnv/services/module-access.service';
 import { AuthService } from '../../features/cuadreEnv/services/auth.service';
 
 @Directive({
   selector: '[hasModule]',
-  standalone: true
+  standalone: true,
 })
 export class HasModuleDirective {
   private templateRef = inject(TemplateRef<any>);
@@ -12,21 +12,28 @@ export class HasModuleDirective {
   private authService = inject(AuthService, { optional: true });
   private moduleAccess = inject(ModuleAccessService);
 
-  private requiredModule: string = '';
+  private moduleCodeSignal = signal<string>('');
+  private isRendered = false;
 
   @Input() set hasModule(moduleCode: string) {
-    this.requiredModule = moduleCode;
+    this.moduleCodeSignal.set(moduleCode || '');
+  }
+
+  constructor() {
     effect(() => {
-      // Forzar suscripción al signal reactivo de módulos
+      const code = this.moduleCodeSignal();
       this.moduleAccess.allowedModulesSignal();
       const hasAccess = this.authService
-        ? this.authService.hasModuleAccess(this.requiredModule)
-        : this.moduleAccess.hasModuleAccess(this.requiredModule);
+        ? this.authService.hasModuleAccess(code)
+        : this.moduleAccess.hasModuleAccess(code);
 
-      this.viewContainer.clear();
-      if (hasAccess) {
+      if (hasAccess && !this.isRendered) {
         this.viewContainer.createEmbeddedView(this.templateRef);
+        this.isRendered = true;
+      } else if (!hasAccess && this.isRendered) {
+        this.viewContainer.clear();
+        this.isRendered = false;
       }
-    }, { allowSignalWrites: true });
+    });
   }
 }

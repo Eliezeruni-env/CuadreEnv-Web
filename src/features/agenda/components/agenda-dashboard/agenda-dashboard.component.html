@@ -1,0 +1,258 @@
+<div class="agenda-dashboard-container">
+  <!-- Top header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="page-title mb-1">Panel de agenda</h2>
+      <p class="text-muted mb-0">Gestión de citas operativas y disponibilidad</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <div class="date-selector-pill">
+        <i class="cil-calendar me-2"></i>
+        <span>{{ selectedDate() }}</span>
+      </div>
+      <button class="btn btn-primary d-flex align-items-center gap-2" [routerLink]="['/agenda/reservations']">
+        <i class="cil-plus"></i>
+        <span>Nueva cita</span>
+      </button>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando panel...</span>
+      </div>
+    </div>
+  } @else {
+    <!-- 4 KPI Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-blue">
+            <i class="cil-calendar"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Citas hoy</span>
+            <h3 class="kpi-value">{{ dashboardData()?.kpis?.appointmentsToday ?? 0 }}</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-amber">
+            <i class="cil-clock"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Pendientes</span>
+            <h3 class="kpi-value">{{ dashboardData()?.kpis?.pendingCount ?? 0 }}</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-green">
+            <i class="cil-check"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Confirmadas</span>
+            <h3 class="kpi-value">{{ dashboardData()?.kpis?.confirmedCount ?? 0 }}</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-purple">
+            <i class="cil-money"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Ingresos facturados</span>
+            <h3 class="kpi-value">RD${{ (dashboardData()?.kpis?.invoicedRevenue ?? 0) | number:'1.2-2' }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="row g-4 mb-4">
+      <!-- Citas de hoy timeline -->
+      <div class="col-12 col-lg-7">
+        <div class="agenda-panel-card h-100">
+          <div class="panel-header d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="panel-title mb-0">Citas de hoy</h5>
+              <span class="panel-subtitle">Próximas citas en el orden del día</span>
+            </div>
+            <a [routerLink]="['/agenda/calendar']" class="link-action">Ver calendario &rarr;</a>
+          </div>
+
+          <div class="panel-body">
+            @if (dashboardData()?.todayTimeline?.length === 0) {
+              <div class="text-center py-4 text-muted">
+                <i class="cil-calendar mb-2" style="font-size: 2rem;"></i>
+                <p>No hay citas programadas para el día de hoy.</p>
+              </div>
+            } @else {
+              <div class="timeline-list">
+                @for (item of dashboardData()?.todayTimeline; track item.id) {
+                  <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-time">{{ item.startAt | date:'HH:mm' }}</div>
+                    <div class="timeline-content">
+                      <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                          <h6 class="client-name mb-0">{{ item.customerName }}</h6>
+                          <span class="service-desc">{{ item.serviceName }} &bull; <i class="cil-user"></i> {{ item.professionalName || 'Por asignar' }}</span>
+                        </div>
+                        <span class="status-badge" [ngClass]="getStatusClass(item.status)">
+                          {{ getStatusLabel(item.status) }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Solicitudes pendientes card & Quick Actions -->
+      <div class="col-12 col-lg-5">
+        <div class="d-flex flex-column gap-4 h-100">
+          <!-- Solicitudes pendientes -->
+          <div class="agenda-panel-card flex-grow-1">
+            <div class="panel-header d-flex justify-content-between align-items-center">
+              <div>
+                <h5 class="panel-title mb-0">Solicitudes pendientes</h5>
+                <span class="panel-subtitle">Reservas por revisar o confirmar</span>
+              </div>
+              <span class="badge bg-primary rounded-pill">{{ dashboardData()?.pendingRequests?.length ?? 0 }}</span>
+            </div>
+
+            <div class="panel-body">
+              @if (dashboardData()?.pendingRequests?.length === 0) {
+                <div class="text-center py-3 text-muted">
+                  <p class="mb-0">No hay solicitudes pendientes de confirmación.</p>
+                </div>
+              } @else {
+                <div class="pending-list">
+                  @for (pending of dashboardData()?.pendingRequests; track pending.id) {
+                    <div class="pending-item">
+                      <div class="d-flex align-items-start justify-content-between mb-2">
+                        <div>
+                          <h6 class="pending-client mb-0">{{ pending.customerName }}</h6>
+                          <div class="pending-meta">
+                            <i class="cil-calendar"></i>
+                            <span>{{ pending.startAt | date:'EEE, d MMM - HH:mm' }}</span> &bull;
+                            <span>{{ pending.serviceName }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="d-flex gap-2 justify-content-end">
+                        <button class="btn btn-sm btn-outline-danger" (click)="rejectPending(pending)">Rechazar</button>
+                        <button class="btn btn-sm btn-primary" (click)="confirmPending(pending)">Confirmar</button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Accesos rápidos -->
+          <div class="agenda-panel-card">
+            <div class="panel-header">
+              <h5 class="panel-title mb-0">Accesos rápidos</h5>
+            </div>
+            <div class="panel-body">
+              <div class="row g-2">
+                <div class="col-4">
+                  <button class="quick-access-btn" [routerLink]="['/agenda/reservations']">
+                    <i class="cil-calendar-check"></i>
+                    <span>Nueva cita</span>
+                  </button>
+                </div>
+                <div class="col-4">
+                  <button class="quick-access-btn" (click)="copyBookingLink()">
+                    <i class="cil-link"></i>
+                    <span>Copiar enlace</span>
+                  </button>
+                </div>
+                <div class="col-4">
+                  <button class="quick-access-btn" [routerLink]="['/agenda/professionals']">
+                    <i class="cil-clock"></i>
+                    <span>Horarios</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Row: Ocupación semanal & Próximas citas -->
+    <div class="row g-4">
+      <div class="col-12 col-lg-7">
+        <div class="agenda-panel-card">
+          <div class="panel-header">
+            <h5 class="panel-title mb-0">Ocupación semanal</h5>
+            <span class="panel-subtitle">% de horarios ocupados</span>
+          </div>
+          <div class="panel-body">
+            <div class="weekly-bar-grid">
+              @for (day of dashboardData()?.weeklyOccupancy; track day.date) {
+                <div class="bar-col">
+                  <div class="bar-wrapper">
+                    <div class="bar-fill" [style.height.%]="day.occupancyPercentage"></div>
+                  </div>
+                  <span class="bar-percent">{{ day.occupancyPercentage }}%</span>
+                  <span class="bar-label">{{ day.dayName }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-5">
+        <div class="agenda-panel-card">
+          <div class="panel-header d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="panel-title mb-0">Próximas citas</h5>
+              <span class="panel-subtitle">Siguientes citas en la agenda</span>
+            </div>
+            <a [routerLink]="['/agenda/reservations']" class="link-action">Ver todas &rarr;</a>
+          </div>
+          <div class="panel-body">
+            @if (dashboardData()?.upcomingAppointments?.length === 0) {
+              <div class="text-center py-3 text-muted">No hay próximas citas programadas.</div>
+            } @else {
+              <div class="upcoming-list">
+                @for (appt of dashboardData()?.upcomingAppointments; track appt.id) {
+                  <div class="upcoming-item d-flex justify-content-between align-items-center">
+                    <div>
+                      <div class="d-flex align-items-center gap-2">
+                        <i class="cil-calendar text-muted"></i>
+                        <span class="fw-semibold">{{ appt.startAt | date:'EEE, d MMM - HH:mm' }}</span>
+                      </div>
+                      <div class="text-muted small">
+                        {{ appt.customerName }} &bull; {{ appt.serviceName }} &bull; {{ appt.professionalName || 'Sin asignar' }}
+                      </div>
+                    </div>
+                    <span class="status-badge" [ngClass]="getStatusClass(appt.status)">
+                      {{ getStatusLabel(appt.status) }}
+                    </span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

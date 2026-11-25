@@ -19,10 +19,27 @@ export class GlobalErrorHandler implements ErrorHandler {
   handleError(error: unknown): void {
     const errorMsg =
       error instanceof Error ? error.message : JSON.stringify(error);
-    if (
-      errorMsg.includes('ResizeObserver') ||
+
+    const isChunkFailed =
       errorMsg.includes('Loading chunk') ||
       errorMsg.includes('Failed to fetch dynamically imported module') ||
+      errorMsg.includes('Failed to load module script') ||
+      errorMsg.includes('Expected a JavaScript-or-Wasm module script');
+
+    if (isChunkFailed) {
+      const chunkReloadKey = 'last_chunk_reload_ts';
+      const lastReload = Number(sessionStorage.getItem(chunkReloadKey) || 0);
+      const now = Date.now();
+      // Si un chunk cambió por un nuevo build o despliegue, recargar automáticamente para cargar la versión fresca
+      if (now - lastReload > 10000) {
+        sessionStorage.setItem(chunkReloadKey, String(now));
+        window.location.reload();
+      }
+      return;
+    }
+
+    if (
+      errorMsg.includes('ResizeObserver') ||
       errorMsg.includes('NG0100')
     ) {
       return;

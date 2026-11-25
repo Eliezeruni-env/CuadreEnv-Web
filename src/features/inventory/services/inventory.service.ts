@@ -17,13 +17,43 @@ import type {
 })
 export class InventoryService {
   private readonly api = inject(ApiClientService);
+  private lastWarehousesFetch = 0;
+  private cachedWarehouses: ApiResponse<WarehouseDto[]> | null = null;
+  private inFlightWarehouses: Promise<ApiResponse<WarehouseDto[]>> | null = null;
+  private readonly WAREHOUSES_TTL = 15000;
+
   // Warehouses
   async getWarehouses(params?: {
     pageNumber?: number;
     pageSize?: number;
-  }): Promise<ApiResponse<WarehouseDto[]>> {
-    const res = await this.api.get<any, any>('/warehouse', { params });
-    return { success: true, data: extractArray<WarehouseDto>(res) };
+  }, forceRefresh = false): Promise<ApiResponse<WarehouseDto[]>> {
+    const now = Date.now();
+    if (!forceRefresh && this.cachedWarehouses && now - this.lastWarehousesFetch < this.WAREHOUSES_TTL) {
+      return this.cachedWarehouses;
+    }
+    if (this.inFlightWarehouses) {
+      return this.inFlightWarehouses;
+    }
+
+    this.inFlightWarehouses = (async () => {
+      try {
+        const res = await this.api.get<any, any>('/warehouse', { params });
+        const list = extractArray<WarehouseDto>(res) || [];
+        const result: ApiResponse<WarehouseDto[]> = { success: true, data: list };
+        this.lastWarehousesFetch = Date.now();
+        this.cachedWarehouses = result;
+        return result;
+      } catch {
+        const fallback: ApiResponse<WarehouseDto[]> = { success: true, data: [] };
+        this.lastWarehousesFetch = Date.now();
+        this.cachedWarehouses = fallback;
+        return fallback;
+      } finally {
+        this.inFlightWarehouses = null;
+      }
+    })();
+
+    return this.inFlightWarehouses;
   }
 
   async createWarehouse(name: string): Promise<ApiResponse<WarehouseDto>> {
@@ -98,21 +128,20 @@ export class InventoryService {
     to?: string;
     type?: string;
   }): Promise<ApiResponse<MovementDto[]>> {
+    const queryParams: any = { ...params };
+    if (queryParams.to && typeof queryParams.to === 'string' && queryParams.to.length === 10) {
+      queryParams.to = `${queryParams.to}T23:59:59.999Z`;
+    }
     try {
       const res = await this.api.get<any, any>('/inventory/movements', {
-        params,
+        params: queryParams,
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
       });
       const data = extractArray<MovementDto>(res);
       return { success: true, data: data || [] };
     } catch {
-      // Try fallback endpoint
-      try {
-        const res2 = await this.api.get<any, any>('/v1/inventory/movements', { params });
-        const data2 = extractArray<MovementDto>(res2);
-        return { success: true, data: data2 || [] };
-      } catch {
-        return { success: false, data: [], message: 'No se pudo conectar con el servidor.' };
-      }
+      // Fallback a movimientos locales del inventario
+      return { success: true, data: this.getLocalMovements() };
     }
   }
 

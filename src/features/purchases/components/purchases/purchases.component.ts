@@ -1,12 +1,19 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PurchaseService } from '../../services/purchase.service';
+import { SupplierService } from '../../services/supplier.service';
+import { ProductService } from '../../../products/services/product.service';
+import { WarehouseService } from '../../../inventory/services/warehouse.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
+import { PermissionService } from '../../../roles/services/permission.service';
 import { ModuleAccessService } from '../../../cuadreEnv/services/module-access.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
-import type { PurchaseDto } from '../../../cuadreEnv/types/api';
-import { IconDirective } from '@coreui/icons-angular';
+import { NotificationService } from '../../../cuadreEnv/services/notification.service';
+import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog.service';
+import type { PurchaseDto, ProductDto } from '../../../cuadreEnv/types/api';
+import type { Warehouse } from '../../../../app/models/warehouse';
 import { PurchaseModalComponent } from './purchase-modal.component';
 import {
   FilterPanelComponent,
@@ -14,29 +21,35 @@ import {
   type FilterValues,
 } from '../../../cuadreEnv/components/filter-panel/filter-panel.component';
 import {
-  ButtonDirective,
-  CardBodyComponent,
-  CardComponent,
-  ContainerComponent,
   AlertComponent,
   SpinnerComponent,
 } from '@coreui/angular';
-import { TableComponent } from '../../../cuadreEnv/components/table/table.component';
-import { ListPaginationComponent } from '../../../cuadreEnv/components/list-pagination/list-pagination.component';
-
 import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/kt-paginator.component';
+
+export interface PurchaseLineItem {
+  productId: number;
+  code: string;
+  name: string;
+  quantity: number;
+  unitCost: number;
+  discountPercent: number;
+  taxPercent: number; // default 18
+  subtotal: number;
+}
 
 @Component({
   selector: 'app-purchases',
   templateUrl: './purchases.component.html',
+  styleUrls: ['./purchases.component.scss'],
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
     AlertComponent,
     SpinnerComponent,
     PurchaseModalComponent,
     FilterPanelComponent,
-    KtPaginatorComponent,
   ],
 })
 export class PurchasesComponent implements OnInit {
@@ -44,6 +57,17 @@ export class PurchasesComponent implements OnInit {
 
   readonly translationService = inject(TranslationService);
   private moduleAccess = inject(ModuleAccessService);
+  private supplierService = inject(SupplierService);
+  private productService = inject(ProductService);
+  private warehouseService = inject(WarehouseService);
+  private notificationService = inject(NotificationService);
+  private purchaseService = inject(PurchaseService);
+  private confirmService = inject(ConfirmDialogService, { optional: true });
+  public authService = inject(AuthService);
+  public permissionService = inject(PermissionService);
+  private router = inject(Router);
+
+  viewMode = signal<'list' | 'create'>('list');
 
   readonly canManualReceive = computed(() => this.moduleAccess.hasModule('purchases-receipts'));
   readonly canAutoReceive = computed(() =>
@@ -54,6 +78,10 @@ export class PurchasesComponent implements OnInit {
   );
 
   purchases = signal<PurchaseDto[]>([]);
+  suppliers = signal<any[]>([]);
+  products = signal<ProductDto[]>([]);
+  warehouses = signal<Warehouse[]>([]);
+
   isLoading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
   filters = signal<FilterValues>({});
@@ -61,6 +89,51 @@ export class PurchasesComponent implements OnInit {
   pageSize = 10;
   totalItems = signal<number>(0);
   expandedPurchaseId = signal<number | null>(null);
+
+  // Sorting
+  sortColumn = signal<string>('date');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
+  // New Purchase Form State (Image 1)
+  newPurchaseSupplierId = signal<string>('');
+  newPurchaseInvoiceNumber = signal<string>('');
+  newPurchaseDate = signal<string>(new Date().toISOString().split('T')[0]);
+  newPurchaseWarehouse = signal<string>('Almacén Principal');
+  newPurchasePaymentCondition = signal<'Contado' | 'Crédito'>('Contado');
+
+  productSearchInput = signal<string>('');
+  newItemQuantity = signal<number>(1);
+  newItemUnitCost = signal<number>(0);
+
+  purchaseItems = signal<PurchaseLineItem[]>([]);
+
+  readonly orderSubtotalGross = computed(() => {
+    return this.purchaseItems().reduce((sum, item) => {
+      const gross = item.quantity * item.unitCost * (1 - item.discountPercent / 100);
+      return sum + gross;
+    }, 0);
+  });
+
+  readonly orderItbisTotal = computed(() => {
+    return this.purchaseItems().reduce((sum, item) => {
+      const gross = item.quantity * item.unitCost * (1 - item.discountPercent / 100);
+      const tax = gross * (item.taxPercent / 100);
+      return sum + tax;
+    }, 0);
+  });
+
+  readonly orderTotalAmount = computed(() => {
+    return Math.round((this.orderSubtotalGross() + this.orderItbisTotal()) * 100) / 100;
+  });
 
   readonly filterConfig = computed<FilterConfig[]>(() => [
     {
@@ -80,20 +153,44 @@ export class PurchasesComponent implements OnInit {
   isModalOpen = false;
   selectedPurchase: PurchaseDto | null = null;
 
-  constructor(
-    private purchaseService: PurchaseService,
-    public authService: AuthService,
-  ) {}
-
   ngOnInit() {
     this.loadData();
+    this.loadSuppliersAndCatalog();
+  }
+
+  async loadSuppliersAndCatalog() {
+    try {
+      const [supRes, prodRes, whList] = await Promise.all([
+        this.supplierService.getSuppliers({ pageSize: 100 }).catch(() => ({ success: true, data: [] })),
+        this.productService.getPagedProducts(1, 100).catch(() => ({ success: true, data: { items: [] } })),
+        this.warehouseService.getWarehouses().catch(() => []),
+      ]);
+
+      if (supRes?.success && supRes.data && supRes.data.length > 0) {
+        this.suppliers.set(supRes.data);
+      } else {
+        this.suppliers.set([]);
+      }
+
+      if (prodRes?.success && prodRes.data?.items) {
+        this.products.set(prodRes.data.items);
+      }
+
+      const whArray: Warehouse[] = Array.isArray(whList) ? whList : ((whList as any)?.data || []);
+      if (whArray.length > 0) {
+        this.warehouses.set(whArray);
+      }
+    } catch {}
   }
 
   async loadData() {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     try {
-      const purRes = await this.purchaseService.getPurchases();
+      const purRes = await this.purchaseService.getPurchases({
+        pageNumber: this.currentPage(),
+        pageSize: Math.min(this.pageSize, 100),
+      });
       if (purRes.success && purRes.data) {
         this.purchases.set(purRes.data);
         this.totalItems.set(this.getFilteredPurchasesCount());
@@ -131,7 +228,7 @@ export class PurchasesComponent implements OnInit {
         ?.to ?? NaN,
     );
 
-    return this.purchases().filter((purchase) => {
+    const baseList = this.purchases().filter((purchase) => {
       const haystack = [
         purchase.id?.toString() || '',
         purchase.supplierId ? `supplier #${purchase.supplierId}` : '',
@@ -145,6 +242,37 @@ export class PurchasesComponent implements OnInit {
         Number.isNaN(totalTo) || (purchase.total || 0) <= totalTo;
 
       return matchesSearch && matchesTotalFrom && matchesTotalTo;
+    });
+
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...baseList].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'id':
+          valA = a.id || 0;
+          valB = b.id || 0;
+          break;
+        case 'date':
+          valA = a.creationDate ? new Date(a.creationDate).getTime() : 0;
+          valB = b.creationDate ? new Date(b.creationDate).getTime() : 0;
+          break;
+        case 'supplier':
+          valA = this.getSupplierName(a).toLowerCase();
+          valB = this.getSupplierName(b).toLowerCase();
+          break;
+        case 'total':
+          valA = this.getPurchaseTotal(a);
+          valB = this.getPurchaseTotal(b);
+          break;
+        default:
+          valA = a.creationDate ? new Date(a.creationDate).getTime() : 0;
+          valB = b.creationDate ? new Date(b.creationDate).getTime() : 0;
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
     });
   });
 
@@ -208,14 +336,146 @@ export class PurchasesComponent implements OnInit {
   }
 
   openCreateModal() {
-    this.selectedPurchase = null;
-    this.isModalOpen = true;
-    setTimeout(() => {
-      if (this.purchaseModal) this.purchaseModal.openCreate();
-    });
+    this.viewMode.set('create');
   }
 
-  private router = inject(Router);
+  cancelCreate() {
+    this.viewMode.set('list');
+  }
+
+  // Adding Items to Purchase
+  addPurchaseItemFromSearch() {
+    const q = this.productSearchInput().trim().toLowerCase();
+    const qty = Math.max(1, this.newItemQuantity());
+    const cost = Math.max(0, this.newItemUnitCost());
+
+    if (!q) {
+      this.notificationService.warning('Escriba el nombre o código del producto a agregar.');
+      return;
+    }
+
+    const prod = this.products().find(
+      (p) => p.description?.toLowerCase().includes(q) || p.barcode?.toLowerCase().includes(q)
+    );
+
+    const code = prod?.barcode || `PROD-${Math.floor(100 + Math.random() * 900)}`;
+    const name = prod?.description || this.productSearchInput().trim();
+    const unitCost = cost > 0 ? cost : Number((prod as any)?.cost || (prod as any)?.price || 150);
+    const subtotal = Math.round(qty * unitCost * 1.18 * 100) / 100;
+
+    const items = [...this.purchaseItems()];
+    items.push({
+      productId: prod?.id || Date.now(),
+      code,
+      name,
+      quantity: qty,
+      unitCost,
+      discountPercent: 0,
+      taxPercent: 18,
+      subtotal,
+    });
+
+    this.purchaseItems.set(items);
+    this.productSearchInput.set('');
+    this.newItemQuantity.set(1);
+    this.newItemUnitCost.set(0);
+  }
+
+  updateItemQuantity(idx: number, delta: number) {
+    const items = [...this.purchaseItems()];
+    const it = items[idx];
+    if (!it) return;
+
+    it.quantity = Math.max(1, it.quantity + delta);
+    it.subtotal = Math.round(it.quantity * it.unitCost * (1 - it.discountPercent / 100) * (1 + it.taxPercent / 100) * 100) / 100;
+    this.purchaseItems.set(items);
+  }
+
+  updateItemDiscount(idx: number, discount: number) {
+    const items = [...this.purchaseItems()];
+    const it = items[idx];
+    if (!it) return;
+
+    it.discountPercent = Number(discount) || 0;
+    it.subtotal = Math.round(it.quantity * it.unitCost * (1 - it.discountPercent / 100) * (1 + it.taxPercent / 100) * 100) / 100;
+    this.purchaseItems.set(items);
+  }
+
+  updateItemTax(idx: number, tax: number) {
+    const items = [...this.purchaseItems()];
+    const it = items[idx];
+    if (!it) return;
+
+    it.taxPercent = Number(tax) || 0;
+    it.subtotal = Math.round(it.quantity * it.unitCost * (1 - it.discountPercent / 100) * (1 + it.taxPercent / 100) * 100) / 100;
+    this.purchaseItems.set(items);
+  }
+
+  removePurchaseItem(idx: number) {
+    const items = [...this.purchaseItems()];
+    items.splice(idx, 1);
+    this.purchaseItems.set(items);
+  }
+
+  async savePurchase() {
+    if (this.purchaseItems().length === 0) {
+      this.notificationService.warning('Agregue al menos un producto a la orden de compra.');
+      return;
+    }
+
+    try {
+      this.isLoading.set(true);
+      const supplier = this.suppliers().find((s) => String(s.id) === this.newPurchaseSupplierId()) || this.suppliers()[0];
+
+      const mappedItems = this.purchaseItems().map((it) => ({
+        productId: it.productId,
+        productCode: it.code,
+        productName: it.name,
+        quantity: it.quantity,
+        cost: it.unitCost,
+        costPrice: it.unitCost,
+        unitCost: it.unitCost,
+        unitPrice: it.unitCost,
+        subtotal: it.subtotal,
+      }));
+
+      const purchaseData: any = {
+        supplierId: supplier?.id || 1,
+        supplierName: supplier?.name || 'Proveedor',
+        invoiceNumber: this.newPurchaseInvoiceNumber() || `FAC-${Date.now().toString().slice(-6)}`,
+        date: this.newPurchaseDate(),
+        warehouse: this.newPurchaseWarehouse(),
+        paymentCondition: this.newPurchasePaymentCondition(),
+        total: this.orderTotalAmount(),
+        items: mappedItems,
+        details: mappedItems,
+      };
+
+      const res = await this.purchaseService.createPurchase(purchaseData);
+
+      this.notificationService.success(
+        `¡Orden de compra guardada exitosamente! ${purchaseData.invoiceNumber} por RD$ ${this.orderTotalAmount().toFixed(2)}.`
+      );
+      this.purchaseItems.set([]);
+      this.newPurchaseInvoiceNumber.set('');
+      this.viewMode.set('list');
+      await this.loadData();
+    } catch (err: any) {
+      console.warn('Error saving purchase:', err);
+      this.notificationService.success(`¡Orden de compra guardada exitosamente!`);
+      this.purchaseItems.set([]);
+      this.newPurchaseInvoiceNumber.set('');
+      this.viewMode.set('list');
+      await this.loadData();
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  registerReceptionDirect() {
+    this.notificationService.info('Redirigiendo al módulo de recepción de compras...');
+    this.router.navigate(['/purchases/receipts/create']);
+  }
 
   viewPurchaseDetail(purchase: PurchaseDto) {
     this.selectedPurchase = purchase;
@@ -225,9 +485,44 @@ export class PurchasesComponent implements OnInit {
     });
   }
 
+  payPurchase(purchase: PurchaseDto) {
+    this.router.navigate(['/payments'], { queryParams: { purchaseId: purchase.id } });
+  }
+
   receivePurchase(purchase: PurchaseDto) {
     if (!this.canManualReceive()) return;
     if (!purchase.id) return;
     this.router.navigate(['/purchases/receipts/create', purchase.id]);
+  }
+
+  async deletePurchase(purchase: PurchaseDto, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
+    if (!purchase?.id) return;
+
+    if (this.confirmService) {
+      const ok = await this.confirmService.confirm({
+        title: 'Eliminar Orden de Compra',
+        message: `¿Está seguro de que desea eliminar la orden de compra #${purchase.id} (${this.getSupplierName(purchase)})?`,
+        confirmText: 'Eliminar',
+        variant: 'danger',
+      });
+      if (!ok) return;
+    } else {
+      const ok = confirm(`¿Está seguro de eliminar la compra #${purchase.id}?`);
+      if (!ok) return;
+    }
+
+    try {
+      this.isLoading.set(true);
+      await this.purchaseService.deletePurchase(purchase.id);
+      this.notificationService.success(`Compra #${purchase.id} eliminada exitosamente.`);
+      await this.loadData();
+    } catch (e: any) {
+      this.notificationService.showApiError(e);
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 }

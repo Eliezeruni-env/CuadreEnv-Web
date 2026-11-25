@@ -1,7 +1,7 @@
 .custom-modal-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.65);
+  background-color: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
   z-index: 1060;
   display: flex;
@@ -15,33 +15,47 @@
   width: 100%;
   max-width: 860px;
   background: #ffffff;
-  border-radius: 18px;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22);
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.25);
+  border: 1px solid #e2e8f0;
   animation: scaleUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.bg-gradient-header {
-  background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
-}
-
 .header-icon-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: #ede9fe;
-  color: #7c3aed;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #2563eb;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.custom-modal-body {
+  max-height: 82vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+  }
+}
+
 .photo-container {
   width: 100%;
-  height: 200px;
+  height: 180px;
   background: #f8fafc;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -51,18 +65,18 @@
 .product-real-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transition: transform 0.25s ease;
+  object-fit: contain;
+  transition: transform 0.2s ease;
 
   &:hover {
-    transform: scale(1.04);
+    transform: scale(1.03);
   }
 }
 
 .photo-placeholder {
   width: 100%;
   height: 100%;
-  background: #f1f5f9;
+  background: #f8fafc;
 }
 
 .barcode-svg-wrapper {
@@ -75,8 +89,8 @@
   }
 }
 
-.shadow-xs {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+.shadow-2xs {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
 }
 
 @keyframes fadeIn {
@@ -87,7 +101,7 @@
 @keyframes scaleUp {
   from {
     opacity: 0;
-    transform: scale(0.96) translateY(10px);
+    transform: scale(0.97) translateY(8px);
   }
   to {
     opacity: 1;

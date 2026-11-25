@@ -181,6 +181,16 @@
                   <span class="text-secondary">Efectivo neto depositado en sobre / bóveda:</span>
                   <strong class="text-success font-monospace">RD$ {{ (audit.depositedCash || 0) | number: '1.2-2' }}</strong>
                 </div>
+                @if ((audit.declaredCashUsd || 0) > 0) {
+                  <div class="d-flex justify-content-between py-1 border-bottom">
+                    <span class="text-secondary">Efectivo en Dólares (USD):</span>
+                    <strong class="text-dark font-monospace">US$ {{ (audit.declaredCashUsd || 0) | number: '1.2-2' }} (Tasa: RD$ {{ (audit.usdExchangeRate || 60.5) | number: '1.2-2' }})</strong>
+                  </div>
+                  <div class="d-flex justify-content-between py-1 border-bottom">
+                    <span class="text-secondary">Equivalente USD en Pesos:</span>
+                    <strong class="text-success font-monospace">+ RD$ {{ (audit.usdEquivalentDop || 0) | number: '1.2-2' }}</strong>
+                  </div>
+                }
                 @if ((audit.declaredCards || 0) > 0) {
                   <div class="d-flex justify-content-between py-1 border-bottom">
                     <span class="text-secondary">Lote Verifone Declarado (Tarjetas):</span>
@@ -623,6 +633,167 @@
 
 
 
+          <!-- COBRO Y CONTEO DE EFECTIVO EN DÓLARES (USD EN GAVETA) -->
+          <div class="usd-cash-panel mb-3 p-3 rounded-3 border bg-body-tertiary" [formGroup]="form">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <div class="d-flex align-items-center gap-2">
+                <span class="fs-5">💵</span>
+                <div>
+                  <h6 class="mb-0 fw-bold fs-sm">Efectivo en Dólares Físicos (USD en Gaveta)</h6>
+                  <small class="text-muted">Si cobraste en USD durante el turno, declara los billetes para sumarlos al arqueo</small>
+                </div>
+              </div>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 small">
+                Multidivisa
+              </span>
+            </div>
+
+            <div class="row g-2 align-items-center">
+              <div class="col-md-5">
+                <label class="form-label small fw-semibold text-secondary mb-1">
+                  Billetes USD Contados:
+                </label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-success text-white fw-bold">US$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="0.00"
+                    class="form-control fw-bold"
+                    formControlName="declaredCashUsd"
+                    (input)="onUsdCashChange($any($event.target).value)"
+                  />
+                </div>
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold text-secondary mb-1">
+                  Tasa Cambio (RD$/US$):
+                </label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">RD$</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    class="form-control fw-bold text-center"
+                    formControlName="usdExchangeRate"
+                    (input)="onUsdCashChange(form.value.declaredCashUsd, $any($event.target).value)"
+                  />
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-secondary mb-1">
+                  Equivalente Sumado a Caja:
+                </label>
+                <div class="p-2 rounded-2 border bg-light text-center">
+                  <div class="fs-6 fw-bold text-success font-monospace">
+                    + RD$ {{ usdCashEquivalentInDop() | number: '1.2-2' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            @if (declaredCashUsd() > 0) {
+              <div class="mt-2 py-1 px-2 rounded-2 bg-success-subtle text-success border border-success-subtle small d-flex justify-content-between align-items-center">
+                <span>Total Físico Arqueado (Pesos + USD):</span>
+                <strong class="font-monospace fs-6">RD$ {{ totalPhysicalCashCounted() | number: '1.2-2' }}</strong>
+              </div>
+            }
+          </div>
+
+          <!-- DECLARACIÓN DE TARJETAS Y TRANSFERENCIAS BANCARIAS -->
+          <div class="other-payments-panel mb-3 p-3 rounded-3 border" [formGroup]="form">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <div class="d-flex align-items-center gap-2">
+                <span class="fs-5">💳</span>
+                <div>
+                  <h6 class="mb-0 fw-bold fs-sm">Comprobantes de Tarjetas y Transferencias (Auditoría)</h6>
+                  <small class="text-muted">Cierre de lote de terminal Verifone y comprobantes bancarios verificados</small>
+                </div>
+              </div>
+              <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 small">
+                No Efectivo
+              </span>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-6 border-end pe-md-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="form-label small fw-semibold text-secondary mb-0">
+                    Lote Verifone / Tarjetas:
+                  </label>
+                  @if (expectedCards() > 0) {
+                    <button
+                      type="button"
+                      class="btn btn-link p-0 text-decoration-none font-size-xs fw-semibold text-primary"
+                      (click)="copyExpectedCards()"
+                      title="Copiar ventas con tarjeta esperadas en este turno"
+                    >
+                      Copiar RD$ {{ expectedCards() | number: '1.2-2' }}
+                    </button>
+                  }
+                </div>
+                <div class="input-group input-group-sm mb-1">
+                  <span class="input-group-text">RD$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    class="form-control font-monospace"
+                    formControlName="declaredCards"
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="No. Lote o Batch de Cierre Verifone"
+                  class="form-control form-control-sm"
+                  formControlName="cardBatchNumber"
+                />
+              </div>
+
+              <div class="col-md-6 ps-md-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="form-label small fw-semibold text-secondary mb-0">
+                    Transferencias Bancarias:
+                  </label>
+                  @if (expectedTransfers() > 0) {
+                    <button
+                      type="button"
+                      class="btn btn-link p-0 text-decoration-none font-size-xs fw-semibold text-primary"
+                      (click)="copyExpectedTransfers()"
+                      title="Copiar ventas por transferencia registradas en este turno"
+                    >
+                      Copiar RD$ {{ expectedTransfers() | number: '1.2-2' }}
+                    </button>
+                  }
+                </div>
+                <div class="input-group input-group-sm mb-1">
+                  <span class="input-group-text">RD$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    class="form-control font-monospace"
+                    formControlName="declaredTransfers"
+                  />
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="Cantidad de comprobantes / vauchers"
+                  class="form-control form-control-sm"
+                  formControlName="transferVoucherCount"
+                />
+              </div>
+            </div>
+          </div>
+
           <!-- REGLA 5: DESTINO DEL EFECTIVO (FONDO PRÓXIMO TURNO VS. RETIRO A BÓVEDA) -->
           <div class="cash-destination-card mb-3 p-3 rounded-3 border" [formGroup]="form">
             <div class="d-flex align-items-center justify-content-between mb-2">
@@ -817,6 +988,31 @@
                   } @else {
                     <span>🗑️ Anular ventas en espera y cerrar caja</span>
                   }
+                </button>
+              </div>
+            </div>
+          }
+
+          @if (serverCloseError()) {
+            <div class="alert alert-danger border border-danger-subtle rounded-3 p-3 mt-3 d-flex flex-column gap-2 shadow-sm">
+              <div class="d-flex align-items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-danger flex-shrink-0">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <div class="small fw-semibold text-danger">
+                  {{ serverCloseError() }}
+                </div>
+              </div>
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-1 pt-1 border-top border-danger-subtle">
+                <span class="small text-muted">¿El servidor reporta error o la caja no existe en backend?</span>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-danger fw-semibold d-flex align-items-center gap-1 px-3 py-1.5 rounded-2 shadow-2xs"
+                  (click)="forceCloseEmergency()"
+                >
+                  <span>⚠️ Forzar cierre local de emergencia</span>
                 </button>
               </div>
             </div>

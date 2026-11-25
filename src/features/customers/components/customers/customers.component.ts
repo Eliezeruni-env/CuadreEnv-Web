@@ -1,7 +1,8 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CustomerService } from '../../services/customer.service';
+import { CustomerService, isCashCustomer } from '../../services/customer.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
+import { PermissionService } from '../../../roles/services/permission.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
@@ -112,6 +113,7 @@ export class CustomersComponent implements OnInit {
   constructor(
     private customerService: CustomerService,
     public authService: AuthService,
+    public permissionService: PermissionService,
     private notificationService: NotificationService,
   ) {}
 
@@ -130,7 +132,7 @@ export class CustomersComponent implements OnInit {
       const res = await this.customerService.getCustomers({
         pageNumber: 1,
         pageSize: 100,
-      });
+      }, true);
       if (res.success && res.data) {
         this.customers.set(res.data);
         this.totalItems.set(this.getFilteredCustomersCount());
@@ -202,6 +204,10 @@ export class CustomersComponent implements OnInit {
     return this.pagedCustomers();
   }
 
+  isCashCustomer(customer?: Partial<CustomerDto> | null): boolean {
+    return isCashCustomer(customer);
+  }
+
   openCreateModal() {
     this.isModalOpen = true;
     setTimeout(() => {
@@ -210,6 +216,10 @@ export class CustomersComponent implements OnInit {
   }
 
   openEditModal(customer: CustomerDto) {
+    if (this.isCashCustomer(customer)) {
+      this.notificationService.warning('El Cliente Contado es el cliente base del sistema y no puede ser modificado.');
+      return;
+    }
     this.isModalOpen = true;
     setTimeout(() => {
       if (this.customerModal) this.customerModal.openEdit(customer);
@@ -218,6 +228,10 @@ export class CustomersComponent implements OnInit {
 
   async deleteCustomer(id: number) {
     const customer = this.customers().find((c) => c.id === id);
+    if (id === 1 || (customer && this.isCashCustomer(customer))) {
+      this.notificationService.warning('El Cliente Contado es el cliente base del sistema y no puede ser eliminado.');
+      return;
+    }
     const confirmed = await this.confirmService.confirm({
       title: '¿Eliminar cliente?',
       message: '¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer.',
@@ -242,6 +256,10 @@ export class CustomersComponent implements OnInit {
 
   async toggleCustomerStatus(customer: CustomerDto) {
     if (!customer.id) return;
+    if (this.isCashCustomer(customer)) {
+      this.notificationService.warning('El Cliente Contado siempre debe permanecer activo.');
+      return;
+    }
     const newStatus = customer.active === false;
     const actionLabel = newStatus ? 'activar' : 'desactivar';
 

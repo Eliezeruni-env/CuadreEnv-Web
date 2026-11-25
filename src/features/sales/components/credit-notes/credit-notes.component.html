@@ -1,17 +1,36 @@
 <div class="container-fluid py-3 list-credit-notes-container">
   <!-- Top Bar -->
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
-    <div>
-      <h4 class="fw-bold mb-0 text-dark">Notas de Crédito y Devoluciones</h4>
-      <small class="text-secondary">Gestión de devoluciones vinculadas a facturas, reingreso a almacén y control fiscal NCF (B04)</small>
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-purple">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      </div>
+      <div class="view-header-content">
+        <h2 class="view-header-title">Notas de crédito y devoluciones</h2>
+        <p class="view-header-subtitle">Gestión de devoluciones vinculadas a facturas, reingreso a inventario y comprobantes fiscales NCF (B04)</p>
+      </div>
     </div>
 
-    <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadCreditNotes()">
-        Recargar
+    <div class="view-header-actions">
+      <button type="button" class="btn btn-outline-secondary" (click)="loadCreditNotes()" data-tooltip="Recargar notas de crédito">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        <span>Recargar</span>
       </button>
-      <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openCreateModal()">
-        <span>+ Nueva Nota de Crédito</span>
+      <button type="button" class="btn btn-navy" (click)="openCreateModal()" data-tooltip="Crear nueva nota de crédito">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Nueva nota de crédito</span>
       </button>
     </div>
   </div>
@@ -110,15 +129,55 @@
           <thead class="table-light text-secondary text-uppercase font-size-xs">
             <tr>
               <th style="width: 44px;" class="ps-3 text-center"></th>
-              <th>No. / NCF</th>
-              <th>Factura Origen</th>
-              <th>Cliente</th>
-              <th>Fecha</th>
-              <th>Método Reembolso</th>
-              <th class="text-end">Subtotal</th>
-              <th class="text-end">ITBIS</th>
-              <th class="text-end">Total Reembolso</th>
-              <th class="text-center pe-3" style="width: 100px;">Acciones</th>
+              <th class="th-sortable" (click)="toggleSort('ncf')">
+                No. / NCF
+                <span class="sort-indicator" [class.active]="sortColumn() === 'ncf'">
+                  {{ sortColumn() === 'ncf' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('invoice')">
+                Factura Origen
+                <span class="sort-indicator" [class.active]="sortColumn() === 'invoice'">
+                  {{ sortColumn() === 'invoice' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('client')">
+                Cliente
+                <span class="sort-indicator" [class.active]="sortColumn() === 'client'">
+                  {{ sortColumn() === 'client' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('date')">
+                Fecha
+                <span class="sort-indicator" [class.active]="sortColumn() === 'date'">
+                  {{ sortColumn() === 'date' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('method')">
+                Método Reembolso
+                <span class="sort-indicator" [class.active]="sortColumn() === 'method'">
+                  {{ sortColumn() === 'method' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable text-end" (click)="toggleSort('subtotal')">
+                Subtotal
+                <span class="sort-indicator" [class.active]="sortColumn() === 'subtotal'">
+                  {{ sortColumn() === 'subtotal' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable text-end" (click)="toggleSort('itbis')">
+                ITBIS
+                <span class="sort-indicator" [class.active]="sortColumn() === 'itbis'">
+                  {{ sortColumn() === 'itbis' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="th-sortable text-end" (click)="toggleSort('total')">
+                Total Reembolso
+                <span class="sort-indicator" [class.active]="sortColumn() === 'total'">
+                  {{ sortColumn() === 'total' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                </span>
+              </th>
+              <th class="text-center pe-3" style="width: 80px;">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -141,13 +200,21 @@
                 <tr [class.table-active]="isNoteExpanded(note.id)" class="master-row">
                   <td class="ps-3 text-center">
                     <button
-                      class="expand-btn"
+                      class="btn-expand-chevron"
                       [class.expanded]="isNoteExpanded(note.id)"
                       type="button"
                       (click)="toggleDetail(note)"
                       [title]="isNoteExpanded(note.id) ? 'Colapsar detalle' : 'Expandir artículos devueltos'"
                     >
-                      {{ isNoteExpanded(note.id) ? '−' : '+' }}
+                      @if (isNoteExpanded(note.id)) {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                      }
                     </button>
                   </td>
                   <td>
@@ -183,17 +250,16 @@
                     RD$ {{ note.amountTotal | number:'1.2-2' }}
                   </td>
                   <td class="text-center pe-3">
-                    <div class="action-btn-group justify-content-center">
+                    <div class="d-flex align-items-center justify-content-center">
                       <button
                         type="button"
-                        class="btn-action-icon btn-action-print"
+                        class="btn-action-square btn-action-view"
                         (click)="viewNoteDetail(note)"
-                        title="Imprimir / Ver Comprobante"
+                        title="Ver Comprobante de Nota de Crédito"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                          <rect x="6" y="14" width="12" height="8"></rect>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
                         </svg>
                       </button>
                     </div>
@@ -203,52 +269,82 @@
                 <!-- Detail Row Expandible (Subtabla de Artículos Devueltos) -->
                 @if (isNoteExpanded(note.id)) {
                   <tr class="detail-row">
-                    <td colspan="10">
-                      <div class="card border border-secondary-subtle shadow-xs rounded-3 overflow-hidden">
-                        <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                          <span class="fw-bold small text-secondary text-uppercase d-flex align-items-center gap-2">
-                            Detalle de Artículos Reintegrados / Afectados ({{ (note.creditNoteDetails || []).length }} ítems)
-                          </span>
-                          <div class="small font-monospace">
-                            <span class="text-muted me-3">Subtotal: <strong>RD$ {{ note.amountSubTotal | number:'1.2-2' }}</strong></span>
-                            <span class="text-muted me-3">ITBIS: <strong>RD$ {{ note.amountItbis | number:'1.2-2' }}</strong></span>
-                            <span class="text-danger fw-bold">Total Reembolso: RD$ {{ note.amountTotal | number:'1.2-2' }}</span>
+                    <td colspan="10" class="p-3 bg-slate-50">
+                      <div class="billing-detail-card" style="border-top-color: #EF4444;">
+                        <div class="billing-detail-header">
+                          <div class="d-flex align-items-center gap-2">
+                            <div class="detail-header-icon" style="background: #FEE2E2; color: #DC2626;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 14 4 9 9 4"></polyline>
+                                <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+                              </svg>
+                            </div>
+                            <span class="detail-header-title">Detalle de Artículos Reintegrados</span>
+                            <span class="detail-items-count-badge">
+                              {{ (note.creditNoteDetails || []).length }} {{ (note.creditNoteDetails || []).length === 1 ? 'ítem' : 'ítems' }}
+                            </span>
+                          </div>
+
+                          <div class="detail-summary-pills">
+                            <span class="summary-pill">
+                              <span class="pill-label">Subtotal</span>
+                              <strong class="pill-value">RD$ {{ note.amountSubTotal | number:'1.2-2' }}</strong>
+                            </span>
+                            <span class="summary-pill">
+                              <span class="pill-label">ITBIS</span>
+                              <strong class="pill-value">RD$ {{ note.amountItbis | number:'1.2-2' }}</strong>
+                            </span>
+                            <span class="summary-pill danger-pill">
+                              <span class="pill-label">Total Reembolso</span>
+                              <strong class="pill-value">RD$ {{ note.amountTotal | number:'1.2-2' }}</strong>
+                            </span>
                           </div>
                         </div>
-                        <div class="card-body p-0">
-                          <table class="table table-sm table-bordered mb-0 align-middle">
-                            <thead class="table-light text-muted font-size-xs">
-                              <tr>
-                                <th class="ps-3">Código</th>
-                                <th>Descripción del Producto</th>
-                                <th class="text-center">Cant. Devuelta</th>
-                                <th class="text-end">Precio Unit.</th>
-                                <th class="text-end">Subtotal</th>
-                                <th class="text-end">ITBIS</th>
-                                <th class="text-end pe-3">Total Reembolso</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              @for (item of (note.creditNoteDetails || []); track $index) {
+
+                        <div class="billing-detail-body">
+                          <div class="table-responsive">
+                            <table class="table billing-subtable mb-0 align-middle">
+                              <thead>
                                 <tr>
-                                  <td class="ps-3 font-monospace small text-secondary">{{ item.barCode || 'PROD-' + item.productId }}</td>
-                                  <td class="fw-semibold text-dark">{{ item.productName }}</td>
-                                  <td class="text-center font-monospace fw-bold text-danger">-{{ item.quantity }}</td>
-                                  <td class="text-end font-monospace">RD$ {{ item.price | number:'1.2-2' }}</td>
-                                  <td class="text-end font-monospace">RD$ {{ (item.subTotal || (item.quantity * item.price)) | number:'1.2-2' }}</td>
-                                  <td class="text-end font-monospace">RD$ {{ (item.itbisAmount || 0) | number:'1.2-2' }}</td>
-                                  <td class="text-end pe-3 font-monospace fw-bold text-danger">RD$ {{ (item.totalAmount || (item.subTotal + (item.itbisAmount || 0))) | number:'1.2-2' }}</td>
+                                  <th class="ps-3" style="width: 140px;">Código</th>
+                                  <th>Descripción</th>
+                                  <th class="text-center" style="width: 110px;">Cant. Devuelta</th>
+                                  <th class="text-end" style="width: 120px;">Precio Unit.</th>
+                                  <th class="text-end" style="width: 120px;">Subtotal</th>
+                                  <th class="text-end" style="width: 110px;">ITBIS</th>
+                                  <th class="text-end pe-3" style="width: 140px;">Total Reembolso</th>
                                 </tr>
-                              }
-                              @if (!note.creditNoteDetails || note.creditNoteDetails.length === 0) {
-                                <tr>
-                                  <td colspan="7" class="text-center py-3 text-muted small">
-                                    Devolución total por valor de factura (sin desglose granular de ítems).
-                                  </td>
-                                </tr>
-                              }
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                @for (item of (note.creditNoteDetails || []); track $index) {
+                                  <tr>
+                                    <td class="ps-3">
+                                      <span class="product-code-pill font-monospace">{{ item.barCode || 'PROD-' + item.productId }}</span>
+                                    </td>
+                                    <td>
+                                      <span class="product-name-text">{{ item.productName }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-monospace fw-bold px-2 py-1">
+                                        -{{ item.quantity }}
+                                      </span>
+                                    </td>
+                                    <td class="text-end font-monospace text-muted">RD$ {{ item.price | number:'1.2-2' }}</td>
+                                    <td class="text-end font-monospace">RD$ {{ (item.subTotal || (item.quantity * item.price)) | number:'1.2-2' }}</td>
+                                    <td class="text-end font-monospace text-muted">RD$ {{ (item.itbisAmount || 0) | number:'1.2-2' }}</td>
+                                    <td class="text-end pe-3 font-monospace fw-bold text-danger">RD$ {{ (item.totalAmount || (item.subTotal + (item.itbisAmount || 0))) | number:'1.2-2' }}</td>
+                                  </tr>
+                                }
+                                @if (!note.creditNoteDetails || note.creditNoteDetails.length === 0) {
+                                  <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted small">
+                                      Devolución total por valor de factura (sin desglose granular de ítems).
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -278,88 +374,9 @@
   (creditNoteCreated)="onCreditNoteCreated($event)"
 ></app-credit-note-form>
 
-<!-- Modal for Viewing & Printing Credit Note Receipt -->
-@if (selectedCreditNote) {
-  <div class="custom-modal-backdrop" (click)="selectedCreditNote = null">
-    <div class="custom-modal-content invoice-print-container" (click)="$event.stopPropagation()">
-      <div class="d-flex justify-content-between align-items-center p-3 border-bottom bg-white">
-        <h5 class="fw-bold mb-0 text-dark">Comprobante Fiscal - Nota de Crédito</h5>
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-light border btn-sm fw-semibold" (click)="printCreditNote()">
-            <svg cIcon name="cilPrint" style="width: 14px; height: 14px;" class="me-1"></svg>
-            Imprimir
-          </button>
-          <button type="button" class="btn-close" (click)="selectedCreditNote = null"></button>
-        </div>
-      </div>
-
-      <div id="creditNotePrintArea" class="p-4 bg-white">
-        <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
-          <div>
-            <h5 class="fw-bold mb-0 text-dark">CuadreEnv, SRL</h5>
-            <div class="small text-secondary">RNC: 1-31-234567-8 · Santo Domingo, Rep. Dom.</div>
-            <div class="small text-secondary">Tel: (809) 123-4567</div>
-          </div>
-          <div class="text-end">
-            <h6 class="fw-bold text-danger mb-0">NOTA DE CRÉDITO</h6>
-            <div class="fw-bold font-monospace text-dark">{{ selectedCreditNote.creditNoteNumber }}</div>
-            <div class="badge ncf-brand-badge font-monospace mt-1">NCF: {{ selectedCreditNote.ncf }}</div>
-          </div>
-        </div>
-
-        <div class="row g-2 small mb-3 border-bottom pb-3 text-secondary">
-          <div class="col-6">
-            <div><b class="text-dark">Cliente:</b> {{ selectedCreditNote.customerName }}</div>
-            <div><b class="text-dark">Factura Afectada:</b> {{ selectedCreditNote.billingNumber }}</div>
-          </div>
-          <div class="col-6 text-end">
-            <div><b class="text-dark">Fecha:</b> {{ selectedCreditNote.creationDate | date:'dd/MM/yyyy hh:mm a' }}</div>
-            <div><b class="text-dark">Tipo:</b> {{ selectedCreditNote.creditNoteType === 1 ? 'Devolución Total' : 'Devolución Parcial' }}</div>
-          </div>
-        </div>
-
-        <table class="table table-sm small mb-3">
-          <thead class="table-light">
-            <tr>
-              <th>Producto</th>
-              <th class="text-center">Cant.</th>
-              <th class="text-end">Precio</th>
-              <th class="text-end">Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (it of selectedCreditNote.creditNoteDetails; track it.productId) {
-              <tr>
-                <td>{{ it.productName }}</td>
-                <td class="text-center font-monospace">{{ it.quantity }}</td>
-                <td class="text-end font-monospace">RD$ {{ it.price | number:'1.2-2' }}</td>
-                <td class="text-end font-monospace fw-bold">RD$ {{ it.subTotal | number:'1.2-2' }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-
-        <div class="d-flex justify-content-end">
-          <div style="width: 250px;">
-            <div class="d-flex justify-content-between small mb-1">
-              <span>Subtotal:</span>
-              <span class="font-monospace">RD$ {{ selectedCreditNote.amountSubTotal | number:'1.2-2' }}</span>
-            </div>
-            <div class="d-flex justify-content-between small mb-1">
-              <span>ITBIS (18%):</span>
-              <span class="font-monospace">RD$ {{ selectedCreditNote.amountItbis | number:'1.2-2' }}</span>
-            </div>
-            <div class="d-flex justify-content-between border-top pt-1 fw-bold fs-6 text-danger">
-              <span>Total Reembolso:</span>
-              <span class="font-monospace">RD$ {{ selectedCreditNote.amountTotal | number:'1.2-2' }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="text-center small text-secondary border-top mt-4 pt-2">
-          Este comprobante fiscal modifica los valores de la factura original y restituye las existencias en inventario.
-        </div>
-      </div>
-    </div>
-  </div>
-}
+<!-- Modal Comprobante Universal (Diseño según Imagen 2 de Referencia) -->
+<app-warehouse-movement-receipt-modal
+  [isOpen]="isReceiptModalOpen()"
+  [data]="selectedReceiptData"
+  (close)="isReceiptModalOpen.set(false)"
+></app-warehouse-movement-receipt-modal>

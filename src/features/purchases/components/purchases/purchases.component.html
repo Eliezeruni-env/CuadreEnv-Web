@@ -1,180 +1,674 @@
-<div class="container-fluid py-3 list-purchases-container">
-  <!-- Alerts -->
-  @if (errorMessage()) {
-    <c-alert color="danger" dismissible class="mb-3">
-      {{ errorMessage() }}
-    </c-alert>
-  }
+@if (viewMode() === 'list') {
+  <div class="container-fluid py-3 list-purchases-container">
+    <!-- Alerts -->
+    @if (errorMessage()) {
+      <c-alert color="danger" dismissible class="mb-3">
+        {{ errorMessage() }}
+      </c-alert>
+    }
 
-  <!-- Top Bar -->
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
-    <div>
-      <h4 class="fw-bold mb-0 text-dark">{{ translationService.t('purchases.title') }}</h4>
-      <small class="text-secondary">{{ translationService.t('purchases.subtitle') }}</small>
-    </div>
+    <!-- Top Bar -->
+    <div class="view-header-card">
+      <div class="view-header-left">
+        <div class="view-header-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+            <path d="M3 6h18"></path>
+            <path d="M16 10a4 4 0 0 1-8 0"></path>
+          </svg>
+        </div>
+        <div class="view-header-content">
+          <h2 class="view-header-title">{{ translationService.t('purchases.title') }}</h2>
+          <p class="view-header-subtitle">{{ translationService.t('purchases.subtitle') }}</p>
+        </div>
+      </div>
 
-    <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadData()">
-        Recargar
-      </button>
-      @if (authService.hasRole(['Admin'])) {
-        <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openCreateModal()">
-          <span>+ {{ translationService.t('purchases.new') }}</span>
+      <div class="view-header-actions">
+        <button type="button" class="btn btn-outline-secondary" (click)="loadData()" data-tooltip="Recargar compras">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          <span>Recargar</span>
         </button>
-      }
-    </div>
-  </div>
-
-  <!-- Filter Panel -->
-  <app-filter-panel
-    [title]="translationService.t('purchases.filterTitle')"
-    [config]="filterConfig()"
-    [values]="filters()"
-    (filtersChange)="onFiltersChange($event)"
-  ></app-filter-panel>
-
-  <!-- Master-Detail Table Card -->
-  <div class="card shadow-sm border-0 mb-3 billing-table-card rounded-4 overflow-hidden">
-    <div class="card-body p-0">
-      @if (isLoading() && purchases().length === 0) {
-        <div class="py-5 text-center text-muted">
-          <c-spinner color="primary" class="mb-2"></c-spinner>
-          <p class="small mb-0">{{ translationService.t('common.loading') }}</p>
-        </div>
-      } @else if (purchases().length === 0) {
-        <div class="py-5 text-center px-4">
-          <h5 class="fw-bold text-dark">{{ translationService.t('purchases.emptyTitle') }}</h5>
-          <p class="text-secondary small max-width-320 mx-auto">{{ translationService.t('purchases.emptyBody') }}</p>
-          <button class="btn btn-cuadre-primary mt-2 px-4" (click)="openCreateModal()">
-            {{ translationService.t('purchases.first') }}
+        @if (permissionService.canCreate('purchases')) {
+          <button type="button" class="btn btn-navy" (click)="openCreateModal()" data-tooltip="Registrar nueva orden de compra">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>+ Nueva Compra</span>
           </button>
-        </div>
-      } @else {
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0 master-detail-table">
-            <thead class="table-light text-secondary text-uppercase font-size-xs">
-              <tr>
-                <th style="width: 44px;" class="ps-3 text-center"></th>
-                <th>{{ translationService.t('purchases.table.purchaseId') }}</th>
-                <th>{{ translationService.t('purchases.table.date') }}</th>
-                <th>{{ translationService.t('purchases.table.supplier') }}</th>
-                <th class="text-end">{{ translationService.t('purchases.table.total') }}</th>
-                <th class="text-center pe-3" style="width: 100px;">{{ translationService.t('common.actions') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (p of pagedPurchases(); track p.id) {
-                <!-- Master Row -->
-                <tr [class.table-active]="isPurchaseExpanded(p.id)" class="master-row">
-                  <td class="ps-3 text-center">
-                    <button
-                      class="expand-btn"
-                      [class.expanded]="isPurchaseExpanded(p.id)"
-                      type="button"
-                      (click)="toggleDetail(p)"
-                      [title]="isPurchaseExpanded(p.id) ? 'Colapsar detalle' : 'Expandir productos de compra'"
-                    >
-                      {{ isPurchaseExpanded(p.id) ? '−' : '+' }}
-                    </button>
-                  </td>
-                  <td>
-                    <span class="fw-bold text-dark font-monospace">#{{ p.id }}</span>
-                  </td>
-                  <td class="text-muted small">
-                    {{ p.creationDate | date:'dd/MM/yyyy HH:mm' }}
-                  </td>
-                  <td>
-                    <div class="fw-semibold text-dark">{{ getSupplierName(p) }}</div>
-                  </td>
-                  <td class="text-end font-monospace fw-bold text-dark">
-                    RD$ {{ getPurchaseTotal(p) | number:'1.2-2' }}
-                  </td>
-                  <td class="text-center pe-3">
-                    <div class="action-btn-group justify-content-center gap-1">
-                      <button
-                        type="button"
-                        class="btn-action-icon btn-action-view"
-                        (click)="viewPurchaseDetail(p)"
-                        title="Ver Detalle de Compra"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                      </button>
-                      @if (canManualReceive()) {
-                        <button
-                          type="button"
-                          class="btn btn-sm btn-outline-success py-0 px-2 fw-semibold"
-                          style="font-size: 0.72rem; height: 26px;"
-                          (click)="receivePurchase(p)"
-                          title="Recepcionar Mercancía en Almacén"
-                        >
-                          📥 Recibir
-                        </button>
-                      }
-                    </div>
-                  </td>
-                </tr>
+        }
+      </div>
+    </div>
 
-                <!-- Detail Row Expandible (Subtabla de Artículos Comprados) -->
-                @if (isPurchaseExpanded(p.id)) {
-                  <tr class="detail-row">
-                    <td colspan="6">
-                      <div class="card border border-secondary-subtle shadow-xs rounded-3 overflow-hidden">
-                        <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                          <span class="fw-bold small text-secondary text-uppercase d-flex align-items-center gap-2">
-                            Detalle de Artículos Comprados ({{ getPurchaseItems(p).length }} ítems)
-                          </span>
-                          <div class="small font-monospace">
-                            <span class="text-primary fw-bold">Total Compra: RD$ {{ getPurchaseTotal(p) | number:'1.2-2' }}</span>
-                          </div>
-                        </div>
-                        <div class="card-body p-0">
-                          <table class="table table-sm table-bordered mb-0 align-middle">
-                            <thead class="table-light text-muted font-size-xs">
-                              <tr>
-                                <th class="ps-3">Código</th>
-                                <th>Descripción del Artículo</th>
-                                <th class="text-center">Cant. Comprada</th>
-                                <th class="text-end">Costo Unit.</th>
-                                <th class="text-end pe-3">Total Costo</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              @for (item of getPurchaseItems(p); track $index) {
-                                <tr>
-                                  <td class="ps-3 font-monospace small text-secondary">{{ item.productCode }}</td>
-                                  <td class="fw-semibold text-dark">{{ item.productName }}</td>
-                                  <td class="text-center font-monospace fw-bold text-dark">{{ item.quantity }}</td>
-                                  <td class="text-end font-monospace">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
-                                  <td class="text-end pe-3 font-monospace fw-bold text-primary">RD$ {{ item.total | number:'1.2-2' }}</td>
-                                </tr>
-                              }
-                            </tbody>
-                          </table>
-                        </div>
+    <!-- Filter Panel -->
+    <app-filter-panel
+      [title]="translationService.t('purchases.filterTitle')"
+      [config]="filterConfig()"
+      [values]="filters()"
+      (filtersChange)="onFiltersChange($event)"
+    ></app-filter-panel>
+
+    <!-- Master-Detail Table Card -->
+    <div class="card shadow-sm border-0 mb-3 billing-table-card rounded-4 overflow-hidden bg-white">
+      <div class="card-body p-0">
+        @if (isLoading() && purchases().length === 0) {
+          <div class="py-5 text-center text-muted">
+            <c-spinner color="primary" class="mb-2"></c-spinner>
+            <p class="small mb-0">{{ translationService.t('common.loading') }}</p>
+          </div>
+        } @else if (purchases().length === 0) {
+          <div class="py-5 text-center px-4">
+            <h5 class="fw-bold text-dark">{{ translationService.t('purchases.emptyTitle') }}</h5>
+            <p class="text-secondary small max-width-320 mx-auto">{{ translationService.t('purchases.emptyBody') }}</p>
+            <button class="btn btn-navy text-white mt-2 px-4 py-2 rounded-3" (click)="openCreateModal()">
+              {{ translationService.t('purchases.first') }}
+            </button>
+          </div>
+        } @else {
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 master-detail-table">
+              <thead class="table-light text-secondary text-uppercase font-size-xs">
+                <tr>
+                  <th style="width: 44px;" class="ps-3 text-center"></th>
+                  <th class="th-sortable" (click)="toggleSort('id')">
+                    {{ translationService.t('purchases.table.purchaseId') }}
+                    <span class="sort-indicator" [class.active]="sortColumn() === 'id'">
+                      {{ sortColumn() === 'id' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                    </span>
+                  </th>
+                  <th class="th-sortable" (click)="toggleSort('date')">
+                    {{ translationService.t('purchases.table.date') }}
+                    <span class="sort-indicator" [class.active]="sortColumn() === 'date'">
+                      {{ sortColumn() === 'date' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                    </span>
+                  </th>
+                  <th class="th-sortable" (click)="toggleSort('supplier')">
+                    {{ translationService.t('purchases.table.supplier') }}
+                    <span class="sort-indicator" [class.active]="sortColumn() === 'supplier'">
+                      {{ sortColumn() === 'supplier' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                    </span>
+                  </th>
+                  <th class="th-sortable text-end" (click)="toggleSort('total')">
+                    {{ translationService.t('purchases.table.total') }}
+                    <span class="sort-indicator" [class.active]="sortColumn() === 'total'">
+                      {{ sortColumn() === 'total' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                    </span>
+                  </th>
+                  <th class="text-center pe-3" style="width: 120px;">{{ translationService.t('common.actions') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of pagedPurchases(); track p.id) {
+                  <!-- Master Row -->
+                  <tr [class.table-active]="isPurchaseExpanded(p.id)" class="master-row">
+                    <td class="ps-3 text-center">
+                      <button
+                        class="btn-expand-chevron"
+                        [class.expanded]="isPurchaseExpanded(p.id)"
+                        type="button"
+                        (click)="toggleDetail(p)"
+                        [title]="isPurchaseExpanded(p.id) ? 'Colapsar detalle' : 'Expandir productos de compra'"
+                      >
+                        {{ isPurchaseExpanded(p.id) ? '▼' : '▶' }}
+                      </button>
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-dark border font-monospace px-2 py-1 rounded-2 shadow-2xs">#{{ p.id }}</span>
+                    </td>
+                    <td class="text-muted small">
+                      {{ p.creationDate | date:'dd/MM/yyyy HH:mm' }}
+                    </td>
+                    <td>
+                      <div class="fw-semibold text-dark">{{ getSupplierName(p) }}</div>
+                    </td>
+                    <td class="text-end font-monospace fw-bold text-dark">
+                      RD$ {{ getPurchaseTotal(p) | number:'1.2-2' }}
+                    </td>
+                    <td class="text-center pe-3">
+                      <div class="d-flex align-items-center justify-content-center gap-1.5">
+                        @if (permissionService.canView('purchases')) {
+                          <button
+                            type="button"
+                            class="btn-action-square btn-action-view"
+                            (click)="viewPurchaseDetail(p)"
+                            title="Ver Detalle de Compra"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                              <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                          </button>
+                        }
+                        @if (canManualReceive()) {
+                          <button
+                            type="button"
+                            class="btn-action-square btn-action-primary"
+                            (click)="receivePurchase(p)"
+                            title="Registrar Recepción"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            </svg>
+                          </button>
+                        }
+                        @if (p.status !== 'PAID') {
+                          <button
+                            class="btn-action-square btn-action-success"
+                            type="button"
+                            (click)="payPurchase(p)"
+                            title="Registrar Pago a Proveedor / CXP"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                              <line x1="1" y1="10" x2="23" y2="10"></line>
+                            </svg>
+                          </button>
+                        }
+                        <button
+                          class="btn-action-square btn-action-danger"
+                          type="button"
+                          (click)="deletePurchase(p, $event)"
+                          title="Eliminar orden de compra"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                        </button>
                       </div>
                     </td>
                   </tr>
-                }
-              }
-            </tbody>
-          </table>
-        </div>
 
-        <!-- Paginador Moderno -->
-        <kt-paginator
-          [currentPage]="currentPage()"
-          [totalItems]="filteredPurchasesCount()"
-          [pageSize]="pageSize"
-          (pageChange)="onPageChange($event)"
-        ></kt-paginator>
-      }
+                  <!-- Detail Row -->
+                  @if (isPurchaseExpanded(p.id)) {
+                    <tr class="detail-row">
+                      <td colspan="6" class="p-3 bg-light">
+                        <div class="card border rounded-3 p-3 bg-white shadow-2xs">
+                          <h6 class="fw-bold mb-2 text-dark">Artículos de la Compra #{{ p.id }}</h6>
+                          <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                              <thead>
+                                <tr class="text-secondary small">
+                                  <th>Código</th>
+                                  <th>Producto</th>
+                                  <th class="text-center">Cantidad</th>
+                                  <th class="text-end">Costo Unit.</th>
+                                  <th class="text-end">Total</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (item of getPurchaseItems(p); track item.productId) {
+                                  <tr>
+                                    <td class="font-monospace text-muted">{{ item.productCode }}</td>
+                                    <td class="fw-semibold text-dark">{{ item.productName }}</td>
+                                    <td class="text-center">{{ item.quantity }}</td>
+                                    <td class="text-end font-monospace">RD$ {{ item.unitCost | number:'1.2-2' }}</td>
+                                    <td class="text-end font-monospace fw-bold text-dark">RD$ {{ item.total | number:'1.2-2' }}</td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="px-4 py-3 bg-white border-top d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="text-secondary small">
+              Mostrando <span class="fw-semibold text-dark">{{ purchases().length }}</span> registros
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-secondary small">Registros por página:</span>
+              <select class="form-select form-select-sm" style="width: 70px; border-radius: 6px;" [(ngModel)]="pageSize">
+                <option [value]="10">10</option>
+                <option [value]="25">25</option>
+                <option [value]="50">50</option>
+              </select>
+              <div class="btn-group ms-2">
+                <button class="btn btn-sm btn-outline-secondary" [disabled]="currentPage() === 1" (click)="onPageChange(currentPage() - 1)">
+                  &lt; Anterior
+                </button>
+                <button class="btn btn-sm btn-primary px-3">{{ currentPage() }}</button>
+                <button class="btn btn-sm btn-outline-secondary" [disabled]="purchases().length < pageSize" (click)="onPageChange(currentPage() + 1)">
+                  Siguiente &gt;
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
     </div>
   </div>
-</div>
+} @else {
+  <!-- ==================== VIEW MODE: NUEVA COMPRA (EXACT IMAGE 1) ==================== -->
+  <div class="new-purchase-container container-fluid py-3 px-lg-4">
+    <!-- Breadcrumb -->
+    <nav class="movement-breadcrumb mb-2" aria-label="breadcrumb">
+      <ol class="breadcrumb mb-0 align-items-center">
+        <li class="breadcrumb-item">
+          <a class="text-decoration-none d-inline-flex align-items-center gap-1 text-muted cursor-pointer" (click)="cancelCreate()">
+            <span>Compras</span>
+          </a>
+        </li>
+        <li class="breadcrumb-item active text-dark fw-medium" aria-current="page">
+          Nueva compra
+        </li>
+      </ol>
+    </nav>
 
-<!-- Decoupled Purchase Modal component -->
-<app-purchase-modal #purchaseModal [(visible)]="isModalOpen" (saved)="loadData()">
-</app-purchase-modal>
+    <!-- Title & Action Bar -->
+    <div class="view-header-card">
+      <div class="view-header-left">
+        <div class="view-header-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+            <path d="M3 6h18"></path>
+            <path d="M16 10a4 4 0 0 1-8 0"></path>
+          </svg>
+        </div>
+        <div class="view-header-content">
+          <h2 class="view-header-title">Nueva compra de mercancía</h2>
+          <p class="view-header-subtitle">Registra factura del proveedor, costos de adquisición y entrada a almacén</p>
+        </div>
+      </div>
+
+      <div class="view-header-actions">
+        <button type="button" class="btn btn-outline-secondary" (click)="cancelCreate()" data-tooltip="Cancelar y volver al listado de compras">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-navy"
+          [disabled]="isLoading() || purchaseItems().length === 0"
+          (click)="savePurchase()"
+          data-tooltip="Guardar compra y actualizar inventario"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          <span>Guardar compra</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 2 Column Layout: Form & Summary -->
+    <div class="row g-4">
+      <!-- Left Column: Datos de compra & Productos -->
+      <div class="col-xl-9 col-lg-8">
+        <!-- Card 1: Datos de compra -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+          <h5 class="fw-bold text-dark mb-3">Datos de compra</h5>
+          <div class="row g-3">
+            <!-- Proveedor * -->
+            <div class="col-md-7">
+              <label class="form-label small fw-semibold text-secondary mb-1">
+                Proveedor <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
+                <select
+                  class="form-select border-start-0 ps-0 custom-select"
+                  [ngModel]="newPurchaseSupplierId()"
+                  (ngModelChange)="newPurchaseSupplierId.set($event)"
+                >
+                  <option value="" disabled>Buscar proveedor por nombre, RNC o código...</option>
+                  @for (s of suppliers(); track s.id) {
+                    <option [value]="s.id">{{ s.name }} (RNC: {{ s.rnc || 'N/A' }})</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <!-- Factura del proveedor -->
+            <div class="col-md-5">
+              <label class="form-label small fw-semibold text-secondary mb-1">
+                Factura del proveedor
+              </label>
+              <input
+                type="text"
+                class="form-control font-monospace"
+                placeholder="Ej. FAC-000123"
+                [ngModel]="newPurchaseInvoiceNumber()"
+                (ngModelChange)="newPurchaseInvoiceNumber.set($event)"
+              />
+            </div>
+
+            <!-- Fecha de compra * -->
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold text-secondary mb-1">
+                Fecha de compra <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </span>
+                <input
+                  type="date"
+                  class="form-control border-start-0 ps-0"
+                  [ngModel]="newPurchaseDate()"
+                  (ngModelChange)="newPurchaseDate.set($event)"
+                />
+              </div>
+            </div>
+
+            <!-- Almacén destino * -->
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold text-secondary mb-1">
+                Almacén destino <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                  </svg>
+                </span>
+                <select
+                  class="form-select border-start-0 ps-0 custom-select"
+                  [ngModel]="newPurchaseWarehouse()"
+                  (ngModelChange)="newPurchaseWarehouse.set($event)"
+                >
+                  <option value="Almacén Principal">Almacén Principal</option>
+                  <option value="Almacén Secundario">Almacén Secundario</option>
+                  <option value="Bodega Central">Bodega Central</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Condición de pago * -->
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold text-secondary mb-1">
+                Condición de pago <span class="text-danger">*</span>
+              </label>
+              <div class="d-flex gap-2">
+                <label class="comp-radio-pill flex-fill" [class.active]="newPurchasePaymentCondition() === 'Contado'">
+                  <input type="radio" name="paymentCond" value="Contado" [checked]="newPurchasePaymentCondition() === 'Contado'" (change)="newPurchasePaymentCondition.set('Contado')" />
+                  <span>Contado</span>
+                </label>
+                <label class="comp-radio-pill flex-fill" [class.active]="newPurchasePaymentCondition() === 'Crédito'">
+                  <input type="radio" name="paymentCond" value="Crédito" [checked]="newPurchasePaymentCondition() === 'Crédito'" (change)="newPurchasePaymentCondition.set('Crédito')" />
+                  <span>Crédito</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Productos adquiridos -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+          <h5 class="fw-bold text-dark mb-3">Productos adquiridos</h5>
+
+          <!-- Add Product Bar -->
+          <div class="row g-2 mb-3 align-items-end">
+            <div class="col-md-5">
+              <label class="form-label small fw-semibold text-secondary mb-1">Producto <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  class="form-control border-start-0 ps-0"
+                  placeholder="Buscar producto por nombre o código..."
+                  [ngModel]="productSearchInput()"
+                  (ngModelChange)="productSearchInput.set($event)"
+                  (keydown.enter)="addPurchaseItemFromSearch()"
+                />
+              </div>
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label small fw-semibold text-secondary mb-1">Cantidad <span class="text-danger">*</span></label>
+              <input
+                type="number"
+                class="form-control text-center"
+                [ngModel]="newItemQuantity()"
+                (ngModelChange)="newItemQuantity.set($event)"
+                min="1"
+              />
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary mb-1">Costo unitario <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted border-end-0 small">RD$</span>
+                <input
+                  type="number"
+                  class="form-control border-start-0 ps-0"
+                  [ngModel]="newItemUnitCost()"
+                  (ngModelChange)="newItemUnitCost.set($event)"
+                  placeholder="0.00"
+                  step="10"
+                />
+              </div>
+            </div>
+
+            <div class="col-md-2">
+              <button
+                type="button"
+                class="btn btn-navy text-white w-100 fw-semibold d-inline-flex align-items-center justify-content-center gap-1.5 shadow-2xs"
+                style="height: 38px;"
+                (click)="addPurchaseItemFromSearch()"
+              >
+                <span>+ Agregar</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <div class="table-responsive rounded-3 border overflow-hidden">
+            <table class="table align-middle mb-0">
+              <thead class="table-light text-secondary small fw-bold">
+                <tr>
+                  <th class="ps-3">Producto ↕</th>
+                  <th class="text-center" style="width: 100px;">Cantidad ↕</th>
+                  <th class="text-end" style="width: 140px;">Costo unitario ↕</th>
+                  <th class="text-center" style="width: 110px;">Descuento ↕</th>
+                  <th class="text-center" style="width: 110px;">ITBIS ↕</th>
+                  <th class="text-end" style="width: 140px;">Subtotal ↕</th>
+                  <th class="text-center pe-3" style="width: 60px;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of purchaseItems(); track item.code; let idx = $index) {
+                  <tr>
+                    <td class="ps-3">
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="p-1.5 bg-light rounded-2 text-secondary flex-shrink-0">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="fw-bold text-dark">{{ item.name }}</div>
+                          <div class="text-secondary small font-monospace">{{ item.code }}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="text-center">
+                      <input
+                        type="number"
+                        class="form-control form-control-sm text-center mx-auto"
+                        style="width: 65px;"
+                        [ngModel]="item.quantity"
+                        (ngModelChange)="updateItemQuantity(idx, $event - item.quantity)"
+                        min="1"
+                      />
+                    </td>
+                    <td class="text-end font-monospace text-dark">
+                      RD$ {{ item.unitCost | number:'1.2-2' }}
+                    </td>
+                    <td class="text-center">
+                      <div class="input-group input-group-sm mx-auto" style="width: 80px;">
+                        <input
+                          type="number"
+                          class="form-control text-center p-1"
+                          [ngModel]="item.discountPercent"
+                          (ngModelChange)="updateItemDiscount(idx, $event)"
+                          min="0"
+                          max="100"
+                        />
+                        <span class="input-group-text bg-light px-1 text-muted">%</span>
+                      </div>
+                    </td>
+                    <td class="text-center">
+                      <select
+                        class="form-select form-select-sm custom-select mx-auto"
+                        style="width: 85px;"
+                        [ngModel]="item.taxPercent"
+                        (ngModelChange)="updateItemTax(idx, $event)"
+                      >
+                        <option [ngValue]="18">18%</option>
+                        <option [ngValue]="16">16%</option>
+                        <option [ngValue]="0">0%</option>
+                      </select>
+                    </td>
+                    <td class="text-end font-monospace fw-bold text-dark">
+                      RD$ {{ item.subtotal | number:'1.2-2' }}
+                    </td>
+                    <td class="text-center pe-3">
+                      <button
+                        type="button"
+                        class="btn btn-outline-danger btn-sm p-1 rounded-2"
+                        (click)="removePurchaseItem(idx)"
+                        data-tooltip="Eliminar artículo de la compra"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Resumen de la compra -->
+      <div class="col-xl-3 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white sticky-top" style="top: 1rem;">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <h5 class="fw-bold text-dark mb-0">Resumen de la compra</h5>
+          </div>
+
+          <!-- Subtotal -->
+          <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <span class="text-secondary small">Subtotal</span>
+            <span class="font-monospace fw-semibold text-dark">
+              RD$ {{ orderSubtotalGross() | number:'1.2-2' }}
+            </span>
+          </div>
+
+          <!-- ITBIS (18%) -->
+          <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <span class="text-secondary small">ITBIS (18%)</span>
+            <span class="font-monospace fw-semibold text-dark">
+              RD$ {{ orderItbisTotal() | number:'1.2-2' }}
+            </span>
+          </div>
+
+          <!-- Total -->
+          <div class="d-flex justify-content-between align-items-center py-3">
+            <span class="fw-bold fs-6 text-dark">Total</span>
+            <span class="fs-4 fw-bold font-monospace text-navy" style="color: #0f172a;">
+              RD$ {{ orderTotalAmount() | number:'1.2-2' }}
+            </span>
+          </div>
+
+          <!-- Condición de pago badge -->
+          <div class="mb-3">
+            <span class="text-secondary small d-block mb-1">Condición de pago</span>
+            <span class="badge bg-light text-dark border px-2.5 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 rounded-2">
+              <span class="text-secondary">$</span>
+              <span>{{ newPurchasePaymentCondition() }}</span>
+            </span>
+          </div>
+
+          <!-- Info Alert Box -->
+          <div class="p-3 bg-light rounded-3 border mb-3 d-flex align-items-start gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-secondary flex-shrink-0 mt-0.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span class="text-secondary" style="font-size: 0.78rem;">
+              La mercancía se incorpora al inventario al confirmar su recepción.
+            </span>
+          </div>
+
+          <!-- Save Button -->
+          <button
+            type="button"
+            class="btn btn-navy text-white w-100 py-2.5 rounded-3 fw-bold d-flex align-items-center justify-content-center gap-2 shadow-sm mb-2"
+            [disabled]="isLoading() || purchaseItems().length === 0"
+            (click)="savePurchase()"
+            data-tooltip="Guardar compra y asentar en el sistema"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            <span>Guardar compra</span>
+          </button>
+
+          <!-- Registrar Recepción Button -->
+          <button
+            type="button"
+            class="btn btn-outline-secondary bg-white text-dark w-100 py-2.5 rounded-3 fw-medium d-flex align-items-center justify-content-center gap-2 shadow-2xs mb-2"
+            (click)="registerReceptionDirect()"
+            data-tooltip="Ir directamente al módulo de recepción de compras"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            <span>Registrar recepción</span>
+          </button>
+
+          <p class="text-center text-muted small mb-0" style="font-size: 0.75rem;">
+            Podrás registrar la recepción de la mercancía luego de guardar esta compra.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<app-purchase-modal #purchaseModal (saved)="loadData()"></app-purchase-modal>

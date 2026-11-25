@@ -172,8 +172,140 @@
         </div>
       </div>
 
-      <!-- Physical Counting Grid -->
-      <h6 class="fw-bold text-dark mb-3">Conteo Físico de Productos Recibidos:</h6>
+      <!-- Physical Counting Grid Header & Add Product Action -->
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h6 class="fw-bold text-dark mb-0">Conteo Físico de Productos Recibidos:</h6>
+        <div class="d-flex align-items-center gap-2">
+          @if (receiptLines.length > 0) {
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-success fw-semibold px-3 shadow-xs"
+              (click)="receiveAll()"
+              title="Iguala las cantidades recibidas a lo ordenado en un solo clic"
+            >
+              ✓ Recibir Todo Conforme
+            </button>
+          }
+          <button
+            type="button"
+            class="btn btn-sm btn-primary fw-semibold px-3 shadow-xs"
+            (click)="toggleAddProductRow()"
+          >
+            @if (showAddProductRow()) {
+              ✕ Cancelar
+            } @else {
+              + Agregar Producto Recibido
+            }
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Product Add Row (Dual Mode: Catálogo o Manual) -->
+      @if (showAddProductRow()) {
+        <div class="p-3 bg-light border border-primary-subtle rounded-3 mb-3 shadow-xs">
+          <div class="d-flex align-items-center gap-3 mb-2 pb-2 border-bottom">
+            <span class="small fw-bold text-secondary">Origen del producto:</span>
+            <div class="form-check form-check-inline mb-0">
+              <input
+                class="form-check-input"
+                type="radio"
+                id="modeCatalog"
+                name="addProductMode"
+                value="catalog"
+                [checked]="addProductMode() === 'catalog'"
+                (change)="addProductMode.set('catalog')"
+              />
+              <label class="form-check-label small fw-semibold" for="modeCatalog">Desde Catálogo</label>
+            </div>
+            <div class="form-check form-check-inline mb-0">
+              <input
+                class="form-check-input"
+                type="radio"
+                id="modeManual"
+                name="addProductMode"
+                value="manual"
+                [checked]="addProductMode() === 'manual'"
+                (change)="addProductMode.set('manual')"
+              />
+              <label class="form-check-label small fw-semibold" for="modeManual">Personalizado / Manual</label>
+            </div>
+          </div>
+
+          <div class="row g-2 align-items-end">
+            @if (addProductMode() === 'catalog') {
+              <div class="col-md-5">
+                <label class="form-label small fw-semibold text-secondary mb-1">Producto del Catálogo:</label>
+                <select
+                  class="form-select form-select-sm"
+                  [ngModel]="selectedAddProductId()"
+                  (ngModelChange)="onAddProductSelectionChange($event)"
+                >
+                  @if (catalogProducts().length === 0) {
+                    <option value="">(Sin productos en catálogo - cambia a Manual)</option>
+                  }
+                  @for (prod of catalogProducts(); track prod.id) {
+                    <option [value]="prod.id">
+                      {{ prod.description }} ({{ prod.barcode || 'S/C' }}) - Costo: RD$ {{ (prod.cost || prod.price || 0) | number:'1.2-2' }}
+                    </option>
+                  }
+                </select>
+              </div>
+            } @else {
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold text-secondary mb-1">Nombre / Descripción:</label>
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  placeholder="Ej: Croquetas Perro Adulto 10 lb"
+                  [ngModel]="customProductName()"
+                  (ngModelChange)="customProductName.set($event)"
+                />
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small fw-semibold text-secondary mb-1">Código / Barras:</label>
+                <input
+                  type="text"
+                  class="form-control form-control-sm font-monospace"
+                  placeholder="Ej: 746123456"
+                  [ngModel]="customBarcode()"
+                  (ngModelChange)="customBarcode.set($event)"
+                />
+              </div>
+            }
+
+            <div class="col-md-2">
+              <label class="form-label small fw-semibold text-secondary mb-1">Cant. Física:</label>
+              <input
+                type="number"
+                min="1"
+                class="form-control form-control-sm text-center fw-bold"
+                [ngModel]="addProductQty()"
+                (ngModelChange)="addProductQty.set($event)"
+              />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary mb-1">Costo Unit. (RD$):</label>
+              <input
+                type="number"
+                min="0"
+                class="form-control form-control-sm text-end fw-bold"
+                [ngModel]="addProductCost()"
+                (ngModelChange)="addProductCost.set($event)"
+              />
+            </div>
+            <div class="col-md-2">
+              <button
+                type="button"
+                class="btn btn-sm btn-primary w-100 fw-semibold"
+                (click)="addProductToReceipt()"
+              >
+                + Añadir
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
       <div class="table-responsive border rounded-3 mb-4">
         <table class="table table-hover align-middle mb-0 small">
           <thead class="table-light">
@@ -181,34 +313,63 @@
               <th class="ps-3">Producto</th>
               <th>Código</th>
               <th class="text-center" style="width: 130px;">Cant. Ordenada</th>
-              <th class="text-center" style="width: 150px;">Cant. Recibida (Físico)</th>
+              <th class="text-center" style="width: 170px;">Cant. Recibida (Físico)</th>
               <th class="text-end" style="width: 130px;">Costo Unit.</th>
               <th class="text-end pe-3" style="width: 140px;">Subtotal</th>
+              <th class="text-center" style="width: 60px;">Acción</th>
             </tr>
           </thead>
           <tbody>
-            @for (line of receiptLines; track line.productId) {
+            @if (receiptLines.length === 0) {
               <tr>
-                <td class="ps-3">
-                  <div class="fw-bold text-dark">{{ line.productName }}</div>
-                </td>
-                <td class="font-monospace text-secondary">{{ line.barCode || '-' }}</td>
-                <td class="text-center font-monospace fs-6">{{ line.quantityOrdered }} uds</td>
-                <td class="text-center">
-                  <input
-                    type="number"
-                    min="0"
-                    class="form-control form-control-sm text-center font-monospace fw-bold"
-                    [ngModel]="line.quantityReceived"
-                    (ngModelChange)="updateReceivedQty(line, $event)"
-                    style="max-width: 100px; margin: 0 auto;"
-                  />
-                </td>
-                <td class="text-end font-monospace">RD$ {{ line.unitCost | number:'1.2-2' }}</td>
-                <td class="text-end pe-3 font-monospace fw-bold text-primary">
-                  RD$ {{ line.subTotal | number:'1.2-2' }}
+                <td colspan="7" class="text-center py-4 text-muted">
+                  <div class="mb-2">⚠️ Esta orden no tiene renglones de productos precargados.</div>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-primary px-3 shadow-xs"
+                    (click)="toggleAddProductRow()"
+                  >
+                    + Agregar Producto a la Recepción
+                  </button>
                 </td>
               </tr>
+            } @else {
+              @for (line of receiptLines; track line.productId; let idx = $index) {
+                <tr>
+                  <td class="ps-3">
+                    <div class="fw-bold text-dark">{{ line.productName }}</div>
+                  </td>
+                  <td class="font-monospace text-secondary">{{ line.barCode || '-' }}</td>
+                  <td class="text-center font-monospace fs-6">{{ line.quantityOrdered }} uds</td>
+                  <td class="text-center">
+                    <div class="input-group input-group-sm justify-content-center" style="max-width: 130px; margin: 0 auto;">
+                      <button class="btn btn-outline-secondary px-2" type="button" (click)="decrementQty(line)">-</button>
+                      <input
+                        type="number"
+                        min="0"
+                        class="form-control form-control-sm text-center font-monospace fw-bold"
+                        [ngModel]="line.quantityReceived"
+                        (ngModelChange)="updateReceivedQty(line, $event)"
+                      />
+                      <button class="btn btn-outline-secondary px-2" type="button" (click)="incrementQty(line)">+</button>
+                    </div>
+                  </td>
+                  <td class="text-end font-monospace">RD$ {{ line.unitCost | number:'1.2-2' }}</td>
+                  <td class="text-end pe-3 font-monospace fw-bold text-primary">
+                    RD$ {{ line.subTotal | number:'1.2-2' }}
+                  </td>
+                  <td class="text-center">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-link text-danger p-0"
+                      (click)="removeLine(idx)"
+                      title="Quitar de la recepción"
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              }
             }
           </tbody>
           <tfoot class="table-light">
@@ -219,6 +380,7 @@
               <td class="text-end pe-3 font-monospace fw-bold text-primary fs-6">
                 RD$ {{ totalReceiptAmount | number:'1.2-2' }}
               </td>
+              <td></td>
             </tr>
           </tfoot>
         </table>
@@ -242,20 +404,35 @@
 
       <!-- Discrepancy Alert if variations detected -->
       @if (hasDiscrepancies()) {
-        <div class="alert alert-warning border border-warning-subtle rounded-3 p-3 mb-4">
+        <div class="alert alert-warning border border-warning-subtle rounded-3 p-3 mb-3">
           <div class="d-flex align-items-center gap-2 mb-1">
-            <strong>Se detectaron variaciones en el conteo físico</strong>
+            <strong>⚠️ Se detectaron variaciones en el conteo físico</strong>
           </div>
           <p class="small mb-0">
-            Las cantidades físicas recibidas no coinciden exactamente con lo ordenado en <strong>{{ selectedOrder.orderNumber }}</strong>.
-            Al procesar, se generará una solicitud en la <strong>Bandeja de Autorizaciones (Manage Requests)</strong> para la aprobación del supervisor antes de aplicar al stock físico.
+            Las cantidades físicas recibidas no coinciden exactamente con lo ordenado originalmente en <strong>{{ selectedOrder.orderNumber }}</strong>.
           </p>
         </div>
       } @else {
-        <div class="alert alert-success border border-success-subtle rounded-3 p-3 mb-4">
-          <strong>✓ Conteo físico conforme:</strong> Todas las cantidades coinciden con la orden de compra. El stock se sumará de forma inmediata.
+        <div class="alert alert-success border border-success-subtle rounded-3 p-3 mb-3">
+          <strong>✓ Conteo físico conforme:</strong> Todas las cantidades coinciden con la orden de compra.
         </div>
       }
+
+      <!-- Direct Entry Switch -->
+      <div class="form-check form-switch p-3 bg-light rounded-3 border mb-3">
+        <input
+          class="form-check-input ms-0 me-2"
+          type="checkbox"
+          id="directApplyStockCheck"
+          [(ngModel)]="directApplyStock"
+        />
+        <label class="form-check-label fw-bold text-dark" for="directApplyStockCheck">
+          Sumar inmediatamente las cantidades al stock y Kardex del Almacén Receptor
+        </label>
+        <div class="text-secondary small mt-1">
+          Aplica el ingreso directamente a "{{ warehouses[0]?.name || 'Almacén Principal' }}" y actualiza los costos promedio en inventario sin pasar por la cola de autorización.
+        </div>
+      </div>
 
       <div class="mb-3">
         <label class="form-label small fw-semibold text-secondary">Comentarios del Almacenista / Observaciones:</label>
@@ -274,7 +451,7 @@
         <button
           type="button"
           class="btn fw-semibold px-4 shadow-sm"
-          [ngClass]="hasDiscrepancies() ? 'btn-warning text-dark' : 'btn-success text-white'"
+          [ngClass]="directApplyStock() || !hasDiscrepancies() ? 'btn-success text-white' : 'btn-warning text-dark'"
           [disabled]="isSubmitting()"
           (click)="processReception()"
         >
@@ -282,7 +459,7 @@
             <span class="spinner-border spinner-border-sm me-1"></span>
             Procesando...
           } @else {
-            {{ hasDiscrepancies() ? 'Solicitar Autorización de Recepción' : 'Ingresar a Inventario' }}
+            {{ directApplyStock() || !hasDiscrepancies() ? '✓ Ingresar a Inventario de Inmediato' : 'Solicitar Autorización de Recepción' }}
           }
         </button>
       </div>

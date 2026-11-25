@@ -1,0 +1,771 @@
+<div class="movement-page-container container-fluid py-3 px-lg-4">
+  <!-- Breadcrumb -->
+  <nav class="movement-breadcrumb mb-2" aria-label="breadcrumb">
+    <ol class="breadcrumb mb-0 align-items-center">
+      <li class="breadcrumb-item">
+        <a routerLink="/inventory" class="text-decoration-none d-inline-flex align-items-center gap-1 text-muted">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          <span>Inventario</span>
+        </a>
+      </li>
+      <li class="breadcrumb-item text-muted">Movimientos</li>
+      <li class="breadcrumb-item active text-dark fw-medium" aria-current="page">
+        {{ mode === 'entry' ? 'Nueva entrada' : mode === 'outlet' ? 'Nueva salida' : 'Nueva transferencia' }}
+      </li>
+    </ol>
+  </nav>
+
+  <!-- Title & Action Bar -->
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div class="d-flex align-items-center gap-2">
+      <h2 class="movement-title fw-bold text-dark mb-0">
+        {{ mode === 'entry' ? 'Nueva entrada de almacén' : mode === 'outlet' ? 'Nueva salida de almacén' : 'Nueva transferencia entre almacenes' }}
+      </h2>
+      <span class="badge rounded-pill bg-light text-secondary border px-2.5 py-1 fw-normal fs-7 d-inline-flex align-items-center gap-1">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        Borrador
+      </span>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <button type="button" class="btn btn-outline-secondary bg-white text-dark px-3 fw-medium shadow-2xs" (click)="cancel()" data-tooltip="Descartar borrador y volver al listado">
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="btn btn-success px-3 fw-semibold d-inline-flex align-items-center gap-2 shadow-sm"
+        [disabled]="isSaving() || productDetails.length === 0"
+        (click)="saveMovement()"
+        data-tooltip="Procesar y aplicar movimiento al inventario"
+      >
+        @if (isSaving()) {
+          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          <span>Procesando...</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>
+            {{ mode === 'entry' ? 'Procesar entrada' : mode === 'outlet' ? 'Procesar salida' : 'Confirmar transferencia' }}
+          </span>
+        }
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content 2-Column Grid -->
+  <div class="row g-4">
+    <!-- Left Column: Form & Products -->
+    <div class="col-xl-9 col-lg-8">
+      <!-- Card 1: Datos del movimiento -->
+      <div class="card movement-card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <h5 class="card-section-title fw-bold text-dark mb-3">Datos del movimiento</h5>
+        <div class="row g-3">
+          <!-- Warehouses: Entry / Outlet / Transfer -->
+          @if (mode !== 'transfer') {
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold text-secondary mb-1">
+                {{ mode === 'entry' ? 'Almacén destino' : 'Almacén origen' }}
+                <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted border-end-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                  </svg>
+                </span>
+                <select
+                  class="form-select border-start-0 ps-0"
+                  [(ngModel)]="warehouseId"
+                  (ngModelChange)="onWarehouseChange()"
+                >
+                  @for (wh of warehouses; track wh.id) {
+                    <option [ngValue]="wh.id">{{ wh.name }} ({{ wh.code || 'WH-' + wh.id }})</option>
+                  }
+                </select>
+              </div>
+            </div>
+          } @else {
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary mb-1">
+                Almacén origen <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted border-end-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                  </svg>
+                </span>
+                <select
+                  class="form-select border-start-0 ps-0"
+                  [(ngModel)]="warehouseOfOriginId"
+                  (ngModelChange)="onWarehouseChange()"
+                >
+                  @for (wh of warehouses; track wh.id) {
+                    <option [ngValue]="wh.id">{{ wh.name }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary mb-1">
+                Almacén destino <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted border-end-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </span>
+                <select
+                  class="form-select border-start-0 ps-0"
+                  [(ngModel)]="destinationWarehouseId"
+                  (ngModelChange)="onWarehouseChange()"
+                >
+                  @for (wh of warehouses; track wh.id) {
+                    <option [ngValue]="wh.id" [disabled]="wh.id === warehouseOfOriginId">
+                      {{ wh.name }} {{ wh.id === warehouseOfOriginId ? '(Mismo)' : '' }}
+                    </option>
+                  }
+                </select>
+              </div>
+            </div>
+          }
+
+          <!-- Motivo / Concepto -->
+          <div [ngClass]="mode === 'transfer' ? 'col-md-3' : 'col-md-4'">
+            <label class="form-label small fw-semibold text-secondary mb-1">
+              Motivo <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text bg-light text-muted border-end-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                  <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                </svg>
+              </span>
+              <select class="form-select border-start-0 ps-0" [(ngModel)]="conceptId">
+                @for (c of concepts; track c.id) {
+                  <option [ngValue]="c.id">{{ c.name }}</option>
+                }
+              </select>
+            </div>
+            @if (selectedConceptDescription) {
+              <div class="form-text text-muted font-size-xs mt-1">
+                {{ selectedConceptDescription }}
+              </div>
+            }
+          </div>
+
+          <!-- Observaciones -->
+          <div [ngClass]="mode === 'transfer' ? 'col-md-3' : 'col-md-4'">
+            <label class="form-label small fw-semibold text-secondary mb-1">Observaciones</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light text-muted border-end-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </span>
+              <input
+                type="text"
+                class="form-control border-start-0 ps-0"
+                placeholder="Notas o justificación del movimiento..."
+                [(ngModel)]="commentary"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Agregar productos -->
+      <div class="card movement-card border-0 shadow-sm rounded-4 p-4 bg-white">
+        <h5 class="card-section-title fw-bold text-dark mb-3">Agregar productos</h5>
+
+        <!-- Product Search & Fast Entry Bar -->
+        <div class="search-entry-bar mb-4">
+          <div class="d-flex align-items-center justify-content-between mb-1.5 flex-wrap gap-2">
+            <label class="form-label small fw-semibold text-secondary mb-0">
+              Buscar producto o escanear código
+            </label>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-primary fw-semibold d-inline-flex align-items-center gap-1.5 px-3 py-1.5 rounded-3 shadow-2xs"
+              (click)="openProductCatalogModal()"
+              data-tooltip="Abrir catálogo completo del almacén para selección rápida de múltiples productos a la vez"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              <span>Catálogo del almacén (Selección múltiple)</span>
+            </button>
+          </div>
+          <div class="d-flex align-items-center flex-wrap gap-2">
+            <!-- Search Text Input with Autocomplete Dropdown -->
+            <div class="position-relative flex-grow-1" style="min-width: 260px;">
+              <div class="input-group">
+                <span class="input-group-text bg-white text-muted border-end-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
+                <input
+                  #searchInput
+                  type="text"
+                  class="form-control border-start-0 ps-0 search-main-input"
+                  placeholder="Escriba nombre, código de barras o pase el lector..."
+                  [(ngModel)]="searchTerm"
+                  (input)="onSearchInput()"
+                  (keydown.enter)="handleSearchEnter($event)"
+                  (blur)="closeSearchDropdownWithDelay()"
+                  autocomplete="off"
+                />
+              </div>
+
+              <!-- Floating Autocomplete Search Results -->
+              @if (isSearchDropdownOpen && filteredProducts.length > 0) {
+                <div class="search-autocomplete-dropdown shadow-lg rounded-3 border bg-white p-1">
+                  @for (prod of filteredProducts; track prod.id) {
+                    <div
+                      class="dropdown-product-item p-2 d-flex align-items-center justify-content-between rounded-2 cursor-pointer"
+                      (mousedown)="selectProductFromDropdown(prod)"
+                    >
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="product-mini-icon p-1.5 bg-light rounded text-secondary">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="fw-semibold text-dark font-size-sm">{{ prod.description }}</div>
+                          <div class="text-muted font-size-xs font-monospace">
+                            {{ prod.barcode || 'S/C' }} {{ prod.shortDescription ? '• ' + prod.shortDescription : '' }}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="text-end">
+                        <div class="fw-bold text-primary font-monospace font-size-sm">RD$ {{ prod.cost | number:'1.2-2' }}</div>
+                        <div class="text-muted font-size-xs">Stock: {{ prod.stock || 0 }} uds</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Barcode Scanner Button -->
+            <button
+              type="button"
+              class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-1.5 px-3 py-2 fw-medium shadow-2xs"
+              (click)="openCameraScanner()"
+              data-tooltip="Escanear código con lector o cámara"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="5" x2="3" y2="19"></line>
+                <line x1="7" y1="5" x2="7" y2="19"></line>
+                <line x1="11" y1="5" x2="11" y2="19"></line>
+                <line x1="15" y1="5" x2="15" y2="19"></line>
+                <line x1="19" y1="5" x2="19" y2="19"></line>
+                <line x1="21" y1="5" x2="21" y2="19"></line>
+              </svg>
+              <span>Escanear</span>
+            </button>
+
+            <!-- File Upload / Barcode Image Button -->
+            <input
+              #barcodeImageInput
+              type="file"
+              accept="image/*"
+              style="display: none;"
+              (change)="onBarcodeImageSelected($event)"
+            />
+            <button
+              type="button"
+              class="btn btn-outline-secondary bg-white text-dark d-inline-flex align-items-center gap-1.5 px-3 py-2 fw-medium shadow-2xs"
+              (click)="barcodeImageInput.click()"
+              [disabled]="isDecodingBarcodeImage()"
+              data-tooltip="Cargar imagen de código de barras para decodificar"
+            >
+              @if (isDecodingBarcodeImage()) {
+                <span class="spinner-border spinner-border-sm" style="width: 14px; height: 14px;"></span>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              }
+              <span>Cargar archivo</span>
+            </button>
+
+            <!-- Quantity Input -->
+            <div class="d-flex flex-column" style="width: 95px;">
+              <span class="font-size-xs text-secondary fw-semibold mb-0.5 d-none d-sm-block">Cantidad (Und.)</span>
+              <input
+                type="number"
+                class="form-control text-center font-monospace"
+                placeholder="Cant."
+                [(ngModel)]="addQuantity"
+                min="1"
+                step="1"
+              />
+            </div>
+
+            <!-- Cost Input -->
+            <div class="d-flex flex-column" style="width: 125px;">
+              <span class="font-size-xs text-secondary fw-semibold mb-0.5 d-none d-sm-block">Costo unitario (RD$)</span>
+              <input
+                type="number"
+                class="form-control text-end font-monospace"
+                placeholder="Costo"
+                [(ngModel)]="addCost"
+                min="0"
+                step="0.01"
+              />
+            </div>
+
+            <!-- Add Button -->
+            <button
+              type="button"
+              class="btn btn-brand-add text-white fw-semibold d-inline-flex align-items-center gap-1.5 px-3 py-2 shadow-sm"
+              (click)="addProductLine()"
+              data-tooltip="Agregar producto al movimiento de almacén"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Agregar</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Products Table -->
+        <div class="table-responsive movement-table-wrapper rounded-3 border">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="movement-table-head bg-light">
+              <tr>
+                <th class="ps-3 text-secondary" style="width: 45px;">#</th>
+                <th class="text-secondary">Producto / Descripción</th>
+                <th class="text-secondary" style="width: 130px;">Código</th>
+                <th class="text-center text-secondary" style="width: 110px;">Cantidad</th>
+                <th class="text-end text-secondary" style="width: 130px;">Costo unit. (RD$)</th>
+                <th class="text-end text-secondary" style="width: 130px;">Subtotal (RD$)</th>
+                <th class="text-center text-secondary pe-3" style="width: 75px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (productDetails.length === 0) {
+                <tr>
+                  <td colspan="7" class="text-center py-5 text-muted">
+                    <div class="empty-table-state d-flex flex-column align-items-center justify-content-center">
+                      <div class="empty-icon-wrap p-3 bg-light rounded-circle text-secondary mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                        </svg>
+                      </div>
+                      <span class="fw-medium text-secondary">No hay productos agregados</span>
+                      <span class="font-size-xs text-muted">Usa el buscador o escanea un código para agregar renglones al movimiento</span>
+                    </div>
+                  </td>
+                </tr>
+              } @else {
+                @for (item of productDetails; track $index; let idx = $index) {
+                  <tr class="movement-row">
+                    <td class="ps-3 text-secondary font-monospace">{{ idx + 1 }}</td>
+                    <td>
+                      <div class="d-flex align-items-center gap-2.5">
+                        <div class="product-row-icon p-2 bg-light rounded text-secondary flex-shrink-0">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="fw-bold text-dark product-name">{{ item.productName }}</div>
+                          <div class="text-muted product-subtitle font-size-xs">
+                            {{ item.description || (item.stockAvailable !== undefined ? 'Stock: ' + item.stockAvailable + ' uds' : '') }}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-secondary border font-monospace px-2 py-1 code-pill">
+                        {{ item.barCode || 'S/C' }}
+                      </span>
+                    </td>
+                    <td class="text-center">
+                      <input
+                        type="number"
+                        class="form-control form-control-sm text-center font-monospace mx-auto row-stepper-input"
+                        style="width: 76px;"
+                        [(ngModel)]="item.quantity"
+                        (ngModelChange)="onLineChange(idx)"
+                        min="1"
+                        step="1"
+                      />
+                    </td>
+                    <td class="text-end">
+                      <input
+                        type="number"
+                        class="form-control form-control-sm text-end font-monospace ms-auto row-stepper-input"
+                        style="width: 96px;"
+                        [(ngModel)]="item.cost"
+                        (ngModelChange)="onLineChange(idx)"
+                        min="0"
+                        step="0.01"
+                      />
+                    </td>
+                    <td class="text-end font-monospace fw-bold text-dark subtotal-cell">
+                      {{ (item.quantity * (item.cost || 0)) | number:'1.2-2' }}
+                    </td>
+                    <td class="text-center pe-3">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-link text-muted p-1 hover-delete-btn"
+                        (click)="removeProduct(idx)"
+                        data-tooltip="Eliminar producto del movimiento"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Resumen Sidebar Card -->
+    <div class="col-xl-3 col-lg-4">
+      <div class="card summary-card border-0 shadow-sm rounded-4 p-4 bg-white sticky-top" style="top: 1rem;">
+        <h5 class="summary-title fw-bold text-dark mb-4">
+          {{ mode === 'entry' ? 'Resumen de entrada' : mode === 'outlet' ? 'Resumen de salida' : 'Resumen de transferencia' }}
+        </h5>
+
+        <!-- Item 1: Warehouse -->
+        <div class="summary-item d-flex align-items-start gap-3 mb-3.5 pb-3 border-bottom">
+          <div class="summary-icon-box p-2 bg-light rounded text-secondary flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+          </div>
+          <div>
+            <div class="summary-label text-muted font-size-xs">
+              {{ mode === 'entry' ? 'Almacén destino' : mode === 'outlet' ? 'Almacén origen' : 'Ruta transferencia' }}
+            </div>
+            <div class="summary-value fw-bold text-dark font-size-sm">
+              {{ getSelectedWarehouseName() }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 2: Product Count -->
+        <div class="summary-item d-flex align-items-center justify-content-between mb-3.5 pb-3 border-bottom">
+          <div class="d-flex align-items-center gap-2.5 text-secondary">
+            <div class="summary-icon-box p-2 bg-light rounded text-secondary flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+            </div>
+            <span class="summary-label text-muted font-size-sm">Cantidad de productos</span>
+          </div>
+          <span class="summary-value fw-bold text-dark font-monospace fs-6">
+            {{ totalItems }}
+          </span>
+        </div>
+
+        <!-- Item 3: Total Units -->
+        <div class="summary-item d-flex align-items-center justify-content-between mb-3.5 pb-3 border-bottom">
+          <div class="d-flex align-items-center gap-2.5 text-secondary">
+            <div class="summary-icon-box p-2 bg-light rounded text-secondary flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+            </div>
+            <span class="summary-label text-muted font-size-sm">Unidades totales</span>
+          </div>
+          <span class="summary-value fw-bold text-dark font-monospace fs-6">
+            {{ totalUnits }}
+          </span>
+        </div>
+
+        <!-- Item 4: Total Cost -->
+        <div class="summary-item d-flex align-items-center justify-content-between mb-4">
+          <div class="d-flex align-items-center gap-2.5 text-secondary">
+            <div class="summary-icon-box p-2 bg-light rounded text-secondary flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <span class="summary-label text-muted font-size-sm">Costo total</span>
+          </div>
+          <span class="summary-total-cost fw-bold font-monospace fs-5 text-success">
+            RD$ {{ totalCost | number:'1.2-2' }}
+          </span>
+        </div>
+
+        <!-- Confirm Action Button -->
+        <button
+          type="button"
+          class="btn btn-success w-100 py-2.5 fw-bold d-inline-flex align-items-center justify-content-center gap-2 shadow-sm rounded-3 mt-2"
+          [disabled]="isSaving() || productDetails.length === 0"
+          (click)="saveMovement()"
+          data-tooltip="Confirmar e impactar almacén definitivamente"
+        >
+          @if (isSaving()) {
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span>Guardando movimiento...</span>
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>
+              {{ mode === 'entry' ? 'Confirmar y procesar entrada' : mode === 'outlet' ? 'Confirmar y procesar salida' : 'Confirmar y transferir' }}
+            </span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Camera Barcode Modal -->
+<app-camera-barcode-modal
+  [visible]="isCameraScannerOpen()"
+  [warehouseName]="getSelectedWarehouseName()"
+  (barcodeDetected)="onCameraBarcodeScanned($event)"
+  (codeDetected)="onCameraBarcodeScanned($event)"
+  (closed)="isCameraScannerOpen.set(false)"
+></app-camera-barcode-modal>
+
+<!-- Receipt Modal -->
+<app-warehouse-movement-receipt-modal
+  [isOpen]="isReceiptModalOpen()"
+  [data]="receiptData"
+  (close)="onReceiptClosed()"
+></app-warehouse-movement-receipt-modal>
+
+<!-- Modal Catálogo de Productos del Almacén (Selección Múltiple Rápida) -->
+@if (isCatalogModalOpen()) {
+  <div class="modal-backdrop fade show" style="z-index: 1050;"></div>
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" style="z-index: 1055;">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <!-- Modal Header -->
+        <div class="modal-header border-bottom px-4 py-3 bg-light d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-2.5">
+            <div class="modal-header-icon p-2 bg-primary-subtle text-primary rounded-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </div>
+            <div>
+              <h5 class="modal-title fw-bold text-dark mb-0">Catálogo de Productos - {{ getSelectedWarehouseName() }}</h5>
+              <small class="text-secondary">Selecciona de 1 a múltiples productos para agregarlos en lote al movimiento</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" (click)="closeProductCatalogModal()"></button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="modal-body p-4">
+          <!-- Filter & Search Bar in Modal -->
+          <div class="row g-2 align-items-center mb-3">
+            <div class="col-md-7">
+              <div class="input-group">
+                <span class="input-group-text bg-white text-muted border-end-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  class="form-control border-start-0 ps-0"
+                  placeholder="Buscar por nombre, código de barras o referencia..."
+                  [(ngModel)]="catalogSearchTerm"
+                />
+              </div>
+            </div>
+            <div class="col-md-5 d-flex justify-content-md-end gap-1">
+              <div class="btn-group btn-group-sm" role="group">
+                <button
+                  type="button"
+                  class="btn"
+                  [ngClass]="catalogFilter === 'all' ? 'btn-primary' : 'btn-outline-secondary'"
+                  (click)="catalogFilter = 'all'"
+                >
+                  Todos ({{ catalogItems.length }})
+                </button>
+                <button
+                  type="button"
+                  class="btn"
+                  [ngClass]="catalogFilter === 'with-stock' ? 'btn-primary' : 'btn-outline-secondary'"
+                  (click)="catalogFilter = 'with-stock'"
+                >
+                  Con Stock
+                </button>
+                <button
+                  type="button"
+                  class="btn"
+                  [ngClass]="catalogFilter === 'zero-stock' ? 'btn-primary' : 'btn-outline-secondary'"
+                  (click)="catalogFilter = 'zero-stock'"
+                >
+                  Sin Stock
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product Table in Modal -->
+          <div class="table-responsive border rounded-3" style="max-height: 520px; overflow-y: auto;">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="bg-light sticky-top" style="position: sticky; top: 0; z-index: 5;">
+                <tr class="font-size-xs text-secondary text-uppercase">
+                  <th class="ps-3" style="width: 45px;">
+                    <input
+                      type="checkbox"
+                      class="form-check-input"
+                      [checked]="isAllCatalogSelected()"
+                      (change)="toggleSelectAllCatalog($event)"
+                    />
+                  </th>
+                  <th>Producto</th>
+                  <th style="width: 140px;">Código</th>
+                  <th class="text-center" style="width: 120px;">Stock Almacén</th>
+                  <th class="text-end" style="width: 140px;">Costo Unit. (RD$)</th>
+                  <th class="text-center" style="width: 120px;">Cant. a Mover</th>
+                  <th class="text-end pe-3" style="width: 140px;">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (filteredCatalogItems.length === 0) {
+                  <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                      No se encontraron productos en el catálogo que coincidan con la búsqueda.
+                    </td>
+                  </tr>
+                } @else {
+                  @for (it of filteredCatalogItems; track it.product.id) {
+                    <tr [class.table-primary]="it.selected" (click)="toggleCatalogRow(it, $event)" style="cursor: pointer;">
+                      <td class="ps-3" (click)="$event.stopPropagation()">
+                        <input
+                          type="checkbox"
+                          class="form-check-input"
+                          [(ngModel)]="it.selected"
+                        />
+                      </td>
+                      <td>
+                        <div class="fw-bold text-dark font-size-sm">{{ it.product.description }}</div>
+                        <div class="text-muted font-size-xs">{{ it.product.shortDescription || 'General' }}</div>
+                      </td>
+                      <td>
+                        <span class="badge bg-light text-secondary border font-monospace">
+                          {{ it.product.barcode || 'PRD-' + it.product.id }}
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <span class="badge font-monospace" [ngClass]="it.stock > 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-secondary-subtle text-secondary border'">
+                          {{ it.stock }} uds
+                        </span>
+                      </td>
+                      <td class="text-end" (click)="$event.stopPropagation()">
+                        <input
+                          type="number"
+                          class="form-control form-control-sm text-end font-monospace ms-auto"
+                          style="width: 110px;"
+                          [(ngModel)]="it.cost"
+                          (ngModelChange)="it.selected = true"
+                          min="0"
+                          step="0.01"
+                        />
+                      </td>
+                      <td class="text-center" (click)="$event.stopPropagation()">
+                        <input
+                          type="number"
+                          class="form-control form-control-sm text-center font-monospace mx-auto"
+                          style="width: 80px;"
+                          [(ngModel)]="it.quantity"
+                          (ngModelChange)="it.selected = true"
+                          min="1"
+                          step="1"
+                        />
+                      </td>
+                      <td class="text-end pe-3 font-monospace fw-bold text-dark">
+                        RD$ {{ ((it.quantity || 1) * (it.cost || 0)) | number:'1.2-2' }}
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer border-top px-4 py-3 bg-light d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-3">
+            <span class="fw-semibold text-dark">
+              Seleccionados: <span class="badge bg-primary text-white rounded-pill px-2.5">{{ selectedCatalogCount }} productos</span>
+            </span>
+            <span class="text-muted small">
+              ({{ selectedCatalogUnits }} uds • Costo estimado: <strong class="text-success font-monospace">RD$ {{ selectedCatalogCost | number:'1.2-2' }}</strong>)
+            </span>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-secondary px-3" (click)="closeProductCatalogModal()">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary fw-semibold px-4 d-inline-flex align-items-center gap-2"
+              [disabled]="selectedCatalogCount === 0"
+              (click)="confirmAddCatalogProducts()"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Agregar ({{ selectedCatalogCount }}) al movimiento</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+}

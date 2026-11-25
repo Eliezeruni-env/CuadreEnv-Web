@@ -1,10 +1,12 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SaleService } from '../../services/sale.service';
 import { CustomerService } from '../../../customers/services/customer.service';
 import { ProductService } from '../../../products/services/product.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
+import { PermissionService } from '../../../roles/services/permission.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import type { SaleResponseDto, CustomerDto } from '../../../cuadreEnv/types/api';
 import { IconDirective } from '@coreui/icons-angular';
@@ -34,14 +36,16 @@ import {
 } from '@coreui/angular';
 import { TableComponent } from '../../../cuadreEnv/components/table/table.component';
 import { ListPaginationComponent } from '../../../cuadreEnv/components/list-pagination/list-pagination.component';
-import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/kt-paginator.component';
+import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 
 @Component({
   selector: 'app-sales',
   templateUrl: './sales.component.html',
+  styleUrls: ['./sales.component.scss'],
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     AlertComponent,
     SpinnerComponent,
     CreateSaleModalComponent,
@@ -53,10 +57,10 @@ import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/k
     SaleCompletedModalComponent,
     CreditNoteFormComponent,
     FilterPanelComponent,
-    KtPaginatorComponent,
   ],
 })
 export class SalesComponent implements OnInit {
+  readonly Math = Math;
   @ViewChild('newSaleChoiceModal') newSaleChoiceModal!: NewSaleChoiceModalComponent;
   @ViewChild('quickSaleModal') quickSaleModal!: QuickSaleModalComponent;
   @ViewChild('createReceivableModal') createReceivableModal!: CreateReceivableModalComponent;
@@ -66,6 +70,7 @@ export class SalesComponent implements OnInit {
   @ViewChild('creditNoteFormModal') creditNoteFormModal!: CreditNoteFormComponent;
 
   readonly translationService = inject(TranslationService);
+  private readonly notificationService = inject(NotificationService);
 
   sales = signal<SaleResponseDto[]>([]);
   customers = signal<CustomerDto[]>([]);
@@ -108,8 +113,8 @@ export class SalesComponent implements OnInit {
       options: [
         { label: 'Todos los canales', value: '' },
         { label: 'Ventas en Caja (POS)', value: 'caja' },
-        { label: 'Ventas Directas', value: 'direct' },
-        { label: '🛠️ Ventas de Servicios', value: 'servicio' },
+        { label: 'Facturación Directa', value: 'direct' },
+        { label: 'Taller / Servicios', value: 'servicio' },
       ],
     },
     {
@@ -136,6 +141,7 @@ export class SalesComponent implements OnInit {
     private customerService: CustomerService,
     private productService: ProductService,
     public authService: AuthService,
+    public permissionService: PermissionService,
     private router: Router,
   ) {}
 
@@ -145,22 +151,32 @@ export class SalesComponent implements OnInit {
 
   async loadData() {
     this.isLoading.set(true);
+    this.errorMessage.set(null);
     try {
       const [sRes, cRes, pRes] = await Promise.all([
-        this.saleService.getSales(),
-        this.customerService.getCustomers({
-          pageNumber: 1,
-          pageSize: 100,
-        }),
-        this.productService.getPagedProducts(1, 100).catch(() => ({ success: false, data: null })),
+        this.saleService
+          .getSales()
+          .catch(() => ({ success: true, data: this.saleService.getLocalSales() })),
+        this.customerService
+          .getCustomers({
+            pageNumber: 1,
+            pageSize: 100,
+          })
+          .catch(() => ({ success: true, data: [] })),
+        this.productService
+          .getPagedProducts(1, 100)
+          .catch(() => ({ success: false, data: null })),
       ]);
 
-      if (sRes.success && sRes.data) {
-        this.sales.set(sRes.data);
-        this.totalItems.set(this.getFilteredSalesCount());
+      let salesList = sRes?.success && Array.isArray(sRes.data) ? sRes.data : [];
+      if (salesList.length === 0) {
+        salesList = this.saleService.getLocalSales();
       }
 
-      if (cRes.success && cRes.data) {
+      this.sales.set(salesList);
+      this.totalItems.set(this.getFilteredSalesCount());
+
+      if (cRes?.success && Array.isArray(cRes.data)) {
         this.customers.set(cRes.data);
       }
 
@@ -173,9 +189,15 @@ export class SalesComponent implements OnInit {
         }
       }
     } catch (e: any) {
-      this.errorMessage.set(
-        e?.response?.data?.message || e?.message || 'Error loading sales.',
-      );
+      console.warn('Error loading sales, fallback to local storage cache:', e);
+      const fallbackSales = this.saleService.getLocalSales();
+      this.sales.set(fallbackSales);
+      this.totalItems.set(this.getFilteredSalesCount());
+      if (fallbackSales.length === 0) {
+        this.errorMessage.set(
+          e?.response?.data?.message || e?.message || 'Error loading sales.',
+        );
+      }
     } finally {
       this.isLoading.set(false);
     }
@@ -267,9 +289,71 @@ export class SalesComponent implements OnInit {
     });
   });
 
+  sortColumn = signal<string>('date');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update((dir) => (dir === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+    this.currentPage.set(1);
+  }
+
+  readonly sortedSales = computed(() => {
+    const list = [...this.filteredSalesBase()];
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+
+    return list.sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      switch (col) {
+        case 'invoice':
+          valA = this.getInvoiceCode(a);
+          valB = this.getInvoiceCode(b);
+          break;
+        case 'date':
+          valA = new Date(a.creationDate || 0).getTime();
+          valB = new Date(b.creationDate || 0).getTime();
+          break;
+        case 'customer':
+          valA = (this.getCustomerDisplay(a) || '').toLowerCase();
+          valB = (this.getCustomerDisplay(b) || '').toLowerCase();
+          break;
+        case 'origin':
+          valA = this.getOriginLabel(a);
+          valB = this.getOriginLabel(b);
+          break;
+        case 'total':
+          valA = Number(a.total) || 0;
+          valB = Number(b.total) || 0;
+          break;
+        case 'paid':
+          valA = Number(a.paidAmount) || 0;
+          valB = Number(b.paidAmount) || 0;
+          break;
+        case 'status':
+          valA = (a.status === 4 || (a as any).isCancelled) ? 'Anulada' : 'Pagada';
+          valB = (b.status === 4 || (b as any).isCancelled) ? 'Anulada' : 'Pagada';
+          break;
+        default:
+          valA = a.id;
+          valB = b.id;
+      }
+
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  });
+
   readonly pagedSales = computed(() => {
     const start = (this.currentPage() - 1) * this.pageSize;
-    return this.filteredSalesBase().slice(start, start + this.pageSize);
+    return this.sortedSales().slice(start, start + this.pageSize);
   });
 
   getFilteredSalesCount(): number {
@@ -436,6 +520,43 @@ export class SalesComponent implements OnInit {
     return customer ? customer.name : this.translationService.t('sales.table.unknownCustomer');
   }
 
+  getInvoiceCode(sale: SaleResponseDto): string {
+    if (sale.invoiceNumber && sale.invoiceNumber.trim() && !sale.invoiceNumber.startsWith('#')) {
+      return sale.invoiceNumber;
+    }
+    return `FAC-${String(sale.id).padStart(6, '0')}`;
+  }
+
+  getCustomerDisplay(sale: SaleResponseDto): string {
+    const name = this.getCustomerName(sale.customerId);
+    if (!name || name === this.translationService.t('sales.table.unknownCustomer') || name === 'Cliente Desconocido') {
+      return `Cliente #${sale.customerId || 1}`;
+    }
+    return name;
+  }
+
+  isMobileSale(sale: SaleResponseDto): boolean {
+    return Boolean(
+      sale.isMobile ||
+      sale.originChannel === 'MOBILE' ||
+      sale.originChannel === 'MOBILE_POS' ||
+      (sale.notes && sale.notes.toLowerCase().includes('móvil'))
+    );
+  }
+
+  getOriginLabel(sale: SaleResponseDto): string {
+    if (this.isMobileSale(sale)) {
+      return 'Móvil';
+    }
+    if (sale.originChannel === 'POS_PRESENCIAL' || (!sale.originChannel && sale.cashRegisterId)) {
+      return 'POS';
+    }
+    if (sale.originChannel === 'CREDITO') {
+      return 'Crédito';
+    }
+    return 'Contado';
+  }
+
   openQuickSaleDirect() {
     this.router.navigate(['/sales/quick']);
   }
@@ -531,6 +652,10 @@ export class SalesComponent implements OnInit {
   }
 
   openCreditNoteForSale(sale: SaleResponseDto) {
+    if (sale.status === 4 || (sale as any).isCancelled || sale.notes?.includes('DEVUELTA')) {
+      this.notificationService.warning('Esta factura o venta ya fue devuelta en su totalidad mediante nota de crédito.');
+      return;
+    }
     const formattedId = `VTA-${String(sale.id).padStart(6, '0')}`;
     if (this.creditNoteFormModal) {
       this.creditNoteFormModal.open(formattedId);

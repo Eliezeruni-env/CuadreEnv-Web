@@ -1,0 +1,89 @@
+<div class="voucher-layout">
+  <!-- Header -->
+  <header class="voucher-header py-3 text-center" [style.background-color]="appointmentDetails()?.brandColorHex || '#111827'">
+    <div class="d-flex align-items-center justify-content-center gap-2">
+      <i class="cil-cut text-white" style="font-size: 1.5rem;"></i>
+      <h4 class="text-white mb-0 fw-bold">{{ appointmentDetails()?.businessName || 'Barbería Central' }}</h4>
+    </div>
+  </header>
+
+  <main class="container py-5 d-flex justify-content-center">
+    <div class="voucher-card p-4 p-md-5 rounded-4 shadow-sm bg-white text-center">
+      <!-- Check icon -->
+      <div class="check-circle mx-auto mb-3">
+        <i class="cil-check"></i>
+      </div>
+
+      <h3 class="fw-bold mb-2">Solicitud de cita recibida</h3>
+
+      <!-- Status badge -->
+      <div class="mb-3">
+        <span class="status-pill status-pending">
+          <i class="cil-clock me-1"></i>
+          {{ appointmentDetails()?.status === 'Confirmed' ? 'Confirmada' : 'Pendiente de confirmación' }}
+        </span>
+      </div>
+
+      <p class="text-muted small mb-4">
+        Te avisaremos cuando {{ appointmentDetails()?.businessName || 'Barbería Central' }} confirme tu reserva.
+      </p>
+
+      <!-- Details List Box -->
+      <div class="details-box rounded-3 p-3 mb-4 text-start">
+        <div class="detail-row d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted small"><i class="cil-barcode me-2"></i>Código de cita</span>
+          <span class="code-badge">{{ bookingCode() }}</span>
+        </div>
+
+        <div class="detail-row d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted small"><i class="cil-cut me-2"></i>Servicio</span>
+          <span class="fw-semibold">{{ appointmentDetails()?.serviceName || 'Corte clásico' }}</span>
+        </div>
+
+        <div class="detail-row d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted small"><i class="cil-calendar me-2"></i>Fecha</span>
+          <span class="fw-semibold">{{ (appointmentDetails()?.startAt | date:'EEEE d MMMM yyyy') || 'miércoles 25 noviembre 2026' }}</span>
+        </div>
+
+        <div class="detail-row d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted small"><i class="cil-clock me-2"></i>Hora</span>
+          <span class="fw-semibold">{{ (appointmentDetails()?.startAt | date:'hh:mm a') || '10:00 a. m.' }}</span>
+        </div>
+
+        <div class="detail-row d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted small"><i class="cil-hourglass me-2"></i>Duración</span>
+          <span class="fw-semibold">30 min</span>
+        </div>
+
+        <div class="detail-row d-flex justify-content-between py-2">
+          <span class="text-muted small"><i class="cil-money me-2"></i>Precio</span>
+          <span class="fw-bold text-dark">RD${{ (appointmentDetails()?.servicePrice | number:'1.0-0') || '500' }}</span>
+        </div>
+      </div>
+
+      <!-- Notification Notice -->
+      <div class="notice-pill p-2 rounded-3 mb-4 text-center">
+        <small class="text-muted">
+          <i class="cil-bell me-1 text-primary"></i> Recibirás una notificación en el contacto registrado.
+        </small>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="d-flex flex-column gap-2 mb-4">
+        <button class="btn btn-primary py-2 fw-bold" (click)="checkStatus()">
+          <i class="cil-calendar me-1"></i> Consultar estado de mi cita
+        </button>
+
+        <button class="btn btn-outline-secondary py-2" [routerLink]="['/reservas', slug()]">
+          <i class="cil-home me-1"></i> Volver al inicio
+        </button>
+
+        <button class="btn btn-link text-decoration-none text-muted" (click)="contactWhatsApp()">
+          <i class="cil-speech me-1 text-success"></i> Contactar al negocio
+        </button>
+      </div>
+
+      <small class="text-muted">Gestionado con <strong>CuadreEnv</strong>.</small>
+    </div>
+  </main>
+</div>

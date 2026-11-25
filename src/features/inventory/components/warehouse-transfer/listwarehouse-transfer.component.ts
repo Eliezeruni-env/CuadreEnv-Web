@@ -4,12 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WarehouseTransferService } from '../../services/warehouse-transfer.service';
 import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/kt-paginator.component';
+import {
+  WarehouseMovementReceiptModalComponent,
+  type MovementReceiptData,
+} from '../../../../app/shared/components/warehouse-movement-receipt-modal/warehouse-movement-receipt-modal.component';
 import type { WarehouseTransfer } from '../../../../app/models/movement';
 
 @Component({
   selector: 'app-listwarehouse-transfer',
   standalone: true,
-  imports: [CommonModule, FormsModule, KtPaginatorComponent],
+  imports: [CommonModule, FormsModule, KtPaginatorComponent, WarehouseMovementReceiptModalComponent],
   templateUrl: './listwarehouse-transfer.component.html',
   styleUrls: ['./listwarehouse-transfer.component.scss'],
 })
@@ -25,18 +29,79 @@ export class ListwarehouseTransferComponent implements OnInit {
   pageSize = signal<number>(10);
   expandedTransferId = signal<number | null>(null);
 
+  // Sorting
+  sortColumn = signal<string>('date');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
+  // Receipt Modal State (Matching Image 2)
+  isReceiptModalOpen = signal<boolean>(false);
+  selectedReceiptData: MovementReceiptData | null = null;
   selectedTransfer: WarehouseTransfer | null = null;
 
   readonly filteredTransfers = computed(() => {
+    let list = this.transfers();
     const q = this.searchTerm.toLowerCase().trim();
-    if (!q) return this.transfers();
-    return this.transfers().filter(
-      (t) =>
-        (t.movementNumber || '').toLowerCase().includes(q) ||
-        (t.warehouseOfOriginName || '').toLowerCase().includes(q) ||
-        (t.destinationWarehouseName || '').toLowerCase().includes(q) ||
-        (t.commentary || '').toLowerCase().includes(q),
-    );
+    if (q) {
+      list = list.filter(
+        (t) =>
+          (t.movementNumber || '').toLowerCase().includes(q) ||
+          (t.warehouseOfOriginName || '').toLowerCase().includes(q) ||
+          (t.destinationWarehouseName || '').toLowerCase().includes(q) ||
+          (t.commentary || '').toLowerCase().includes(q),
+      );
+    }
+
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...list].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'movement':
+          valA = a.movementNumber || String(a.id || '');
+          valB = b.movementNumber || String(b.id || '');
+          break;
+        case 'origin':
+          valA = (a.warehouseOfOriginName || '').toLowerCase();
+          valB = (b.warehouseOfOriginName || '').toLowerCase();
+          break;
+        case 'destination':
+          valA = (a.destinationWarehouseName || '').toLowerCase();
+          valB = (b.destinationWarehouseName || '').toLowerCase();
+          break;
+        case 'date':
+          valA = a.createDate ? new Date(a.createDate).getTime() : 0;
+          valB = b.createDate ? new Date(b.createDate).getTime() : 0;
+          break;
+        case 'quantity':
+          valA = a.totalQuantity || 0;
+          valB = b.totalQuantity || 0;
+          break;
+        case 'cost':
+          valA = a.totalCost || 0;
+          valB = b.totalCost || 0;
+          break;
+        case 'status':
+          valA = (a.statusName || '').toLowerCase();
+          valB = (b.statusName || '').toLowerCase();
+          break;
+        default:
+          valA = a.createDate ? new Date(a.createDate).getTime() : 0;
+          valB = b.createDate ? new Date(b.createDate).getTime() : 0;
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
   });
 
   readonly pagedTransfers = computed(() => {
@@ -54,10 +119,24 @@ export class ListwarehouseTransferComponent implements OnInit {
     try {
       const res = await this.transferService.getTransfers();
       if (res?.success && res.data) {
-        const safeData = (res.data || []).map((t: any) => ({
-          ...t,
-          productDetails: t.productDetails || t.details || t.items || [],
-        }));
+        const safeData = (res.data || []).map((t: any) => {
+          const details = t.productDetails || t.details || t.items || [];
+          let computedCost = Number(t.totalCost || t.costTotal || t.amount || 0);
+
+          if (computedCost === 0 && details.length > 0) {
+            computedCost = details.reduce((sum: number, it: any) => {
+              const c = Number(it.cost || it.unitCost || it.price || 0);
+              const q = Number(it.quantity || it.cant || 1);
+              return sum + c * q;
+            }, 0);
+          }
+
+          return {
+            ...t,
+            productDetails: details,
+            totalCost: computedCost,
+          };
+        });
         this.transfers.set(safeData);
       }
     } catch {
@@ -105,12 +184,50 @@ export class ListwarehouseTransferComponent implements OnInit {
   }
 
   viewDetail(transfer: WarehouseTransfer) {
-    this.selectedTransfer = transfer;
+    this.openReceiptModal(transfer);
   }
 
-  printVoucher() {
-    setTimeout(() => {
-      window.print();
-    }, 150);
+  openReceiptModal(transfer: WarehouseTransfer): void {
+    const code = transfer.movementNumber || `TRF-${transfer.id}`;
+    const rawItems = transfer.productDetails || [];
+    this.selectedReceiptData = {
+      movementCode: code,
+      movementType: 'transfer',
+      statusLabel: transfer.statusName || 'Aplicado',
+      title: 'Comprobante de transferencia de almacén',
+      firstColumnHeader: 'COMPROBANTE',
+      warehouseName: transfer.warehouseOfOriginName || 'Almacén Origen',
+      secondColumnHeader: 'ALMACÉN ORIGEN',
+      warehouseLocation: 'Emisor / Salida',
+      conceptName: transfer.destinationWarehouseName || 'Almacén Destino',
+      thirdColumnHeader: 'ALMACÉN DESTINO',
+      conceptDescription: 'Receptor / Entrada',
+      fourthColumnHeader: 'FECHA Y HORA',
+      date: new Date(transfer.createDate || (transfer as any).createdAt || Date.now()).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      time: new Date(transfer.createDate || (transfer as any).createdAt || Date.now()).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      itemsSectionTitle: 'Artículos transferidos',
+      items: rawItems.map((p: any) => ({
+        code: p.productCode || p.barcode || p.barCode || (p.productId ? `PROD-${p.productId}` : 'N/A'),
+        name: p.productName || p.description || 'Producto',
+        description: p.description || '',
+        quantity: Number(p.quantity) || 1,
+        unitCost: Number(p.cost || p.price) || 0,
+        totalCost: (Number(p.cost || p.price) || 0) * (Number(p.quantity) || 1),
+      })),
+      totalUnits: Number(transfer.totalQuantity) || rawItems.reduce((s: number, i: any) => s + (Number(i.quantity) || 0), 0) || 1,
+      totalCost: Number(transfer.totalCost) || 0,
+      footerNote: 'Transferencia aplicada al inventario',
+    };
+    this.isReceiptModalOpen.set(true);
+  }
+
+  printVoucher(transfer?: WarehouseTransfer) {
+    if (transfer) {
+      this.openReceiptModal(transfer);
+    } else {
+      setTimeout(() => {
+        window.print();
+      }, 150);
+    }
   }
 }

@@ -50,17 +50,19 @@
   z-index: 1070;
 }
 
-/* 3. Floating Install Button */
+/* 3. Floating Install Button (Movido a la derecha para no obstruir el catálogo en POS) */
 .pwa-install-floating {
   position: fixed;
   bottom: 24px;
-  left: 24px;
+  right: 24px;
+  left: auto;
   z-index: 1045;
   transition: all 0.25s ease;
 
   @media (max-width: 768px) {
     bottom: calc(76px + env(safe-area-inset-bottom, 12px));
-    left: 16px;
+    right: 16px;
+    left: auto;
   }
 }
 
@@ -101,19 +103,22 @@
   color: rgba(255, 255, 255, 0.45);
   border: none;
   border-radius: 50%;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   line-height: 1;
+  cursor: pointer;
+  position: relative;
+  z-index: 10;
   transition: all 0.15s ease;
 
   &:hover {
     color: #ffffff;
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.2);
   }
 }
 

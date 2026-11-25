@@ -1,0 +1,180 @@
+<div class="agenda-settings-container">
+  <!-- Top bar -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="page-title mb-1">Configuración de citas</h2>
+      <p class="text-muted mb-0">Define cómo se gestionan y reservan las citas de tu negocio.</p>
+    </div>
+    <button class="btn btn-primary d-flex align-items-center gap-1" (click)="saveSettings()" [disabled]="isSaving()">
+      <i class="cil-save"></i>
+      <span>{{ isSaving() ? 'Guardando...' : 'Guardar cambios' }}</span>
+    </button>
+  </div>
+
+  <div class="row g-4">
+    <!-- Main Left: General Settings -->
+    <div class="col-12 col-lg-7">
+      <div class="settings-card p-4">
+        <h5 class="fw-bold mb-4">General</h5>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold small">Zona horaria *</label>
+          <select class="form-select" [(ngModel)]="timeZoneId">
+            <option value="America/Santo_Domingo">America/Santo_Domingo (UTC-04:00)</option>
+            <option value="America/New_York">America/New_York (UTC-05:00)</option>
+            <option value="America/Puerto_Rico">America/Puerto_Rico (UTC-04:00)</option>
+          </select>
+          <small class="text-muted">Se usará para mostrar los horarios, fechas y recordatorios.</small>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold small d-block">Modalidad de confirmación *</label>
+          <div class="d-flex flex-column gap-2">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="confMode" id="confManual" [value]="1" [(ngModel)]="confirmationMode" />
+              <label class="form-check-label fw-semibold" for="confManual">Manual</label>
+              <small class="text-muted d-block">Tú revisas y confirmas cada solicitud.</small>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="confMode" id="confAuto" [value]="0" [(ngModel)]="confirmationMode" />
+              <label class="form-check-label fw-semibold" for="confAuto">Automática</label>
+              <small class="text-muted d-block">Las citas se confirman al momento de reservar (según disponibilidad).</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <label class="form-label fw-semibold small">Duración predeterminada *</label>
+            <select class="form-select" [(ngModel)]="defaultDurationMinutes">
+              <option [value]="15">15 minutos</option>
+              <option [value]="30">30 minutos</option>
+              <option [value]="45">45 minutos</option>
+              <option [value]="60">60 minutos</option>
+            </select>
+          </div>
+
+          <div class="col-6">
+            <label class="form-label fw-semibold small">Anticipación mínima *</label>
+            <select class="form-select" [(ngModel)]="minLeadTimeHours">
+              <option [value]="1">1 hora</option>
+              <option [value]="2">2 horas</option>
+              <option [value]="4">4 horas</option>
+              <option [value]="24">24 horas</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <label class="form-label fw-semibold small">Máximo de anticipación *</label>
+            <select class="form-select" [(ngModel)]="maxLeadTimeDays">
+              <option [value]="7">7 días</option>
+              <option [value]="15">15 días</option>
+              <option [value]="30">30 días</option>
+              <option [value]="60">60 días</option>
+            </select>
+          </div>
+
+          <div class="col-6">
+            <label class="form-label fw-semibold small">Tiempo de bloqueo de solicitudes *</label>
+            <select class="form-select" [(ngModel)]="slotLockMinutes">
+              <option [value]="15">15 minutos</option>
+              <option [value]="30">30 minutos</option>
+              <option [value]="60">60 minutos</option>
+            </select>
+            <small class="text-muted">Evita reservas duplicadas en el mismo horario.</small>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <label class="form-label fw-semibold small">Cancelación y reprogramación *</label>
+            <select class="form-select" [(ngModel)]="cancellationLeadTimeHours">
+              <option [value]="1">Hasta 1 hora antes</option>
+              <option [value]="2">Hasta 2 horas antes</option>
+              <option [value]="3">Hasta 3 horas antes</option>
+              <option [value]="24">Hasta 24 horas antes</option>
+            </select>
+          </div>
+
+          <div class="col-6">
+            <label class="form-label fw-semibold small">Intervalo de citas *</label>
+            <select class="form-select" [(ngModel)]="slotIntervalMinutes">
+              <option [value]="5">5 minutos</option>
+              <option [value]="10">10 minutos</option>
+              <option [value]="15">15 minutos</option>
+              <option [value]="30">30 minutos</option>
+            </select>
+            <small class="text-muted">Espacio mínimo entre el inicio de una cita y la siguiente.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Reminders & Public Link -->
+    <div class="col-12 col-lg-5">
+      <div class="d-flex flex-column gap-4">
+        <!-- Recordatorios -->
+        <div class="settings-card p-4">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="cil-bell text-primary"></i>
+            <h5 class="fw-bold mb-0">Recordatorios</h5>
+          </div>
+          <p class="text-muted small mb-4">Envía recordatorios automáticos a tus clientes para reducir las ausencias.</p>
+
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="remind24" [(ngModel)]="reminder24h" />
+            <label class="form-check-label fw-semibold" for="remind24">Recordatorio 24 horas antes</label>
+            <small class="text-muted d-block">Se envía un aviso un día (24 h) antes de la cita.</small>
+          </div>
+
+          <div class="form-check form-switch mb-4">
+            <input class="form-check-input" type="checkbox" id="remind1" [(ngModel)]="reminder1h" />
+            <label class="form-check-label fw-semibold" for="remind1">Recordatorio 1 hora antes</label>
+            <small class="text-muted d-block">Se envía un aviso 1 hora antes de la cita.</small>
+          </div>
+
+          <h6 class="fw-bold small mb-2">Canales de envío</h6>
+          <div class="d-flex flex-column gap-2">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="chWhatsapp" [(ngModel)]="reminderWhatsApp" />
+              <label class="form-check-label" for="chWhatsapp">
+                <i class="cil-speech text-success me-1"></i> WhatsApp <span class="badge bg-success-subtle text-success ms-1">Recomendado</span>
+              </label>
+              <small class="text-muted d-block">Rápido y con mayor tasa de lectura.</small>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="chEmail" [(ngModel)]="reminderEmail" />
+              <label class="form-check-label" for="chEmail">
+                <i class="cil-envelope-closed text-primary me-1"></i> Correo electrónico
+              </label>
+              <small class="text-muted d-block">Ideal como canal de respaldo.</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Enlace público -->
+        <div class="settings-card p-4">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="cil-link text-primary"></i>
+            <h5 class="fw-bold mb-0">Enlace público</h5>
+          </div>
+          <p class="text-muted small mb-3">Comparte tu página de reservas para que tus clientes agenden citas en línea.</p>
+
+          <div class="input-group mb-3">
+            <input type="text" class="form-control bg-light" value="https://cuadreenv.app/reservas/barberia-central" readonly />
+            <button class="btn btn-outline-secondary" type="button" (click)="copyLink()">
+              <i class="cil-copy"></i>
+            </button>
+          </div>
+
+          <button class="btn btn-outline-primary w-100" [routerLink]="['/agenda/booking-page']">
+            Ir a Mi página de reservas &rarr;
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

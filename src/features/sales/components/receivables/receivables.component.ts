@@ -32,10 +32,7 @@ import { WhatsAppShareService } from '../../services/whatsapp-share.service';
   standalone: true,
   imports: [
     CommonModule,
-    ContainerComponent,
-    ButtonDirective,
     SpinnerComponent,
-    IconDirective,
     CreateReceivableModalComponent,
     ReceivableDetailModalComponent,
     ListPaginationComponent,
@@ -57,6 +54,42 @@ export class ReceivablesComponent implements OnInit {
   // Tab Segment: 'pending' (Pendientes) vs 'paid' (Saldadas por completo)
   selectedTab = signal<'pending' | 'paid'>('pending');
 
+  // View Mode: 'table' (default, matching design) vs 'cards'
+  viewMode = signal<'table' | 'cards'>('table');
+
+  // KPI Calculations
+  readonly totalPendingBalance = computed(() =>
+    this.receivables().reduce((sum, r) => sum + (Number(r.pendingAmount) || 0), 0)
+  );
+
+  readonly overdueBalance = computed(() =>
+    this.receivables()
+      .filter((r) => {
+        if (r.pendingAmount <= 0) return false;
+        if (r.status === 'Vencido') return true;
+        if (r.dueDate) {
+          return new Date(r.dueDate).getTime() < new Date().setHours(0, 0, 0, 0);
+        }
+        return false;
+      })
+      .reduce((sum, r) => sum + (Number(r.pendingAmount) || 0), 0)
+  );
+
+  readonly expiringIn7DaysCount = computed(() =>
+    this.receivables().filter((r) => {
+      if (r.pendingAmount <= 0) return false;
+      if (!r.dueDate) return false;
+      const due = new Date(r.dueDate).getTime();
+      const now = new Date().setHours(0, 0, 0, 0);
+      const diff = Math.ceil((due - now) / (1000 * 3600 * 24));
+      return diff >= 0 && diff <= 7;
+    }).length
+  );
+
+  readonly settledCount = computed(() =>
+    this.receivables().filter((r) => r.pendingAmount <= 0 || r.status === 'Pagado').length
+  );
+
   // Counts for tabs
   readonly pendingCount = computed(() =>
     this.receivables().filter((r) => r.pendingAmount > 0 && r.status !== 'Pagado').length,
@@ -70,6 +103,33 @@ export class ReceivablesComponent implements OnInit {
   searchQuery = signal<string>('');
   selectedStatus = signal<string>('');
   selectedSort = signal<string>('newest');
+
+  readonly hasActiveFilters = computed(() => {
+    return (
+      this.searchQuery().trim() !== '' ||
+      this.selectedStatus() !== '' ||
+      this.selectedSort() !== 'newest'
+    );
+  });
+
+  clearFilters(): void {
+    this.searchQuery.set('');
+    this.selectedStatus.set('');
+    this.selectedSort.set('newest');
+  }
+
+  // Table Column Sorting
+  sortColumn = signal<string>('client');
+  sortDirection = signal<'asc' | 'desc'>('asc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
 
   // Pagination
   currentPage = signal<number>(1);
@@ -107,32 +167,65 @@ export class ReceivablesComponent implements OnInit {
       );
     }
 
-    // 3. Status Filter (if specific status is chosen)
+    // 3. Status Filter (if specific status is chosen, only apply when consistent with tab)
     if (status) {
-      list = list.filter((r) => r.status === status);
+      if (tab === 'paid') {
+        // En la pestaña de saldadas, mostrar todas las saldadas o las marcadas como Pagado
+        if (status === 'Pagado') {
+          list = list.filter((r) => r.status === 'Pagado' || r.pendingAmount <= 0);
+        }
+      } else {
+        list = list.filter((r) => r.status === status);
+      }
     }
 
     // 4. Sorting
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
     list.sort((a, b) => {
-      switch (sort) {
-        case 'oldest':
-          return (
-            new Date(a.creationDate).getTime() -
-            new Date(b.creationDate).getTime()
-          );
-        case 'amount-desc':
-          return b.pendingAmount - a.pendingAmount;
-        case 'amount-asc':
-          return a.pendingAmount - b.pendingAmount;
-        case 'name-asc':
-          return a.customerName.localeCompare(b.customerName);
-        case 'newest':
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'client':
+          valA = a.customerName.toLowerCase();
+          valB = b.customerName.toLowerCase();
+          break;
+        case 'pending':
+          valA = Number(a.pendingAmount) || 0;
+          valB = Number(b.pendingAmount) || 0;
+          break;
+        case 'dueDate':
+          valA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+          valB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+          break;
+        case 'status':
+          valA = (a.status || '').toLowerCase();
+          valB = (b.status || '').toLowerCase();
+          break;
         default:
-          return (
-            new Date(b.creationDate).getTime() -
-            new Date(a.creationDate).getTime()
-          );
+          switch (sort) {
+            case 'oldest':
+              return (
+                new Date(a.creationDate).getTime() -
+                new Date(b.creationDate).getTime()
+              );
+            case 'amount-desc':
+              return b.pendingAmount - a.pendingAmount;
+            case 'amount-asc':
+              return a.pendingAmount - b.pendingAmount;
+            case 'name-asc':
+              return a.customerName.localeCompare(b.customerName);
+            case 'newest':
+            default:
+              return (
+                new Date(b.creationDate).getTime() -
+                new Date(a.creationDate).getTime()
+              );
+          }
       }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
     });
 
     return list;
@@ -150,6 +243,7 @@ export class ReceivablesComponent implements OnInit {
 
   setTab(tab: 'pending' | 'paid') {
     this.selectedTab.set(tab);
+    this.selectedStatus.set(''); // Limpiar filtro secundario para mostrar todas las saldadas o pendientes
     this.currentPage.set(1);
   }
 
@@ -221,8 +315,33 @@ export class ReceivablesComponent implements OnInit {
     this.selectedReceivable = item;
     this.isDetailModalOpen = true;
     setTimeout(() => {
-      if (this.detailModal) this.detailModal.open(item);
+      if (this.detailModal) this.detailModal.open(item, 'sale');
     });
+  }
+
+  async quickSettle(item: ReceivableDto) {
+    if (!item || item.pendingAmount <= 0) return;
+    const confirmed = await this.confirmService.confirm({
+      title: 'Liquidar venta por cobrar',
+      message: `¿Deseas liquidar el saldo total pendiente de RD$ ${item.pendingAmount.toLocaleString('es-DO', { minimumFractionDigits: 2 })} para la factura ${item.invoiceNumber}?`,
+      itemName: item.customerName,
+      itemType: 'Cliente',
+      confirmText: 'Sí, liquidar 100%',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
+    this.isLoading.set(true);
+    try {
+      const res = await this.receivableService.settleReceivable(item.id);
+      if (res.success) {
+        this.notificationService.success(`Cuenta ${item.invoiceNumber} liquidada al 100% exitosamente.`);
+        await this.loadReceivables();
+      }
+    } catch (e: any) {
+      this.notificationService.showApiError(e);
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
   async deleteReceivable(item: ReceivableDto) {
@@ -300,6 +419,13 @@ export class ReceivablesComponent implements OnInit {
     }
 
     return { color: 'green', label: 'Al Día', isBlocked: false };
+  }
+
+  getDaysRemaining(dueDate?: string | null): number | null {
+    if (!dueDate) return null;
+    const due = new Date(dueDate).getTime();
+    const now = new Date().setHours(0, 0, 0, 0);
+    return Math.ceil((due - now) / (1000 * 3600 * 24));
   }
 
   sendWhatsAppReminder(item: ReceivableDto): void {

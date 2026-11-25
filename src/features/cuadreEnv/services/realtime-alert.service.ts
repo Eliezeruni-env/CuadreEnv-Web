@@ -138,6 +138,23 @@ export class RealtimeAlertService {
         this.handleSignalRAlert(payload);
       });
 
+      // Escuchar eventos de citas en tiempo real
+      connection.on('AppointmentCreated', (payload: any) => {
+        const d = payload?.data || payload;
+        this.notificationService.success(
+          '📅 Nueva cita recibida',
+          `Cliente ${d?.customerName || 'Web'} agendó ${d?.serviceName || 'Servicio'} (${d?.bookingCode || ''}).`,
+        );
+      });
+
+      connection.on('AppointmentStatusChanged', (payload: any) => {
+        const d = payload?.data || payload;
+        this.notificationService.info(
+          '🔄 Cita actualizada',
+          `La cita ${d?.bookingCode || ''} cambió de estado a ${d?.status || ''}.`,
+        );
+      });
+
       connection.onreconnecting(() => {
         console.warn('[SignalR SecurityAlerts] Reconectando al hub...');
       });

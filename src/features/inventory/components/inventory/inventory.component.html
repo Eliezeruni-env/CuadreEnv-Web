@@ -58,7 +58,7 @@
       </c-col>
 
       <c-col md="4">
-        @if (authService.hasRole(['Admin', 'Manager'])) {
+        @if (permissionService.canCreate('inventory')) {
         <c-card class="shadow-sm border-0 mb-4">
           <c-card-body class="p-4">
             <h5 class="fw-bold text-dark mb-3">Add Warehouse</h5>

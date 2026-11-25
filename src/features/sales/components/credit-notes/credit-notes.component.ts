@@ -22,6 +22,10 @@ import {
   SpinnerComponent,
 } from '@coreui/angular';
 import { KtPaginatorComponent } from '../../../billing/components/kt-paginator/kt-paginator.component';
+import {
+  WarehouseMovementReceiptModalComponent,
+  type MovementReceiptData,
+} from '../../../../app/shared/components/warehouse-movement-receipt-modal/warehouse-movement-receipt-modal.component';
 import type { CreditNote } from '../../../../app/models/credit-note';
 
 import { ActivatedRoute } from '@angular/router';
@@ -35,6 +39,7 @@ import { ActivatedRoute } from '@angular/router';
     SpinnerComponent,
     CreditNoteFormComponent,
     KtPaginatorComponent,
+    WarehouseMovementReceiptModalComponent,
   ],
   templateUrl: './credit-notes.component.html',
   styleUrls: ['./credit-notes.component.scss'],
@@ -55,19 +60,85 @@ export class CreditNotesComponent implements OnInit {
   pageSize = signal<number>(10);
   expandedNoteId = signal<number | null>(null);
 
+  // Sorting
+  sortColumn = signal<string>('date');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
   isCreateModalOpen = false;
   selectedCreditNote: CreditNote | null = null;
 
+  // Image 2 Universal Comprobante Modal
+  isReceiptModalOpen = signal<boolean>(false);
+  selectedReceiptData: MovementReceiptData | null = null;
+
   readonly filteredCreditNotes = computed(() => {
+    let list = this.creditNotes();
     const term = this.searchTerm.toLowerCase().trim();
-    if (!term) return this.creditNotes();
-    return this.creditNotes().filter(
-      (n) =>
-        (n.creditNoteNumber || '').toLowerCase().includes(term) ||
-        (n.ncf || '').toLowerCase().includes(term) ||
-        (n.billingNumber || '').toLowerCase().includes(term) ||
-        (n.customerName || '').toLowerCase().includes(term),
-    );
+    if (term) {
+      list = list.filter(
+        (n) =>
+          (n.creditNoteNumber || '').toLowerCase().includes(term) ||
+          (n.ncf || '').toLowerCase().includes(term) ||
+          (n.billingNumber || '').toLowerCase().includes(term) ||
+          (n.customerName || '').toLowerCase().includes(term),
+      );
+    }
+
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...list].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'ncf':
+          valA = (a.ncf || a.creditNoteNumber || '').toLowerCase();
+          valB = (b.ncf || b.creditNoteNumber || '').toLowerCase();
+          break;
+        case 'invoice':
+          valA = (a.billingNumber || '').toLowerCase();
+          valB = (b.billingNumber || '').toLowerCase();
+          break;
+        case 'client':
+          valA = (a.customerName || '').toLowerCase();
+          valB = (b.customerName || '').toLowerCase();
+          break;
+        case 'date':
+          valA = a.creationDate ? new Date(a.creationDate).getTime() : 0;
+          valB = b.creationDate ? new Date(b.creationDate).getTime() : 0;
+          break;
+        case 'method':
+          valA = (a.refundMethod || '').toLowerCase();
+          valB = (b.refundMethod || '').toLowerCase();
+          break;
+        case 'subtotal':
+          valA = a.amountSubTotal || 0;
+          valB = b.amountSubTotal || 0;
+          break;
+        case 'itbis':
+          valA = a.amountItbis || 0;
+          valB = b.amountItbis || 0;
+          break;
+        case 'total':
+          valA = a.amountTotal || 0;
+          valB = b.amountTotal || 0;
+          break;
+        default:
+          valA = a.creationDate ? new Date(a.creationDate).getTime() : 0;
+          valB = b.creationDate ? new Date(b.creationDate).getTime() : 0;
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
   });
 
   readonly pagedCreditNotes = computed(() => {
@@ -128,7 +199,41 @@ export class CreditNotesComponent implements OnInit {
   }
 
   viewNoteDetail(note: CreditNote) {
-    this.selectedCreditNote = note;
+    this.openReceiptModal(note);
+  }
+
+  openReceiptModal(note: CreditNote): void {
+    const code = note.creditNoteNumber || (note.ncf ? note.ncf : `NC-${note.id}`);
+    const rawItems = note.creditNoteDetails || [];
+    this.selectedReceiptData = {
+      movementCode: code,
+      movementType: 'outlet',
+      statusLabel: 'Emitida',
+      title: 'Comprobante fiscal de nota de crédito',
+      firstColumnHeader: 'COMPROBANTE',
+      warehouseName: note.customerName || 'Consumidor Final',
+      secondColumnHeader: 'CLIENTE',
+      warehouseLocation: note.billingNumber ? `Afecta: ${note.billingNumber}` : 'Devolución de venta',
+      conceptName: note.creditNoteType === 1 ? 'Devolución Total' : 'Devolución Parcial',
+      thirdColumnHeader: 'TIPO DE NOTA',
+      conceptDescription: note.ncf ? `NCF: ${note.ncf}` : 'Modificación fiscal',
+      fourthColumnHeader: 'FECHA Y HORA',
+      date: new Date(note.creationDate || Date.now()).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      time: new Date(note.creationDate || Date.now()).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      itemsSectionTitle: 'Artículos reintegrados',
+      items: rawItems.map((p: any) => ({
+        code: p.barCode || (p.productId ? `PROD-${p.productId}` : 'N/A'),
+        name: p.productName || 'Artículo',
+        description: '',
+        quantity: Number(p.quantity) || 1,
+        unitCost: Number(p.price) || 0,
+        totalCost: Number(p.totalAmount || (p.quantity * (p.price || 0))) || 0,
+      })),
+      totalUnits: rawItems.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 1), 0),
+      totalCost: Number(note.amountTotal) || 0,
+      footerNote: 'Nota de crédito aplicada al inventario y balance de cuenta',
+    };
+    this.isReceiptModalOpen.set(true);
   }
 
   toggleDetail(note: CreditNote) {

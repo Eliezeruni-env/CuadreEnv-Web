@@ -1,153 +1,173 @@
 @if (visible) {
   <div class="custom-modal-backdrop" (click)="close()">
-    <div class="custom-modal-content" (click)="$event.stopPropagation()">
-      <div class="custom-modal-header">
-        <h5 class="fw-bold">{{ translationService.t('payments.modal.createTitle') }}</h5>
-        <button type="button" class="btn-close" (click)="close()" aria-label="Close"></button>
-      </div>
-      
-      <div class="custom-modal-body">
-        <!-- Target Type Toggle -->
-        <div class="d-flex gap-2 mb-3">
+    <div class="custom-modal-content payment-modal-container bg-white rounded-4 shadow-lg overflow-hidden" (click)="$event.stopPropagation()">
+      <div class="p-4">
+        <!-- Target Type Toggle (Top Tabs: Exact Match Image 2) -->
+        <div class="payment-tabs-group d-flex p-1 bg-light rounded-3 border mb-4">
           <button
             type="button"
-            class="btn btn-sm flex-fill"
-            [class.btn-primary]="paymentType() === 'sale'"
-            [class.btn-light]="paymentType() !== 'sale'"
-            [class.border]="paymentType() !== 'sale'"
+            class="payment-tab-btn flex-fill d-inline-flex align-items-center justify-content-center gap-2 py-2 px-3 rounded-2 fw-semibold"
+            [class.active]="paymentType() === 'sale'"
             (click)="setPaymentType('sale')"
+            data-tooltip="Registrar cobro de cliente"
           >
-            Cobro de Venta (Cliente)
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span>Cobro de cliente</span>
           </button>
+
           <button
             type="button"
-            class="btn btn-sm flex-fill"
-            [class.btn-primary]="paymentType() === 'purchase'"
-            [class.btn-light]="paymentType() !== 'purchase'"
-            [class.border]="paymentType() !== 'purchase'"
+            class="payment-tab-btn flex-fill d-inline-flex align-items-center justify-content-center gap-2 py-2 px-3 rounded-2 fw-semibold"
+            [class.active]="paymentType() === 'purchase'"
             (click)="setPaymentType('purchase')"
+            data-tooltip="Registrar pago a proveedor por orden de compra"
           >
-            Pago de Compra (Proveedor)
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="1" y="3" width="15" height="13"></rect>
+              <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+              <circle cx="5.5" cy="18.5" r="2.5"></circle>
+              <circle cx="18.5" cy="18.5" r="2.5"></circle>
+            </svg>
+            <span>Pago a proveedor</span>
           </button>
         </div>
 
         <form cForm [formGroup]="paymentForm">
-          <c-row>
-            @if (paymentType() === 'sale') {
-              <c-col md="12" class="mb-3">
-                <label class="small fw-semibold text-secondary mb-1">Venta / Factura Asociada *</label>
-                <select cSelect formControlName="saleId" class="form-select">
-                  <option value="">-- Seleccionar Venta Pendiente --</option>
-                  @for (s of sales(); track s.id) {
-                    <option [value]="s.id">Venta #{{ s.id }} - Total: RD$ {{ s.total | number:'1.2-2' }}</option>
-                  }
-                </select>
-              </c-col>
-            } @else {
-              <c-col md="12" class="mb-3">
-                <label class="small fw-semibold text-secondary mb-1">Orden de Compra Asociada *</label>
-                <select cSelect formControlName="purchaseId" class="form-select">
-                  <option value="">-- Seleccionar Compra --</option>
-                  @for (p of purchases(); track p.id) {
-                    <option [value]="p.id">Compra #{{ p.id }} - Total: RD$ {{ p.total | number:'1.2-2' }}</option>
-                  }
-                </select>
-              </c-col>
-            }
-          </c-row>
-
-          <c-row>
-            <c-col md="6" class="mb-3">
-              <label class="small fw-semibold text-secondary mb-1">Monto a Registrar *</label>
+          <!-- Row 1: Compra & Proveedor -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-secondary mb-1">
+                {{ paymentType() === 'purchase' ? 'Compra (Orden de Compra asociada) *' : 'Venta / Factura Asociada *' }}
+              </label>
               <div class="input-group">
-                <span class="input-group-text bg-light">RD$</span>
-                <input type="number" step="0.01" min="0.01" formControlName="amount" cFormControl />
-              </div>
-            </c-col>
-
-            <c-col md="6" class="mb-3">
-              <label class="small fw-semibold text-secondary mb-1">Método de Pago *</label>
-              <select cSelect formControlName="method" class="form-select">
-                <option value="Transferencia Bancaria">Transferencia Bancaria</option>
-                <option value="Tarjeta de Crédito / Débito">Tarjeta de Crédito / Débito</option>
-                <option value="Cheque">Cheque Comercial</option>
-                <option value="Efectivo">Efectivo</option>
-              </select>
-            </c-col>
-          </c-row>
-
-          <!-- DYNAMIC FIELDS: TARJETA -->
-          @if (selectedMethod() === 'Tarjeta de Crédito / Débito' || selectedMethod() === 'Tarjeta') {
-            <div class="p-3 bg-light rounded-3 border mb-3">
-              <span class="fw-bold small text-dark d-block mb-2">Datos de la Transacción con Tarjeta</span>
-              <div class="row g-2">
-                <div class="col-sm-4">
-                  <label class="small text-secondary mb-1">Tipo de Tarjeta</label>
-                  <select class="form-select form-select-sm" [ngModel]="cardType()" (ngModelChange)="cardType.set($event)" [ngModelOptions]="{standalone: true}">
-                    <option value="Visa">Visa</option>
-                    <option value="Mastercard">Mastercard</option>
-                    <option value="American Express">American Express</option>
-                  </select>
-                </div>
-                <div class="col-sm-4">
-                  <label class="small text-secondary mb-1">Últimos 4 Dígitos *</label>
-                  <input
-                    type="text"
-                    maxlength="4"
-                    class="form-control form-control-sm font-monospace"
-                    placeholder="4242"
-                    [ngModel]="cardLastFour()"
-                    (ngModelChange)="cardLastFour.set($event)"
-                    [ngModelOptions]="{standalone: true}"
-                  />
-                </div>
-                <div class="col-sm-4">
-                  <label class="small text-secondary mb-1">Nº Autorización / Voucher *</label>
-                  <input
-                    type="text"
-                    class="form-control form-control-sm font-monospace"
-                    placeholder="AUT-009281"
-                    [ngModel]="cardAuthVoucher()"
-                    (ngModelChange)="cardAuthVoucher.set($event)"
-                    [ngModelOptions]="{standalone: true}"
-                  />
-                </div>
+                <span class="input-group-text bg-white text-muted border-end-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
+                <select class="form-select custom-select border-start-0 ps-0" formControlName="purchaseId">
+                  @for (p of purchases(); track p.id) {
+                    <option [value]="p.id">OC-{{ p.id }} - Total: RD$ {{ p.total | number:'1.2-2' }}</option>
+                  }
+                  @if (purchases().length === 0) {
+                    <option value="">No hay compras pendientes</option>
+                  }
+                </select>
               </div>
             </div>
-          }
 
-          <!-- DYNAMIC FIELDS: TRANSFERENCIA -->
-          @if (selectedMethod() === 'Transferencia Bancaria' || selectedMethod() === 'Transferencia') {
-            <div class="p-3 bg-light rounded-3 border mb-3">
-              <span class="fw-bold small text-dark d-block mb-2">Datos de la Transferencia Bancaria</span>
-              <div class="row g-2">
-                <div class="col-sm-4">
-                  <label class="small text-secondary mb-1">Banco Emisor (Origen)</label>
-                  <input
-                    type="text"
-                    class="form-control form-control-sm"
-                    placeholder="Banco Popular"
-                    [ngModel]="transferSenderBank()"
-                    (ngModelChange)="transferSenderBank.set($event)"
-                    [ngModelOptions]="{standalone: true}"
-                  />
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-secondary mb-1">
+                {{ paymentType() === 'purchase' ? 'Proveedor *' : 'Cliente *' }}
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-white text-muted border-end-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                    <line x1="9" y1="22" x2="9" y2="22.01"></line>
+                    <line x1="15" y1="22" x2="15" y2="22.01"></line>
+                  </svg>
+                </span>
+                <select class="form-select custom-select border-start-0 ps-0" [ngModel]="selectedSupplierName()" (ngModelChange)="selectedSupplierName.set($event)" [ngModelOptions]="{standalone: true}">
+                  @for (s of suppliers(); track s.id) {
+                    <option [value]="s.name">{{ s.name }}</option>
+                  }
+                  @if (suppliers().length === 0) {
+                    <option [value]="selectedSupplierName()">{{ selectedSupplierName() }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3-Column Metric Strip (Exact Match Image 2) -->
+          <div class="card border rounded-3 p-3 bg-light bg-opacity-50 mb-3 shadow-2xs">
+            <div class="row text-center g-2">
+              <div class="col-4 border-end">
+                <span class="text-secondary small d-block mb-1">Total de la compra</span>
+                <div class="fw-bold fs-6 text-dark font-monospace">RD${{ selectedPurchaseTotal() | number:'1.2-2' }}</div>
+              </div>
+              <div class="col-4 border-end">
+                <span class="text-secondary small d-block mb-1">Pagado</span>
+                <div class="fw-bold fs-6 text-dark font-monospace">RD${{ selectedPurchasePaid() | number:'1.2-2' }}</div>
+              </div>
+              <div class="col-4">
+                <span class="text-secondary small d-block mb-1">Saldo pendiente</span>
+                <div class="fw-bold fs-6 text-primary font-monospace">RD${{ currentPendingBalance | number:'1.2-2' }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 2: Monto a pagar, Método de pago, Fecha del pago -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold text-secondary mb-1">Monto a pagar *</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white text-muted">RD$</span>
+                <input type="number" step="0.01" min="0.01" formControlName="amount" class="form-control font-monospace fw-bold" placeholder="0.00" />
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold text-secondary mb-1">Método de pago *</label>
+              <select class="form-select custom-select" formControlName="method" [(ngModel)]="selectedMethod">
+                <option value="Transferencia bancaria">Transferencia bancaria</option>
+                <option value="Efectivo">Efectivo</option>
+                <option value="Cheque">Cheque</option>
+                <option value="Tarjeta">Tarjeta de Crédito / Débito</option>
+              </select>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold text-secondary mb-1">Fecha del pago *</label>
+              <div class="input-group">
+                <input type="date" class="form-control font-monospace" [ngModel]="paymentDate()" (ngModelChange)="paymentDate.set($event)" [ngModelOptions]="{standalone: true}" />
+                <span class="input-group-text bg-white text-muted">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Transfer Fields (Exact Match Image 2) -->
+          @if (selectedMethod() === 'Transferencia bancaria' || selectedMethod() === 'Transferencia Bancaria' || selectedMethod() === 'Transferencia') {
+            <div class="mb-3">
+              <h6 class="fw-bold text-dark mb-2 fs-7">Datos de la transferencia bancaria</h6>
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Banco emisor (origen) *</label>
+                  <select class="form-select custom-select" [ngModel]="transferSenderBank()" (ngModelChange)="transferSenderBank.set($event)" [ngModelOptions]="{standalone: true}">
+                    <option value="Banco Popular">Banco Popular</option>
+                    <option value="Banco BHD">Banco BHD</option>
+                    <option value="Banreservas">Banreservas</option>
+                    <option value="Banco Santa Cruz">Banco Santa Cruz</option>
+                  </select>
                 </div>
-                <div class="col-sm-4">
-                  <label class="small text-secondary mb-1">Banco Destino</label>
-                  <input
-                    type="text"
-                    class="form-control form-control-sm"
-                    placeholder="Banco BHD"
-                    [ngModel]="transferReceiverBank()"
-                    (ngModelChange)="transferReceiverBank.set($event)"
-                    [ngModelOptions]="{standalone: true}"
-                  />
+
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Banco destino *</label>
+                  <select class="form-select custom-select" [ngModel]="transferReceiverBank()" (ngModelChange)="transferReceiverBank.set($event)" [ngModelOptions]="{standalone: true}">
+                    <option value="Banco BHD">Banco BHD</option>
+                    <option value="Banco Popular">Banco Popular</option>
+                    <option value="Banreservas">Banreservas</option>
+                    <option value="Scotiabank">Scotiabank</option>
+                  </select>
                 </div>
-                <div class="col-sm-4">
-                  <label class="small text-secondary mb-1">Nº Referencia / Confirmación *</label>
+
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Referencia / Confirmación *</label>
                   <input
                     type="text"
-                    class="form-control form-control-sm font-monospace"
+                    class="form-control font-monospace"
                     placeholder="REF-884129"
                     [ngModel]="transferReference()"
                     (ngModelChange)="transferReference.set($event)"
@@ -158,65 +178,45 @@
             </div>
           }
 
-          <!-- DYNAMIC FIELDS: CHEQUE -->
-          @if (selectedMethod() === 'Cheque') {
-            <div class="p-3 bg-light rounded-3 border mb-3">
-              <span class="fw-bold small text-dark d-block mb-2">Datos del Cheque Emitido</span>
-              <div class="row g-2">
-                <div class="col-sm-4">
-                  <label class="small text-secondary mb-1">Banco Librador</label>
-                  <input
-                    type="text"
-                    class="form-control form-control-sm"
-                    placeholder="Banco de Reservas"
-                    [ngModel]="checkBank()"
-                    (ngModelChange)="checkBank.set($event)"
-                    [ngModelOptions]="{standalone: true}"
-                  />
-                </div>
-                <div class="col-sm-4">
-                  <label class="small text-secondary mb-1">Nº de Cheque *</label>
-                  <input
-                    type="text"
-                    class="form-control form-control-sm font-monospace"
-                    placeholder="CHQ-00452"
-                    [ngModel]="checkNumber()"
-                    (ngModelChange)="checkNumber.set($event)"
-                    [ngModelOptions]="{standalone: true}"
-                  />
-                </div>
-                <div class="col-sm-4">
-                  <label class="small text-secondary mb-1">Fecha de Emisión</label>
-                  <input
-                    type="date"
-                    class="form-control form-control-sm"
-                    [ngModel]="checkDate()"
-                    (ngModelChange)="checkDate.set($event)"
-                    [ngModelOptions]="{standalone: true}"
-                  />
-                </div>
-              </div>
-            </div>
-          }
-
-          <!-- DYNAMIC FIELDS: EFECTIVO / NOTAS -->
+          <!-- Observaciones o notas adicionales (opcional) -->
           <div class="mb-3">
-            <label class="small fw-semibold text-secondary mb-1">Observaciones o Notas Adicionales</label>
-            <input formControlName="reference" cFormControl placeholder="Ej. Pago parcial acordado, recibido conforme..." />
+            <label class="form-label small fw-semibold text-secondary mb-1">Observaciones o notas adicionales (opcional)</label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Ej. Pago parcial acordado, recibido conforme..."
+              formControlName="notes"
+            />
+          </div>
+
+          <!-- Blue balance strip (Exact Match Image 2) -->
+          <div class="balance-after-payment-strip p-2.5 px-3 rounded-3 mb-4 d-flex align-items-center gap-3">
+            <span class="text-dark fw-bold small">Saldo después del pago</span>
+            <span class="text-muted">|</span>
+            <span class="text-primary font-monospace fw-bold fs-6">RD${{ balanceAfterPayment | number:'1.2-2' }}</span>
+          </div>
+
+          <!-- Footer Buttons -->
+          <div class="d-flex justify-content-end align-items-center gap-2 pt-2 border-top">
+            <button type="button" class="btn btn-outline-secondary px-4 fw-medium" (click)="close()" data-tooltip="Cerrar sin registrar">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-navy px-4 fw-bold shadow-sm"
+              [disabled]="isLoading() || paymentForm.invalid"
+              (click)="savePayment()"
+              data-tooltip="Emitir y asentar pago formal"
+            >
+              @if (isLoading()) {
+                <c-spinner size="sm" class="me-1"></c-spinner>
+                <span>Registrando...</span>
+              } @else {
+                <span>Registrar pago RD${{ (paymentForm.get('amount')?.value || 4000) | number:'1.2-2' }}</span>
+              }
+            </button>
           </div>
         </form>
-      </div>
-
-      <div class="custom-modal-footer">
-        <button cButton color="light" class="border" (click)="close()">{{ translationService.t('common.cancel') }}</button>
-        <button cButton color="primary" [disabled]="isLoading() || paymentForm.invalid" (click)="savePayment()">
-          @if (isLoading()) {
-            <c-spinner size="sm" class="me-2"></c-spinner>
-            {{ translationService.t('common.loading') }}
-          } @else {
-            {{ translationService.t('payments.modal.saveBtn') }}
-          }
-        </button>
       </div>
     </div>
   </div>

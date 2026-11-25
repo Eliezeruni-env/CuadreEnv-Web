@@ -18,30 +18,49 @@ export class ModuleAccessService {
 
   /**
    * Mapeo Canónico de Módulos y Submódulos según la especificación del SaaS & USM.
+   * Cada módulo contiene ÚNICAMENTE sus propios alias directos (variantes de escritura,
+   * guion/punto y traducción ES/EN). NUNCA alias cruzados de otros módulos independientes.
    */
   private readonly MODULE_MAP: Record<string, string[]> = {
     'dashboard': ['dashboard', 'inicio'],
-    'sales': ['sales', 'ventas', 'quick-sale', 'pos', 'mobile-pos', 'mobilepos'],
+    'pos': ['pos', 'quick-sale', 'prj-pos', 'prj_pos', 'ventas-rapidas'],
+    'sales': ['sales', 'ventas', 'ventas-mostrador'],
+    'mobile-pos': ['mobile-pos', 'mobilepos', 'mobile', 'pos-mobile'],
     'sales.corporate': ['sales.corporate', 'sales-corporate', 'corporate'],
+    'sales-corporate': ['sales.corporate', 'sales-corporate', 'corporate'],
     'sales.distribution': ['sales.distribution', 'sales-distribution', 'distribution'],
+    'sales-distribution': ['sales.distribution', 'sales-distribution', 'distribution'],
     'products.detail_sales': ['products.detail_sales', 'products-detail-sales', 'detail-sales', 'detail_sales', 'ventasfraccionadas', 'menudeo'],
-    'cash-register': ['cash-register', 'cashregister', 'caja'],
-    'billing': ['billing', 'facturacion'],
+    'products-detail-sales': ['products.detail_sales', 'products-detail-sales', 'detail-sales', 'detail_sales', 'ventasfraccionadas', 'menudeo'],
+    'cash-register': ['cash-register', 'cashregister', 'caja', 'prj-cuadre', 'cuadre'],
+    'billing': ['billing', 'facturacion', 'prj-factura', 'factura'],
     'credit-notes': ['credit-notes', 'creditnotes', 'notas-de-credito'],
     'receivables': ['receivables', 'cobros'],
-    'customers': ['customers', 'clientes'],
+    'customers': ['customers', 'clientes', 'prj-crm', 'crm'],
     'products': ['products', 'productos', 'catalogo'],
     'products-settings': ['products-settings', 'categories', 'category', 'configuracion-productos'],
-    'inventory-stock': ['inventory-stock', 'stock'],
+    'inventory-stock': ['inventory-stock', 'stock', 'inventorystock'],
     'inventory-entries': ['inventory-entries', 'entries'],
-    'purchases': ['purchases', 'compras'],
-    'purchases-orders': ['purchases-orders', 'orders'],
+    'inventory-intelligence': ['inventory-intelligence', 'inventory_intelligence', 'intelligence', 'reorder-suggestions', 'reorder', 'rop'],
+    'inventory-lot-expiration': ['inventory-lot-expiration', 'lot-expiration', 'fefo', 'vencimientos'],
+    'bank-reconciliation': ['bank-reconciliation', 'bank_reconciliation', 'conciliacion', 'conciliacion-bancaria'],
+    'purchases': ['purchases', 'compras', 'purchases-orders', 'orders'],
+    'purchases-orders': ['purchases-orders', 'purchases', 'orders'],
     'purchases-receipts': ['purchases-receipts', 'receipts'],
-    'reports': ['reports', 'metricas', 'metrics', 'billing-reports-dgii'],
-    'audit': ['audit', 'fraud-guardian'],
+    'purchases-suppliers': ['purchases-suppliers', 'suppliers', 'proveedores'],
+    'payments': ['payments', 'pagos'],
+    'services': ['services', 'servicios'],
+    'reports': ['reports', 'reportes', 'reportes-financieros'],
+    'metrics': ['metrics', 'metricas', 'kpis'],
+    'billing-reports-dgii': ['billing-reports-dgii', 'dgii', 'reportes-dgii', 'reportes-fiscales'],
+    'audit': ['audit', 'auditoria'],
+    'fraud-guardian': ['fraud-guardian', 'fraudguardian', 'guardian-antirrobo', 'audit'],
     'users': ['users', 'usuarios'],
-    'admin-roles': ['admin-roles', 'roles'],
-    'company-settings': ['company-settings', 'company', 'empresa']
+    'admin-roles': ['admin-roles', 'roles', 'admin-roles-matrix'],
+    'admin-approvals': ['admin-approvals', 'aprobaciones'],
+    'company-settings': ['company-settings', 'company', 'empresa'],
+    'appointments': ['appointments', 'agenda', 'citas', 'reservas', 'prj-agenda'],
+    'agenda': ['appointments', 'agenda', 'citas', 'reservas', 'prj-agenda']
   };
 
   /**
@@ -56,7 +75,29 @@ export class ModuleAccessService {
     'payments': ['payments', 'pagos'],
     'services': ['services', 'servicios'],
     'admin-roles-matrix': ['admin-roles-matrix', 'admin-roles', 'roles'],
-    'admin-approvals': ['admin-approvals', 'aprobaciones']
+    'admin-approvals': ['admin-approvals', 'aprobaciones'],
+    // Funciones granulares de Caja / POS
+    'pos-sound': ['pos-sound', 'pos_sound', 'sound'],
+    'pos-autoprint': ['pos-autoprint', 'pos_autoprint', 'autoprint'],
+    'pos-void-history': ['pos-void-history', 'pos_void_history', 'void-history'],
+    'pos-ticket-config': ['pos-ticket-config', 'pos_ticket_config', 'ticket-config'],
+    'pos-barcodes': ['pos-barcodes', 'pos_barcodes', 'barcodes'],
+    'pos-compact-mode': ['pos-compact-mode', 'pos_compact_mode', 'compact-mode'],
+    'pos-shortcuts': ['pos-shortcuts', 'pos_shortcuts', 'shortcuts'],
+    'pos-calculator': ['pos-calculator', 'pos_calculator', 'calculator'],
+    'pos-held-sales': ['pos-held-sales', 'pos_held_sales', 'held-sales', 'pos-hold-sale'],
+    'pos-reprint': ['pos-reprint', 'pos_reprint', 'reprint'],
+    'pos-open-drawer': ['pos-open-drawer', 'pos_open_drawer', 'open-drawer', 'drawer'],
+    'pos-clear-cart': ['pos-clear-cart', 'pos_clear_cart', 'clear-cart'],
+    'pos-configure-ncf': ['pos-configure-ncf', 'pos_configure_ncf', 'configure-ncf', 'ncf-step2'],
+    'pos-quick-receivables': ['pos-quick-receivables', 'pos_quick_receivables', 'quick-receivables', 'abonos'],
+    'pos-supervisor-pin': ['pos-supervisor-pin', 'pos_supervisor_pin', 'supervisor-pin', 'antifraude'],
+    'pos-global-scanner': ['pos-global-scanner', 'pos_global_scanner', 'global-scanner'],
+    'pos-quotations': ['pos-quotations', 'pos_quotations', 'quotations', 'cotizaciones'],
+    'pos-digital-signature': ['pos-digital-signature', 'pos_digital_signature', 'digital-signature', 'firma'],
+    // Preferencias de UI Global
+    'system-language': ['system-language', 'system_language', 'language', 'idioma'],
+    'system-theme': ['system-theme', 'system_theme', 'theme', 'dark-mode', 'color-mode']
   };
 
   constructor() {
@@ -241,16 +282,15 @@ export class ModuleAccessService {
       return false;
     }
 
-    // Dashboard está disponible si el usuario tiene al menos un módulo asignado
-    if (targetCode === 'dashboard') {
-      return currentModules.length > 0;
-    }
-
     // 2. Si tiene comodín '*' o 'all', otorga acceso completo a todos los módulos.
-    // Solo si NO tiene una lista explícita de módulos (o contiene wildcard), un superadmin/superuser tiene bypass total.
     const hasWildcard = currentModules.includes('*') || currentModules.includes('all');
     if (hasWildcard) {
       return true;
+    }
+
+    // Dashboard está disponible si el usuario tiene al menos un módulo asignado
+    if (targetCode === 'dashboard') {
+      return currentModules.length > 0;
     }
 
     // 3. Coincidencia directa exacta
@@ -258,15 +298,15 @@ export class ModuleAccessService {
       return true;
     }
 
-    // Acceso a contenedor padre de inventario o compras si tiene algún submódulo
-    if (targetCode === 'inventory' || targetCode === 'inventario') {
-      const inventoryCodes = ['inventory', 'inventario', 'inventory-stock', 'inventory-entries', 'inventory-outlets', 'inventory-transfers', 'inventory-warehouses', 'inventory-manage-requests', 'stock'];
-      return currentModules.some(m => inventoryCodes.includes(m));
+    // 3.5 Soporte para Terminal Móvil (mobile-pos)
+    if (targetCode === 'mobile-pos' || targetCode === 'mobile' || targetCode === 'mobilepos' || targetCode === 'pos-mobile') {
+      return currentModules.some(m => ['mobile-pos', 'mobile', 'mobilepos', 'pos-mobile'].includes(m));
     }
 
-    if (targetCode === 'purchases' || targetCode === 'compras') {
-      const purchaseCodes = ['purchases', 'compras', 'purchases-orders', 'purchases-receipts', 'purchases-suppliers'];
-      return currentModules.some(m => purchaseCodes.includes(m));
+    // Acceso a ruta contenedora padre de inventario si tiene algún submódulo activo
+    if (targetCode === 'inventory' || targetCode === 'inventario') {
+      const inventoryCodes = ['inventory', 'inventario', 'inventory-stock', 'inventory-entries', 'inventory-outlets', 'inventory-transfers', 'inventory-warehouses', 'inventory-manage-requests', 'inventory-intelligence', 'inventory-lot-expiration', 'stock', 'products'];
+      return currentModules.some(m => inventoryCodes.includes(m));
     }
 
     // 4. Mapeo Canónico de Módulos y Submódulos (MODULE_MAP)
@@ -300,6 +340,53 @@ export class ModuleAccessService {
 
   public hasModule(moduleCode: string): boolean {
     return this.hasModuleAccess(moduleCode);
+  }
+
+  /**
+   * Verificación granular de funcionalidades o botones específicos.
+   * Soporta fallback inteligente:
+   * - Si el usuario tiene acceso total '*' o 'all', retorna true.
+   * - Si el usuario tiene la clave exacta o un alias en allowedModules, retorna true.
+   * - Si el usuario tiene configurada alguna regla granular de su familia (ej. 'pos-*' o 'system-*'),
+   *   y esta opción NO está concedida, retorna false (desactivada explícitamente desde USM).
+   * - Modo retrocompatible / legacy: Si no tiene ninguna bandera 'pos-*', hereda el acceso del módulo padre.
+   */
+  public hasFeature(featureCode: string, parentModule?: string): boolean {
+    if (!featureCode?.trim()) return true;
+    const target = featureCode.trim().toLowerCase();
+
+    if (this.hasAllModulesSignal()) return true;
+
+    const currentModules = this.allowedModulesSignal();
+    if (!currentModules || currentModules.length === 0) return false;
+
+    // 1. Verificación directa en el listado de módulos y alias granulares
+    if (this.hasModuleAccess(target)) {
+      return true;
+    }
+
+    // 2. Control de familia POS
+    if (target.startsWith('pos-')) {
+      const hasAnyPosConfigured = currentModules.some(m => m.startsWith('pos-') || m.startsWith('pos_'));
+      if (hasAnyPosConfigured) {
+        // El usuario ya tiene granularidad POS configurada y esta opción no está seleccionada en USM
+        return false;
+      }
+      // Modo retrocompatible: hereda del módulo padre de ventas / caja
+      return parentModule ? this.hasModuleAccess(parentModule) : this.hasModuleAccess('sales');
+    }
+
+    // 3. Control de familia de configuración del sistema (idioma / tema)
+    if (target.startsWith('system-')) {
+      const hasAnySystemConfigured = currentModules.some(m => m.startsWith('system-') || m.startsWith('system_'));
+      if (hasAnySystemConfigured) {
+        return false;
+      }
+      // Por defecto activado para no romper experiencia legacy si no fue restringido en USM
+      return true;
+    }
+
+    return parentModule ? this.hasModuleAccess(parentModule) : true;
   }
 
   get modules(): string[] {

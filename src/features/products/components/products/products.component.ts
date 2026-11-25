@@ -9,12 +9,15 @@ import {
 import { CommonModule } from '@angular/common';
 import { ProductService } from '../../services/product.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
+import { PermissionService } from '../../../roles/services/permission.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog.service';
 import { ProductModalComponent } from './product-modal.component';
 import { ProductImportModalComponent } from './product-import-modal.component';
 import { ProductDetailModalComponent } from './product-detail-modal.component';
+import { DataExchangeModalComponent } from '../../../data-exchange/components/data-exchange-modal/data-exchange-modal.component';
+import { DataExchangeService } from '../../../data-exchange/services/data-exchange.service';
 import {
   FilterPanelComponent,
   type FilterConfig,
@@ -40,6 +43,7 @@ import { ProductDto } from '../../../cuadreEnv/types/api';
     ProductModalComponent,
     ProductImportModalComponent,
     ProductDetailModalComponent,
+    DataExchangeModalComponent,
     FilterPanelComponent,
     KtPaginatorComponent,
   ],
@@ -48,14 +52,38 @@ export class ProductsComponent implements OnInit {
   @ViewChild('productModal') productModal!: ProductModalComponent;
   @ViewChild('importModal') importModal!: ProductImportModalComponent;
   @ViewChild('detailModal') detailModal!: ProductDetailModalComponent;
+  @ViewChild('dataExchangeModal') dataExchangeModal!: DataExchangeModalComponent;
 
   selectedProductForDetail = signal<ProductDto | null>(null);
   isDetailModalOpen = signal<boolean>(false);
 
   readonly translationService = inject(TranslationService);
   readonly authService = inject(AuthService);
+  readonly permissionService = inject(PermissionService);
   private confirmService = inject(ConfirmDialogService);
   private notificationService = inject(NotificationService);
+  private readonly dataExchangeService = inject(DataExchangeService);
+
+  isExportMenuOpen = signal<boolean>(false);
+
+  toggleExportMenu(): void {
+    this.isExportMenuOpen.update((v) => !v);
+  }
+
+  async exportProducts(format: 'xlsx' | 'csv'): Promise<void> {
+    this.isExportMenuOpen.set(false);
+    try {
+      this.notificationService.info(`Generando exportación en formato .${format.toUpperCase()}...`);
+      await this.dataExchangeService.exportData('products', format);
+      this.notificationService.success('Catálogo de productos exportado con éxito.');
+    } catch (err: any) {
+      this.notificationService.error('Error al exportar catálogo de productos.');
+    }
+  }
+
+  openDataExchangeModal(): void {
+    this.dataExchangeModal?.open();
+  }
 
   openImportModal(): void {
     this.importModal?.open();
@@ -72,11 +100,24 @@ export class ProductsComponent implements OnInit {
 
   lowStockCount = computed(
     () =>
-      this.products().filter((p) => this.getStockState(p) !== 'healthy').length,
+      this.products().filter((p) => !this.isServiceItem(p) && this.getStockState(p) !== 'healthy').length,
   );
   totalInventoryValue = computed(() =>
-    this.products().reduce((sum, p) => sum + (p.cost || 0) * (p.stock || 0), 0),
+    this.products().reduce((sum, p) => this.isServiceItem(p) ? sum : sum + (p.cost || 0) * (p.stock || 0), 0),
   );
+
+  // Dynamic Column Sorting
+  sortColumn = signal<string>('description');
+  sortDirection = signal<'asc' | 'desc'>('asc');
+
+  toggleSort(column: string): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
 
   // Pagination & Stale Request Tracking
   currentPage = signal<number>(1);
@@ -174,6 +215,9 @@ export class ProductsComponent implements OnInit {
         validPage,
         validSize,
         search || undefined,
+        undefined,
+        undefined,
+        true, // Excluir servicios: pertenecen al catálogo de servicios
       );
 
       // Cancelar o ignorar respuestas antiguas al escribir filtros rápidamente
@@ -182,7 +226,8 @@ export class ProductsComponent implements OnInit {
       }
 
       if (res.success && res.data) {
-        let items = res.data.items || [];
+        // Garantizar que ningún servicio contamine el catálogo de productos
+        let items = (res.data.items || []).filter((p) => !this.isServiceItem(p));
 
         // Filtros adicionales por stock y estado
         const stockObj = activeFilters['stock'] as
@@ -230,12 +275,12 @@ export class ProductsComponent implements OnInit {
         }
 
         this.products.set(items);
-        this.totalItems.set(
+        const resolvedTotal =
           items.length < (res.data.items || []).length
             ? items.length
-            : (res.data.totalItemCount ?? res.data.total ?? items.length),
-        );
-        this.pageCount.set(res.data.pageCount || 1);
+            : (res.data.totalItemCount ?? res.data.total ?? items.length);
+        this.totalItems.set(resolvedTotal);
+        this.pageCount.set(Math.max(1, Math.ceil(resolvedTotal / validSize)));
         this.checkExpiringProducts();
       } else {
         // No tratar un listado vacío como error
@@ -312,7 +357,21 @@ export class ProductsComponent implements OnInit {
     this.loadProducts();
   }
 
-  getStockState(product: ProductDto): 'healthy' | 'low' | 'critical' {
+  public isServiceItem(p: any): boolean {
+    if (!p) return false;
+    if (p.isService === true || p.type === 'service' || p.type === 'Servicio') return true;
+    if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
+    const code = String(p.barcode || p.reference || '').toUpperCase().trim();
+    if (code.startsWith('SERV-') || code.startsWith('SERV')) return true;
+    const typeName = String(p.productTypeName || p.productType?.name || '').toLowerCase();
+    if (typeName.includes('serv')) return true;
+    const catName = String(p.categoryName || p.category?.name || '').toLowerCase();
+    if (catName.includes('serv')) return true;
+    return false;
+  }
+
+  getStockState(product: ProductDto): 'healthy' | 'low' | 'critical' | 'service' {
+    if (this.isServiceItem(product)) return 'service';
     const stock = product.stock || 0;
     const minimum = product.minimumQuantity || 0;
     if (stock <= 0) return 'critical';
@@ -388,7 +447,12 @@ export class ProductsComponent implements OnInit {
       (activeFilters['status'] as string | undefined) || '',
     ).trim();
 
-    return this.products().filter((product) => {
+    const filtered = this.products().filter((product) => {
+      // Excluir servicios: pertenecen al catálogo de servicios
+      if (this.isServiceItem(product)) {
+        return false;
+      }
+
       const matchesSearch =
         !search ||
         [
@@ -416,6 +480,45 @@ export class ProductsComponent implements OnInit {
       return (
         matchesSearch && matchesStockFrom && matchesStockTo && matchesStatus
       );
+    });
+
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+    return [...filtered].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+      switch (col) {
+        case 'description':
+          valA = (a.description || '').toLowerCase();
+          valB = (b.description || '').toLowerCase();
+          break;
+        case 'reference':
+          valA = (a.reference || '').toLowerCase();
+          valB = (b.reference || '').toLowerCase();
+          break;
+        case 'barcode':
+          valA = (a.barcode || '').toLowerCase();
+          valB = (b.barcode || '').toLowerCase();
+          break;
+        case 'cost':
+          valA = Number(a.cost || 0);
+          valB = Number(b.cost || 0);
+          break;
+        case 'stock':
+          valA = Number(a.stock || 0);
+          valB = Number(b.stock || 0);
+          break;
+        case 'status':
+          valA = this.getStockState(a);
+          valB = this.getStockState(b);
+          break;
+        default:
+          valA = (a.description || '').toLowerCase();
+          valB = (b.description || '').toLowerCase();
+      }
+      if (valA < valB) return dir === 'asc' ? -1 : 1;
+      if (valA > valB) return dir === 'asc' ? 1 : -1;
+      return 0;
     });
   });
 

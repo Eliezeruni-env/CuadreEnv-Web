@@ -7,23 +7,45 @@
   }
 
   <!-- Top Bar -->
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
-    <div>
-      <h4 class="fw-bold mb-0 text-dark">Registro de Ventas y Comprobantes</h4>
-      <small class="text-secondary">Control de ventas al contado, a crédito y facturación comercial</small>
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      </div>
+      <div class="view-header-content">
+        <h2 class="view-header-title">Registro de ventas y comprobantes</h2>
+        <p class="view-header-subtitle">Control de ventas al contado, a crédito y facturación comercial con NCF</p>
+      </div>
     </div>
 
-    <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadData()">
-        Recargar
+    <div class="view-header-actions">
+      <button type="button" class="btn btn-outline-secondary" (click)="loadData()" data-tooltip="Recargar comprobantes">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        <span>Recargar</span>
       </button>
-      @if (authService.hasRole(['Admin', 'Manager', 'Employee'])) {
-        <button class="btn btn-outline-success fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openQuickSaleDirect()">
-          <span>Venta Rápida (POS)</span>
+      @if (permissionService.canCreate('sales')) {
+        <button type="button" class="btn btn-outline-secondary" (click)="openQuickSaleDirect()" data-tooltip="Abrir punto de venta rápido">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+          <span>Venta rápida (POS)</span>
         </button>
-        <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openCreateModal()">
-          <span>+ Nueva Venta</span>
-        </button>
+        <!-- <button type="button" class="btn btn-navy" (click)="openCreateModal()" data-tooltip="Crear nueva factura o venta">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Nueva venta</span>
+        </button> -->
       }
     </div>
   </div>
@@ -49,25 +71,66 @@
         <div class="py-5 text-center px-4">
           <h5 class="fw-bold text-dark">{{ translationService.t('sales.emptyTitle') }}</h5>
           <p class="text-secondary small max-width-320 mx-auto">{{ translationService.t('sales.emptyBody') }}</p>
-          <button class="btn btn-cuadre-primary mt-2 px-4" (click)="openCreateModal()">
-            {{ translationService.t('sales.first') }}
-          </button>
+          @if (permissionService.canCreate('sales')) {
+            <button class="btn btn-cuadre-primary mt-2 px-4" (click)="openCreateModal()">
+              {{ translationService.t('sales.first') }}
+            </button>
+          }
         </div>
       } @else {
         <!-- Master-Detail Table -->
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0 master-detail-table">
-            <thead class="table-light text-secondary text-uppercase font-size-xs">
+            <thead class="table-light text-secondary small fw-semibold">
               <tr>
-                <th style="width: 44px;" class="ps-3 text-center"></th>
-                <th>No. Factura</th>
-                <th>Fecha / Hora</th>
-                <th>Cliente</th>
-                <th class="text-center">Origen</th>
-                <th class="text-end">Monto Total</th>
-                <th class="text-end">Cobrado</th>
-                <th class="text-center">Estado</th>
-                <th class="text-center pe-3" style="width: 140px;">Acciones</th>
+                <th style="width: 52px;" class="ps-3 text-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-secondary">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('invoice')">
+                  Factura
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'invoice'">
+                    {{ sortColumn() === 'invoice' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('date')">
+                  Fecha / hora
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'date'">
+                    {{ sortColumn() === 'date' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('customer')">
+                  Cliente
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'customer'">
+                    {{ sortColumn() === 'customer' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('origin')">
+                  Origen
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'origin'">
+                    {{ sortColumn() === 'origin' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('total')">
+                  Total
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'total'">
+                    {{ sortColumn() === 'total' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="th-sortable" (click)="toggleSort('paid')">
+                  Cobrado
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'paid'">
+                    {{ sortColumn() === 'paid' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="text-center th-sortable" (click)="toggleSort('status')">
+                  Estado
+                  <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
+                    {{ sortColumn() === 'status' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+                  </span>
+                </th>
+                <th class="text-center pe-3" style="width: 110px;">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -81,117 +144,95 @@
                 @for (sale of pagedSales(); track sale.id) {
                   <!-- Master Row -->
                   <tr [class.table-active]="isSaleExpanded(sale.id)" class="master-row">
-                    <td class="ps-3 text-center">
+                    <td class="ps-3 text-center" style="width: 52px;">
                       <button
-                        class="expand-btn"
+                        class="btn-expand-square"
                         [class.expanded]="isSaleExpanded(sale.id)"
                         type="button"
                         (click)="toggleDetail(sale)"
                         [title]="isSaleExpanded(sale.id) ? 'Colapsar detalle' : 'Expandir productos vendidos'"
                       >
-                        {{ isSaleExpanded(sale.id) ? '−' : '+' }}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" [style.transform]="isSaleExpanded(sale.id) ? 'rotate(90deg)' : 'rotate(0deg)'" style="transition: transform 0.2s ease;">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
                       </button>
                     </td>
                     <td>
-                      <div class="d-flex align-items-center gap-1.5 flex-wrap">
-                        <span class="fw-bold text-dark font-monospace">
-                          #{{ sale.id }}
-                        </span>
-                        @if (isServicioSale(sale)) {
-                          <span class="badge border rounded-pill px-2 py-0.5 font-size-xs fw-bold shadow-xs"
-                                style="background-color: #f3e8ff; color: #7e22ce; border-color: #d8b4fe;"
-                                title="Venta de Servicio">
-                            🛠️ Servicio
-                          </span>
-                        }
-                      </div>
+                      <span class="font-monospace fw-bold text-dark fs-6" style="letter-spacing: -0.01em;">
+                        {{ getInvoiceCode(sale) }}
+                      </span>
                     </td>
-                    <td class="text-muted small">
+                    <td class="text-secondary small font-monospace">
                       {{ sale.creationDate | date:'dd/MM/yyyy hh:mm a' }}
                     </td>
                     <td>
-                      <div class="fw-semibold text-dark">{{ getCustomerName(sale.customerId) }}</div>
-                      <small class="text-muted font-monospace">ID Cliente: {{ sale.customerId || 'General' }}</small>
+                      <div class="fw-bold text-dark">{{ getCustomerDisplay(sale) }}</div>
+                      <div class="text-secondary small font-monospace">ID Cliente: {{ sale.customerId || 1 }}</div>
                     </td>
-                    <td class="text-center">
-                      @if (isServicioSale(sale)) {
-                        <span class="badge border px-2.5 py-1 rounded-pill fw-semibold shadow-xs"
-                              style="background-color: #ede9fe; color: #6b21a8; border-color: #c4b5fd;"
-                              title="Factura de Servicios / Mano de Obra">
-                          🛠️ Venta de Servicio {{ sale.cashRegisterId ? '(Caja #' + sale.cashRegisterId + ')' : '' }}
-                        </span>
-                      } @else if (sale.originChannel === 'POS_PRESENCIAL' || (!sale.originChannel && sale.cashRegisterId)) {
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill" title="Venta Presencial en Mostrador">
-                          🏪 POS {{ sale.cashRegisterId ? '(Caja #' + sale.cashRegisterId + ')' : '' }}
-                        </span>
-                      } @else if (sale.originChannel === 'CREDITO') {
-                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 rounded-pill" title="Venta a Crédito">
-                          📋 Crédito
-                        </span>
-                      } @else if (sale.originChannel === 'ONLINE') {
-                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill" title="Tienda Online">
-                          🌐 Online
-                        </span>
-                      } @else {
-                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 rounded-pill" title="Venta Administrativa">
-                          🏢 Admin
-                        </span>
-                      }
+                    <td>
+                      <span class="origin-pill-tag d-inline-flex align-items-center gap-1.5 px-2.5 py-1 rounded-2"
+                        [ngClass]="{
+                          'origin-tag-mobile': isMobileSale(sale),
+                          'origin-tag-pos': !isMobileSale(sale) && (sale.originChannel === 'POS_PRESENCIAL' || (!sale.originChannel && sale.cashRegisterId)),
+                          'origin-tag-credit': !isMobileSale(sale) && sale.originChannel === 'CREDITO'
+                        }"
+                      >
+                        @if (isMobileSale(sale)) {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                          </svg>
+                          <span>Móvil</span>
+                        } @else {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                          </svg>
+                          <span>{{ getOriginLabel(sale) }}</span>
+                        }
+                      </span>
                     </td>
-                    <td class="text-end fw-bold text-dark">
+                    <td class="text-dark fw-bold font-monospace fs-6">
                       RD$ {{ sale.total | number:'1.2-2' }}
                     </td>
-                    <td class="text-end font-monospace fw-semibold text-success">
+                    <td class="text-success fw-bold font-monospace fs-6">
                       RD$ {{ sale.paidAmount | number:'1.2-2' }}
                     </td>
                     <td class="text-center">
-                      @if (sale.paidAmount >= sale.total) {
-                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill">
-                          {{ translationService.t('sales.status.paid') }}
+                      @if (sale.hasPartialCreditNote || sale.creditNoteStatus === 'NC Parcial' || sale.statusName === 'NC Parcial Aplicada') {
+                        <span class="badge border border-warning-subtle bg-warning-subtle text-warning-emphasis fw-bold">
+                          ⚠ NC Parcial
                         </span>
-                      } @else if (sale.paidAmount > 0) {
-                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1 rounded-pill">
-                          {{ translationService.t('sales.status.partial') }}
+                      } @else if (sale.status === 4 || sale.isCancelled || sale.hasAFullCreditNote || sale.statusName === 'Anulada por NC') {
+                        <span class="badge border border-danger-subtle bg-danger-subtle text-danger fw-bold">
+                          ✕ Anulada
                         </span>
                       } @else {
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 rounded-pill">
-                          {{ translationService.t('sales.status.pending') }}
+                        <span class="badge status-pill-paid">
+                          Pagada
                         </span>
                       }
                     </td>
-                    <td class="text-center pe-3">
-                      <div class="action-btn-group justify-content-center">
-                        <!-- Imprimir Factura / Ticket -->
+                    <td class="text-center pe-3" style="width: 110px;">
+                      <div class="d-inline-flex align-items-center gap-1.5">
                         <button
-                          class="btn-action-icon btn-action-print"
-                          type="button"
-                          (click)="openInvoiceForSale(sale)"
-                          title="Imprimir / Ver Comprobante"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                            <rect x="6" y="14" width="12" height="8"></rect>
-                          </svg>
-                        </button>
-                        <!-- Ver Detalle Modal -->
-                        <button
-                          class="btn-action-icon btn-action-view"
+                          class="btn-action-square btn-action-primary"
                           type="button"
                           (click)="openDetailModal(sale)"
-                          [title]="translationService.t('sales.viewDetails')"
+                          title="Ver detalle de venta"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                             <circle cx="12" cy="12" r="3"></circle>
                           </svg>
                         </button>
-                        <!-- Devolución / Nota de Crédito -->
+
                         <button
-                          class="btn-action-icon btn-action-void"
+                          class="btn-action-square btn-action-refund"
                           type="button"
+                          [disabled]="sale.status === 4 || sale.isCancelled || sale.notes?.includes('DEVUELTA')"
                           (click)="openCreditNoteForSale(sale)"
-                          title="Emitir Nota de Crédito / Devolución"
+                          title="Emitir nota de crédito / Devolución"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="9 14 4 9 9 4"></polyline>
@@ -205,72 +246,97 @@
                   <!-- Detail Row Expandible (Subtabla de Productos) -->
                   @if (isSaleExpanded(sale.id)) {
                     <tr class="detail-row">
-                      <td colspan="9">
-                        <div class="card border border-secondary-subtle shadow-xs rounded-3 overflow-hidden my-2">
-                          <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <span class="fw-bold small text-secondary text-uppercase d-flex align-items-center gap-2">
-                              @if (isServicioSale(sale)) {
-                                <span class="badge border rounded-pill px-2 py-0.5 font-size-xs fw-bold"
-                                      style="background-color: #f3e8ff; color: #7e22ce; border-color: #d8b4fe;">
-                                  🛠️ Servicios Facturados
-                                </span>
-                                ({{ getSaleItems(sale).length }} ítems • {{ getTotalQuantity(sale) }} unidades)
-                              } @else {
-                                Detalle de Artículos Vendidos ({{ getSaleItems(sale).length }} ítems • {{ getTotalQuantity(sale) }} unidades)
-                              }
-                            </span>
-                            <div class="small font-monospace">
-                              <span class="text-muted me-3">Subtotal: <strong>RD$ {{ (sale.total / 1.18) | number:'1.2-2' }}</strong></span>
-                              <span class="text-muted me-3">ITBIS (18%): <strong>RD$ {{ (sale.total - (sale.total / 1.18)) | number:'1.2-2' }}</strong></span>
-                              <span class="text-success fw-bold">Total Venta: RD$ {{ sale.total | number:'1.2-2' }}</span>
+                      <td colspan="9" class="p-3 bg-slate-50">
+                        <div class="billing-detail-card">
+                          <div class="billing-detail-header">
+                            <div class="d-flex align-items-center gap-2">
+                              <div class="detail-header-icon">
+                                @if (isServicioSale(sale)) {
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                                  </svg>
+                                } @else {
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                                    <path d="M3 6h18"></path>
+                                    <path d="M16 10a4 4 0 0 1-8 0"></path>
+                                  </svg>
+                                }
+                              </div>
+                              <span class="detail-header-title">
+                                {{ isServicioSale(sale) ? 'Detalle de Servicios Facturados' : 'Detalle de Artículos Vendidos' }}
+                              </span>
+                              <span class="detail-items-count-badge">
+                                {{ getSaleItems(sale).length }} {{ getSaleItems(sale).length === 1 ? 'ítem' : 'ítems' }} • {{ getTotalQuantity(sale) }} uds
+                              </span>
+                            </div>
+
+                            <div class="detail-summary-pills">
+                              <span class="summary-pill">
+                                <span class="pill-label">Subtotal</span>
+                                <strong class="pill-value">RD$ {{ (sale.total / 1.18) | number:'1.2-2' }}</strong>
+                              </span>
+                              <span class="summary-pill">
+                                <span class="pill-label">ITBIS</span>
+                                <strong class="pill-value">RD$ {{ (sale.total - (sale.total / 1.18)) | number:'1.2-2' }}</strong>
+                              </span>
+                              <span class="summary-pill total-pill">
+                                <span class="pill-label">Total Venta</span>
+                                <strong class="pill-value">RD$ {{ sale.total | number:'1.2-2' }}</strong>
+                              </span>
                             </div>
                           </div>
-                          <div class="card-body p-0">
-                            <table class="table table-sm table-bordered mb-0 align-middle">
-                              <thead class="table-light text-muted font-size-xs">
-                                <tr>
-                                  <th class="ps-3 py-2">Código</th>
-                                  <th class="py-2">Descripción del Producto</th>
-                                  <th class="text-center py-2" style="width: 100px;">Cant.</th>
-                                  <th class="text-end py-2" style="width: 120px;">Precio Unit.</th>
-                                  <th class="text-center py-2" style="width: 90px;">Descuento</th>
-                                  <th class="text-end py-2" style="width: 120px;">Subtotal</th>
-                                  <th class="text-end py-2" style="width: 110px;">ITBIS (18%)</th>
-                                  <th class="text-end pe-3 py-2" style="width: 130px;">Importe Total</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                @for (item of getSaleItems(sale); track $index) {
+
+                          <div class="billing-detail-body">
+                            <div class="table-responsive">
+                              <table class="table billing-subtable mb-0 align-middle">
+                                <thead>
                                   <tr>
-                                    <td class="ps-3 font-monospace small text-secondary">{{ item.productCode }}</td>
-                                    <td class="fw-semibold text-dark">{{ item.productName }}</td>
-                                    <td class="text-center">
-                                      <span class="badge bg-secondary-subtle text-dark border px-2 py-0.5 rounded-pill font-monospace fw-bold">
-                                        {{ item.quantity }} ud.
-                                      </span>
-                                    </td>
-                                    <td class="text-end font-monospace">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
-                                    <td class="text-center">
-                                      {{ item.discount > 0 ? (item.discount + '%') : '—' }}
-                                    </td>
-                                    <td class="text-end font-monospace text-secondary">RD$ {{ item.subtotal | number:'1.2-2' }}</td>
-                                    <td class="text-end font-monospace text-secondary">RD$ {{ item.itbis | number:'1.2-2' }}</td>
-                                    <td class="text-end pe-3 font-monospace fw-bold text-success">RD$ {{ item.total | number:'1.2-2' }}</td>
+                                    <th class="ps-3" style="width: 130px;">Código</th>
+                                    <th>Descripción</th>
+                                    <th class="text-center" style="width: 90px;">Cant.</th>
+                                    <th class="text-end" style="width: 120px;">Precio Unit.</th>
+                                    <th class="text-center" style="width: 90px;">Desc.</th>
+                                    <th class="text-end" style="width: 120px;">Subtotal</th>
+                                    <th class="text-end" style="width: 110px;">ITBIS</th>
+                                    <th class="text-end pe-3" style="width: 140px;">Importe Total</th>
                                   </tr>
-                                }
-                              </tbody>
-                              <tfoot class="table-light">
-                                <tr class="fw-bold font-monospace">
-                                  <td colspan="2" class="ps-3 text-secondary">Totales del Desglose:</td>
-                                  <td class="text-center text-dark">{{ getTotalQuantity(sale) }} uds</td>
-                                  <td></td>
-                                  <td></td>
-                                  <td class="text-end text-secondary">RD$ {{ (sale.total / 1.18) | number:'1.2-2' }}</td>
-                                  <td class="text-end text-secondary">RD$ {{ (sale.total - (sale.total / 1.18)) | number:'1.2-2' }}</td>
-                                  <td class="text-end pe-3 text-success fs-6">RD$ {{ sale.total | number:'1.2-2' }}</td>
-                                </tr>
-                              </tfoot>
-                            </table>
+                                </thead>
+                                <tbody>
+                                  @for (item of getSaleItems(sale); track $index) {
+                                    <tr>
+                                      <td class="ps-3">
+                                        <span class="product-code-pill font-monospace">{{ item.productCode }}</span>
+                                      </td>
+                                      <td>
+                                        <span class="product-name-text">{{ item.productName }}</span>
+                                      </td>
+                                      <td class="text-center">
+                                        <span class="quantity-badge font-monospace">{{ item.quantity }}</span>
+                                        @if (item.creditedQuantity && item.creditedQuantity > 0) {
+                                          <div class="text-danger small font-monospace mt-1" style="font-size: 0.72rem;">
+                                            -{{ item.creditedQuantity }} NC ({{ item.originalQuantity || (item.quantity + item.creditedQuantity) }} inicial)
+                                          </div>
+                                        }
+                                      </td>
+                                      <td class="text-end font-monospace text-muted">RD$ {{ item.unitPrice | number:'1.2-2' }}</td>
+                                      <td class="text-center">
+                                        @if (item.discount > 0) {
+                                          <span class="badge bg-warning-subtle text-warning border border-warning-subtle small font-monospace">
+                                            {{ item.discount }}%
+                                          </span>
+                                        } @else {
+                                          <span class="text-muted">-</span>
+                                        }
+                                      </td>
+                                      <td class="text-end font-monospace">RD$ {{ item.subtotal | number:'1.2-2' }}</td>
+                                      <td class="text-end font-monospace text-muted">RD$ {{ item.itbis | number:'1.2-2' }}</td>
+                                      <td class="text-end pe-3 font-monospace fw-bold text-success">RD$ {{ item.total | number:'1.2-2' }}</td>
+                                    </tr>
+                                  }
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -282,13 +348,47 @@
           </table>
         </div>
 
-        <!-- Paginador Moderno -->
-        <kt-paginator
-          [currentPage]="currentPage()"
-          [totalItems]="getFilteredSalesCount()"
-          [pageSize]="pageSize"
-          (pageChange)="onPageChange($event)"
-        ></kt-paginator>
+        <!-- Paginador Moderno (Exacto al Diseño) -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 bg-white border-top small text-secondary">
+          <div>
+            Mostrando {{ getFilteredSalesCount() > 0 ? (currentPage() - 1) * pageSize + 1 : 0 }}–{{ Math.min(currentPage() * pageSize, getFilteredSalesCount()) }} de {{ getFilteredSalesCount() }} registros
+          </div>
+          <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-1.5">
+              <span>Registros por página:</span>
+              <select class="form-select form-select-sm custom-select" style="width: 70px;" [ngModel]="pageSize" (ngModelChange)="pageSize = +$event; onPageChange(1)">
+                <option [value]="5">5</option>
+                <option [value]="10">10</option>
+                <option [value]="25">25</option>
+                <option [value]="50">50</option>
+              </select>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary px-2.5 py-1 rounded-2 text-dark bg-white shadow-2xs"
+                [disabled]="currentPage() <= 1"
+                (click)="onPageChange(currentPage() - 1)"
+              >
+                &lt; Anterior
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-navy text-white fw-bold px-3 py-1 rounded-2"
+              >
+                {{ currentPage() }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary px-2.5 py-1 rounded-2 text-dark bg-white shadow-2xs"
+                [disabled]="currentPage() * pageSize >= getFilteredSalesCount()"
+                (click)="onPageChange(currentPage() + 1)"
+              >
+                Siguiente &gt;
+              </button>
+            </div>
+          </div>
+        </div>
       }
     </div>
   </div>
@@ -328,7 +428,7 @@
 <app-create-sale-modal #createSaleModal [(visible)]="isCreateModalOpen"
   (saleCreated)="onSaleCreated()"></app-create-sale-modal>
 <app-sale-detail-modal #saleDetailModal [(visible)]="isDetailModalOpen" [sale]="selectedSale"
-  (closed)="selectedSale = null"></app-sale-detail-modal>
+  (closed)="selectedSale = null" (printRequested)="openInvoiceForSale($event)"></app-sale-detail-modal>
 
 <!-- Completed Sale / Invoice View & Printable Modal -->
 <app-sale-completed-modal

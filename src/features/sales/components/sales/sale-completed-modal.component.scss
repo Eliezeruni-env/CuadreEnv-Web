@@ -160,7 +160,7 @@
       color: #000000 !important;
       font-size: 11px !important;
       line-height: 1.25 !important;
-      font-family: 'Courier New', Courier, monospace !important;
+      font-family: var(--cuadre-font-mono, 'JetBrains Mono', monospace) !important;
 
       &.ticket-58mm {
         width: 58mm !important;

@@ -7,9 +7,11 @@ import {
   moduleAccessGuard,
   moduleChildAccessGuard,
 } from './guards/auth.guard';
+import { ModuleAccessService } from '../features/cuadreEnv/services/module-access.service';
 
 export const rootRedirectGuard: CanActivateFn = () => {
   const router = inject(Router);
+  const moduleAccess = inject(ModuleAccessService);
   const isMobile =
     typeof window !== 'undefined' &&
     (window.innerWidth <= 768 ||
@@ -17,11 +19,15 @@ export const rootRedirectGuard: CanActivateFn = () => {
         navigator.userAgent.toLowerCase(),
       ) ||
       window.matchMedia('(display-mode: standalone)').matches ||
-      (navigator as any).standalone === true);
+      (navigator as any).standalone === true ||
+      window.location.search.includes('source=pwa') ||
+      window.location.search.includes('pwa=true'));
 
   if (isMobile) {
-    router.navigate(['/mobile']);
-    return false;
+    if (moduleAccess.hasModuleAccess('mobile-pos')) {
+      router.navigate(['/mobile']);
+      return false;
+    }
   }
   router.navigate(['/dashboard']);
   return false;
@@ -40,7 +46,7 @@ export const routes: Routes = [
       import('../features/sales/components/mobile-pos/mobile-owner-pos.component').then(
         (m) => m.MobileOwnerPosComponent,
       ),
-    data: { module: 'sales', title: 'CuadreEnv Mobile POS & Vista Ejecutiva' },
+    data: { module: 'mobile-pos', title: 'CuadreEnv Mobile POS & Vista Ejecutiva' },
   },
   {
     path: 'mobile-pos',
@@ -170,6 +176,35 @@ export const routes: Routes = [
         },
       },
       {
+        path: 'inventory/intelligence',
+        loadComponent: () =>
+          import('../features/inventory/components/inventory-intelligence/inventory-intelligence.component').then(
+            (m) => m.InventoryIntelligenceComponent,
+          ),
+        canActivate: [moduleGuard('inventory-stock')],
+        data: {
+          module: 'inventory-stock',
+          title: 'Inteligencia de Reposición y Reorden',
+        },
+      },
+      {
+        path: 'inventory/reorder-suggestions',
+        redirectTo: 'inventory/intelligence',
+        pathMatch: 'full',
+      },
+      {
+        path: 'inventory/lot-expiration',
+        loadComponent: () =>
+          import('../features/inventory/components/lot-expiration-tracker/lot-expiration-tracker.component').then(
+            (m) => m.LotExpirationTrackerComponent,
+          ),
+        canActivate: [moduleGuard('inventory-stock')],
+        data: {
+          module: 'inventory-stock',
+          title: 'Control de Lotes y Vencimientos FEFO',
+        },
+      },
+      {
         path: 'inventory/manage-requests',
         loadComponent: () =>
           import('../features/inventory/components/manage-request/manage-request-list.component').then(
@@ -233,6 +268,29 @@ export const routes: Routes = [
         data: { module: 'sales', title: 'Sales Register' },
       },
       {
+        path: 'sales/quotations',
+        loadComponent: () =>
+          import('../features/sales/components/quotations/quotation-list/quotation-list.component').then(
+            (m) => m.QuotationListComponent,
+          ),
+        canActivate: [moduleGuard('sales')],
+        data: { module: 'sales', title: 'Cotizaciones' },
+      },
+      {
+        path: 'sales/quotations/create',
+        loadComponent: () =>
+          import('../features/sales/components/quotations/create-quotation/create-quotation.component').then(
+            (m) => m.CreateQuotationComponent,
+          ),
+        canActivate: [moduleGuard('sales')],
+        data: { module: 'sales', title: 'Nueva Cotización' },
+      },
+      {
+        path: 'quotations',
+        redirectTo: 'sales/quotations',
+        pathMatch: 'full',
+      },
+      {
         path: 'sales/corporate',
         loadComponent: () =>
           import('../features/sales/components/corporate-sales/corporate-sales.component').then(
@@ -247,15 +305,28 @@ export const routes: Routes = [
           import('../features/sales/components/distribution-routes/distribution-routes.component').then(
             (m) => m.DistributionRoutesComponent,
           ),
-        canActivate: [moduleGuard('sales.distribution')],
-        data: { module: 'sales.distribution', title: 'Rutas de Distribución' },
+        canActivate: [moduleGuard('sales-distribution')],
+        data: { module: 'sales-distribution', title: 'Rutas de Distribución' },
       },
-      // {
-      //   path: 'products/detail-sales',
-      //   loadComponent: () => import('../features/products/components/products/products.component').then((m) => m.ProductsComponent),
-      //   canActivate: [moduleGuard('products.detail_sales')],
-      //   data: { module: 'products.detail_sales', title: 'Venta Fraccionada / Menudeo' }
-      // },
+      {
+        path: 'products/detail-sales',
+        loadComponent: () =>
+          import('../features/sales/components/quick-sale-page/quick-sale-page.component').then(
+            (m) => m.QuickSalePageComponent,
+          ),
+        canActivate: [moduleGuard('products-detail-sales')],
+        data: { module: 'products-detail-sales', title: 'Venta Fraccionada / Menudeo', isFractionalMode: true },
+      },
+      {
+        path: 'sales/detail-sales',
+        redirectTo: 'products/detail-sales',
+        pathMatch: 'full',
+      },
+      {
+        path: 'sales/fractional',
+        redirectTo: 'products/detail-sales',
+        pathMatch: 'full',
+      },
       {
         path: 'pos',
         loadComponent: () =>
@@ -363,6 +434,23 @@ export const routes: Routes = [
         pathMatch: 'full',
       },
       {
+        path: 'sales/bank-reconciliation',
+        loadComponent: () =>
+          import('../features/sales/components/bank-reconciliation/bank-reconciliation.component').then(
+            (m) => m.BankReconciliationComponent,
+          ),
+        canActivate: [moduleGuard('bank-reconciliation')],
+        data: {
+          module: 'bank-reconciliation',
+          title: 'Conciliación Bancaria de Transferencias',
+        },
+      },
+      {
+        path: 'bank-reconciliation',
+        redirectTo: 'sales/bank-reconciliation',
+        pathMatch: 'full',
+      },
+      {
         path: 'customers',
         loadComponent: () =>
           import('../features/customers/components/customers/customers.component').then(
@@ -427,11 +515,20 @@ export const routes: Routes = [
       {
         path: 'reports',
         loadComponent: () =>
-          import('../features/dashboard/components/metrics/metrics.component').then(
-            (m) => m.MetricsComponent,
+          import('../features/dashboard/components/financial-reports/financial-reports.component').then(
+            (m) => m.FinancialReportsComponent,
           ),
-        canActivate: [moduleGuard('billing-reports-dgii')],
-        data: { module: 'billing-reports-dgii', title: 'Reportes' },
+        canActivate: [moduleGuard('reports')],
+        data: { module: 'reports', title: 'Reportes Financieros' },
+      },
+      {
+        path: 'financial-reports',
+        loadComponent: () =>
+          import('../features/dashboard/components/financial-reports/financial-reports.component').then(
+            (m) => m.FinancialReportsComponent,
+          ),
+        canActivate: [moduleGuard('reports')],
+        data: { module: 'reports', title: 'Reportes Financieros' },
       },
       {
         path: 'services',
@@ -526,7 +623,38 @@ export const routes: Routes = [
             (m) => m.routes,
           ),
       },
+      {
+        path: 'agenda',
+        loadChildren: () =>
+          import('../features/agenda/routes').then((m) => m.routes),
+        canActivate: [moduleAccessGuard('appointments')],
+        data: { module: 'appointments', title: 'Agenda & Citas' },
+      },
     ],
+  },
+  {
+    path: 'reservas/:slug',
+    loadComponent: () =>
+      import('../features/agenda/components/agenda-public-booking/agenda-public-booking.component').then(
+        (m) => m.AgendaPublicBookingComponent,
+      ),
+    data: { title: 'Reservar Cita' },
+  },
+  {
+    path: 'reservas/:slug/comprobante/:code',
+    loadComponent: () =>
+      import('../features/agenda/components/agenda-public-voucher/agenda-public-voucher.component').then(
+        (m) => m.AgendaPublicVoucherComponent,
+      ),
+    data: { title: 'Comprobante de Cita' },
+  },
+  {
+    path: 'reservas/:slug/estado/:code',
+    loadComponent: () =>
+      import('../features/agenda/components/agenda-public-voucher/agenda-public-voucher.component').then(
+        (m) => m.AgendaPublicVoucherComponent,
+      ),
+    data: { title: 'Estado de Cita' },
   },
   {
     path: 'companies/create',

@@ -135,6 +135,7 @@ export class TranslationService {
       'products.emptyBody': 'Crea tu primer producto para empezar a controlar stock, compras y ventas.',
       'products.first': 'Registrar primer producto',
       'products.table.product': 'Producto',
+      'products.table.description': 'Descripción',
       'products.table.reference': 'Referencia',
       'products.table.barcode': 'Código de barras',
       'products.table.cost': 'Costo',
@@ -525,6 +526,7 @@ export class TranslationService {
       'products.emptyBody': 'Create your first product to start tracking stock, purchases, and sales.',
       'products.first': 'Register first product',
       'products.table.product': 'Product',
+      'products.table.description': 'Description',
       'products.table.reference': 'Reference',
       'products.table.barcode': 'Barcode',
       'products.table.cost': 'Cost',
@@ -816,7 +818,12 @@ export class TranslationService {
     }
 
     const stored = window.localStorage.getItem(this.storageKey);
-    return stored === 'en' ? 'en' : 'es';
+    if (!stored || stored !== 'es') {
+      try {
+        window.localStorage.setItem(this.storageKey, 'es');
+      } catch {}
+    }
+    return 'es';
   }
 
   getTranslatedNavItems(rawItems: INavData[]): INavData[] {

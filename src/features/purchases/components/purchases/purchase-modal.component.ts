@@ -175,6 +175,13 @@ export class PurchaseModalComponent implements OnInit {
     }
   }
 
+  goToPayment() {
+    if (!this.selectedPurchase?.id) return;
+    const poId = this.selectedPurchase.id;
+    this.close();
+    this.router.navigate(['/payments'], { queryParams: { purchaseId: poId } });
+  }
+
   goToReceipt() {
     if (!this.selectedPurchase?.id) return;
     const poId = this.selectedPurchase.id;
@@ -195,6 +202,7 @@ export class PurchaseModalComponent implements OnInit {
       return [
         {
           productId: 1,
+          productCode: 'PROD-1',
           description: `Compra #${this.selectedPurchase.id} - Insumos / Mercancía`,
           quantity: 1,
           costPrice: this.selectedPurchase.total || 0,
@@ -203,6 +211,7 @@ export class PurchaseModalComponent implements OnInit {
     }
     return raw.map((d: any) => ({
       productId: d.productId || d.id || 1,
+      productCode: d.productCode || d.barCode || ('PROD-' + (d.productId || d.id || 1)),
       description: d.description || d.productName || this.getProductName(d.productId || 1),
       quantity: Number(d.quantity ?? 1) || 1,
       costPrice: Number(d.costPrice ?? d.unitPrice ?? d.cost ?? 0) || 0,

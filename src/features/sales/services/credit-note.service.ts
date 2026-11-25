@@ -148,6 +148,19 @@ export class CreditNoteService {
       };
     }
 
+    const isAlreadyReturned =
+      foundInvoice.status === 4 ||
+      foundInvoice.statusId === 3 ||
+      foundInvoice.isCancelled ||
+      (typeof foundInvoice.notes === 'string' && foundInvoice.notes.includes('DEVUELTA'));
+
+    if (isAlreadyReturned) {
+      return {
+        success: false,
+        message: `La factura o venta ${clean} ya fue devuelta en su totalidad mediante nota de crédito.`,
+      };
+    }
+
     // Check existing credit notes for this invoice to calculate max returnable quantities
     const invoiceId = foundInvoice.id || targetId || 1;
     const existingNotes = this.getLocalCreditNotes().filter(
@@ -263,20 +276,39 @@ export class CreditNoteService {
   }
 
   async createCreditNote(note: CreditNote): Promise<ApiResponse<CreditNote>> {
+    const rawDetails = note.creditNoteDetails || (note as any).details || [];
+    const mappedDetails = rawDetails
+      .map((d: any) => ({
+        productId: Number(d.productId || d.id || 0),
+        quantity: Number(d.quantity || 1),
+        unitPrice: Number(d.unitPrice || d.price || 0),
+        warehouseId: Number(d.warehouseId || note.warehouseId || 1),
+      }))
+      .filter((d) => d.productId > 0 && d.quantity > 0);
+
+    if (mappedDetails.length === 0) {
+      return {
+        success: false,
+        message: 'La nota de crédito debe tener al menos un detalle de producto.',
+      };
+    }
+
     const payload = {
       billingId: note.billingId,
+      saleId: note.billingId || (note as any).saleId,
       billingNumber: note.billingNumber,
       originalNcf: note.originalNcf,
       customerId: note.customerId,
-      warehouseId: note.warehouseId || 1,
-      reason: note.observations || (note as any).reason,
-      refundMethod: note.refundMethod,
+      warehouseId: note.warehouseId || mappedDetails[0]?.warehouseId || 1,
+      reason: note.observations || (note as any).reason || 'Devolución de mercancía',
+      refundMethod: note.refundMethod || 'CASH',
+      creditNoteType: note.creditNoteType || 1,
       voucherTypeId: 3, // B04 Nota de Crédito
       amountSubTotal: note.amountSubTotal,
       amountDesc: note.amountDesc,
       amountItbis: note.amountItbis,
       amountTotal: note.amountTotal,
-      creditNoteDetails: note.creditNoteDetails,
+      details: mappedDetails,
       date: new Date().toISOString(),
     };
 
@@ -307,6 +339,92 @@ export class CreditNoteService {
     currentList.unshift(newNote);
     this.saveLocalCreditNotes(currentList);
 
+    // Actualizar factura/venta original deduciendo los productos y actualizando montos
+    try {
+      const keysToUpdate = [
+        BILLING_STORAGE_KEY,
+        `cuadreenv_billing_invoices_db_default`,
+        `cuadreenv_billing_invoices_db_1`,
+        'cuadreenv_local_sales_cache',
+      ];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('cuadreenv_billing_invoices_db') || k.startsWith('cuadreenv_local_sales_cache'))) {
+          if (!keysToUpdate.includes(k)) keysToUpdate.push(k);
+        }
+      }
+
+      keysToUpdate.forEach((storageKey) => {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        try {
+          const list: any[] = JSON.parse(raw);
+          let changed = false;
+          list.forEach((b) => {
+            const isMatch =
+              (note.billingId && b.id === note.billingId) ||
+              (b.billingNumber && note.billingNumber && b.billingNumber.toLowerCase() === note.billingNumber.toLowerCase()) ||
+              (b.invoiceNumber && note.billingNumber && b.invoiceNumber.toLowerCase() === note.billingNumber.toLowerCase()) ||
+              (b.ncf && note.originalNcf && b.ncf.toLowerCase() === note.originalNcf.toLowerCase());
+
+            if (isMatch) {
+              changed = true;
+              const details = b.productDetails || b.details || b.items || b.saleDetails || [];
+              mappedDetails.forEach((cd: any) => {
+                const line = details.find((p: any) => (p.productId || p.id) === cd.productId);
+                if (line) {
+                  line.originalQuantity = line.originalQuantity != null ? line.originalQuantity : line.quantity;
+                  line.creditedQuantity = Math.round(((line.creditedQuantity || 0) + cd.quantity) * 100) / 100;
+                  line.quantity = Math.max(0, Math.round((line.originalQuantity - line.creditedQuantity) * 100) / 100);
+
+                  const pPrice = line.price || line.unitPrice || 0;
+                  const discPerc = line.discountPercentage || line.discount || 0;
+                  const discAmt = Math.round(pPrice * line.quantity * (discPerc / 100) * 100) / 100;
+                  line.discountAmount = discAmt;
+                  line.subTotal = Math.round((pPrice * line.quantity - discAmt) * 100) / 100;
+                  line.subtotal = line.subTotal;
+                  line.itbisAmount = Math.round(line.subTotal * 0.18 * 100) / 100;
+                  line.itbis = line.itbisAmount;
+                  line.totalAmount = Math.round((line.subTotal + line.itbisAmount) * 100) / 100;
+                  line.total = line.totalAmount;
+                }
+              });
+
+              const allCredited = details.length > 0 && details.every((it: any) => it.quantity === 0);
+              const newSubTotal = Math.round(details.reduce((sum: number, it: any) => sum + (it.subTotal || it.subtotal || 0), 0) * 100) / 100;
+              const newItbis = Math.round(details.reduce((sum: number, it: any) => sum + (it.itbisAmount || it.itbis || 0), 0) * 100) / 100;
+              const newTotal = Math.round(details.reduce((sum: number, it: any) => sum + (it.totalAmount || it.total || 0), 0) * 100) / 100;
+
+              b.amountSubTotal = newSubTotal;
+              b.subtotal = newSubTotal;
+              b.amountItbis = newItbis;
+              b.itbis = newItbis;
+              b.amountTotal = newTotal;
+              b.total = newTotal;
+
+              b.hasPartialCreditNote = !allCredited;
+              b.hasAFullCreditNote = allCredited;
+              b.creditNoteNumber = assignedNumber;
+              b.creditNoteNcf = assignedNCF;
+              b.creditNoteStatus = allCredited ? 'NC Total' : 'NC Parcial';
+              b.statusName = allCredited ? 'Anulada por NC' : 'NC Parcial Aplicada';
+              if (allCredited) {
+                b.status = 4;
+                b.statusId = 3;
+                b.isCancelled = true;
+              }
+            }
+          });
+
+          if (changed) {
+            localStorage.setItem(storageKey, JSON.stringify(list));
+          }
+        } catch {}
+      });
+    } catch (syncErr) {
+      console.warn('Error syncing billing lines with credit note:', syncErr);
+    }
+
     return {
       success: true,
       data: newNote,
@@ -316,20 +434,24 @@ export class CreditNoteService {
 
   async processWarehouseEntry(entry: WarehouseEntry): Promise<void> {
     try {
-      await this.api.post<any, any>('/Warehouse/entry', entry);
+      await this.api.post<any, any>('/WarehouseEntry', entry);
     } catch {
-      // Update local product inventory if needed
-      for (const item of entry.details) {
-        try {
-          const p = await this.productService.getProduct(item.productId);
-          if (p?.success && p.data) {
-            await this.productService.updateProduct({
-              ...p.data,
-              stock: (p.data.stock || 0) + item.quantity,
-            });
+      try {
+        await this.api.post<any, any>('/Warehouse/entry', entry);
+      } catch {
+        // Update local product inventory if needed
+        for (const item of entry.details) {
+          try {
+            const p = await this.productService.getProduct(item.productId);
+            if (p?.success && p.data) {
+              await this.productService.updateProduct({
+                ...p.data,
+                stock: (p.data.stock || 0) + item.quantity,
+              });
+            }
+          } catch {
+            // ignore
           }
-        } catch {
-          // ignore
         }
       }
     }

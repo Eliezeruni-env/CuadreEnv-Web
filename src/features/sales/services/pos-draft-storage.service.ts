@@ -88,32 +88,60 @@ export class PosDraftStorageService {
   }
 
   // ==========================================
-  // Emergency Draft Preservation (JWT 401 / Unload)
+  // Active Draft Preservation (Shared PC <-> Mobile & Tenant Isolated)
   // ==========================================
 
+  private getActiveDraftKey(): string {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return `${ACTIVE_DRAFT_KEY}_default`;
+    }
+    const compId =
+      localStorage.getItem('currentCompanyId') ||
+      localStorage.getItem('companyId') ||
+      localStorage.getItem('auth_company_id') ||
+      sessionStorage.getItem('currentCompanyId') ||
+      sessionStorage.getItem('companyId') ||
+      'default';
+    return `${ACTIVE_DRAFT_KEY}_${compId}`;
+  }
+
   saveActiveDraft(draft: PosSaleDraft): void {
-    if (typeof window === 'undefined' || !window.sessionStorage) return;
+    if (typeof window === 'undefined') return;
     try {
-      if (draft.items.length === 0) {
+      if (!draft || !draft.items || draft.items.length === 0) {
         this.clearActiveDraft();
         return;
       }
       draft.timestamp = new Date().toISOString();
-      sessionStorage.setItem(ACTIVE_DRAFT_KEY, JSON.stringify(draft));
+      const payload = JSON.stringify(draft);
+      const key = this.getActiveDraftKey();
+      if (window.localStorage) {
+        window.localStorage.setItem(key, payload);
+      }
+      if (window.sessionStorage) {
+        window.sessionStorage.setItem(ACTIVE_DRAFT_KEY, payload);
+      }
     } catch (e) {
       console.warn('[PosDraftStorage] Error saving active draft:', e);
     }
   }
 
   hasActiveDraft(): boolean {
-    if (typeof window === 'undefined' || !window.sessionStorage) return false;
-    return !!sessionStorage.getItem(ACTIVE_DRAFT_KEY);
+    if (typeof window === 'undefined') return false;
+    const key = this.getActiveDraftKey();
+    return (
+      (window.localStorage && !!window.localStorage.getItem(key)) ||
+      (window.sessionStorage && !!window.sessionStorage.getItem(ACTIVE_DRAFT_KEY))
+    );
   }
 
   getActiveDraft(): PosSaleDraft | null {
-    if (typeof window === 'undefined' || !window.sessionStorage) return null;
+    if (typeof window === 'undefined') return null;
     try {
-      const raw = sessionStorage.getItem(ACTIVE_DRAFT_KEY);
+      const key = this.getActiveDraftKey();
+      const raw =
+        (window.localStorage && window.localStorage.getItem(key)) ||
+        (window.sessionStorage && window.sessionStorage.getItem(ACTIVE_DRAFT_KEY));
       if (!raw) return null;
       return JSON.parse(raw) as PosSaleDraft;
     } catch {
@@ -122,9 +150,15 @@ export class PosDraftStorageService {
   }
 
   clearActiveDraft(): void {
-    if (typeof window === 'undefined' || !window.sessionStorage) return;
+    if (typeof window === 'undefined') return;
     try {
-      sessionStorage.removeItem(ACTIVE_DRAFT_KEY);
+      const key = this.getActiveDraftKey();
+      if (window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+      if (window.sessionStorage) {
+        window.sessionStorage.removeItem(ACTIVE_DRAFT_KEY);
+      }
     } catch {
       // ignore
     }

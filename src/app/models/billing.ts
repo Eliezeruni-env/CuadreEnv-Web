@@ -35,11 +35,14 @@ export interface Billing {
   clientRnc?: string;
   billingTypeId: number;
   billingTypeName?: string;
+  isMobile?: boolean;
+  originChannel?: string;
   voucherTypeId: number;
   voucherTypeName?: string;
   ncf?: string;
   warehouseId?: number;
   statusId: number;
+  statusName?: string;
   amountSubTotal: number;
   amountDesc: number;
   amountItbis: number;
@@ -49,6 +52,8 @@ export interface Billing {
   retentionIsrAmount?: number;
   netPayableAmount?: number;
   hasAFullCreditNote?: boolean;
+  hasPartialCreditNote?: boolean;
+  creditNoteStatus?: 'NC Parcial' | 'NC Total' | string;
   showDetail?: boolean; // Control UI para expandir fila
   productDetails: ProductDetails[];
   details?: ProductDetails[]; // Compatibilidad

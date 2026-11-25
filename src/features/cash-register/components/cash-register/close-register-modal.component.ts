@@ -53,6 +53,9 @@ export interface CloseAuditResult {
   retainedFloat?: number;
   depositedCash?: number;
   depositDestination?: string;
+  declaredCashUsd?: number;
+  usdExchangeRate?: number;
+  usdEquivalentDop?: number;
 }
 
 @Component({
@@ -92,6 +95,7 @@ export class CloseRegisterModalComponent {
   pendingHeldCount = signal<number>(0);
   pendingOfflineCount = signal<number>(0);
   openCashOperationsError = signal<string | null>(null);
+  serverCloseError = signal<string | null>(null);
   isCancellingPendingSales = signal<boolean>(false);
   readonly hasPendingOperations = computed(
     () => this.pendingHeldCount() > 0 || this.pendingOfflineCount() > 0,
@@ -136,6 +140,11 @@ export class CloseRegisterModalComponent {
     this.denominations().some((d) => d.count > 0),
   );
 
+  // Desglose de cobros esperados en el turno (Efectivo, Tarjetas, Transferencias)
+  expectedCards = signal<number>(0);
+  expectedTransfers = signal<number>(0);
+  expectedCashSales = signal<number>(0);
+
   readonly cashierInitials = computed(() => {
     const name = this.session?.cashierName || 'C';
     return name
@@ -149,12 +158,28 @@ export class CloseRegisterModalComponent {
 
   countedAmount = signal<number>(0);
 
+  // Cobro y Conteo de Efectivo en Dólares (USD)
+  declaredCashUsd = signal<number>(0);
+  usdExchangeRate = signal<number>(60.50);
+
+  readonly usdCashEquivalentInDop = computed(() => {
+    const usd = Number(this.declaredCashUsd()) || 0;
+    const rate = Number(this.usdExchangeRate()) || 60.50;
+    return Math.round(usd * rate * 100) / 100;
+  });
+
+  readonly totalPhysicalCashCounted = computed(() => {
+    const dop = Number(this.countedAmount()) || 0;
+    const usdDop = this.usdCashEquivalentInDop();
+    return Math.round((dop + usdDop) * 100) / 100;
+  });
+
   // Regla 1: Alerta y Confirmación de Cierre en Cero o Descuadre Abrupto
   confirmZeroCashCount = signal<boolean>(false);
   readonly theoreticalBalance = computed(() => Number(this.session?.currentBalance) || 0);
 
   readonly isZeroOrAbruptShortage = computed(() => {
-    const counted = Number(this.countedAmount()) || 0;
+    const counted = this.totalPhysicalCashCounted();
     const theoretical = this.theoreticalBalance();
     if (theoretical > 0 && counted === 0) return true;
     if (theoretical > 0 && (theoretical - counted) > (theoretical * 0.5)) return true;
@@ -163,7 +188,7 @@ export class CloseRegisterModalComponent {
 
   // Regla 2: Justificación Obligatoria ante Descuadre (Diferencia != 0)
   readonly currentDifference = computed(() => {
-    const counted = Number(this.countedAmount()) || 0;
+    const counted = this.totalPhysicalCashCounted();
     return Math.round((counted - this.theoreticalBalance()) * 100) / 100;
   });
   readonly hasDiscrepancy = computed(() => Math.abs(this.currentDifference()) > 0.01);
@@ -171,7 +196,7 @@ export class CloseRegisterModalComponent {
   // Regla 5: Definición del "Destino del Dinero" (Retiro a Bóveda vs. Fondo Siguiente)
   retainedFloat = signal<number>(0);
   readonly cashToDeposit = computed(() => {
-    const counted = Number(this.countedAmount()) || 0;
+    const counted = this.totalPhysicalCashCounted();
     const retained = Number(this.retainedFloat()) || 0;
     return Math.max(0, Math.round((counted - retained) * 100) / 100);
   });
@@ -186,6 +211,8 @@ export class CloseRegisterModalComponent {
   constructor() {
     this.form = this.fb.group({
       closingAmount: [0, [Validators.required, Validators.min(0)]],
+      declaredCashUsd: [0, [Validators.min(0)]],
+      usdExchangeRate: [60.50, [Validators.required, Validators.min(1)]],
       // Regla 3: Declaración de Comprobantes de Tarjetas y Transferencias
       declaredCards: [0, [Validators.min(0)]],
       cardBatchNumber: [''],
@@ -196,6 +223,18 @@ export class CloseRegisterModalComponent {
       depositDestination: ['Sobre de depósito a caja fuerte'],
       notes: [''],
     });
+  }
+
+  onUsdCashChange(amountUsd: any, rate?: any) {
+    const usd = Math.max(0, parseFloat(amountUsd) || 0);
+    this.declaredCashUsd.set(usd);
+    if (rate !== undefined && rate !== null && rate !== '') {
+      const r = Math.max(1, parseFloat(rate) || 60.50);
+      this.usdExchangeRate.set(r);
+      this.form.patchValue({ usdExchangeRate: r });
+    }
+    this.form.patchValue({ declaredCashUsd: usd });
+    this.updateNotesValidation();
   }
 
   open(activeSession: CashRegisterSessionDto) {
@@ -210,6 +249,7 @@ export class CloseRegisterModalComponent {
     this.countedAmount.set(0);
     this.confirmZeroCashCount.set(false);
     this.openCashOperationsError.set(null);
+    this.serverCloseError.set(null);
     this.isCancellingPendingSales.set(false);
 
     // Sugerir como fondo retenido el saldo inicial original
@@ -222,8 +262,12 @@ export class CloseRegisterModalComponent {
     this.pendingOfflineCount.set(this.offlineService.pendingCount());
 
     this.resetDenominations();
+    this.declaredCashUsd.set(0);
+    this.usdExchangeRate.set(60.50);
     this.form.reset({
       closingAmount: 0,
+      declaredCashUsd: 0,
+      usdExchangeRate: 60.50,
       declaredCards: 0,
       cardBatchNumber: '',
       declaredTransfers: 0,
@@ -239,8 +283,8 @@ export class CloseRegisterModalComponent {
       const phone =
         companySettings.ticketWhatsapp?.trim() ||
         companySettings.phone?.trim() ||
-        (this.authService.activeCompany() as any)?.phone?.trim() ||
-        (this.authService.currentUser() as any)?.phoneNumber?.trim() ||
+        (typeof this.authService.activeCompany === 'function' ? (this.authService.activeCompany() as any)?.phone?.trim() : '') ||
+        (typeof this.authService.currentUser === 'function' ? (this.authService.currentUser() as any)?.phoneNumber?.trim() : '') ||
         '';
       if (phone) {
         this.ownerPhone.set(phone);
@@ -250,6 +294,34 @@ export class CloseRegisterModalComponent {
     this.updateNotesValidation();
     this.visible = true;
     this.visibleChange.emit(true);
+
+    // Calcular cobros esperados del turno por método de pago
+    this.expectedCards.set(0);
+    this.expectedTransfers.set(0);
+    this.expectedCashSales.set(0);
+    this.loadExpectedPaymentBreakdown(activeSession);
+  }
+
+  async loadExpectedPaymentBreakdown(activeSession: CashRegisterSessionDto) {
+    try {
+      const sessId = activeSession.sessionId || activeSession.cashRegisterId || activeSession.id || 0;
+      const details = await this.cashRegisterService.getSessionDetail(sessId, activeSession);
+      if (details) {
+        this.expectedCards.set(Number(details.cardSales) || 0);
+        this.expectedTransfers.set(Number(details.transferSales) || 0);
+        this.expectedCashSales.set(Number(details.cashSales) || 0);
+      }
+    } catch {}
+  }
+
+  copyExpectedCards() {
+    this.form.patchValue({ declaredCards: this.expectedCards() });
+    this.updateNotesValidation();
+  }
+
+  copyExpectedTransfers() {
+    this.form.patchValue({ declaredTransfers: this.expectedTransfers() });
+    this.updateNotesValidation();
   }
 
   async syncOfflineSalesNow(): Promise<void> {
@@ -412,7 +484,7 @@ export class CloseRegisterModalComponent {
     }
 
     const val = this.form.value;
-    const finalCounted = parseFloat(val.closingAmount) || 0;
+    const finalCounted = this.totalPhysicalCashCounted();
     const theoretical = this.theoreticalBalance();
     const absDiff = Math.abs(Math.round((finalCounted - theoretical) * 100) / 100);
     const isSuperUser = this.authService.isSuperUser();
@@ -421,6 +493,7 @@ export class CloseRegisterModalComponent {
     this.showSupervisorPinAuth.set(false);
 
     this.isLoading.set(true);
+    this.serverCloseError.set(null);
 
     try {
       const denomPayload = this.hasDenominationCounts()
@@ -429,10 +502,17 @@ export class CloseRegisterModalComponent {
             .reduce((acc, d) => ({ ...acc, [d.value]: d.count }), {})
         : undefined;
 
+      const usdCount = Number(val.declaredCashUsd) || 0;
+      const usdRate = Number(val.usdExchangeRate) || 60.50;
+      const usdEquiv = this.usdCashEquivalentInDop();
+      const usdNote = usdCount > 0
+        ? ` [EFECTIVO USD: US$ ${usdCount.toFixed(2)} @ RD$ ${usdRate.toFixed(2)} = RD$ ${usdEquiv.toFixed(2)}]`
+        : '';
+
       const supervisorNote = (this.isSupervisorPinApproved() || isSuperUser) && absDiff > this.maxTolerance()
         ? ` [SUPERVISOR AUTORIZADO - Descuadre fuera de tolerancia: RD$ ${absDiff.toFixed(2)}]`
         : '';
-      const finalNotes = (val.notes || '') + supervisorNote;
+      const finalNotes = (val.notes || '') + supervisorNote + usdNote;
 
       const res = await this.cashRegisterService.closeSession({
         session: this.session || undefined,
@@ -454,6 +534,7 @@ export class CloseRegisterModalComponent {
 
       if (res.success) {
         this.openCashOperationsError.set(null);
+        this.serverCloseError.set(null);
         this.notificationService.success(
           'Arqueo registrado y turno finalizado exitosamente.',
         );
@@ -476,6 +557,9 @@ export class CloseRegisterModalComponent {
           retainedFloat: Number(this.retainedFloat()) || 0,
           depositedCash: this.cashToDeposit(),
           depositDestination: val.depositDestination || 'Bóveda Principal',
+          declaredCashUsd: usdCount,
+          usdExchangeRate: usdRate,
+          usdEquivalentDop: usdEquiv,
         });
         this.closed.emit();
       } else {
@@ -489,9 +573,9 @@ export class CloseRegisterModalComponent {
           this.openCashOperationsError.set(userMsg);
           this.notificationService.warning(userMsg);
         } else {
-          this.notificationService.error(
-            res.message || 'Error al procesar el cierre de caja.',
-          );
+          const errMsg = res.message || 'Error al procesar el cierre de caja.';
+          this.serverCloseError.set(errMsg);
+          this.notificationService.error(errMsg);
         }
       }
     } catch (e: any) {
@@ -508,6 +592,8 @@ export class CloseRegisterModalComponent {
         this.openCashOperationsError.set(userMsg);
         this.notificationService.warning(userMsg);
       } else {
+        const errMsg = rawMsg || e?.mappedError?.message || e?.message || 'Error al procesar el cierre de caja.';
+        this.serverCloseError.set(errMsg);
         this.notificationService.showApiError(e);
       }
     } finally {
@@ -616,6 +702,7 @@ ${audit.notes ? `\n📝 *Observaciones / Justificación:* "${audit.notes}"\n` : 
     this.cashRegisterService.forceCloseSessionLocal(regId);
     this.draftStorageService.clearAll();
     this.openCashOperationsError.set(null);
+    this.serverCloseError.set(null);
     this.notificationService.success('Cierre de emergencia completado localmente.');
     this.close();
     this.closed.emit();

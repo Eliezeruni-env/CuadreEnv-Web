@@ -55,7 +55,7 @@ export const ROUTES: RouteInfo[] = [
     path: '/services',
     moduleCode: 'services',
     title: 'Servicios',
-    icon: 'cilNotes',
+    icon: 'cilBriefcase',
     class: '',
   },
   {
@@ -70,6 +70,13 @@ export const ROUTES: RouteInfo[] = [
     moduleCode: 'credit-notes',
     title: 'Notas de Crédito',
     icon: 'cilNotes',
+    class: '',
+  },
+  {
+    path: '/sales/bank-reconciliation',
+    moduleCode: 'sales',
+    title: 'Conciliación Bancaria',
+    icon: 'cilBank',
     class: '',
   },
   {
@@ -97,7 +104,7 @@ export const ROUTES: RouteInfo[] = [
     path: '/customers',
     moduleCode: 'customers',
     title: 'Clientes',
-    icon: 'cilUser',
+    icon: 'cilAddressBook',
     class: '',
   },
   {
@@ -108,7 +115,7 @@ export const ROUTES: RouteInfo[] = [
     path: '/inventory',
     moduleCode: 'inventory',
     title: 'Almacenes & Stock',
-    icon: 'cilSwapHorizontal',
+    icon: 'cilStorage',
     class: '',
   },
   {
@@ -125,25 +132,18 @@ export const ROUTES: RouteInfo[] = [
     icon: 'cilArrowThickToBottom',
     class: '',
   },
-  // {
-  //   path: '/billing/reports',
-  //   moduleCode: 'billing-reports-dgii',
-  //   title: 'Reportes DGII',
-  //   icon: 'cilChartPie',
-  //   class: '',
-  // },
   {
     path: '/inventory/transfers',
     moduleCode: 'inventory-transfers',
     title: 'Transferencias',
-    icon: 'cilSwapHorizontal',
+    icon: 'cilTransfer',
     class: '',
   },
   {
     path: '/inventory/warehouses',
     moduleCode: 'inventory-warehouses',
     title: 'Almacenes',
-    icon: 'cilStorage',
+    icon: 'cilHome',
     class: '',
   },
   {
@@ -157,12 +157,26 @@ export const ROUTES: RouteInfo[] = [
     path: '/inventory/stock',
     moduleCode: 'inventory-stock',
     title: 'Existencias',
-    icon: 'cilLayers',
+    icon: 'cilListNumbered',
+    class: '',
+  },
+  {
+    path: '/inventory/intelligence',
+    moduleCode: 'inventory-stock',
+    title: 'Reposición Inteligente',
+    icon: 'cilChartLine',
+    class: '',
+  },
+  {
+    path: '/inventory/lot-expiration',
+    moduleCode: 'inventory-stock',
+    title: 'Lotes y Vencimientos',
+    icon: 'cilCalendar',
     class: '',
   },
   {
     title: 'Catálogo de Productos',
-    icon: 'cilStorage',
+    icon: 'cilTags',
     class: '',
     isExpanded: false,
     children: [
@@ -193,7 +207,7 @@ export const ROUTES: RouteInfo[] = [
     path: '/purchases/suppliers',
     moduleCode: 'purchases-suppliers',
     title: 'Proveedores',
-    icon: 'cilTruck',
+    icon: 'cilHandshake',
     class: '',
   },
   {
@@ -217,14 +231,14 @@ export const ROUTES: RouteInfo[] = [
   {
     path: '/metrics',
     moduleCode: 'metrics',
-    title: 'Métricas',
+    title: 'Métricas & KPIs',
     icon: 'cilChartPie',
     class: '',
   },
   {
     path: '/reports',
     moduleCode: 'reports',
-    title: 'Reportes',
+    title: 'Reportes Financieros',
     icon: 'cilChart',
     class: '',
   },
@@ -243,7 +257,7 @@ export const ROUTES: RouteInfo[] = [
     path: '/admin/roles',
     moduleCode: 'admin-roles',
     title: 'Roles y Permisos',
-    icon: 'cilSettings',
+    icon: 'cilLockLocked',
     class: '',
   },
   {
@@ -301,7 +315,10 @@ export class SidebarComponent {
 
   hasModule(moduleCode?: string): boolean {
     if (!moduleCode) return false;
-    return this.permissionService.hasModule(moduleCode);
+    return (
+      this.permissionService.hasModule(moduleCode) ||
+      this.moduleAccessService.hasModule(moduleCode)
+    );
   }
 
   private filterMenuItems(items: readonly RouteInfo[]): RouteInfo[] {
@@ -357,3 +374,4 @@ export class SidebarComponent {
     clearTimeout(this.hoverTimeout);
   }
 }
+

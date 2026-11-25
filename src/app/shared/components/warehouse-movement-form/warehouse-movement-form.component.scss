@@ -1,0 +1,226 @@
+.movement-page-container {
+  background-color: var(--cuadre-bg-body, #f8fafc);
+  min-height: 100vh;
+}
+
+.movement-breadcrumb {
+  .breadcrumb-item {
+    font-size: 0.825rem;
+    color: var(--cuadre-text-muted, #64748b);
+
+    a {
+      color: var(--cuadre-text-muted, #64748b);
+      transition: color 0.15s ease;
+      &:hover {
+        color: var(--cuadre-color-primary, #2563eb);
+      }
+    }
+  }
+}
+
+.movement-title {
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  color: #1e293b;
+}
+
+.card-section-title {
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.movement-card {
+  border: 1px solid #eef2f6 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+
+.input-group-text {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.form-select,
+.form-control {
+  border-color: #e2e8f0;
+  color: #1e293b;
+
+  &:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  }
+}
+
+.font-size-xs {
+  font-size: 0.75rem;
+}
+
+.font-size-sm {
+  font-size: 0.875rem;
+}
+
+.search-main-input {
+  height: 40px;
+}
+
+.btn-brand-add {
+  background-color: #4338ca;
+  border-color: #4338ca;
+  color: #ffffff;
+  transition: all 0.15s ease-in-out;
+  height: 40px;
+
+  &:hover {
+    background-color: #3730a3;
+    border-color: #3730a3;
+    color: #ffffff;
+  }
+}
+
+.btn-success {
+  background-color: #16a34a;
+  border-color: #16a34a;
+
+  &:hover {
+    background-color: #15803d;
+    border-color: #15803d;
+  }
+}
+
+.search-autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  max-height: 280px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.dropdown-product-item {
+  transition: background-color 0.15s ease;
+  &:hover {
+    background-color: #f1f5f9;
+  }
+}
+
+.movement-table-wrapper {
+  border-color: #eef2f6 !important;
+  overflow: visible;
+}
+
+.movement-table-head th {
+  font-size: 0.785rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #eef2f6;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.movement-row {
+  transition: background-color 0.12s ease;
+  td {
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  &:hover {
+    background-color: #fbfcfe;
+  }
+}
+
+.product-row-icon,
+.product-mini-icon,
+.summary-icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f1f5f9 !important;
+  color: #475569;
+}
+
+.product-name {
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+.product-subtitle {
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.code-pill {
+  font-size: 0.775rem;
+  letter-spacing: 0.02em;
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+.row-stepper-input {
+  border-radius: 6px;
+  font-size: 0.85rem;
+  height: 32px;
+  border-color: #cbd5e1;
+
+  &:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12);
+  }
+}
+
+.subtotal-cell {
+  font-size: 0.925rem;
+  color: #0f172a;
+}
+
+.hover-delete-btn {
+  color: #94a3b8 !important;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: #ef4444 !important;
+  }
+}
+
+.summary-card {
+  border: 1px solid #eef2f6 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+
+.summary-title {
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+}
+
+.summary-total-cost {
+  color: #16a34a !important;
+  font-size: 1.35rem !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+// Catalog Multi-Select Modal Styles
+.modal-header-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-primary {
+  background-color: rgba(79, 70, 229, 0.05) !important;
+}
+
+.shadow-2xs {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}

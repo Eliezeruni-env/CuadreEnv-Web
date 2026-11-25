@@ -12,27 +12,45 @@
   }
 
   <!-- Top Bar -->
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-3 rounded-4 shadow-sm border">
-    <div>
-      <div class="d-flex align-items-center gap-2">
-        <h4 class="fw-bold mb-0 text-dark">Equipo de Trabajo</h4>
-        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill font-size-sm">
-          🏢 {{ activeCompanyName() }}
-        </span>
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-blue">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
       </div>
-      <small class="text-secondary">Gestión de usuarios y personal autorizados para {{ activeCompanyName() }}</small>
+      <div class="view-header-content">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill font-size-sm">
+            🏢 {{ activeCompanyName() }}
+          </span>
+        </div>
+        <h1 class="view-header-title">Equipo de Trabajo</h1>
+        <p class="view-header-subtitle">Gestión de usuarios y personal autorizados para {{ activeCompanyName() }}</p>
+      </div>
     </div>
 
-    <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-xs px-3" (click)="loadUsers()">
-        Recargar
+    <div class="view-header-actions">
+      <button class="btn btn-outline-secondary bg-white text-dark d-flex align-items-center gap-1.5 px-3 py-2 rounded-3 shadow-2xs fw-medium" (click)="loadUsers()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        <span>Recargar</span>
       </button>
 
-      @if (authService.hasRole(['Admin'])) {
-        <button class="btn btn-cuadre-primary fw-semibold shadow-xs d-flex align-items-center gap-1.5 px-3" (click)="openInviteModal()">
+      @if (permissionService.canCreate('users')) {
+        <button class="btn btn-outline-primary bg-white d-flex align-items-center gap-1.5 px-3 py-2 rounded-3 shadow-2xs fw-medium" (click)="openInviteModal()">
           Invitar por Enlace
         </button>
-        <button class="btn btn-cuadre-primary fw-bold shadow-sm d-flex align-items-center gap-2 px-3" (click)="openEmployeeModal()">
+        <button class="btn btn-navy text-white fw-semibold shadow-sm d-flex align-items-center gap-1.5 px-3.5 py-2 rounded-3" (click)="openEmployeeModal()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
           <span>+ Nuevo Empleado</span>
         </button>
       }
@@ -59,7 +77,7 @@
         <div class="py-5 text-center px-4">
           <h5 class="fw-bold text-dark">No hay empleados registrados en {{ activeCompanyName() }}</h5>
           <p class="text-secondary small max-width-320 mx-auto">Comienza agregando los miembros de tu equipo para que accedan al sistema con su rol correspondiente.</p>
-          @if (authService.hasRole(['Admin'])) {
+          @if (permissionService.canCreate('users')) {
             <button class="btn btn-cuadre-primary mt-2 px-4" (click)="openEmployeeModal()">
               + Registrar Primer Empleado
             </button>
@@ -108,7 +126,7 @@
                           </span>
                         }
                       </div>
-                    } @else if (authService.hasRole(['Admin']) && u.id !== authService.currentUser()?.id) {
+                    } @else if (permissionService.canEdit('users') && u.id !== authService.currentUser()?.id) {
                       <select class="form-select form-select-sm" style="max-width: 140px;" (change)="changeUserRole(u, $event)">
                         <option value="Employee" [selected]="u.role === 'Employee'">Empleado</option>
                         <option value="Vendedor" [selected]="u.role === 'Vendedor'">Vendedor</option>
@@ -131,44 +149,48 @@
                     </span>
                   </td>
                   <td class="text-center pe-3">
-                    @if (authService.hasRole(['Admin']) && u.id !== authService.currentUser()?.id) {
-                      <div class="d-flex align-items-center justify-content-center gap-1">
-                        <button
-                          type="button"
-                          class="btn btn-sm btn-outline-secondary py-0.5 px-2"
-                          title="Editar colaborador"
-                          (click)="editUser(u)"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          class="btn btn-sm py-0.5 px-2"
-                          [ngClass]="u.active !== false ? 'btn-outline-warning' : 'btn-outline-success'"
-                          [title]="u.active !== false ? 'Desactivar usuario' : 'Reactivar usuario'"
-                          (click)="toggleDeactivation(u)"
-                        >
-                          {{ u.active !== false ? 'Desactivar' : 'Activar' }}
-                        </button>
-                        <button
-                          type="button"
-                          class="btn btn-sm btn-outline-info py-0.5 px-2"
-                          title="Restablecer contraseña"
-                          (click)="resetUserPassword(u)"
-                        >
-                          Clave
-                        </button>
-                        <button
-                          type="button"
-                          class="btn btn-sm btn-outline-danger py-0.5 px-2"
-                          title="Eliminar usuario"
-                          (click)="deleteUser(u)"
-                        >
-                          Borrar
-                        </button>
-                      </div>
-                    } @else {
+                    @if (u.id === authService.currentUser()?.id) {
                       <span class="badge bg-light text-muted border">Tu cuenta</span>
+                    } @else {
+                      <div class="d-flex align-items-center justify-content-center gap-1">
+                        @if (permissionService.canEdit('users')) {
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline-secondary py-0.5 px-2"
+                            title="Editar colaborador"
+                            (click)="editUser(u)"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-sm py-0.5 px-2"
+                            [ngClass]="u.active !== false ? 'btn-outline-warning' : 'btn-outline-success'"
+                            [title]="u.active !== false ? 'Desactivar usuario' : 'Reactivar usuario'"
+                            (click)="toggleDeactivation(u)"
+                          >
+                            {{ u.active !== false ? 'Desactivar' : 'Activar' }}
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline-info py-0.5 px-2"
+                            title="Restablecer contraseña"
+                            (click)="resetUserPassword(u)"
+                          >
+                            Clave
+                          </button>
+                        }
+                        @if (permissionService.canDelete('users')) {
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline-danger py-0.5 px-2"
+                            title="Eliminar usuario"
+                            (click)="deleteUser(u)"
+                          >
+                            Borrar
+                          </button>
+                        }
+                      </div>
                     }
                   </td>
                 </tr>

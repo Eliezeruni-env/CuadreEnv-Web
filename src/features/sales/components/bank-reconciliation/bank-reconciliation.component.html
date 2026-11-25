@@ -1,0 +1,661 @@
+<div class="bank-reconciliation-page container-fluid py-3 px-lg-4">
+  <!-- Top Header Bar -->
+  <div class="view-header-card">
+    <div class="view-header-left">
+      <div class="view-header-icon icon-blue">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M3 21h18M3 10h18M5 10v11M19 10v11M9 10v11M14 10v11M2 10l10-7 10 7"/>
+        </svg>
+      </div>
+      <div class="view-header-content">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="view-header-tag">Auditoría Financiera & Caja</span>
+        </div>
+        <h2 class="view-header-title">Conciliación bancaria</h2>
+        <p class="view-header-subtitle">
+          Verifica las transferencias registradas contra los movimientos bancarios.
+        </p>
+      </div>
+    </div>
+
+    <div class="view-header-actions">
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        (click)="openImportModal()"
+        data-tooltip="Cargar archivo de extracto bancario (.csv, .xlsx)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <span>Importar extracto</span>
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        (click)="refreshRecords()"
+        [disabled]="isLoading()"
+        data-tooltip="Actualizar lista de transferencias y estados"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        <span>Actualizar</span>
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        (click)="exportToCsv()"
+        data-tooltip="Exportar reporte de conciliación en formato CSV"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        <span>Exportar CSV</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 4 Top KPI Cards (Exact Colors & Borders from Image 2) -->
+  <div class="row g-3 mb-4">
+    <!-- Card 1: TOTAL TRANSFERENCIAS -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card p-3 rounded-4 bg-white border kpi-recon-card border-blue h-100">
+        <div class="d-flex align-items-center gap-2.5">
+          <div class="kpi-icon-square text-secondary bg-light flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 21h18M3 10h18M5 10v11M19 10v11M9 10v11M15 10v11M12 2l10 5H2l10-5z"></path>
+            </svg>
+          </div>
+          <div>
+            <span class="kpi-label-muted text-secondary fw-semibold">TOTAL TRANSFERENCIAS</span>
+            <div class="fs-4 fw-bold text-dark font-monospace mb-0">
+              RD$ {{ totalTransferredAmount() | number:'1.0-0' }}
+            </div>
+            <span class="small text-muted">{{ totalTransfersCount() }} transferencias</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: CONCILIADAS -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card p-3 rounded-4 bg-white border kpi-recon-card border-green h-100">
+        <div class="d-flex align-items-center gap-2.5">
+          <div class="kpi-icon-square text-white bg-success flex-shrink-0" style="border-radius: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div>
+            <span class="kpi-label-muted text-secondary fw-semibold">CONCILIADAS</span>
+            <div class="fs-4 fw-bold text-dark font-monospace mb-0">
+              RD$ {{ reconciledAmount() | number:'1.0-0' }}
+            </div>
+            <span class="small text-muted">{{ reconciledCount() }} transferencias</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: PENDIENTES -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card p-3 rounded-4 bg-white border kpi-recon-card border-amber h-100">
+        <div class="d-flex align-items-center gap-2.5">
+          <div class="kpi-icon-square text-warning bg-warning-subtle flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 22h14"></path>
+              <path d="M5 2h14"></path>
+              <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"></path>
+              <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"></path>
+            </svg>
+          </div>
+          <div>
+            <span class="kpi-label-muted text-secondary fw-semibold">PENDIENTES</span>
+            <div class="fs-4 fw-bold text-dark font-monospace mb-0">
+              RD$ {{ pendingAmount() | number:'1.0-0' }}
+            </div>
+            <span class="small text-muted">{{ pendingCount() }} transferencia</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 4: CON DISCREPANCIA -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card p-3 rounded-4 bg-white border kpi-recon-card border-coral h-100">
+        <div class="d-flex align-items-center gap-2.5">
+          <div class="kpi-icon-square text-danger bg-danger-subtle flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <div>
+            <span class="kpi-label-muted text-secondary fw-semibold">CON DISCREPANCIA</span>
+            <div class="fs-4 fw-bold text-dark font-monospace mb-0">
+              RD$ {{ discrepancyAmount() | number:'1.0-0' }}
+            </div>
+            <span class="small text-muted">{{ discrepancyCount() }} transferencia</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Toolbar (Search, Banco, Estado, Fechas, Limpiar) -->
+  <div class="card border-0 rounded-4 p-3 mb-3 bg-white shadow-sm">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div class="d-flex align-items-center gap-2 flex-wrap flex-grow-1">
+        <!-- Search Input -->
+        <div class="input-group input-group-sm" style="min-width: 280px; max-width: 320px;">
+          <span class="input-group-text bg-white border-end-0 text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input
+            type="text"
+            class="form-control border-start-0 ps-0"
+            placeholder="Buscar por referencia, factura o cliente..."
+            [ngModel]="searchTerm()"
+            (ngModelChange)="searchTerm.set($event)"
+          />
+        </div>
+
+        <!-- Banco Select -->
+        <div class="d-flex align-items-center gap-1.5">
+          <span class="text-secondary small fw-medium">Banco:</span>
+          <select
+            class="form-select form-select-sm custom-select"
+            style="width: 160px;"
+            [ngModel]="selectedBank()"
+            (ngModelChange)="selectedBank.set($event)"
+          >
+            <option value="ALL">Todos los bancos</option>
+            @for (b of availableBanks(); track b) {
+              <option [value]="b">{{ b }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Estado Select -->
+        <div class="d-flex align-items-center gap-1.5">
+          <span class="text-secondary small fw-medium">Estado:</span>
+          <select
+            class="form-select form-select-sm custom-select"
+            style="width: 155px;"
+            [ngModel]="selectedStatus()"
+            (ngModelChange)="selectedStatus.set($event)"
+          >
+            <option value="ALL">Todos los estados</option>
+            <option value="Conciliada">Conciliada</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Discrepancia">Discrepancia</option>
+          </select>
+        </div>
+
+        <!-- Fechas Select -->
+        <div class="d-flex align-items-center gap-1.5">
+          <span class="text-secondary small fw-medium">Fechas:</span>
+          <div class="input-group input-group-sm" style="width: 155px;">
+            <span class="input-group-text bg-white border-end-0 text-muted p-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+            <select
+              class="form-select border-start-0 ps-0 custom-select"
+              [ngModel]="selectedPeriod()"
+              (ngModelChange)="selectedPeriod.set($event)"
+            >
+              <option value="ALL">Todo el periodo</option>
+              <option value="TODAY">Hoy</option>
+              <option value="MONTH">Este mes</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Limpiar filtros -->
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm bg-white text-dark d-flex align-items-center gap-1.5 px-3 py-1.5 rounded-3 shadow-2xs"
+        (click)="clearFilters()"
+        data-tooltip="Restablecer todos los filtros"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
+        <span>Limpiar filtros</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation (Todas, Pendientes, Conciliadas, Discrepancias) -->
+  <div class="tabs-nav-bar d-flex align-items-center gap-2 mb-3">
+    <button
+      type="button"
+      class="tab-link-btn"
+      [class.active]="activeTab() === 'TODAS'"
+      (click)="activeTab.set('TODAS')"
+    >
+      Todas ({{ totalTransfersCount() }})
+    </button>
+    <button
+      type="button"
+      class="tab-link-btn"
+      [class.active]="activeTab() === 'PENDIENTES'"
+      (click)="activeTab.set('PENDIENTES')"
+    >
+      Pendientes ({{ pendingCount() }})
+    </button>
+    <button
+      type="button"
+      class="tab-link-btn"
+      [class.active]="activeTab() === 'CONCILIADAS'"
+      (click)="activeTab.set('CONCILIADAS')"
+    >
+      Conciliadas ({{ reconciledCount() }})
+    </button>
+    <button
+      type="button"
+      class="tab-link-btn"
+      [class.active]="activeTab() === 'DISCREPANCIAS'"
+      (click)="activeTab.set('DISCREPANCIAS')"
+    >
+      Discrepancias ({{ discrepancyCount() }})
+    </button>
+  </div>
+
+  <!-- Reconciliations Table Card -->
+  <div class="card border-0 rounded-4 shadow-sm overflow-hidden mb-3 bg-white">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 recon-table">
+        <thead class="table-light text-secondary small fw-bold">
+          <tr>
+            <th class="ps-4 th-sortable" (click)="toggleSort('date')">
+              Fecha
+              <span class="sort-indicator" [class.active]="sortColumn() === 'date'">
+                {{ sortColumn() === 'date' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('reference')">
+              Referencia bancaria
+              <span class="sort-indicator" [class.active]="sortColumn() === 'reference'">
+                {{ sortColumn() === 'reference' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('invoice')">
+              Factura / Cliente
+              <span class="sort-indicator" [class.active]="sortColumn() === 'invoice'">
+                {{ sortColumn() === 'invoice' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('bank')">
+              Banco destino
+              <span class="sort-indicator" [class.active]="sortColumn() === 'bank'">
+                {{ sortColumn() === 'bank' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable text-start" (click)="toggleSort('registered')">
+              Monto registrado
+              <span class="sort-indicator" [class.active]="sortColumn() === 'registered'">
+                {{ sortColumn() === 'registered' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable text-start" (click)="toggleSort('statement')">
+              Monto extracto
+              <span class="sort-indicator" [class.active]="sortColumn() === 'statement'">
+                {{ sortColumn() === 'statement' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable text-start" (click)="toggleSort('difference')">
+              Diferencia
+              <span class="sort-indicator" [class.active]="sortColumn() === 'difference'">
+                {{ sortColumn() === 'difference' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable text-center" (click)="toggleSort('status')">
+              Estado
+              <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
+                {{ sortColumn() === 'status' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="text-center pe-4" style="width: 130px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of filteredRecords(); track row.id) {
+            <tr>
+              <!-- Fecha -->
+              <td class="ps-4 text-dark font-monospace small">
+                {{ row.date }}
+              </td>
+
+              <!-- Referencia bancaria -->
+              <td class="font-monospace text-dark fw-semibold">
+                {{ row.bankReference }}
+              </td>
+
+              <!-- Factura / Cliente -->
+              <td>
+                <div class="fw-bold text-dark">{{ row.invoiceNumber }}</div>
+                <div class="text-secondary small">{{ row.customerName }}</div>
+              </td>
+
+              <!-- Banco destino -->
+              <td class="text-dark">
+                {{ row.destinationBank }}
+              </td>
+
+              <!-- Monto registrado -->
+              <td class="font-monospace fw-bold text-dark">
+                RD$ {{ row.registeredAmount | number:'1.2-2' }}
+              </td>
+
+              <!-- Monto extracto -->
+              <td class="font-monospace fw-semibold text-dark">
+                @if (row.statementAmount !== null) {
+                  RD$ {{ row.statementAmount | number:'1.2-2' }}
+                } @else {
+                  —
+                }
+              </td>
+
+              <!-- Diferencia -->
+              <td class="font-monospace fw-semibold" [class.text-danger]="row.difference && row.difference > 0" [class.text-muted]="!row.difference">
+                @if (row.difference !== null) {
+                  RD$ {{ row.difference | number:'1.2-2' }}
+                } @else {
+                  —
+                }
+              </td>
+
+              <!-- Estado -->
+              <td class="text-center">
+                @if (row.status === 'Conciliada') {
+                  <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1">
+                    <span class="dot-status bg-success"></span> Conciliada
+                  </span>
+                } @else if (row.status === 'Pendiente') {
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1">
+                    <span class="dot-status bg-warning"></span> Pendiente
+                  </span>
+                } @else {
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1">
+                    <span class="dot-status bg-danger"></span> Discrepancia
+                  </span>
+                }
+              </td>
+
+              <!-- Acciones -->
+              <td class="text-center pe-4">
+                @if (row.status === 'Conciliada') {
+                  <button
+                    type="button"
+                    class="btn-action-square btn-action-view d-inline-flex"
+                    (click)="openReviewDetail(row)"
+                    data-tooltip="Ver comprobante y detalle de conciliación"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                } @else if (row.status === 'Pendiente') {
+                  <button
+                    type="button"
+                    class="btn btn-navy text-white btn-sm px-3 py-1 rounded-2 fw-semibold shadow-2xs"
+                    (click)="openConciliarModal(row)"
+                    data-tooltip="Conciliar pago contra extracto bancario"
+                  >
+                    Conciliar
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm px-3 py-1 rounded-2 bg-white text-dark shadow-2xs fw-medium"
+                    (click)="openReviewDetail(row)"
+                    data-tooltip="Revisar diferencia detectada"
+                  >
+                    Revisar
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="9" class="text-center py-5 text-muted">
+                No se encontraron transferencias con los criterios de búsqueda aplicados.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CONCILIAR TRANSFERENCIA PENDIENTE -->
+@if (isReconcileModalOpen(); as open) {
+  <div class="custom-modal-backdrop" (click)="isReconcileModalOpen.set(false)">
+    <div class="custom-modal-content bg-white rounded-4 shadow-lg overflow-hidden" style="max-width: 520px;" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header px-4 py-3 bg-white border-bottom d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <div class="p-2 rounded-3 text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background: #0f172a;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold text-dark">Conciliar transferencia</h5>
+            <small class="text-secondary">Cotejo de movimiento en extracto bancario</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="isReconcileModalOpen.set(false)"></button>
+      </div>
+
+      @if (activeItemForReconciliation(); as item) {
+        <div class="custom-modal-body p-4">
+          <div class="p-3 bg-light rounded-3 mb-3 border">
+            <div class="d-flex justify-content-between small text-secondary mb-1">
+              <span>Factura:</span>
+              <strong class="text-dark">{{ item.invoiceNumber }}</strong>
+            </div>
+            <div class="d-flex justify-content-between small text-secondary mb-1">
+              <span>Cliente:</span>
+              <strong class="text-dark">{{ item.customerName }}</strong>
+            </div>
+            <div class="d-flex justify-content-between small text-secondary mb-1">
+              <span>Banco destino:</span>
+              <strong class="text-dark">{{ item.destinationBank }}</strong>
+            </div>
+            <div class="d-flex justify-content-between small text-secondary">
+              <span>Monto registrado en venta:</span>
+              <strong class="text-dark font-monospace fs-6">RD$ {{ item.registeredAmount | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">Referencia o No. de Confirmación Bancaria *</label>
+            <input
+              type="text"
+              class="form-control font-monospace"
+              placeholder="Ej. TRF-00083423"
+              [ngModel]="manualReferenceInput()"
+              (ngModelChange)="manualReferenceInput.set($event)"
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary mb-1">Monto en Extracto Bancario (RD$) *</label>
+            <input
+              type="number"
+              class="form-control font-monospace"
+              [ngModel]="manualAmountInput()"
+              (ngModelChange)="manualAmountInput.set($event)"
+              step="100"
+            />
+            <small class="text-muted d-block mt-1">Si el monto coincide exactamente con el registrado, el estado cambiará a <strong>Conciliada</strong>.</small>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+            <button type="button" class="btn btn-outline-secondary px-3 py-2 rounded-3" (click)="isReconcileModalOpen.set(false)">Cancelar</button>
+            <button type="button" class="btn btn-navy text-white fw-bold px-4 py-2 rounded-3 shadow-sm" (click)="confirmReconciliation()">Guardar conciliación</button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}
+
+<!-- MODAL: IMPORTAR EXTRACTO BANCARIO -->
+@if (isImportModalOpen(); as open) {
+  <div class="custom-modal-backdrop" (click)="isImportModalOpen.set(false)">
+    <div class="custom-modal-content bg-white rounded-4 shadow-lg overflow-hidden" style="max-width: 540px;" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header px-4 py-3 bg-white border-bottom d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <div class="p-2 rounded-3 text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background: #0f172a;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold text-dark">Importar extracto bancario</h5>
+            <small class="text-secondary">Conciliación automática de movimientos</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="isImportModalOpen.set(false)"></button>
+      </div>
+
+      <div class="custom-modal-body p-4">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-secondary mb-1">Entidad Bancaria Emisora *</label>
+          <select
+            class="form-select custom-select"
+            [ngModel]="selectedBankForImport()"
+            (ngModelChange)="selectedBankForImport.set($event)"
+          >
+            <option value="Banco Popular">Banco Popular Dominicano</option>
+            <option value="Banco BHD">Banco BHD</option>
+            <option value="Banreservas">Banco de Reservas</option>
+            <option value="Banco Santa Cruz">Banco Santa Cruz</option>
+            <option value="Scotiabank">Scotiabank</option>
+          </select>
+        </div>
+
+        <div class="p-4 border border-dashed rounded-4 text-center bg-light mb-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.8" class="mb-2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+          </svg>
+          <div class="fw-bold text-dark mb-1">Arrastra tu archivo de extracto bancario aquí</div>
+          <div class="small text-secondary mb-2">Compatible con archivos .CSV y .XLSX descargados de la banca en línea</div>
+          <label class="btn btn-outline-secondary btn-sm px-3 py-1.5 rounded-3 bg-white text-dark cursor-pointer shadow-2xs">
+            Seleccionar archivo
+            <input type="file" hidden accept=".csv,.xlsx,.xls" />
+          </label>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+          <button type="button" class="btn btn-outline-secondary px-3 py-2 rounded-3" (click)="isImportModalOpen.set(false)">Cancelar</button>
+          <button type="button" class="btn btn-navy text-white fw-bold px-4 py-2 rounded-3 shadow-sm" (click)="simulateImportExtract()">Procesar extracto</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL: DETALLE / REVISIÓN DE DISCREPANCIA -->
+@if (isDetailModalOpen(); as open) {
+  <div class="custom-modal-backdrop" (click)="isDetailModalOpen.set(false)">
+    <div class="custom-modal-content bg-white rounded-4 shadow-lg overflow-hidden" style="max-width: 520px;" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header px-4 py-3 bg-white border-bottom d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <div class="p-2 rounded-3 text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background: #0f172a;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold text-dark">Detalle de conciliación</h5>
+            <small class="text-secondary">Registro de auditoría bancaria</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="isDetailModalOpen.set(false)"></button>
+      </div>
+
+      @if (activeItemForDetail(); as item) {
+        <div class="custom-modal-body p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="text-secondary small">Estado del registro:</span>
+            <span class="badge" [class.bg-success]="item.status === 'Conciliada'" [class.bg-danger]="item.status === 'Discrepancia'" [class.bg-warning]="item.status === 'Pendiente'">
+              {{ item.status }}
+            </span>
+          </div>
+
+          <div class="p-3 bg-light rounded-3 border mb-3">
+            <div class="d-flex justify-content-between small text-secondary mb-1.5">
+              <span>Fecha:</span>
+              <strong class="text-dark">{{ item.date }}</strong>
+            </div>
+            <div class="d-flex justify-content-between small text-secondary mb-1.5">
+              <span>Referencia Bancaria:</span>
+              <strong class="font-monospace text-dark">{{ item.bankReference }}</strong>
+            </div>
+            <div class="d-flex justify-content-between small text-secondary mb-1.5">
+              <span>Factura / Venta:</span>
+              <strong class="text-dark">{{ item.invoiceNumber }}</strong>
+            </div>
+            <div class="d-flex justify-content-between small text-secondary mb-1.5">
+              <span>Cliente:</span>
+              <strong class="text-dark">{{ item.customerName }}</strong>
+            </div>
+            <div class="d-flex justify-content-between small text-secondary mb-1.5">
+              <span>Banco Destino:</span>
+              <strong class="text-dark">{{ item.destinationBank }}</strong>
+            </div>
+            <div class="d-flex justify-content-between small text-secondary mb-1.5">
+              <span>Monto Registrado en Caja:</span>
+              <strong class="text-dark font-monospace">RD$ {{ item.registeredAmount | number:'1.2-2' }}</strong>
+            </div>
+            <div class="d-flex justify-content-between small text-secondary mb-1.5">
+              <span>Monto en Extracto Bancario:</span>
+              <strong class="text-dark font-monospace">RD$ {{ (item.statementAmount ?? 0) | number:'1.2-2' }}</strong>
+            </div>
+            @if (item.difference && item.difference > 0) {
+              <div class="d-flex justify-content-between small text-secondary border-top pt-1.5 mt-1">
+                <span class="text-danger fw-bold">Diferencia Observada:</span>
+                <strong class="text-danger font-monospace">RD$ {{ item.difference | number:'1.2-2' }}</strong>
+              </div>
+            }
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+            <button type="button" class="btn btn-navy text-white px-4 py-2 rounded-3 fw-bold" (click)="isDetailModalOpen.set(false)">Cerrar</button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}

@@ -131,45 +131,60 @@ export class PermissionService {
         ? this.authService.userPermissions() || []
         : [];
 
-    if (this.authService.hasExplicitModuleClaims()) {
-      const allowedModuleCodes = new Set(jwtModules.map((module) => this.normalizeModuleCode(module)));
-      const isAdmin = allRoles.some((role) =>
-        ['admin', 'superuser', 'sysadmin', 'superadmin'].includes(role),
-      );
-      if (allowedModuleCodes.has('*')) {
-        for (const mod of SYSTEM_MODULES) {
-          allowedModuleCodes.add(this.normalizeModuleCode(mod.key));
-          for (const action of ACTIONS_LIST) {
-            tokens.add(`${this.normalizeModuleCode(mod.key)}:${action.key.toLowerCase()}`);
-          }
+    const allowedModuleCodes = new Set(jwtModules.map((module) => this.normalizeModuleCode(module)));
+    const hasWildcardModule = allowedModuleCodes.has('*');
+
+    // Si tiene comodín total '*' y NO tiene restricciones granulares explícitas:
+    if (hasWildcardModule && (jwtPermissions.length === 0 || jwtPermissions.includes('*'))) {
+      for (const mod of SYSTEM_MODULES) {
+        const modKey = this.normalizeModuleCode(mod.key);
+        for (const act of ['view', 'create', 'edit', 'delete', 'export', 'approve']) {
+          tokens.add(`${modKey}:${act}`);
+          tokens.add(`${mod.key.toLowerCase()}:${act}`);
         }
       }
+      tokens.add('*');
+      tokens.add('*:*');
+      this.userPermissionTokens.set(tokens);
+      return;
+    }
 
+    // Si vinieron permisos granulares explícitos desde el USM:
+    if (jwtPermissions.length > 0) {
+      for (const perm of jwtPermissions) {
+        const p = String(perm || '').toLowerCase().trim();
+        if (!p) continue;
+        if (p === '*' || p === '*:*') {
+          tokens.add('*');
+          tokens.add('*:*');
+          continue;
+        }
+        const separator = p.includes(':') ? ':' : (p.includes('.') ? '.' : null);
+        if (separator) {
+          const [rawMod, rawAct] = p.split(separator, 2);
+          const modCode = this.normalizeModuleCode(rawMod);
+          const actCode = rawAct.trim().toLowerCase();
+          tokens.add(`${modCode}:${actCode}`);
+          tokens.add(`${rawMod.trim().toLowerCase()}:${actCode}`);
+        } else {
+          const modCode = this.normalizeModuleCode(p);
+          tokens.add(`${modCode}:view`);
+          tokens.add(`${p}:view`);
+        }
+      }
+      this.userPermissionTokens.set(tokens);
+      return;
+    }
+
+    // Si no vinieron permisos explícitos en jwtPermissions, pero sí jwtModules:
+    if (jwtModules.length > 0) {
       for (const mod of jwtModules) {
         const moduleCode = this.normalizeModuleCode(mod);
-        const actions = isAdmin
-          ? ACTIONS_LIST.map((action) => action.key.toLowerCase())
-          : ['view', 'create', 'edit', 'export'];
-        for (const action of actions) {
+        for (const action of ['view', 'create', 'edit', 'delete', 'export']) {
           tokens.add(`${moduleCode}:${action}`);
+          tokens.add(`${mod.toLowerCase()}:${action}`);
         }
       }
-
-      for (const perm of jwtPermissions) {
-        const p = perm.toLowerCase().trim();
-        if (p.includes(':')) {
-          const [module, action] = p.split(':', 2);
-          const moduleCode = this.normalizeModuleCode(module);
-          if (allowedModuleCodes.has(moduleCode)) {
-            tokens.add(`${moduleCode}:${action}`);
-          }
-        } else if (allowedModuleCodes.has(this.normalizeModuleCode(p))) {
-          const moduleCode = this.normalizeModuleCode(p);
-          tokens.add(`${moduleCode}:view`);
-          tokens.add(`${moduleCode}:create`);
-        }
-      }
-
       this.userPermissionTokens.set(tokens);
       return;
     }
@@ -178,27 +193,6 @@ export class PermissionService {
       for (const mod of SYSTEM_MODULES) {
         for (const act of ACTIONS_LIST) {
           tokens.add(`${mod.key.toLowerCase()}:${act.key.toLowerCase()}`);
-        }
-      }
-      this.userPermissionTokens.set(tokens);
-      return;
-    }
-
-    if (jwtModules.length > 0 || jwtPermissions.length > 0) {
-      for (const mod of jwtModules) {
-        const moduleCode = this.normalizeModuleCode(mod);
-        for (const action of ['view', 'create', 'edit', 'export']) {
-          tokens.add(`${moduleCode}:${action}`);
-        }
-      }
-
-      for (const perm of jwtPermissions) {
-        const [rawModule, rawAction] = perm.toLowerCase().trim().split(':', 2);
-        if (rawModule && rawAction) {
-          tokens.add(`${this.normalizeModuleCode(rawModule)}:${rawAction}`);
-        } else if (rawModule) {
-          tokens.add(`${this.normalizeModuleCode(rawModule)}:view`);
-          tokens.add(`${this.normalizeModuleCode(rawModule)}:create`);
         }
       }
       this.userPermissionTokens.set(tokens);
@@ -258,10 +252,13 @@ export class PermissionService {
 
   hasPermission(module: string, action: string): boolean {
     const isSuper = this.authService.isPlatformSuperUser();
-    const primaryRole = (this.authService.currentRole() || '').toLowerCase();
-    const allRoles = (this.authService.currentRoles() || []).map((r) => r.toLowerCase());
+    if (isSuper) {
+      return true;
+    }
 
     const moduleCode = this.normalizeModuleCode(module);
+    const act = (action || '').trim().toLowerCase();
+
     if (
       typeof this.authService.hasLicensedModule === 'function' &&
       !this.authService.hasLicensedModule(moduleCode)
@@ -269,17 +266,40 @@ export class PermissionService {
       return false;
     }
     const allowed = this.authService.allowedModules().map((item) => this.normalizeModuleCode(item));
+    const hasWildcardModule = allowed.includes('*');
+
     if (
       this.authService.hasExplicitModuleClaims() &&
-      !allowed.includes('*') &&
+      !hasWildcardModule &&
       !allowed.includes(moduleCode)
     ) {
       return false;
     }
-    if (isSuper) {
+
+    const tokens = this.userPermissionTokens();
+    if (tokens.has('*') || tokens.has('*:*')) {
       return true;
     }
 
+    // Si existen tokens granulares explícitos cargados, se evalúan estrictamente contra los tokens
+    if (tokens.size > 0) {
+      const rawMod = (module || '').toLowerCase().trim();
+      return (
+        tokens.has(`${moduleCode}:${act}`) ||
+        tokens.has(`${rawMod}:${act}`) ||
+        tokens.has(`${moduleCode}:*`) ||
+        tokens.has(`${rawMod}:*`)
+      );
+    }
+
+    // Si tiene comodín de módulos y no hay restricciones de tokens
+    if (hasWildcardModule) {
+      return true;
+    }
+
+    // Fallback de roles estándar si no hay tokens explícitos
+    const primaryRole = (this.authService.currentRole() || '').toLowerCase();
+    const allRoles = (this.authService.currentRoles() || []).map((r) => r.toLowerCase());
     if (
       primaryRole === 'admin' ||
       allRoles.some((r) => ['admin', 'superuser', 'sysadmin', 'superadmin'].includes(r))
@@ -287,9 +307,75 @@ export class PermissionService {
       return true;
     }
 
-    const token = `${moduleCode}:${action.trim().toLowerCase()}`;
-    return this.userPermissionTokens().has(token);
+    return false;
   }
+
+  canView(module: string): boolean {
+    return this.hasPermission(module, 'view');
+  }
+
+  canCreate(module: string): boolean {
+    return this.hasPermission(module, 'create');
+  }
+
+  canEdit(module: string): boolean {
+    return this.hasPermission(module, 'edit');
+  }
+
+  canDelete(module: string): boolean {
+    return this.hasPermission(module, 'delete');
+  }
+
+  canExport(module: string): boolean {
+    return this.hasPermission(module, 'export');
+  }
+
+  private static readonly ROUTE_MODULE_MAP: ReadonlyArray<{ prefix: string; exact?: boolean; module: string }> = [
+    { prefix: '/dashboard', module: 'dashboard' },
+    { prefix: '/agenda', module: 'appointments' },
+    { prefix: '/pos', module: 'pos' },
+    { prefix: '/metrics', module: 'metrics' },
+    { prefix: '/mobile', module: 'mobile-pos' },
+    { prefix: '/sales/distribution', module: 'sales-distribution' },
+    { prefix: '/sales', module: 'sales' },
+    { prefix: '/quotations', module: 'sales' },
+    { prefix: '/services', module: 'services' },
+    { prefix: '/billing/reports', module: 'billing-reports-dgii' },
+    { prefix: '/billing', module: 'billing' },
+    { prefix: '/credit-notes', module: 'credit-notes' },
+    { prefix: '/cash-register/fraud-guardian', module: 'fraud-guardian' },
+    { prefix: '/cash-register', module: 'cash-register' },
+    { prefix: '/receivables', module: 'receivables' },
+    { prefix: '/customers', module: 'customers' },
+    { prefix: '/inventory/entries', module: 'inventory-entries' },
+    { prefix: '/inventory/stock', module: 'inventory-stock' },
+    { prefix: '/inventory/outlets', module: 'inventory-outlets' },
+    { prefix: '/inventory/transfers', module: 'inventory-transfers' },
+    { prefix: '/inventory/warehouses', module: 'inventory-warehouses' },
+    { prefix: '/inventory/manage-requests', module: 'inventory-manage-requests' },
+    { prefix: '/inventory/intelligence', module: 'inventory-intelligence' },
+    { prefix: '/inventory/lot-expiration', module: 'inventory-lot-expiration' },
+    { prefix: '/inventory', module: 'inventory' },
+    { prefix: '/products/settings', module: 'products-settings' },
+    { prefix: '/products/detail-sales', module: 'products-detail-sales' },
+    { prefix: '/products', module: 'products' },
+    { prefix: '/purchases/suppliers', module: 'purchases-suppliers' },
+    { prefix: '/suppliers', module: 'purchases-suppliers' },
+    { prefix: '/purchases/receipts', module: 'purchases-receipts' },
+    { prefix: '/purchases', module: 'purchases' },
+    { prefix: '/payments', module: 'payments' },
+    { prefix: '/admin/approvals', module: 'admin-approvals' },
+    { prefix: '/approvals', module: 'admin-approvals' },
+    { prefix: '/admin/roles/matrix', module: 'admin-roles-matrix' },
+    { prefix: '/admin/roles', module: 'admin-roles' },
+    { prefix: '/roles', module: 'admin-roles' },
+    { prefix: '/company/settings', module: 'company-settings' },
+    { prefix: '/companies/settings', module: 'company-settings' },
+    { prefix: '/users', module: 'users' },
+    { prefix: '/company', module: 'company' },
+    { prefix: '/reports', module: 'reports' },
+    { prefix: '/profile', module: 'profile' },
+  ];
 
   /**
    * Resuelve el módulo funcional correspondiente a una ruta de navegación.
@@ -302,39 +388,14 @@ export class PermissionService {
 
     const p = this.cleanPath(path);
     if (!p) return null;
-    if (p === '/dashboard' || p.startsWith('/dashboard/')) return 'dashboard';
-    if (p.startsWith('/metrics')) return 'metrics';
-    if (p.startsWith('/mobile')) return 'mobile-pos';
-    if (p.startsWith('/sales')) return 'sales';
-    if (p.startsWith('/services')) return 'services';
-    if (p.startsWith('/billing/reports')) return 'reports';
-    if (p.startsWith('/billing')) return 'billing';
-    if (p.startsWith('/credit-notes')) return 'credit-notes';
-    if (p.startsWith('/cash-register/fraud-guardian')) return 'audit';
-    if (p.startsWith('/cash-register')) return 'cashregister';
-    if (p.startsWith('/receivables')) return 'receivables';
-    if (p.startsWith('/customers')) return 'customers';
-    if (p.startsWith('/inventory/entries')) return 'inventory-entries';
-    if (p.startsWith('/inventory/stock')) return 'inventory-stock';
-    if (p.startsWith('/inventory/outlets')) return 'inventory-outlets';
-    if (p.startsWith('/inventory/transfers')) return 'inventory-transfers';
-    if (p.startsWith('/inventory/warehouses')) return 'inventory-warehouses';
-    if (p.startsWith('/inventory/manage-requests')) return 'inventory-manage-requests';
-    if (p.startsWith('/inventory')) return 'inventory';
-    if (p.startsWith('/products/settings')) return 'products';
-    if (p.startsWith('/products')) return 'products';
-    if (p.startsWith('/purchases/suppliers') || p.startsWith('/suppliers')) return 'purchases-suppliers';
-    if (p.startsWith('/purchases/receipts')) return 'purchases-receipts';
-    if (p.startsWith('/purchases')) return 'purchases-orders';
-    if (p.startsWith('/payments')) return 'payments';
-    if (p.startsWith('/admin/approvals') || p.startsWith('/approvals')) return 'admin-approvals';
-    if (p.startsWith('/admin/roles/matrix')) return 'admin-roles-matrix';
-    if (p.startsWith('/admin/roles') || p.startsWith('/roles')) return 'admin-roles';
-    if (p.startsWith('/company/settings') || p.startsWith('/companies/settings')) return 'company-settings';
-    if (p.startsWith('/users')) return 'users';
-    if (p.startsWith('/company')) return 'company';
-    if (p.startsWith('/reports')) return 'reports';
-    if (p.startsWith('/profile')) return 'profile';
+
+    const matchedRule = PermissionService.ROUTE_MODULE_MAP.find((rule) =>
+      rule.exact ? p === rule.prefix : p === rule.prefix || p.startsWith(`${rule.prefix}/`) || p.startsWith(rule.prefix)
+    );
+    if (matchedRule) {
+      return matchedRule.module;
+    }
+
     if (p.startsWith('/')) return null;
     return this.normalizeModuleCode(p);
   }
@@ -485,10 +546,23 @@ export class PermissionService {
       servicios: 'services',
       creditnotes: 'credit-notes',
       mobilepos: 'mobile-pos',
+      salesdistribution: 'sales-distribution',
+      distribution: 'sales-distribution',
+      rutas: 'sales-distribution',
+      rutasdedistribucion: 'sales-distribution',
+      productsdetailsales: 'products-detail-sales',
+      detailsales: 'products-detail-sales',
+      ventafraccionada: 'products-detail-sales',
+      ventasfraccionadas: 'products-detail-sales',
+      menudeo: 'products-detail-sales',
+      fraccionada: 'products-detail-sales',
 
       // Base
-      billingreportsdgii: 'reports',
-      fraudguardian: 'audit',
+      billingreportsdgii: 'billing-reports-dgii',
+      fraudguardian: 'fraud-guardian',
+      pos: 'pos',
+      ventasrapidas: 'pos',
+      quicksale: 'pos',
       adminroles: 'admin-roles',
       adminrolesmatrix: 'admin-roles-matrix',
       adminapprovals: 'admin-approvals',
@@ -519,6 +593,10 @@ export class PermissionService {
       company: 'company',
       productos: 'products',
       products: 'products',
+      appointments: 'appointments',
+      agenda: 'appointments',
+      citas: 'appointments',
+      reservas: 'appointments',
     };
     return aliases[normalized] ?? normalized;
   }
@@ -530,6 +608,11 @@ export class PermissionService {
     return this.hasModuleAccess(code);
   }
 
+  hasExplicitTokens(): boolean {
+    const tokens = this.userPermissionTokens();
+    return tokens.size > 0 && !tokens.has('*') && !tokens.has('*:*');
+  }
+
   /**
    * Determina si el usuario actual tiene acceso al módulo resuelto desde una ruta
    * o desde un código de módulo.
@@ -537,6 +620,15 @@ export class PermissionService {
   hasModuleAccess(urlOrModule: string): boolean {
     const original = (urlOrModule || '').trim();
     if (!original) return false;
+
+    // Solo superusuario de plataforma o comodín '*' tiene acceso completo irrestricto
+    const isSuper = this.authService.isPlatformSuperUser();
+    const allowed = this.authService.allowedModules().map((module) => this.normalizeModuleCode(module));
+    const hasWildcard = allowed.includes('*') || allowed.includes('all');
+
+    if (isSuper || hasWildcard) {
+      return true;
+    }
 
     const isRoute = original.startsWith('/');
     const cleanPath = this.cleanPath(original);
@@ -546,7 +638,6 @@ export class PermissionService {
       if (typeof this.authService.hasAnyModuleAccess === 'function') {
         return this.authService.hasAnyModuleAccess();
       }
-      const allowed = this.authService.allowedModules().map((module) => this.normalizeModuleCode(module));
       return allowed.includes('*') || allowed.some(Boolean);
     }
 
@@ -566,30 +657,16 @@ export class PermissionService {
       return this.authService.hasModule(targetModule);
     }
 
-    const isSuper = this.authService.isPlatformSuperUser();
-    const allowed = this.authService.allowedModules().map((module) => this.normalizeModuleCode(module));
-    if (isSuper || allowed.includes('*')) {
-      return true;
-    }
-
     const normalizedTarget = this.normalizeModuleCode(targetModule);
-    if (allowed.includes(normalizedTarget)) {
+    if (allowed.includes(normalizedTarget) || (this.authService.isSuperUser() && isLicensed)) {
       return true;
     }
-
-    // Permitir consulta de stock si tiene el módulo padre de inventario
-    if (normalizedTarget === 'inventory-stock' && allowed.some((m) => ['inventory', 'inventario'].includes(m))) {
-      return true;
-    }
-
-    // Permitir mobile si tiene ventas o viceversa
     if (
-      (normalizedTarget === 'mobile-pos' && allowed.some((m) => ['sales', 'ventas'].includes(m))) ||
-      (normalizedTarget === 'sales' && allowed.some((m) => ['mobile-pos', 'mobile'].includes(m)))
+      normalizedTarget === 'products-detail-sales' &&
+      (allowed.includes('pos') || allowed.includes('sales') || allowed.includes('products'))
     ) {
       return true;
     }
-
     return false;
   }
 

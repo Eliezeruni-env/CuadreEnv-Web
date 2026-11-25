@@ -1,6 +1,8 @@
+import { formatPaymentMethodLabel } from '../../../cuadreEnv/utils/payment-method.util';
 import {
   Component,
   OnInit,
+  OnDestroy,
   signal,
   computed,
   ViewChild,
@@ -67,7 +69,12 @@ import { UserService } from '../../../users/services/user.service';
     RouterLink,
   ],
 })
-export class CashRegisterComponent implements OnInit {
+export class CashRegisterComponent implements OnInit, OnDestroy {
+  formatPaymentMethod(method?: string | null): string {
+    return formatPaymentMethodLabel(method);
+  }
+
+
   readonly Math = Math;
   readonly translationService = inject(TranslationService);
   private readonly cashRegisterService = inject(CashRegisterService);
@@ -284,6 +291,24 @@ export class CashRegisterComponent implements OnInit {
     return this.movements().length;
   });
 
+  formatMovementDate(dateStr?: string | null): string {
+    if (!dateStr) return '-';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return String(dateStr);
+      return d.toLocaleString('es-DO', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return String(dateStr);
+    }
+  };
+
   onMovementsPageChange(page: number) {
     this.movementsPage.set(page);
   }
@@ -309,9 +334,35 @@ export class CashRegisterComponent implements OnInit {
     });
   }
 
+  private syncTimer: any = null;
+  private onFocusHandler = () => {
+    void this.loadData();
+  };
+  private onVisibilityHandler = () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+      void this.loadData();
+    }
+  };
+  private onCashChangedHandler = () => {
+    void this.loadData();
+  };
+
   ngOnInit() {
     this.loadData();
     this.loadCashiers();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', this.onFocusHandler);
+      window.addEventListener('cuadre_cash_register_changed', this.onCashChangedHandler);
+      // Sincronización continua en segundo plano entre PC y móvil cada 15s
+      this.syncTimer = setInterval(() => {
+        void this.loadData();
+      }, 15000);
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this.onVisibilityHandler);
+    }
+
     this.route.queryParams.subscribe((params) => {
       if (params['requiresOpenSession']) {
         this.notificationService.warning(
@@ -319,6 +370,20 @@ export class CashRegisterComponent implements OnInit {
         );
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    if (this.syncTimer) {
+      clearInterval(this.syncTimer);
+      this.syncTimer = null;
+    }
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('focus', this.onFocusHandler);
+      window.removeEventListener('cuadre_cash_register_changed', this.onCashChangedHandler);
+    }
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.onVisibilityHandler);
+    }
   }
 
   async loadCashiers() {
@@ -613,6 +678,22 @@ export class CashRegisterComponent implements OnInit {
     } finally {
       this.isLoadingSessionDetail.set(false);
     }
+  }
+
+  
+  isMovementEntry(m: any): boolean {
+    if (!m) return true;
+    const typeUpper = String(m.type ?? '').toUpperCase();
+    return (
+      m.type === 1 ||
+      m.type === 4 ||
+      typeUpper === 'IN' ||
+      typeUpper === 'CASHIN' ||
+      typeUpper === 'ENTRADA' ||
+      typeUpper === 'ENTRY' ||
+      typeUpper === 'INGRESO' ||
+      typeUpper === 'SALE'
+    );
   }
 
   closeSessionDetailModal() {

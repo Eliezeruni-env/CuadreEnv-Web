@@ -1,0 +1,248 @@
+<div class="lot-tracker-container">
+  <!-- Header -->
+  <header class="tracker-header">
+    <div class="header-left">
+      <div class="badge-tag">Control Sanitario & FEFO</div>
+      <h1 class="page-title">Control de Vencimientos y Lotes (FEFO)</h1>
+      <p class="page-subtitle">
+        First Expired, First Out: Monitoreo preventivo de caducidad para evitar mermas en farmacias, alimentos y perecederos.
+      </p>
+    </div>
+    <div class="header-right">
+      <button type="button" class="btn btn-outline-secondary me-2" (click)="loadLots()" [disabled]="isLoading()">
+        🔄 Actualizar
+      </button>
+      <button type="button" class="btn btn-primary" (click)="openCreateModal()">
+        ➕ Registrar Lote
+      </button>
+    </div>
+  </header>
+
+  <!-- Métricas / Semáforo de Vencimientos -->
+  <div class="metrics-grid">
+    <div class="metric-card expired">
+      <div class="card-icon">⛔</div>
+      <div class="card-content">
+        <span class="card-label">Vencidos (Retirar)</span>
+        <div class="card-value text-danger-custom">{{ expiredCount() }} lotes</div>
+        <span class="card-sub">No aptos para la venta</span>
+      </div>
+    </div>
+
+    <div class="metric-card critical">
+      <div class="card-icon">🚨</div>
+      <div class="card-content">
+        <span class="card-label">Críticos (&le; 15 días)</span>
+        <div class="card-value text-danger-custom">{{ criticalCount() }} lotes</div>
+        <span class="card-sub">Liquidar con oferta o devolver</span>
+      </div>
+    </div>
+
+    <div class="metric-card warning">
+      <div class="card-icon">⚠️</div>
+      <div class="card-content">
+        <span class="card-label">Próximos (16-60 días)</span>
+        <div class="card-value text-warning-custom">{{ warningCount() }} lotes</div>
+        <span class="card-sub">Ubicar al frente en góndola</span>
+      </div>
+    </div>
+
+    <div class="metric-card risk">
+      <div class="card-icon">💸</div>
+      <div class="card-content">
+        <span class="card-label">Capital en Riesgo</span>
+        <div class="card-value">RD$ {{ totalCostAtRisk() | number:'1.2-2' }}</div>
+        <span class="card-sub">Costo de lotes críticos/vencidos</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de Filtros -->
+  <div class="filters-card">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        class="form-control form-control-sm"
+        placeholder="Buscar por producto, No. de lote o código de barra..."
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+      />
+    </div>
+
+    <div class="filter-controls">
+      <div class="filter-item">
+        <label>Estado FEFO:</label>
+        <select
+          class="form-select form-select-sm"
+          [ngModel]="statusFilter()"
+          (ngModelChange)="statusFilter.set($event)"
+        >
+          <option value="ALL">Todos los Estados</option>
+          <option value="EXPIRED">⛔ Vencidos</option>
+          <option value="CRITICAL">🚨 Críticos (&le; 15 días)</option>
+          <option value="WARNING">⚠️ Próximos (16-60 días)</option>
+          <option value="HEALTHY">✅ Vigentes (> 60 días)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla FEFO -->
+  <div class="table-responsive-container">
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="spinner-border text-primary" role="status"></div>
+        <span>Calculando fechas de caducidad FEFO...</span>
+      </div>
+    } @else if (filteredLots().length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">✨</div>
+        <h5>No hay registros de lotes para mostrar</h5>
+        <p>Registra un nuevo lote de producto para comenzar el seguimiento de caducidad.</p>
+      </div>
+    } @else {
+      <table class="table modern-table align-middle">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>No. Lote</th>
+            <th>Fecha Vencimiento</th>
+            <th class="text-center">Días Restantes</th>
+            <th class="text-center">Existencia</th>
+            <th class="text-end">Costo Total</th>
+            <th>Acción Recomendada FEFO</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of filteredLots(); track row.id) {
+            <tr [class.row-expired]="row.status === 'EXPIRED'" [class.row-critical]="row.status === 'CRITICAL'">
+              <td>
+                <div class="prod-name fw-bold">{{ row.productName }}</div>
+                @if (row.barcode) {
+                  <small class="text-muted font-monospace">{{ row.barcode }}</small>
+                }
+              </td>
+              <td>
+                <span class="lot-badge font-monospace">{{ row.lotNumber }}</span>
+              </td>
+              <td>
+                <span class="fw-semibold">{{ row.expirationDate | date:'dd/MM/yyyy' }}</span>
+              </td>
+              <td class="text-center">
+                @if (row.status === 'EXPIRED') {
+                  <span class="badge bg-danger">Vencido ({{ Math.abs(row.daysRemaining) }}d)</span>
+                } @else if (row.status === 'CRITICAL') {
+                  <span class="badge bg-danger-subtle text-danger border border-danger">
+                    🚨 {{ row.daysRemaining }} días
+                  </span>
+                } @else if (row.status === 'WARNING') {
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">
+                    ⚠️ {{ row.daysRemaining }} días
+                  </span>
+                } @else {
+                  <span class="badge bg-success-subtle text-success border border-success">
+                    ✅ {{ row.daysRemaining }} días
+                  </span>
+                }
+              </td>
+              <td class="text-center fw-bold">{{ row.quantity }} un.</td>
+              <td class="text-end">RD$ {{ row.totalCost | number:'1.2-2' }}</td>
+              <td>
+                <span class="action-text small" [class.text-danger]="row.status === 'EXPIRED' || row.status === 'CRITICAL'">
+                  {{ row.recommendedAction }}
+                </span>
+              </td>
+              <td class="text-center">
+                <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteLot(row.id)" title="Eliminar lote">
+                  🗑️
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+  <!-- Modal Registrar Nuevo Lote -->
+  @if (isCreateModalOpen()) {
+    <div class="modal-backdrop-custom" (click)="closeCreateModal()">
+      <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
+        <div class="modal-header-custom">
+          <h5>📦 Registrar Lote y Caducidad</h5>
+          <button type="button" class="btn-close" (click)="closeCreateModal()"></button>
+        </div>
+        <div class="modal-body-custom">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Seleccionar Producto:</label>
+            <select
+              class="form-select"
+              [ngModel]="selectedProductId()"
+              (ngModelChange)="selectedProductId.set($event); onProductSelected()"
+            >
+              <option value="">-- Elige un producto --</option>
+              @for (p of productsList(); track p.id) {
+                <option [value]="p.id">{{ p.description }} (Stock: {{ p.stock || 0 }})</option>
+              }
+            </select>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Número de Lote:</label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Ej. LOT-2026-A1"
+                [ngModel]="newLotNumber()"
+                (ngModelChange)="newLotNumber.set($event)"
+              />
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Fecha de Caducidad:</label>
+              <input
+                type="date"
+                class="form-control"
+                [ngModel]="newExpirationDate()"
+                (ngModelChange)="newExpirationDate.set($event)"
+              />
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Cantidad en Lote:</label>
+              <input
+                type="number"
+                min="1"
+                class="form-control"
+                [ngModel]="newQuantity()"
+                (ngModelChange)="newQuantity.set($event)"
+              />
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Costo Unitario (RD$):</label>
+              <input
+                type="number"
+                step="0.01"
+                class="form-control"
+                [ngModel]="newCost()"
+                (ngModelChange)="newCost.set($event)"
+              />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer-custom">
+          <button type="button" class="btn btn-outline-secondary" (click)="closeCreateModal()">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-primary" (click)="saveNewLot()">
+            Guardar Lote
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

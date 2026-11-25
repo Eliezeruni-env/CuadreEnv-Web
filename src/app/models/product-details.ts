@@ -12,4 +12,6 @@ export interface ProductDetails {
   totalAmount: number;
   warehouseId?: number;
   maxReturnQuantity?: number;
+  creditedQuantity?: number;
+  originalQuantity?: number;
 }

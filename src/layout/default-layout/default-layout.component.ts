@@ -75,7 +75,8 @@ export class DefaultLayoutComponent {
     const currentLang = this.translationService.language();
     const modules = (this.moduleAccess.allowedModulesSignal() || []).join(',');
     const role = (this.authService.currentRole() || this.moduleAccess.userRoleSignal() || '').toLowerCase();
-    const cacheKey = `${currentLang}_${modules}_${role}`;
+    const perms = Array.from(this.permissionService.userPermissionTokens() || []).sort().join(',');
+    const cacheKey = `${currentLang}_${modules}_${role}_${perms}`;
 
     if (this.cachedKey === cacheKey && this.cachedNavItems.length > 0) {
       return this.cachedNavItems;
@@ -103,7 +104,14 @@ export class DefaultLayoutComponent {
       }
 
       const moduleCode = item.moduleCode || '';
-      return this.moduleAccess.hasModule(moduleCode) ? item : null;
+      if (!moduleCode) return item;
+      if (!this.moduleAccess.hasModule(moduleCode)) {
+        return null;
+      }
+      if (this.permissionService.hasExplicitTokens() && !this.permissionService.canView(moduleCode)) {
+        return null;
+      }
+      return item;
     };
 
     const visible = translated

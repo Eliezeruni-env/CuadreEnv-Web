@@ -12,7 +12,7 @@
       <h2 class="fw-bold text-dark mb-1">Gestión de Pagos y Cuentas por Pagar</h2>
       <p class="text-body-secondary mb-0">Control de abonos a proveedores, saldos de facturas de compras y métodos de pago.</p>
     </div>
-    @if (authService.hasRole(['Admin', 'Manager'])) {
+    @if (permissionService.canCreate('payments') || permissionService.canCreate('purchases')) {
     <button cButton color="primary" class="d-flex align-items-center py-2 px-3 shadow-sm border-0"
       (click)="openCreateModal()">
       <svg cIcon name="cilPlus" class="me-2"></svg>
@@ -140,7 +140,7 @@
           <td class="text-end fw-bold text-dark">RD$ {{ p.amount | number:'1.2-2' }}</td>
           <td class="text-center pe-4 action-cell">
             <div class="desktop-actions">
-              @if (authService.hasRole(['Admin'])) {
+              @if (permissionService.canDelete('payments') || permissionService.canDelete('purchases')) {
               <button cButton color="danger" size="sm" variant="ghost" title="Eliminar Pago" (click)="deletePayment(p.id!)">
                 <svg cIcon name="cilTrash" size="sm"></svg>
               </button>
@@ -152,7 +152,7 @@
             <details class="mobile-actions">
               <summary class="btn btn-light btn-sm">⋯</summary>
               <div class="mobile-actions-menu">
-                @if (authService.hasRole(['Admin'])) {
+                @if (permissionService.canDelete('payments') || permissionService.canDelete('purchases')) {
                 <button cButton color="danger" size="sm" variant="ghost" class="w-100 text-danger" title="Eliminar"
                   (click)="deletePayment(p.id!)">
                   <svg cIcon name="cilTrash" size="sm"></svg> Eliminar

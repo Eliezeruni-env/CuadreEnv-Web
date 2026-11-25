@@ -362,7 +362,7 @@ export interface SaleDetailDto {
   quantity: number;
   unitPrice: number;
 }
-export type SaleOriginChannel = 'POS_PRESENCIAL' | 'CREDITO' | 'ADMINISTRATIVO' | 'SERVICIO' | 'ONLINE';
+export type SaleOriginChannel = 'POS_PRESENCIAL' | 'CREDITO' | 'ADMINISTRATIVO' | 'SERVICIO' | 'ONLINE' | 'MOBILE' | 'MOBILE_POS';
 
 export interface SaleRequestDto {
   customerId?: number | null;
@@ -374,6 +374,7 @@ export interface SaleRequestDto {
   originChannel?: SaleOriginChannel;
   paymentMethod?: string;
   notes?: string;
+  isMobile?: boolean;
 }
 
 export interface SaleResponseDto {
@@ -382,6 +383,7 @@ export interface SaleResponseDto {
   customerName?: string;
   total: number;
   paidAmount: number;
+  status?: number;
   cashRegisterId?: number | null;
   cashRegisterName?: string;
   dueDate?: string | null;
@@ -394,6 +396,13 @@ export interface SaleResponseDto {
   paymentMethod?: string;
   invoiceNumber?: string;
   notes?: string;
+  isMobile?: boolean;
+  hasPartialCreditNote?: boolean;
+  hasAFullCreditNote?: boolean;
+  creditNoteNumber?: string;
+  creditNoteNcf?: string;
+  creditNoteStatus?: string;
+  statusName?: string;
   details: {
     productId: number;
     quantity: number;
@@ -431,6 +440,9 @@ export interface PurchaseDto {
   total: number;
   details: PurchaseDetailDto[];
   creationDate?: string;
+  status?: string;
+  invoiceNumber?: string;
+  supplier?: any;
 }
 
 // Payment

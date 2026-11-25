@@ -22,13 +22,14 @@ export const ReceptionExistsGuard: CanActivateFn = (route: ActivatedRouteSnapsho
         notificationService.warning(
           'Esta orden de compra ya fue recepcionada previamente o tiene una revisión pendiente en autorizaciones.',
         );
-        return router.parseUrl('/purchases');
+        return router.parseUrl('/purchases/receipts');
       }
       return true;
     }),
-    catchError(() => {
-      notificationService.error('Error al validar el estado de la recepción.');
-      return of(router.parseUrl('/purchases'));
+    catchError((err) => {
+      console.warn('[ReceptionExistsGuard] Offline/Backend fallback:', err);
+      // Permitir continuar en contingencia offline o error del servidor
+      return of(true);
     }),
   );
 };

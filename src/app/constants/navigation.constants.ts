@@ -2,6 +2,7 @@ import type { INavData } from '@coreui/angular';
 
 export interface ModuleNavItem extends INavData {
   moduleCode?: string;
+  children?: ModuleNavItem[];
 }
 
 export const ADMIN_NAV_ITEMS: ModuleNavItem[] = [
@@ -46,10 +47,74 @@ export const ADMIN_NAV_ITEMS: ModuleNavItem[] = [
     iconComponent: { name: 'cil-description' },
   },
   {
+    name: 'Conciliación Bancaria',
+    url: '/sales/bank-reconciliation',
+    moduleCode: 'sales',
+    iconComponent: { name: 'cil-bank' },
+  },
+  {
     name: 'Clientes',
     url: '/customers',
     moduleCode: 'customers',
     iconComponent: { name: 'cil-user' },
+  },
+  {
+    title: true,
+    name: 'Agenda & Citas',
+  },
+  {
+    name: 'Panel Agenda',
+    url: '/agenda/dashboard',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-speedometer' },
+  },
+  {
+    name: 'Citas',
+    url: '/agenda',
+    iconComponent: { name: 'cil-calendar' },
+    moduleCode: 'appointments',
+    children: [
+      {
+        name: 'Calendario',
+        url: '/agenda/calendar',
+      },
+      {
+        name: 'Reservas',
+        url: '/agenda/reservations',
+      },
+      {
+        name: 'Clientes',
+        url: '/agenda/clients',
+      },
+      {
+        name: 'Mi página de reservas',
+        url: '/agenda/booking-page',
+      },
+    ],
+  },
+  {
+    name: 'Servicios',
+    url: '/agenda/services',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-cut' },
+  },
+  {
+    name: 'Personal',
+    url: '/agenda/professionals',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-people' },
+  },
+  {
+    name: 'Reportes',
+    url: '/agenda/reports',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-chart-line' },
+  },
+  {
+    name: 'Configuración',
+    url: '/agenda/settings',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-settings' },
   },
   {
     title: true,
@@ -60,6 +125,18 @@ export const ADMIN_NAV_ITEMS: ModuleNavItem[] = [
     url: '/inventory',
     moduleCode: 'inventory',
     iconComponent: { name: 'cil-swap-horizontal' },
+  },
+  {
+    name: 'Reposición Inteligente',
+    url: '/inventory/intelligence',
+    moduleCode: 'inventory-stock',
+    iconComponent: { name: 'cil-chart-line' },
+  },
+  {
+    name: 'Lotes y Vencimientos FEFO',
+    url: '/inventory/lot-expiration',
+    moduleCode: 'inventory-stock',
+    iconComponent: { name: 'cil-calendar' },
   },
   {
     name: 'Productos',

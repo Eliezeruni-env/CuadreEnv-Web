@@ -1,0 +1,192 @@
+@if (visible) {
+  <div class="modal-backdrop-custom" (click)="close()">
+    <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
+      <div class="modal-header-custom">
+        <div class="header-titles">
+          <div class="badge-tag">Mostrador POS & Cobros</div>
+          <h5 class="modal-title">💰 Cobrar a Cuenta / Recibir Abono de Cliente</h5>
+        </div>
+        <button type="button" class="btn-close" (click)="close()" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body-custom">
+        @if (!selectedReceivable()) {
+          <!-- Paso 1: Buscar y seleccionar la cuenta por cobrar del cliente -->
+          <div class="search-section mb-3">
+            <label class="form-label fw-semibold">Buscar Cliente con Saldo Pendiente:</label>
+            <div class="search-input-wrapper">
+              <span class="search-icon">🔍</span>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Nombre del cliente, RNC/Cédula, No. de Factura..."
+                [ngModel]="searchTerm()"
+                (ngModelChange)="searchTerm.set($event)"
+                autofocus
+              />
+            </div>
+          </div>
+
+          <div class="receivables-list-container">
+            @if (isLoading()) {
+              <div class="text-center py-4 text-muted">
+                <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                <div>Consultando cuentas por cobrar...</div>
+              </div>
+            } @else if (filteredReceivables().length === 0) {
+              <div class="empty-state py-4 text-center text-muted">
+                <div class="fs-2 mb-1">🎉</div>
+                <div class="fw-semibold">No hay cuentas por cobrar pendientes</div>
+                <small>No se encontraron clientes con saldo pendiente de pago.</small>
+              </div>
+            } @else {
+              <div class="list-group">
+                @for (rec of filteredReceivables(); track rec.id) {
+                  <button
+                    type="button"
+                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center receivable-item-card"
+                    (click)="selectReceivable(rec)"
+                  >
+                    <div>
+                      <div class="fw-bold text-dark">{{ rec.customerName }}</div>
+                      <div class="text-muted small">
+                        Factura: <span class="font-monospace text-primary fw-semibold">{{ rec.invoiceNumber }}</span>
+                        @if (rec.customerPhone) {
+                          · Tel: {{ rec.customerPhone }}
+                        }
+                      </div>
+                      <div class="text-muted small">
+                        Total Factura: RD$ {{ rec.totalAmount | number:'1.2-2' }} · Pagado: RD$ {{ rec.paidAmount | number:'1.2-2' }}
+                      </div>
+                    </div>
+                    <div class="text-end">
+                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-6 px-2 py-1">
+                        Debe: RD$ {{ rec.pendingAmount | number:'1.2-2' }}
+                      </span>
+                      @if (rec.paymentPlan?.installmentAmount) {
+                        <div class="small text-muted mt-1">
+                          Cuota: RD$ {{ rec.paymentPlan?.installmentAmount | number:'1.2-2' }}
+                        </div>
+                      }
+                    </div>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <!-- Paso 2: Formulario de cobro / abono para el cliente seleccionado -->
+          @if (selectedReceivable(); as r) {
+            <div class="selected-client-card mb-3 p-3 rounded-3 bg-light border">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <span class="badge bg-primary text-white mb-1">Cuenta Seleccionada</span>
+                  <h6 class="fw-bold mb-0 text-dark">{{ r.customerName }}</h6>
+                  <small class="text-muted">Factura: {{ r.invoiceNumber }} · Fecha: {{ r.creationDate | date:'shortDate' }}</small>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="selectedReceivable.set(null)">
+                  Cambiar
+                </button>
+              </div>
+
+              <div class="row g-2 mt-2 pt-2 border-top">
+                <div class="col-4">
+                  <small class="text-muted d-block">Total Facturado</small>
+                  <span class="fw-bold">RD$ {{ r.totalAmount | number:'1.2-2' }}</span>
+                </div>
+                <div class="col-4">
+                  <small class="text-muted d-block">Total Pagado</small>
+                  <span class="text-success fw-bold">RD$ {{ r.paidAmount | number:'1.2-2' }}</span>
+                </div>
+                <div class="col-4 text-end">
+                  <small class="text-muted d-block">Saldo Pendiente</small>
+                  <span class="text-danger fw-bold fs-6">RD$ {{ r.pendingAmount | number:'1.2-2' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Formulario de Monto y Método -->
+            <div class="row g-3">
+              <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="form-label fw-bold text-dark mb-0">Monto del Abono (RD$):</label>
+                  <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" (click)="setFullBalance()">
+                    Saldar Total (RD$ {{ r.pendingAmount | number:'1.2-2' }})
+                  </button>
+                </div>
+                <div class="input-group input-group-lg">
+                  <span class="input-group-text fw-bold">RD$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    [max]="r.pendingAmount"
+                    class="form-control fw-bold font-monospace text-primary fs-4"
+                    [ngModel]="paymentAmount()"
+                    (ngModelChange)="paymentAmount.set($event)"
+                  />
+                </div>
+              </div>
+
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Método de Pago:</label>
+                <select
+                  class="form-select"
+                  [ngModel]="paymentMethod()"
+                  (ngModelChange)="paymentMethod.set($event)"
+                >
+                  <option value="Efectivo">💵 Efectivo (Abre Gaveta)</option>
+                  <option value="Tarjeta">💳 Tarjeta de Crédito/Débito</option>
+                  <option value="Transferencia">🏦 Transferencia Bancaria</option>
+                  <option value="Cheque">📜 Cheque</option>
+                </select>
+              </div>
+
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">No. de Referencia / Comprobante:</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Ej: Aprobación #123456"
+                  [ngModel]="paymentReference()"
+                  (ngModelChange)="paymentReference.set($event)"
+                />
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-semibold">Nota / Concepto:</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Ej: Abono quincenal acordado..."
+                  [ngModel]="paymentNotes()"
+                  (ngModelChange)="paymentNotes.set($event)"
+                />
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <div class="modal-footer-custom">
+        <button type="button" class="btn btn-outline-secondary" (click)="close()" [disabled]="isSubmitting()">
+          Cancelar
+        </button>
+
+        @if (selectedReceivable()) {
+          <button
+            type="button"
+            class="btn btn-success d-flex align-items-center gap-2 px-4"
+            (click)="submitPayment()"
+            [disabled]="isSubmitting() || paymentAmount() <= 0"
+          >
+            @if (isSubmitting()) {
+              <div class="spinner-border spinner-border-sm" role="status"></div>
+            }
+            <span>✅ Confirmar Abono & Imprimir</span>
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}

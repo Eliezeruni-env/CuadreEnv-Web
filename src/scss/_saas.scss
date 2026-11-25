@@ -34,7 +34,7 @@ $saas-bg-light: #f9fafb;
 
 // Global visual enhancements
 body {
-  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--cuadre-font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -160,9 +160,376 @@ body {
   -webkit-user-select: all;
 }
 
-// Navigation sidebar tweaks
-.sidebar {
-  background-color: #0f172a !important; // Dark premium slate
+// ============================================================================
+// ============================================================================
+// CUADRE-ENV CORPORATE EXECUTIVE SIDEBAR (Palette: #111827 / #253047 / #4F46E5)
+// ============================================================================
+.sidebar,
+c-sidebar.sidebar {
+  background-color: var(--ce-sidebar-bg, #111827) !important;
+  border-right: 1px solid #1F2937 !important;
+
+  // Reset CoreUI CSS custom properties that cause icon misalignment or active borders
+  --cui-sidebar-nav-link-active-bg: var(--ce-sidebar-active, #253047);
+  --cui-sidebar-nav-link-active-color: #FFFFFF;
+  --cui-sidebar-nav-link-active-icon-color: #FFFFFF;
+  --cui-sidebar-nav-link-border-width: 0px;
+  --cui-sidebar-nav-link-border-color: transparent;
+  --cui-sidebar-nav-link-icon-margin: 0.75rem;
+  --cui-focus-ring-color: transparent;
+  --cui-focus-ring-box-shadow: none;
+
+  .sidebar-header {
+    background-color: var(--ce-sidebar-bg, #111827) !important;
+    border-bottom: 1px solid #1F2937 !important;
+    padding: 0.85rem 1.25rem !important;
+
+    .sidebar-brand-full,
+    .sidebar-brand-narrow {
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      &:hover {
+        opacity: 0.95;
+      }
+    }
+  }
+
+  .sidebar-footer {
+    background-color: var(--ce-sidebar-bg, #111827) !important;
+    border-top: 1px solid #1F2937 !important;
+  }
+
+  .sidebar-nav {
+    padding-top: 0.5rem;
+    padding-bottom: 1rem;
+
+    .nav-title {
+      color: var(--ce-sidebar-muted, #94A3B8) !important;
+      font-size: 0.6875rem !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.08em !important;
+      text-transform: uppercase !important;
+      padding: 0.75rem 1.25rem 0.35rem 1.25rem !important;
+      opacity: 0.85;
+    }
+
+    .nav-item {
+      margin: 1.5px 0.5rem;
+    }
+
+    .nav-link,
+    .nav-group-toggle {
+      color: var(--ce-sidebar-text, #E2E8F0) !important;
+      font-size: 0.845rem !important;
+      font-weight: 500 !important;
+      border-radius: 8px !important;
+      padding: 0.55rem 0.85rem !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.75rem !important;
+      transition: all 0.15s ease-in-out !important;
+      border: none !important;
+      border-left: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+      margin-left: 0 !important;
+      margin-inline-start: 0 !important;
+
+      .nav-icon,
+      svg.nav-icon {
+        color: var(--ce-sidebar-muted, #94A3B8) !important;
+        font-size: 1.05rem !important;
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+        min-width: 1.25rem !important;
+        flex-shrink: 0 !important;
+        margin: 0 !important;
+        margin-inline-start: 0 !important;
+        margin-left: 0 !important;
+        margin-inline-end: 0 !important;
+        margin-right: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: color 0.15s ease, transform 0.15s ease;
+      }
+
+      &:hover {
+        background-color: var(--ce-sidebar-hover, #1E293B) !important;
+        color: #FFFFFF !important;
+
+        .nav-icon,
+        svg.nav-icon {
+          color: #FFFFFF !important;
+          transform: translateX(1px);
+        }
+      }
+
+      // Selected / Active navigation item (Limpio y centrado, sin barra azul ni borde)
+      &.active,
+      &.router-link-active {
+        background-color: var(--ce-sidebar-active, #253047) !important;
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+        border: none !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-top: none !important;
+        border-bottom: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+
+        &::before,
+        &::after {
+          display: none !important;
+          content: none !important;
+        }
+
+        .nav-icon,
+        svg.nav-icon {
+          color: #FFFFFF !important;
+        }
+
+        .badge {
+          background-color: var(--ce-accent, #4F46E5) !important;
+          color: #FFFFFF !important;
+        }
+      }
+    }
+
+    // Submenu groups
+    .nav-group {
+      border-radius: 8px !important;
+      margin: 2px 0.5rem !important;
+
+      &.show {
+        background-color: rgba(30, 41, 59, 0.4) !important;
+
+        > .nav-group-items {
+          padding: 0.25rem 0.25rem 0.35rem 0.25rem !important;
+          list-style: none !important;
+        }
+      }
+
+      .nav-group-toggle {
+        &::after {
+          filter: brightness(0.85);
+        }
+      }
+
+      .nav-group-items {
+        padding: 0.25rem 0.25rem !important;
+        overflow: hidden !important;
+        list-style: none !important;
+
+        &::before,
+        &::after {
+          display: none !important;
+          content: none !important;
+          border: none !important;
+        }
+
+        .nav-item {
+          margin: 2px 0 !important;
+        }
+
+        .nav-link {
+          padding: 0.5rem 0.85rem 0.5rem 2.5rem !important;
+          padding-left: 2.5rem !important;
+          padding-inline-start: 2.5rem !important;
+          font-size: 0.8125rem !important;
+          border-radius: 6px !important;
+          border: 0 solid transparent !important;
+          border-left: 0 solid transparent !important;
+          border-inline-start: 0 solid transparent !important;
+          outline: none !important;
+          box-shadow: none !important;
+          margin-left: 0 !important;
+          margin-inline-start: 0 !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 0.75rem !important;
+
+          .nav-icon,
+          svg.nav-icon {
+            margin: 0 !important;
+            margin-left: 0 !important;
+            margin-inline-start: 0 !important;
+            margin-right: 0 !important;
+            margin-inline-end: 0 !important;
+            width: 1.15rem !important;
+            height: 1.15rem !important;
+            min-width: 1.15rem !important;
+            flex-shrink: 0 !important;
+            position: static !important;
+            transform: none !important;
+          }
+
+          &:focus,
+          &:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
+            border: 0 solid transparent !important;
+            border-left: 0 solid transparent !important;
+            border-inline-start: 0 solid transparent !important;
+          }
+
+          &.active,
+          &.router-link-active {
+            background-color: #1c2438 !important;
+            color: #ffffff !important;
+            border: 0 solid transparent !important;
+            border-left: 0 solid transparent !important;
+            border-inline-start: 0 solid transparent !important;
+            outline: none !important;
+            box-shadow: none !important;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Global High-Specificity Overrides for CoreUI Sidebar Submenus and Active Links
+.sidebar,
+c-sidebar,
+.sidebar-nav,
+c-sidebar-nav {
+  --cui-sidebar-nav-link-border-width: 0px !important;
+  --cui-sidebar-nav-link-border-color: transparent !important;
+  --cui-sidebar-nav-link-active-border-width: 0px !important;
+  --cui-sidebar-nav-link-active-border-color: transparent !important;
+  --cui-sidebar-nav-link-hover-border-width: 0px !important;
+  --cui-sidebar-nav-link-hover-border-color: transparent !important;
+  --cui-sidebar-nav-link-icon-margin: 0.65rem !important;
+  --cui-focus-ring-width: 0px !important;
+  --cui-focus-ring-color: transparent !important;
+  --cui-focus-ring-box-shadow: none !important;
+}
+
+.sidebar-nav .nav-group-items,
+.sidebar .sidebar-nav .nav-group-items,
+c-sidebar .sidebar-nav .nav-group-items {
+  padding: 0.25rem 0.25rem 0.35rem 0.25rem !important;
+  margin: 0 !important;
+  list-style: none !important;
+
+  &::before,
+  &::after {
+    display: none !important;
+    content: none !important;
+    border: none !important;
+  }
+}
+
+.sidebar-nav .nav-group-items .nav-link,
+.sidebar .sidebar-nav .nav-group-items .nav-link,
+c-sidebar .sidebar-nav .nav-group-items .nav-link,
+.sidebar-nav .nav-group-items c-sidebar-nav-link .nav-link,
+c-sidebar .sidebar-nav .nav-group-items c-sidebar-nav-link .nav-link {
+  padding: 0.5rem 0.85rem !important;
+  padding-left: 1.5rem !important;
+  padding-inline-start: 1.5rem !important;
+  margin: 2px 0.5rem !important;
+  font-size: 0.8125rem !important;
+  border-radius: 6px !important;
+  border: 0px none transparent !important;
+  border-left: 0px none transparent !important;
+  border-inline-start: 0px none transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.65rem !important;
+}
+
+// Override CoreUI negative margin on .nav-group .nav-icon which pulls submenu icons off-screen
+.sidebar-nav .nav-group .nav-icon,
+.sidebar-nav .nav-group svg.nav-icon,
+.sidebar-nav .nav-group-items .nav-icon,
+.sidebar-nav .nav-group-items svg.nav-icon,
+.sidebar .sidebar-nav .nav-group .nav-icon,
+.sidebar .sidebar-nav .nav-group svg.nav-icon,
+.sidebar .sidebar-nav .nav-group-items .nav-icon,
+.sidebar .sidebar-nav .nav-group-items svg.nav-icon,
+c-sidebar .sidebar-nav .nav-group .nav-icon,
+c-sidebar .sidebar-nav .nav-group svg.nav-icon,
+c-sidebar .sidebar-nav .nav-group-items .nav-icon,
+c-sidebar .sidebar-nav .nav-group-items svg.nav-icon,
+c-sidebar-nav .nav-group .nav-icon,
+c-sidebar-nav .nav-group svg.nav-icon,
+c-sidebar-nav .nav-group-items .nav-icon,
+c-sidebar-nav .nav-group-items svg.nav-icon {
+  margin: 0 !important;
+  margin-inline-start: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0.65rem !important;
+  margin-inline-end: 0.65rem !important;
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+  min-width: 1.15rem !important;
+  flex-shrink: 0 !important;
+  position: static !important;
+  transform: none !important;
+  float: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.sidebar-nav .nav-link,
+.sidebar-nav .nav-group-toggle,
+.sidebar .sidebar-nav .nav-link,
+.sidebar .sidebar-nav .nav-group-toggle,
+c-sidebar .sidebar-nav .nav-link,
+c-sidebar .sidebar-nav .nav-group-toggle,
+c-sidebar-nav .nav-link,
+c-sidebar-nav .nav-group-toggle {
+  border: 0px none transparent !important;
+  border-left: 0px none transparent !important;
+  border-right: 0px none transparent !important;
+  border-top: 0px none transparent !important;
+  border-bottom: 0px none transparent !important;
+  border-inline-start: 0px none transparent !important;
+  border-inline-end: 0px none transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+
+  &:focus,
+  &:focus-visible,
+  &:active {
+    border: 0px none transparent !important;
+    border-left: 0px none transparent !important;
+    border-inline-start: 0px none transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+  }
+}
+
+.sidebar-nav .nav-link.active,
+.sidebar-nav .nav-link.router-link-active,
+.sidebar .sidebar-nav .nav-link.active,
+.sidebar .sidebar-nav .nav-link.router-link-active,
+c-sidebar .sidebar-nav .nav-link.active,
+c-sidebar .sidebar-nav .nav-link.router-link-active,
+c-sidebar-nav .nav-link.active,
+c-sidebar-nav .nav-link.router-link-active {
+  border-left: 0px none transparent !important;
+  border-inline-start: 0px none transparent !important;
+  border: 0px none transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  background-color: var(--ce-sidebar-active, #253047) !important;
+
+  &::before,
+  &::after {
+    display: none !important;
+    content: none !important;
+    border: none !important;
+  }
 }
 
 // ------------------------------------------------------------
@@ -526,7 +893,7 @@ kbd, .kbd-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--cuadre-font-mono);
   font-size: 0.72rem;
   font-weight: 700;
   padding: 0.15rem 0.4rem;
@@ -582,6 +949,46 @@ kbd, .kbd-pill {
 
 .live-feed-highlight {
   animation: live-feed-flash 2.5s ease-out;
+}
+
+// Global View Mode Switcher (Table / Grid / Cards)
+.view-mode-toggle,
+.catalog-view-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  background-color: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  padding: 3px !important;
+  gap: 3px !important;
+
+  .btn-view-toggle {
+    width: 34px !important;
+    height: 32px !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    border-radius: 6px !important;
+    background: transparent !important;
+    color: #64748b !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    transition: all 0.15s ease-in-out !important;
+
+    &:hover {
+      background-color: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+
+    &.active {
+      background-color: #1e293b !important;
+      color: #ffffff !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+    }
+  }
 }
 
 

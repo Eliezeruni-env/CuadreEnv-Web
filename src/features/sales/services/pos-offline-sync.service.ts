@@ -281,15 +281,7 @@ export class PosOfflineSyncService {
     receipt?: CompletedSaleDto;
     errorMessage?: string;
   } {
-    const method = (payload.paymentMethod || '').toLowerCase();
-    if (!method.includes('efectivo')) {
-      return {
-        success: false,
-        errorMessage:
-          'No es posible procesar pagos con tarjeta o transferencia bancaria en modo offline. Se requiere conexión activa para verificar transacciones electrónicas. Por favor cobre en efectivo.',
-      };
-    }
-
+    const method = (payload.paymentMethod || 'Efectivo').trim();
     const offlineId = 'OFFLINE-' + Date.now().toString(36).toUpperCase();
     const idempotencyKey = generateIdempotencyKey();
 
@@ -301,7 +293,7 @@ export class PosOfflineSyncService {
       customerRnc: '000-0000000-0',
       cashRegisterName: 'Caja Local (Modo Offline)',
       cashierName: 'Cajero Local',
-      paymentMethod: 'Efectivo (Pendiente de sincronizar)',
+      paymentMethod: `${method} (Pendiente de sincronizar)`,
       subtotal: payload.subtotal,
       discount: payload.discount,
       itbis: payload.itbis,

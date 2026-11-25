@@ -1,17 +1,179 @@
 .services-container {
-  .card {
-    transition: box-shadow 0.2s ease-in-out;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.services-breadcrumb {
+  .breadcrumb-item {
+    font-size: 13px;
+  }
+}
+
+.page-title {
+  font-size: 26px;
+  letter-spacing: -0.02em;
+}
+
+.btn-navy {
+  background-color: #1E293B;
+  color: #FFFFFF;
+  border: 1px solid #1E293B;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #0F172A;
+    border-color: #0F172A;
+    color: #FFFFFF;
+  }
+}
+
+.btn-outline-navy {
+  background-color: #FFFFFF;
+  color: #1E293B;
+  border: 1.5px solid #CBD5E1;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #F8FAFC;
+    border-color: #94A3B8;
+    color: #0F172A;
+  }
+}
+
+.kpi-card {
+  border-color: #E2E8F0;
+  transition: all 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
   }
 
-  .table > :not(caption) > * > * {
-    padding: 0.85rem 1rem;
+  .kpi-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F8FAFC;
+    border: 1px solid #F1F5F9;
   }
 
-  .shadow-xs {
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  .kpi-label {
+    font-size: 12px;
+    font-weight: 500;
   }
 
-  .font-monospace {
-    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+  .kpi-val {
+    font-size: 22px;
+    letter-spacing: -0.01em;
   }
+}
+
+.services-filter-box {
+  border-color: #E2E8F0;
+}
+
+.services-table {
+  thead {
+    background-color: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+
+    th {
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748B;
+      letter-spacing: 0.05em;
+      padding: 12px 16px;
+      border-bottom: 1px solid #E2E8F0;
+    }
+  }
+
+  tbody {
+    tr.service-table-row {
+      transition: background-color 0.12s ease;
+
+      &:hover {
+        background-color: #F8FAFC;
+      }
+
+      td {
+        padding: 14px 16px;
+        font-size: 13.5px;
+        border-bottom: 1px solid #F1F5F9;
+      }
+    }
+  }
+}
+
+.service-code-link {
+  color: #2563EB;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.category-pill-badge {
+  display: inline-block;
+  background: #EEF2FF;
+  color: #4F46E5;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid #E0E7FF;
+}
+
+.status-active-badge {
+  background: #F0FDF4;
+  color: #166534;
+  border: 1px solid #DCFCE7;
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  .dot-active {
+    font-size: 10px;
+    color: #16A34A;
+  }
+}
+
+.status-inactive-badge {
+  background: #F8FAFC;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.action-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748B;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  cursor: pointer;
+
+  &:hover {
+    background: #F1F5F9;
+    color: #0F172A;
+    border-color: #E2E8F0;
+  }
+}
+
+.shadow-2xs {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }

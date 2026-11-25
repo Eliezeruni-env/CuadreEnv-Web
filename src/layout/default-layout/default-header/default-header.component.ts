@@ -30,6 +30,7 @@ import {
 import { IconDirective } from '@coreui/icons-angular';
 import { HasModuleDirective } from '../../../app/shared/directives/has-module.directive';
 import { CompanyService } from '../../../features/companies/services/company.service';
+import { ModuleAccessService } from '../../../features/cuadreEnv/services/module-access.service';
 
 @Component({
   selector: 'app-default-header',
@@ -63,9 +64,14 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
   public translationService = inject(TranslationService);
   public themeService = inject(ThemeService);
   public companyService = inject(CompanyService);
+  public readonly moduleAccess = inject(ModuleAccessService);
   private readonly permissionService = inject(PermissionService);
   private cashRegisterService = inject(CashRegisterService);
   private router = inject(Router);
+
+  canAccessFeature(featureCode: string): boolean {
+    return this.moduleAccess.hasFeature(featureCode);
+  }
 
   @ViewChild('commandPalette') commandPalette?: CommandPaletteComponent;
 
@@ -120,6 +126,11 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
 
   readonly activeCompany = computed(() => this.authService.activeCompany());
   readonly userCompanies = computed(() => this.authService.userCompanies());
+  readonly userCompaniesLoading = computed(() => this.authService.userCompaniesLoading());
+  readonly userCompaniesError = computed(() => this.authService.userCompaniesError());
+  readonly isSwitchingCompany = computed(() => this.authService.isSwitchingCompany());
+  readonly hasNoCompanies = computed(() => !this.authService.userCompaniesLoading() && this.userCompanies().length === 0);
+  readonly hasSingleCompany = computed(() => this.userCompanies().length === 1);
   readonly hasMultipleCompanies = computed(() => this.userCompanies().length > 1);
 
   readonly currentPlanName = computed(() => {
@@ -150,8 +161,18 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
     }
   }
 
+  isCurrentCompany(id: number | string | null | undefined): boolean {
+    if (!id) return false;
+    const current = this.authService.companyId();
+    return Number(id) === Number(current);
+  }
+
   async onSelectCompany(companyId: number): Promise<void> {
     await this.authService.switchCompany(companyId);
+  }
+
+  async retryLoadUserCompanies(): Promise<void> {
+    await this.authService.loadUserCompanies();
   }
 
   setTheme(theme: 'light' | 'dark' | 'auto'): void {

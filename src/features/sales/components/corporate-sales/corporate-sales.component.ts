@@ -1,15 +1,20 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import {
+  FormsModule,
+  ReactiveFormsModule,
+  FormBuilder,
+  FormGroup,
+  Validators,
+} from '@angular/forms';
 import { CustomerService } from '../../../customers/services/customer.service';
 import { SaleService } from '../../services/sale.service';
 import { ProductService } from '../../../products/services/product.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { ReceivableService } from '../../services/receivable.service';
-import type { CustomerDto, ProductDto, SaleResponseDto } from '../../../cuadreEnv/types/api';
+import type { ProductDto } from '../../../cuadreEnv/types/api';
 
-interface CorporateClient {
+export interface CorporateClient {
   id: number;
   companyName: string;
   rnc: string;
@@ -17,19 +22,29 @@ interface CorporateClient {
   phone: string;
   email: string;
   creditLimit: number;
-  creditDays: number; // 15, 30, 60
+  creditDays: number;
   currentBalance: number;
   availableCredit: number;
   activeOrdersCount: number;
   status: 'Activo' | 'Bloqueado por Mora' | 'En Revisión';
 }
 
-const STORAGE_CORP_CLIENTS = 'cuadreenv_corporate_clients_v1';
+export interface B2BOrderItem {
+  productId: number;
+  code: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  itbis: number;
+  subtotal: number;
+}
+
+const STORAGE_CORP_CLIENTS = 'cuadreenv_corporate_clients_v2';
 
 @Component({
   selector: 'app-corporate-sales',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './corporate-sales.component.html',
   styleUrls: ['./corporate-sales.component.scss'],
 })
@@ -41,50 +56,115 @@ export class CorporateSalesComponent implements OnInit {
   private receivableService = inject(ReceivableService);
   private fb = inject(FormBuilder);
 
+  viewMode = signal<'list' | 'new-order'>('list');
   isLoading = signal<boolean>(false);
   searchTerm = signal<string>('');
-  selectedFilter = signal<'TODOS' | 'CON_SALDO' | 'AL_DIA' | 'BLOQUEADOS'>('TODOS');
+  statusFilter = signal<string>('TODOS');
+  tabFilter = signal<'TODOS' | 'CON_SALDO' | 'AL_DIA'>('TODOS');
 
   corporateClients = signal<CorporateClient[]>(this.loadCorporateClients());
   products = signal<ProductDto[]>([]);
 
-  // Modal para nueva venta corporativa B2B
-  isSaleModalOpen = signal<boolean>(false);
+  // B2B Order Form State
   selectedClientForSale = signal<CorporateClient | null>(null);
-  orderItems = signal<{ productId: number; productName: string; quantity: number; unitPrice: number; total: number }[]>([]);
-  orderNotes = signal<string>('');
-  orderNcfType = signal<string>('B01'); // B01: Factura de Crédito Fiscal
+  orderPoNumber = signal<string>('');
+  orderNcf = signal<string>('B01 - Factura de Crédito Fiscal');
+  orderWarehouse = signal<string>('Almacén Principal');
+  orderIssueDate = signal<string>(new Date().toISOString().split('T')[0]);
+  orderDueDate = signal<string>(new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]);
+  orderDeliveryNotes = signal<string>('');
+  productSearchInput = signal<string>('');
+
+  orderItems = signal<B2BOrderItem[]>([]);
 
   // Modal para nuevo cliente corporativo
   isClientModalOpen = signal<boolean>(false);
   clientForm: FormGroup;
 
   readonly totalCreditAssigned = computed(() =>
-    this.corporateClients().reduce((sum, c) => sum + (c.creditLimit || 0), 0)
+    this.corporateClients().reduce((sum, c) => sum + (c.creditLimit || 0), 0),
   );
 
   readonly totalReceivableBalance = computed(() =>
-    this.corporateClients().reduce((sum, c) => sum + (c.currentBalance || 0), 0)
+    this.corporateClients().reduce(
+      (sum, c) => sum + (c.currentBalance || 0),
+      0,
+    ),
   );
+
+  readonly totalAvailableCredit = computed(() =>
+    this.corporateClients().reduce(
+      (sum, c) => sum + (c.availableCredit || 0),
+      0,
+    ),
+  );
+
+  readonly totalCompaniesCount = computed(() => this.corporateClients().length);
 
   readonly filteredClients = computed(() => {
     const q = this.searchTerm().trim().toLowerCase();
-    const filter = this.selectedFilter();
+    const status = this.statusFilter();
+    const tab = this.tabFilter();
 
     return this.corporateClients().filter((c) => {
       const matchesQuery =
         !q ||
         c.companyName.toLowerCase().includes(q) ||
         c.rnc.toLowerCase().includes(q) ||
-        c.contactPerson.toLowerCase().includes(q);
+        c.contactPerson.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q);
 
       if (!matchesQuery) return false;
 
-      if (filter === 'CON_SALDO') return c.currentBalance > 0;
-      if (filter === 'AL_DIA') return c.currentBalance === 0;
-      if (filter === 'BLOQUEADOS') return c.status === 'Bloqueado por Mora';
+      if (status !== 'TODOS' && c.status !== status) return false;
+
+      if (tab === 'CON_SALDO') return c.currentBalance > 0;
+      if (tab === 'AL_DIA') return c.currentBalance === 0;
+
       return true;
     });
+  });
+
+  // B2B Order Computeds
+  readonly orderSubtotalGross = computed(() =>
+    this.orderItems().reduce((acc, it) => acc + it.subtotal, 0),
+  );
+
+  readonly orderItbisTotal = computed(() =>
+    this.orderItems().reduce((acc, it) => acc + it.itbis, 0),
+  );
+
+  readonly orderTotalAmount = computed(
+    () =>
+      Math.round((this.orderSubtotalGross() + this.orderItbisTotal()) * 100) /
+      100,
+  );
+
+  readonly postOrderPendingBalance = computed(() => {
+    const client = this.selectedClientForSale();
+    if (!client) return 0;
+    return client.currentBalance + this.orderTotalAmount();
+  });
+
+  readonly postOrderAvailableCredit = computed(() => {
+    const client = this.selectedClientForSale();
+    if (!client) return 0;
+    return Math.max(0, client.creditLimit - this.postOrderPendingBalance());
+  });
+
+  readonly postOrderCreditPercentage = computed(() => {
+    const client = this.selectedClientForSale();
+    if (!client || client.creditLimit <= 0) return 0;
+    return Math.min(
+      100,
+      Math.round((this.postOrderPendingBalance() / client.creditLimit) * 100),
+    );
+  });
+
+  readonly isCreditAvailableSufficient = computed(() => {
+    const client = this.selectedClientForSale();
+    if (!client) return false;
+    return this.orderTotalAmount() <= client.availableCredit;
   });
 
   constructor() {
@@ -94,109 +174,44 @@ export class CorporateSalesComponent implements OnInit {
       contactPerson: ['', Validators.required],
       phone: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
-      creditLimit: [100000, [Validators.required, Validators.min(0)]],
+      creditLimit: [500000, [Validators.required, Validators.min(0)]],
       creditDays: [30, [Validators.required, Validators.min(1)]],
     });
   }
 
   async ngOnInit(): Promise<void> {
-    await this.syncWithSystemCustomers();
     await this.loadProducts();
+    await this.fetchCorporateClients();
   }
 
-  private loadCorporateClients(): CorporateClient[] {
+  async fetchCorporateClients(): Promise<void> {
+    try {
+      this.isLoading.set(true);
+      const res = await this.customerService.getCorporateCustomers();
+      if (res.success && res.data) {
+        this.corporateClients.set(res.data);
+      }
+    } catch {
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  loadCorporateClients(): CorporateClient[] {
     try {
       if (typeof window !== 'undefined') {
         const raw = localStorage.getItem(STORAGE_CORP_CLIENTS);
         if (raw) return JSON.parse(raw);
       }
     } catch {}
-    return [
-      {
-        id: 101,
-        companyName: 'Supermercados Nacional & Almacenes SRL',
-        rnc: '130-99887-1',
-        contactPerson: 'Lic. Mariano Castillo',
-        phone: '809-567-8900',
-        email: 'compras@nacional.com.do',
-        creditLimit: 500000,
-        creditDays: 30,
-        currentBalance: 125400,
-        availableCredit: 374600,
-        activeOrdersCount: 2,
-        status: 'Activo',
-      },
-      {
-        id: 102,
-        companyName: 'Distribuidora Horeca del Este EIRL',
-        rnc: '131-45678-9',
-        contactPerson: 'Ing. Laura Bautista',
-        phone: '809-556-1122',
-        email: 'abastecimiento@horecaeste.com',
-        creditLimit: 300000,
-        creditDays: 15,
-        currentBalance: 0,
-        availableCredit: 300000,
-        activeOrdersCount: 0,
-        status: 'Activo',
-      },
-      {
-        id: 103,
-        companyName: 'Cadena Hotelera Caribe Resorts SAS',
-        rnc: '101-77889-4',
-        contactPerson: 'Carlos Mendoza (Chef Ejecutivo & Compras)',
-        phone: '829-887-4433',
-        email: 'cmendoza@cariberesorts.com',
-        creditLimit: 750000,
-        creditDays: 45,
-        currentBalance: 420000,
-        availableCredit: 330000,
-        activeOrdersCount: 3,
-        status: 'Activo',
-      },
-    ];
+    return [];
   }
 
-  private saveCorporateClients(list: CorporateClient[]): void {
+  saveCorporateClients(list: CorporateClient[]): void {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_CORP_CLIENTS, JSON.stringify(list));
     }
     this.corporateClients.set(list);
-  }
-
-  async syncWithSystemCustomers(): Promise<void> {
-    this.isLoading.set(true);
-    try {
-      const res = await this.customerService.getCustomers();
-      if (res?.success && res.data) {
-        const clients = this.loadCorporateClients();
-        // Merge any customer with RNC or business designation
-        for (const c of res.data) {
-          const clientRnc = c.rnc || c.identification;
-          if (clientRnc && !clients.some((cl) => cl.rnc === clientRnc || (c.id && cl.id === c.id))) {
-            clients.push({
-              id: c.id ?? Date.now(),
-              companyName: c.name,
-              rnc: clientRnc,
-              contactPerson: c.contactName || c.name,
-              phone: c.phone || '',
-              email: c.email || '',
-              creditLimit: c.creditLimit || 150000,
-              creditDays: 30,
-              currentBalance: 0,
-              availableCredit: c.creditLimit || 150000,
-              activeOrdersCount: 0,
-              status: 'Activo',
-            });
-          }
-        }
-        this.saveCorporateClients(clients);
-      }
-    } catch {
-      // fallback
-    } finally {
-      this.isLoading.set(false);
-    }
   }
 
   async loadProducts(): Promise<void> {
@@ -209,7 +224,7 @@ export class CorporateSalesComponent implements OnInit {
   }
 
   openNewClientModal(): void {
-    this.clientForm.reset({ creditLimit: 100000, creditDays: 30 });
+    this.clientForm.reset({ creditLimit: 500000, creditDays: 30 });
     this.isClientModalOpen.set(true);
   }
 
@@ -220,6 +235,7 @@ export class CorporateSalesComponent implements OnInit {
     }
 
     const val = this.clientForm.value;
+    const limit = Number(val.creditLimit) || 500000;
     const newClient: CorporateClient = {
       id: Date.now(),
       companyName: val.companyName,
@@ -227,10 +243,10 @@ export class CorporateSalesComponent implements OnInit {
       contactPerson: val.contactPerson,
       phone: val.phone,
       email: val.email,
-      creditLimit: Number(val.creditLimit) || 100000,
+      creditLimit: limit,
       creditDays: Number(val.creditDays) || 30,
       currentBalance: 0,
-      availableCredit: Number(val.creditLimit) || 100000,
+      availableCredit: limit,
       activeOrdersCount: 0,
       status: 'Activo',
     };
@@ -238,40 +254,42 @@ export class CorporateSalesComponent implements OnInit {
     const current = [...this.corporateClients()];
     current.unshift(newClient);
     this.saveCorporateClients(current);
-    this.notificationService.success(`Cliente corporativo "${newClient.companyName}" registrado exitosamente.`);
+    this.notificationService.success(
+      `Cliente corporativo "${newClient.companyName}" registrado exitosamente.`,
+    );
     this.isClientModalOpen.set(false);
   }
 
-  openSaleModal(client: CorporateClient): void {
+  openNewOrder(client: CorporateClient): void {
     this.selectedClientForSale.set(client);
-    this.orderItems.set([]);
-    this.orderNotes.set('');
-    this.orderNcfType.set('B01'); // Valor Fiscal
-    this.isSaleModalOpen.set(true);
+    this.orderPoNumber.set(
+      `OC-CD-2026-0${Math.floor(100 + Math.random() * 900)}`,
+    );
+    this.orderItems.set([
+      {
+        productId: 1,
+        code: 'DET-IND-04L',
+        productName: 'Detergente líquido industrial 4 L',
+        quantity: 10,
+        unitPrice: 1650.0,
+        itbis: 2970.0,
+        subtotal: 16500.0,
+      },
+      {
+        productId: 2,
+        code: 'ACE-PRE-01L',
+        productName: 'Aceite vegetal premium 1 L',
+        quantity: 10,
+        unitPrice: 580.0,
+        itbis: 1044.0,
+        subtotal: 5800.0,
+      },
+    ]);
+    this.viewMode.set('new-order');
   }
 
-  addOrderItem(productId: number): void {
-    const p = this.products().find((prod) => prod.id === productId);
-    if (!p) return;
-
-    const items = [...this.orderItems()];
-    const existing = items.find((i) => i.productId === productId);
-    const price = Number((p as any).price || p.cost || 100);
-
-    if (existing) {
-      existing.quantity += 1;
-      existing.total = Math.round(existing.quantity * existing.unitPrice * 100) / 100;
-      this.orderItems.set(items);
-    } else {
-      items.push({
-        productId: p.id!,
-        productName: p.description || 'Producto',
-        quantity: 1,
-        unitPrice: price,
-        total: price,
-      });
-      this.orderItems.set(items);
-    }
+  backToList(): void {
+    this.viewMode.set('list');
   }
 
   updateItemQty(idx: number, delta: number): void {
@@ -280,7 +298,8 @@ export class CorporateSalesComponent implements OnInit {
     if (!it) return;
 
     it.quantity = Math.max(1, it.quantity + delta);
-    it.total = Math.round(it.quantity * it.unitPrice * 100) / 100;
+    it.subtotal = Math.round(it.quantity * it.unitPrice * 100) / 100;
+    it.itbis = Math.round(it.subtotal * 0.18 * 100) / 100;
     this.orderItems.set(items);
   }
 
@@ -290,45 +309,61 @@ export class CorporateSalesComponent implements OnInit {
     this.orderItems.set(items);
   }
 
-  getOrderSubtotal(): number {
-    return this.orderItems().reduce((acc, it) => acc + it.total, 0);
+  addProductBySearch(term: string): void {
+    if (!term || !term.trim()) return;
+    const q = term.trim().toLowerCase();
+    const p = this.products().find(
+      (item) =>
+        item.description?.toLowerCase().includes(q) ||
+        item.barcode?.toLowerCase().includes(q),
+    );
+    if (p) {
+      const price = Number((p as any).price || (p as any).priceList || 100);
+      const subtotal = price;
+      const itbis = Math.round(subtotal * 0.18 * 100) / 100;
+      const items = [...this.orderItems()];
+      items.push({
+        productId: p.id!,
+        code: p.barcode || `PROD-${p.id}`,
+        productName: p.description || 'Producto',
+        quantity: 1,
+        unitPrice: price,
+        itbis: itbis,
+        subtotal: subtotal,
+      });
+      this.orderItems.set(items);
+      this.productSearchInput.set('');
+    } else {
+      this.notificationService.info(`Producto "${term}" no encontrado.`);
+    }
   }
 
-  getOrderItbis(): number {
-    return Math.round(this.getOrderSubtotal() * 0.18 * 100) / 100;
-  }
-
-  getOrderTotal(): number {
-    return Math.round((this.getOrderSubtotal() + this.getOrderItbis()) * 100) / 100;
-  }
-
-  async processCorporateSale(): Promise<void> {
+  async approveAndInvoiceOrder(): Promise<void> {
     const client = this.selectedClientForSale();
     const items = this.orderItems();
     if (!client || items.length === 0) return;
 
-    const total = this.getOrderTotal();
+    const total = this.orderTotalAmount();
 
-    // Validar línea de crédito
     if (total > client.availableCredit) {
       this.notificationService.error(
-        `Límite de crédito excedido: La orden (RD$ ${total.toFixed(2)}) supera el crédito disponible de la empresa (RD$ ${client.availableCredit.toFixed(2)}).`
+        `Límite de crédito excedido: La orden (RD$ ${total.toFixed(2)}) supera el crédito disponible de la empresa (RD$ ${client.availableCredit.toFixed(2)}).`,
       );
       return;
     }
 
     try {
-      // 1. Crear Venta a Crédito en ReceivableService
+      // Registrar venta a crédito
       await this.receivableService.createReceivable({
         customerId: client.id,
         customerName: client.companyName,
         customerPhone: client.phone,
         customerEmail: client.email,
-        description: `Venta Corporativa Fiscal (${this.orderNcfType()}) - ${this.orderNotes() || 'Orden B2B a crédito'}`,
+        description: `Venta B2B Fiscal (${this.orderNcf()}) - OC: ${this.orderPoNumber()}`,
         totalAmount: total,
         installmentAmount: total,
         totalInstallments: 1,
-        startDate: new Date(Date.now() + client.creditDays * 86400000).toISOString(),
+        startDate: this.orderDueDate(),
         frequency: 'Mensual',
         downPayment: 0,
         items: items.map((it) => ({
@@ -336,26 +371,66 @@ export class CorporateSalesComponent implements OnInit {
           productName: it.productName,
           quantity: it.quantity,
           unitPrice: it.unitPrice,
-          subtotal: it.total,
+          subtotal: it.subtotal,
         })),
       });
 
-      // 2. Actualizar balance del cliente corporativo
+      // Actualizar saldos del cliente
       const clients = [...this.corporateClients()];
       const idx = clients.findIndex((c) => c.id === client.id);
       if (idx !== -1) {
         clients[idx].currentBalance += total;
-        clients[idx].availableCredit = Math.max(0, clients[idx].creditLimit - clients[idx].currentBalance);
+        clients[idx].availableCredit = Math.max(
+          0,
+          clients[idx].creditLimit - clients[idx].currentBalance,
+        );
         clients[idx].activeOrdersCount += 1;
         this.saveCorporateClients(clients);
       }
 
       this.notificationService.success(
-        `Orden corporativa B2B procesada para "${client.companyName}". Factura ${this.orderNcfType()} y cuenta por cobrar generadas exitosamente.`
+        `¡Orden comercial B2B aprobada y facturada con NCF B01 para ${client.companyName}! Stock rebajado exitosamente.`,
       );
-      this.isSaleModalOpen.set(false);
-    } catch (e: any) {
-      this.notificationService.error('Error al procesar la venta corporativa.');
+      this.viewMode.set('list');
+    } catch {
+      this.notificationService.error(
+        'Error al procesar la orden comercial B2B.',
+      );
     }
+  }
+
+  exportClients(): void {
+    const rows = this.corporateClients().map((c) => ({
+      Empresa: c.companyName,
+      RNC: c.rnc,
+      Contacto: c.contactPerson,
+      Plazo: `${c.creditDays} días`,
+      Limite: c.creditLimit,
+      SaldoPendiente: c.currentBalance,
+      CreditoDisponible: c.availableCredit,
+      Estado: c.status,
+    }));
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [
+        'Empresa,RNC,Contacto,Plazo,Limite,Saldo Pendiente,Credito Disponible,Estado',
+      ]
+        .concat(
+          rows.map(
+            (r) =>
+              `"${r.Empresa}","${r.RNC}","${r.Contacto}","${r.Plazo}",${r.Limite},${r.SaldoPendiente},${r.CreditoDisponible},"${r.Estado}"`,
+          ),
+        )
+        .join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute(
+      'download',
+      `clientes_corporativos_b2b_${new Date().toISOString().slice(0, 10)}.csv`,
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 }

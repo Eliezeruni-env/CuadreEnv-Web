@@ -11,6 +11,7 @@ import { ProductService } from '../../../products/services/product.service';
 import { UnitOfMeasurementService, type UnitOfMeasurement } from '../../../products/services/unit-of-measurement.service';
 import { ProductPackagingService, type ProductPackaging } from '../../../products/services/product-packaging.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
+import { PermissionService } from '../../../roles/services/permission.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import type { WarehouseDto, ProductDto, MovementDto } from '../../../cuadreEnv/types/api';
 import { IconDirective } from '@coreui/icons-angular';
@@ -115,6 +116,7 @@ export class InventoryComponent implements OnInit {
     private productService: ProductService,
     private fb: FormBuilder,
     public authService: AuthService,
+    public permissionService: PermissionService,
   ) {
     this.warehouseForm = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(100)]],

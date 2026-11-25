@@ -1,3 +1,4 @@
+import { formatPaymentMethodLabel } from '../../../cuadreEnv/utils/payment-method.util';
 import {
   Component,
   OnInit,
@@ -6,6 +7,8 @@ import {
   inject,
   signal,
   computed,
+  effect,
+  untracked,
   ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -19,6 +22,7 @@ import {
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { getCompanyId } from '../../../cuadreEnv/services/apiClient';
 import { ProductService } from '../../../products/services/product.service';
+import { BarcodeLookupService } from '../../../products/services/barcode-lookup.service';
 import { CategoryService } from '../../../products/services/category.service';
 import {
   UnitOfMeasurementService,
@@ -38,6 +42,7 @@ import { SaleService } from '../../services/sale.service';
 import { CustomerService } from '../../../customers/services/customer.service';
 import { FraudGuardianService } from '../../../cash-register/services/fraud-guardian.service';
 import { PosOfflineSyncService } from '../../services/pos-offline-sync.service';
+import { WarehouseService } from '../../../inventory/services/warehouse.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
 import {
@@ -46,12 +51,14 @@ import {
 } from '../../../companies/services/company.service';
 import { CloseRegisterModalComponent } from '../../../cash-register/components/cash-register/close-register-modal.component';
 import { PwaControlBarComponent } from '../../../cuadreEnv/components/pwa-control-bar/pwa-control-bar.component';
+import { DigitalSignatureModalComponent } from '../digital-signature-modal/digital-signature-modal.component';
 import { ServiceService } from '../../../services/services/service.service';
 import {
   ReceivableService,
   type ReceivableDto,
 } from '../../services/receivable.service';
 import { ThemeService } from '../../../cuadreEnv/services/theme.service';
+import { ModuleAccessService } from '../../../cuadreEnv/services/module-access.service';
 import {
   PosDraftStorageService,
   type PosHeldSale,
@@ -85,6 +92,7 @@ import { generateBarcodeSvg } from '../../../cuadreEnv/utils/barcode.util';
 import type {
   ProductDto,
   CompanyBankAccountDto,
+  CustomerDto,
 } from '../../../cuadreEnv/types/api';
 import type { HeaderDto, ProductDetails } from '../../../../app/models/billing';
 import type { ServiceItemDto } from '../../../services/models/service-item.model';
@@ -149,9 +157,14 @@ function getStableDeviceId(): string {
     RouterModule,
     CloseRegisterModalComponent,
     PwaControlBarComponent,
+    DigitalSignatureModalComponent,
   ],
 })
 export class MobileOwnerPosComponent implements OnInit, OnDestroy {
+  formatPaymentMethod(method?: string | null): string {
+    return formatPaymentMethodLabel(method);
+  }
+
   readonly Math = Math;
   private readonly sanitizer = inject(DomSanitizer);
   private readonly productService = inject(ProductService);
@@ -177,16 +190,104 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   closeRegisterModal?: CloseRegisterModalComponent;
 
   readonly themeService = inject(ThemeService);
+  readonly moduleAccess = inject(ModuleAccessService);
   readonly isDarkMode = computed(() => this.themeService.isDark);
   readonly draftStorageService = inject(PosDraftStorageService);
+  private readonly barcodeLookupService: BarcodeLookupService =
+    inject(BarcodeLookupService);
+  private readonly warehouseService = inject(WarehouseService);
   isHeldSalesModalOpen = signal<boolean>(false);
+
+  // Firma Digital Táctil de Conduce / Entrega
+  isSignatureModalOpen = signal<boolean>(false);
+  capturedSignatureDataUrl = signal<string | null>(null);
+
+  getSelectedCustomerName(): string {
+    const id = this.selectedCustomerId();
+    if (!id || id === 1) return 'Cliente Contado';
+    const client = this.clientsList().find((c) => c.id === id);
+    return client?.name || 'Cliente Contado';
+  }
+
+  openDigitalSignatureModal(): void {
+    this.isSignatureModalOpen.set(true);
+  }
+
+  onSignatureCaptured(dataUrl: string): void {
+    this.capturedSignatureDataUrl.set(dataUrl);
+    this.notificationService.success('✍️ Firma del cliente capturada con éxito.');
+  }
+
+  // Almacenes
+  warehouses = signal<any[]>([]);
+  selectedWarehouseId = signal<number>(1);
+
+  getSelectedWarehouseName(): string {
+    const found = this.warehouses().find(
+      (w) => w.id === this.selectedWarehouseId(),
+    );
+    return found?.name || 'Almacén Principal';
+  }
+
+  onWarehouseChange(id: number): void {
+    this.selectedWarehouseId.set(Number(id) || 1);
+    this.notificationService.info(
+      `Almacén activo: ${this.getSelectedWarehouseName()}`,
+    );
+  }
+
+  async loadWarehouses(): Promise<void> {
+    try {
+      const res = await this.warehouseService.getWarehouses();
+      if (res?.success && res.data && res.data.length > 0) {
+        this.warehouses.set(res.data);
+        const main = res.data.find((w: any) => w.isMain) || res.data[0];
+        if (main?.id) {
+          this.selectedWarehouseId.set(main.id);
+        }
+      }
+    } catch (e) {
+      console.warn('Error loading warehouses in mobile pos:', e);
+    }
+  }
 
   // =========================================================================
   // Mobile Session Authentication (Reconoce sesión existente sin doble login)
   // =========================================================================
-  readonly isMobileAuthenticated = signal<boolean>(
-    typeof window !== 'undefined' && this.authService.isAuthenticated(),
-  );
+  readonly isMobileAuthenticated = computed(() => {
+    return (
+      this.authService.isAuthenticated() ||
+      (typeof window !== 'undefined' &&
+        !!(
+          localStorage.getItem('accessToken') ||
+          sessionStorage.getItem('accessToken') ||
+          localStorage.getItem('cuadre_access_token') ||
+          sessionStorage.getItem('cuadre_access_token')
+        ))
+    );
+  });
+
+  readonly canAccessMobile = computed(() => {
+    if (!this.isMobileAuthenticated()) return true;
+    if (
+      this.authService.isSuperUser() ||
+      this.authService.hasRole([
+        'Admin',
+        'Administrador',
+        'SuperUser',
+        'SuperAdmin',
+        'SysAdmin',
+        'Owner',
+        'Dueño',
+        'Dueno',
+        'Gerente',
+        'Supervisor',
+      ])
+    ) {
+      return true;
+    }
+    return this.moduleAccess.hasModuleAccess('mobile-pos');
+  });
 
   readonly isFullscreen = signal<boolean>(
     typeof document !== 'undefined' && !!document.fullscreenElement,
@@ -223,6 +324,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   fiaoList = signal<ReceivableDto[]>([]);
   isLoadingFiao = signal<boolean>(false);
   fiaoSearchTerm = signal<string>('');
+  fiaoStatusFilter = signal<'pending' | 'paid' | 'all'>('pending');
   isFiaoPaymentModalOpen = signal<boolean>(false);
   selectedFiaoForPayment = signal<ReceivableDto | null>(null);
   fiaoPaymentAmount = signal<number>(0);
@@ -231,9 +333,35 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   );
   fiaoPaymentNotes = signal<string>('');
 
+  readonly pendingFiaoList = computed(() => {
+    return this.fiaoList().filter(
+      (item) => (item.pendingAmount || 0) > 0 && item.status !== 'Pagado',
+    );
+  });
+
+  readonly paidFiaoList = computed(() => {
+    return this.fiaoList().filter(
+      (item) => item.status === 'Pagado' || (item.pendingAmount || 0) <= 0,
+    );
+  });
+
+  readonly totalPaidFiaoCount = computed(() => this.paidFiaoList().length);
+
   readonly filteredFiaoList = computed(() => {
     const term = this.fiaoSearchTerm().trim().toLowerCase();
-    const list = this.fiaoList();
+    const filter = this.fiaoStatusFilter();
+    let list = this.fiaoList();
+
+    if (filter === 'pending') {
+      list = list.filter(
+        (item) => (item.pendingAmount || 0) > 0 && item.status !== 'Pagado',
+      );
+    } else if (filter === 'paid') {
+      list = list.filter(
+        (item) => item.status === 'Pagado' || (item.pendingAmount || 0) <= 0,
+      );
+    }
+
     if (!term) return list;
     return list.filter(
       (item) =>
@@ -386,7 +514,71 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   clientsList = signal<MobileClientOption[]>([
     { id: 1, name: 'Consumidor Final', rnc: '000-0000000-0', type: 'Contado' },
   ]);
-  selectedCustomerId = signal<number | null>(null);
+  rawCustomersList = signal<CustomerDto[]>([]);
+  selectedCustomerId = signal<number | null>(1);
+
+  // =========================================================================
+  // CREACIÓN RÁPIDA: CLIENTES, VENTAS POR COBRAR (FIAO) Y PRODUCTOS (MOBILE)
+  // =========================================================================
+  // Modal Crear Cliente
+  isCreateCustomerModalOpen = signal<boolean>(false);
+  newCustomerName = signal<string>('');
+  newCustomerPhone = signal<string>('');
+  newCustomerRnc = signal<string>('');
+  newCustomerCreditLimit = signal<number>(0);
+  newCustomerEmail = signal<string>('');
+  isSubmittingCustomer = signal<boolean>(false);
+
+  // Modal Crear Venta por Cobrar (Fiao)
+  isCreateFiaoModalOpen = signal<boolean>(false);
+  fiaoCustomerId = signal<number | null>(null);
+  fiaoCustomerName = signal<string>('');
+  fiaoCustomerPhone = signal<string>('');
+  fiaoDescription = signal<string>('');
+  fiaoTotalAmount = signal<number>(0);
+  fiaoInitialAmount = signal<number>(0);
+  fiaoDueDate = signal<string>(
+    new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  );
+  fiaoFrequency = signal<'Semanal' | 'Quincenal' | 'Mensual' | 'Diaria'>(
+    'Quincenal',
+  );
+  fiaoInstallments = signal<number>(1);
+  fiaoSelectedProducts = signal<
+    { product: ProductDto; quantity: number; price: number }[]
+  >([]);
+  isSubmittingFiao = signal<boolean>(false);
+  fiaoRemainingBalance = computed(() => {
+    const tot = Number(this.fiaoTotalAmount()) || 0;
+    const ini = Number(this.fiaoInitialAmount()) || 0;
+    return Math.max(0, tot - ini);
+  });
+  fiaoInstallmentBreakdown = computed(() => {
+    const pending = this.fiaoRemainingBalance();
+    const count = Math.max(1, Number(this.fiaoInstallments()) || 1);
+    if (pending <= 0 || count <= 1) {
+      return { count: 1, baseAmount: pending, lastAmount: pending, hasRemainder: false };
+    }
+    const baseAmount = Math.floor((pending / count) * 100) / 100;
+    const lastAmount = Math.round((pending - (baseAmount * (count - 1))) * 100) / 100;
+    return {
+      count,
+      baseAmount,
+      lastAmount,
+      hasRemainder: lastAmount !== baseAmount,
+    };
+  });
+
+  // Modal Crear Producto
+  isCreateProductModalOpen = signal<boolean>(false);
+  newProductDescription = signal<string>('');
+  newProductBarcode = signal<string>('');
+  newProductPrice = signal<number>(0);
+  newProductCost = signal<number>(0);
+  newProductStock = signal<number>(1);
+  newProductCategoryId = signal<number>(1);
+  newProductAutoAddToCart = signal<boolean>(true);
+  isSubmittingProduct = signal<boolean>(false);
 
   // Products Catalog & Search
   products = signal<ProductDto[]>([]);
@@ -509,9 +701,27 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   isMeasurementModalOpen = signal<boolean>(false);
   selectedProductForMeasurement = signal<ProductDto | null>(null);
   measurementQuantity = signal<number>(1);
+  selectedSaleAmountMoney = signal<number | null>(null);
   measurementCartIndex = signal<number | null>(null);
   measurementMode = signal<'detail' | 'package' | 'individual'>('detail');
   activeProductPackaging = signal<ProductPackaging | null>(null);
+
+  onMeasurementQtyChange(qty: any): void {
+    const val = Math.max(0, Number(qty) || 0);
+    this.measurementQuantity.set(val);
+    const unitPrice = this.getEffectiveUnitPrice() || 1;
+    this.selectedSaleAmountMoney.set(Math.round(val * unitPrice * 100) / 100);
+  }
+
+  onMeasurementMoneyChange(amount: any): void {
+    const money = Math.max(0, Number(amount) || 0);
+    this.selectedSaleAmountMoney.set(money);
+    const unitPrice = this.getEffectiveUnitPrice() || 1;
+    if (unitPrice > 0) {
+      const calculatedQty = Math.round((money / unitPrice) * 1000) / 1000;
+      this.measurementQuantity.set(calculatedQty);
+    }
+  }
 
   // Product Photo & Literal Barcode Preview
   selectedProductForPhotoModal = signal<ProductDto | null>(null);
@@ -604,6 +814,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   // =========================================================================
   // SPEED POS: ESCÁNER EN RÁFAGA (CÁMARA + ESCÁNER FÍSICO USB/BLUETOOTH)
   // =========================================================================
+  scannerMode = signal<'pos' | 'stock_entry' | 'new_product'>('pos');
   cameraScanFlash = signal<boolean>(false);
   cameraLastScannedItem = signal<{
     name: string;
@@ -638,6 +849,8 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     );
   });
   transferReferenceNumber = signal<string>('');
+  transferAccountLastFour = signal<string>('');
+  transferAmountDeposited = signal<number>(0);
   isBankQrModalOpen = signal<boolean>(false);
   isBankCopied = signal<boolean>(false);
 
@@ -654,7 +867,6 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     if (p.isService === true || p.type === 'service' || p.type === 'Servicio')
       return true;
     if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
-    if (p.invoiceWithoutStock === true) return true;
 
     const code = String(p.barcode || p.reference || p.code || '')
       .toUpperCase()
@@ -687,6 +899,11 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     return this.products().filter((p) => {
       // RULE: Services are intangible labor and cannot be sold in POS / Cash Register
       if (this.isServiceItem(p)) {
+        return false;
+      }
+
+      // RULE: Productos en 0 de stock no se muestran en caja salvo que permitan facturar sin stock
+      if (!p.invoiceWithoutStock && (p.stock || 0) <= 0) {
         return false;
       }
 
@@ -789,20 +1006,113 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     return item ? item.quantity : 0;
   }
 
+  private syncInterval: any = null;
+  private isMobileDataInitializing = false;
+  private onWindowFocusHandler = () => {
+    if (this.authService.isAuthenticated()) {
+      void this.loadExecutiveData();
+    }
+  };
+  private onVisibilityChangeHandler = () => {
+    if (
+      typeof document !== 'undefined' &&
+      document.visibilityState === 'visible' &&
+      this.authService.isAuthenticated()
+    ) {
+      void this.loadExecutiveData();
+    }
+  };
+  private onCashRegisterChangedHandler = () => {
+    if (this.authService.isAuthenticated()) {
+      void this.loadExecutiveData();
+    }
+  };
+
+  constructor() {
+    effect(() => {
+      const items = this.cart();
+      if (items.length > 0) {
+        this.syncActiveDraft();
+      } else {
+        this.draftStorageService.clearActiveDraft();
+      }
+    });
+
+    // Reaccionar automáticamente cuando la sesión de autenticación termine de inicializarse
+    effect(() => {
+      const isInit = this.authService.isInitializing();
+      const isAuth = this.authService.isAuthenticated();
+      if (!isInit && isAuth) {
+        untracked(() => {
+          if (this.authService.userCompanies().length === 0) {
+            this.authService.loadUserCompanies().catch(() => {});
+          }
+          void this.initMobileData();
+        });
+      }
+    });
+  }
+
+  private syncActiveDraft(): void {
+    const items = this.cart();
+    if (items.length === 0) {
+      this.draftStorageService.clearActiveDraft();
+      return;
+    }
+    const draftItems: PosDraftItem[] = items.map((i) => ({
+      productId: Number(i.product.id || 0),
+      productCode: String(
+        i.product.barcode ||
+          (i.product as any).code ||
+          i.product.reference ||
+          '',
+      ),
+      productName:
+        i.product.description || (i.product as any).name || 'Producto',
+      unitPrice: i.unitPrice,
+      quantity: i.quantity,
+      total: i.total,
+    }));
+    const custName = this.customerName() || 'Consumidor Final';
+    this.draftStorageService.saveActiveDraft({
+      customerId: this.selectedCustomerId(),
+      customerName: custName,
+      items: draftItems,
+      discountType: 'fixed',
+      discountValue: 0,
+      selectedMethod: this.selectedMethod(),
+      amountReceived: 0,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   ngOnInit(): void {
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => this.isOnline.set(true));
       window.addEventListener('offline', () => this.isOnline.set(false));
+      window.addEventListener('focus', this.onWindowFocusHandler);
+      window.addEventListener(
+        'cuadre_cash_register_changed',
+        this.onCashRegisterChangedHandler,
+      );
+      // Sincronización continua de caja y sesión entre PC y móvil cada 15s
+      this.syncInterval = setInterval(() => {
+        if (this.authService.isAuthenticated()) {
+          void this.loadExecutiveData();
+        }
+      }, 15000);
     }
     if (typeof document !== 'undefined') {
       document.addEventListener('fullscreenchange', () => {
         this.isFullscreen.set(!!document.fullscreenElement);
       });
+      document.addEventListener(
+        'visibilitychange',
+        this.onVisibilityChangeHandler,
+      );
     }
-    // Cargar siempre datos de configuración de empresa de la sesión
-    this.companyService.getCompanySettings().catch(() => {});
     if (this.authService.isAuthenticated()) {
-      this.isMobileAuthenticated.set(true);
+      this.companyService.getCompanySettings().catch(() => {});
       if (this.authService.userCompanies().length === 0) {
         this.authService.loadUserCompanies().catch(() => {});
       }
@@ -812,19 +1122,46 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.closeCameraScanner();
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = null;
+    }
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('focus', this.onWindowFocusHandler);
+      window.removeEventListener(
+        'cuadre_cash_register_changed',
+        this.onCashRegisterChangedHandler,
+      );
+    }
+    if (typeof document !== 'undefined') {
+      document.removeEventListener(
+        'visibilitychange',
+        this.onVisibilityChangeHandler,
+      );
+    }
   }
 
   async initMobileData(): Promise<void> {
+    if (this.isMobileDataInitializing) return;
+    this.isMobileDataInitializing = true;
     try {
       await Promise.allSettled([
         this.companyService.getCompanySettings(),
         this.authService.loadUserCompanies(),
       ]);
     } catch {}
-    this.loadExecutiveData();
-    this.loadCatalog();
-    this.loadServicesCatalog();
-    this.loadFiaoList();
+    try {
+      await Promise.allSettled([
+        this.loadExecutiveData(),
+        this.loadCatalog(),
+        this.loadServicesCatalog(),
+        this.loadFiaoList(),
+        this.loadWarehouses(),
+      ]);
+      this.restoreActiveDraftIfAny();
+    } finally {
+      this.isMobileDataInitializing = false;
+    }
   }
 
   async loginMobile(): Promise<void> {
@@ -868,7 +1205,6 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
         }
       }
 
-      this.isMobileAuthenticated.set(true);
       this.notificationService.success(`Bienvenido a CuadreEnv Móvil`);
       await this.initMobileData();
     } catch (err: any) {
@@ -900,7 +1236,9 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   async submitMobileForgotPassword(): Promise<void> {
     const email = (this.mobileForgotEmail() || '').trim();
     if (!email || !email.includes('@')) {
-      this.mobileForgotError.set('Por favor ingresa un correo electrónico válido.');
+      this.mobileForgotError.set(
+        'Por favor ingresa un correo electrónico válido.',
+      );
       return;
     }
     this.isMobileForgotSubmitting.set(true);
@@ -909,41 +1247,103 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     try {
       const res = await this.authService.forgotPassword(email);
       this.mobileForgotSuccess.set(
-        res.message || 'Hemos enviado las instrucciones para restablecer tu contraseña a tu correo.'
+        res.message ||
+          'Hemos enviado las instrucciones para restablecer tu contraseña a tu correo.',
       );
-      this.notificationService.success('Instrucciones de recuperación enviadas.');
+      this.notificationService.success(
+        'Instrucciones de recuperación enviadas.',
+      );
       triggerHaptic(25);
     } catch (err: any) {
-      const msg = err?.error?.message || err?.message || 'No se pudo procesar la solicitud. Verifica el correo.';
+      const msg =
+        err?.error?.message ||
+        err?.message ||
+        'No se pudo procesar la solicitud. Verifica el correo.';
       this.mobileForgotError.set(msg);
     } finally {
       this.isMobileForgotSubmitting.set(false);
     }
   }
 
-  logoutMobile(): void {
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('cuadre_mobile_session_active');
+  // =========================================================================
+  // LOGOUT CONFIRMATION MODAL & PENDING CHANGES AUDIT
+  // =========================================================================
+  isLogoutConfirmModalOpen = signal<boolean>(false);
+
+  readonly hasPendingChangesOnLogout = computed(() => {
+    const hasCart = this.cart().length > 0;
+    const hasServiceCart = this.serviceCart().length > 0;
+    const hasHeld = (this.draftStorageService.heldSales() || []).length > 0;
+    const hasOpenCash = this.activeSessions().some((s) => s.isOpen);
+    return hasCart || hasServiceCart || hasHeld || hasOpenCash;
+  });
+
+  readonly pendingChangesReasons = computed(() => {
+    const reasons: string[] = [];
+    const cartCount = this.totalCartItemsCount();
+    if (cartCount > 0) {
+      reasons.push(
+        `${cartCount} artículo(s) sin facturar en el carrito de ventas`,
+      );
     }
-    this.isMobileAuthenticated.set(false);
-    this.mobileLoginPassword = '';
-    this.authService.logout();
-    this.notificationService.info('Terminal móvil bloqueada / sesión cerrada.');
+    const serviceCount = this.totalServiceCartCount();
+    if (serviceCount > 0) {
+      reasons.push(`${serviceCount} servicio(s) sin facturar en el carrito`);
+    }
+    const heldCount = (this.draftStorageService.heldSales() || []).length;
+    if (heldCount > 0) {
+      reasons.push(`${heldCount} venta(s) guardadas en espera (Held Sales)`);
+    }
+    const openCash = this.activeSessions().find((s) => s.isOpen);
+    if (openCash) {
+      reasons.push(
+        `El turno de caja registradora #${openCash.id} continúa abierto sin cuadre`,
+      );
+    }
+    return reasons;
+  });
+
+  requestLogout(): void {
+    triggerHaptic(20);
+    this.isLogoutConfirmModalOpen.set(true);
+  }
+
+  cancelLogout(): void {
+    this.isLogoutConfirmModalOpen.set(false);
+  }
+
+  async confirmLogout(): Promise<void> {
+    this.isLogoutConfirmModalOpen.set(false);
+    await this.logout();
+  }
+
+  logoutMobile(): void {
+    this.requestLogout();
   }
 
   async logout(): Promise<void> {
-    this.logoutMobile();
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('cuadre_mobile_session_active');
+    }
+    this.mobileLoginPassword = '';
     await this.authService.logout();
-    this.router.navigate(['/login']);
+    this.notificationService.info('Terminal móvil bloqueada / sesión cerrada.');
   }
 
   async loadExecutiveData(): Promise<void> {
+    if (!this.authService.isAuthenticated()) return;
     try {
-      // 1. Cargar sesión activa real de caja
-      const sessionRes = await this.cashRegisterService.getActiveSession();
+      // 1. Cargar sesión activa real de caja (con fallback silencioso)
+      const sessionRes = await this.cashRegisterService
+        .getActiveSession()
+        .catch(() => null);
       if (sessionRes?.data && sessionRes.data.isOpen) {
         this.activeSessions.set([sessionRes.data]);
-      } else {
+      } else if (
+        sessionRes !== null &&
+        (!sessionRes.data || sessionRes.data.isOpen === false)
+      ) {
+        // Solo vaciar si el servidor respondió explícitamente que la sesión está cerrada
         this.activeSessions.set([]);
       }
 
@@ -958,18 +1358,47 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
           const mapped = movRes.data
             .slice(-10)
             .reverse()
-            .map((m) => ({
-              type:
-                m.type === 'Entrada'
-                  ? 'VENTA'
-                  : m.category === 'Retiro'
-                    ? 'RETIRO'
-                    : 'SALIDA',
-              description: m.description,
-              amount:
-                m.type === 'Entrada' ? m.inAmount || 0 : -(m.outAmount || 0),
-              time: m.date || 'Hoy',
-            }));
+            .map((m) => {
+              const desc = m.description || '';
+              const isOpening =
+                m.type === 'Saldo inicial' ||
+                m.category === 'Apertura' ||
+                desc.toLowerCase().includes('apertura');
+              const isIncoming =
+                isOpening ||
+                m.type === 'Entrada' ||
+                (m as any).type === 'In' ||
+                m.category === 'Ingresos' ||
+                m.category === 'Ventas' ||
+                m.category === 'Cobros' ||
+                (m.inAmount != null && Number(m.inAmount) > 0);
+
+              let amt = 0;
+              if (isOpening) {
+                amt =
+                  Number(m.inAmount) ||
+                  Number((m as any).amount) ||
+                  Number(this.activeSession()?.initialAmount) ||
+                  0;
+              } else if (isIncoming) {
+                amt = Number(m.inAmount) || Number((m as any).amount) || 0;
+              } else {
+                amt = -(Number(m.outAmount) || Number((m as any).amount) || 0);
+              }
+
+              return {
+                type: isOpening
+                  ? 'APERTURA'
+                  : isIncoming
+                    ? 'VENTA'
+                    : m.category === 'Retiro'
+                      ? 'RETIRO'
+                      : 'SALIDA',
+                description: desc,
+                amount: amt,
+                time: m.date || 'Hoy',
+              };
+            });
           this.recentMovements.set(mapped);
         } else {
           this.recentMovements.set([]);
@@ -1049,41 +1478,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
       }
 
       // 4. Cargar clientes reales del tenant
-      try {
-        const custRes = await this.customerService.getCustomers({
-          pageSize: 50,
-        });
-        const realCustomers = custRes.data || [];
-        const formattedClients: MobileClientOption[] = [
-          {
-            id: 1,
-            name: 'Consumidor Final',
-            rnc: '000-0000000-0',
-            type: 'Contado',
-          },
-          ...realCustomers
-            .filter(
-              (c) =>
-                c.name && c.name.toLowerCase().trim() !== 'consumidor final',
-            )
-            .map((c) => ({
-              id: c.id || 1,
-              name: c.name,
-              rnc: c.identification || '000-0000000-0',
-              type: 'Contado',
-            })),
-        ];
-        this.clientsList.set(formattedClients);
-      } catch {
-        this.clientsList.set([
-          {
-            id: 1,
-            name: 'Consumidor Final',
-            rnc: '000-0000000-0',
-            type: 'Contado',
-          },
-        ]);
-      }
+      await this.loadClients();
     } catch (err) {
       console.warn('[Mobile POS] Error al cargar datos ejecutivos:', err);
     }
@@ -1135,6 +1530,45 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     }
   }
 
+  async loadClients(forceRefresh = false): Promise<void> {
+    try {
+      const custRes = await this.customerService.getCustomers(
+        { pageSize: 100 },
+        forceRefresh,
+      );
+      const realCustomers = custRes.data || [];
+      this.rawCustomersList.set(realCustomers);
+      const formattedClients: MobileClientOption[] = [
+        {
+          id: 1,
+          name: 'Consumidor Final',
+          rnc: '000-0000000-0',
+          type: 'Contado',
+        },
+        ...realCustomers
+          .filter(
+            (c) => c.name && c.name.toLowerCase().trim() !== 'consumidor final',
+          )
+          .map((c) => ({
+            id: c.id || 1,
+            name: c.name,
+            rnc: c.identification || c.rnc || '000-0000000-0',
+            type: 'Contado',
+          })),
+      ];
+      this.clientsList.set(formattedClients);
+    } catch {
+      this.clientsList.set([
+        {
+          id: 1,
+          name: 'Consumidor Final',
+          rnc: '000-0000000-0',
+          type: 'Contado',
+        },
+      ]);
+    }
+  }
+
   async openQuickMobileSession(initialAmount: number = 0): Promise<void> {
     this.openMobileOpenRegisterModal();
   }
@@ -1154,12 +1588,17 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
         }
       }
 
-      if (activeCid > 0 && items && items.length > 0) {
+      if (items && items.length > 0) {
         items = items.filter((p: any) => {
-          const pCid = p.companyId ?? p.CompanyId;
-          return (
-            pCid == null || Number(pCid) === 0 || Number(pCid) === activeCid
-          );
+          // REGLA: Los servicios no deben ser contados como productos ni los productos como servicios
+          if (this.isServiceItem(p)) return false;
+          if (activeCid > 0) {
+            const pCid = p.companyId ?? p.CompanyId;
+            return (
+              pCid == null || Number(pCid) === 0 || Number(pCid) === activeCid
+            );
+          }
+          return true;
         });
       }
 
@@ -1293,6 +1732,8 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
       const isMeasurable = this.isProductMeasurable(product);
       this.measurementQuantity.set(isMeasurable ? 1.0 : 1);
     }
+    const effPrice = this.getEffectiveUnitPrice() || Number(product.price || product.priceList || 0);
+    this.selectedSaleAmountMoney.set(Math.round(this.measurementQuantity() * effPrice * 100) / 100);
     this.isMeasurementModalOpen.set(true);
   }
 
@@ -1324,14 +1765,14 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     if (pkg && mode === 'package') {
       return (
         pkg.packagePrice ||
-        (prod.price || (prod.cost ? prod.cost * 1.3 : 100)) *
+        Number(prod.price || (prod as any).priceList || 0) *
           (pkg.packageUnitsCount || 1)
       );
     }
     if (pkg && mode === 'individual') {
       return pkg.individualUnitPrice || 15;
     }
-    return prod.price || (prod.cost ? prod.cost * 1.3 : 100);
+    return Number(prod.price || (prod as any).priceList || 0);
   }
 
   getEffectiveUnitLabel(): string {
@@ -1365,6 +1806,18 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
 
   setPresetQuantity(qty: number): void {
     this.measurementQuantity.set(qty);
+    const effPrice = this.getEffectiveUnitPrice() || 1;
+    this.selectedSaleAmountMoney.set(Math.round(qty * effPrice * 100) / 100);
+  }
+
+  setDetailSaleByMoney(amount: number): void {
+    const prod = this.selectedProductForMeasurement();
+    if (!prod) return;
+    const unitPrice = this.getEffectiveUnitPrice() || Number(prod.price || prod.priceList || 0);
+    if (unitPrice <= 0) return;
+    this.selectedSaleAmountMoney.set(amount);
+    const calculatedQty = Math.round((amount / unitPrice) * 1000) / 1000;
+    this.measurementQuantity.set(calculatedQty);
   }
 
   confirmQuantityModal(): void {
@@ -1466,7 +1919,35 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     this.themeService.toggle();
   }
 
+  closeAllMobileModals(): void {
+    this.isCreateCustomerModalOpen.set(false);
+    this.isCreateFiaoModalOpen.set(false);
+    this.isCreateProductModalOpen.set(false);
+    this.isMobileOpenRegisterModalOpen.set(false);
+    this.isMobileMovementModalOpen.set(false);
+    this.isMobileCloseRegisterModalOpen.set(false);
+    this.isClientsModalOpen.set(false);
+    this.isCloseModalOpen.set(false);
+    this.isSideMenuOpen.set(false);
+    this.isPaymentModalOpen.set(false);
+    this.isHeldSalesModalOpen.set(false);
+    this.isStockEntryModalOpen.set(false);
+    this.isMeasurementModalOpen.set(false);
+    this.isQuickAmountModalOpen.set(false);
+    this.isBankQrModalOpen.set(false);
+    this.isFiaoPaymentModalOpen.set(false);
+    this.isServicePaymentModalOpen.set(false);
+    this.isServiceSuccessModalOpen.set(false);
+    this.isQuickServiceCreateModalOpen.set(false);
+    this.isServiceCartDrawerOpen.set(false);
+    this.selectedFiaoForPayment.set(null);
+    if (this.isCameraScannerOpen()) {
+      this.closeCameraScanner();
+    }
+  }
+
   setTab(tab: 'inicio' | 'ventas' | 'caja' | 'fiao' | 'mas'): void {
+    this.closeAllMobileModals();
     this.activeTab.set(tab);
     if (tab === 'ventas') {
       if (
@@ -1650,7 +2131,11 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
         i.product.id === product.id &&
         (isGeneric ? i.product.description === product.description : true),
     );
-    const price = product.price || (product.cost ? product.cost * 1.3 : 100);
+    const price = Number(
+      product.price != null && product.price > 0
+        ? product.price
+        : (product as any).priceList || 0,
+    );
     const itbisRate = product.taxRate ?? 0.18;
     const unitSymbol = this.getProductUnitSymbol(product);
     const allowsDecimals = this.isProductMeasurable(product);
@@ -1749,7 +2234,44 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     }
   }
 
+  private restoreActiveDraftIfAny(): void {
+    if (this.cart().length > 0) return;
+    const draft = this.draftStorageService.getActiveDraft();
+    if (!draft || !draft.items || draft.items.length === 0) return;
+    const restoredCart: MobileCartItem[] = draft.items.map((it) => {
+      const matchingProd = this.products().find(
+        (p) => Number(p.id) === it.productId,
+      );
+      const prod: ProductDto =
+        matchingProd ||
+        ({
+          id: it.productId,
+          description: it.productName,
+          price: it.unitPrice,
+          barcode: it.productCode,
+          reference: it.productCode,
+          taxRate: 0.18,
+          stock: 999,
+        } as any);
+      const subtotal = Math.round(it.quantity * it.unitPrice * 100) / 100;
+      const itbis = Math.round(subtotal * (prod.taxRate ?? 0.18) * 100) / 100;
+      const total = Math.round((subtotal + itbis) * 100) / 100;
+      return {
+        product: prod,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+        subtotal,
+        itbis,
+        total,
+        unitSymbol: 'und',
+        allowsDecimals: false,
+      };
+    });
+    this.cart.set(restoredCart);
+  }
+
   clearCart(): void {
+    this.draftStorageService.clearActiveDraft();
     this.cart.set([]);
     this.cartDiscountType.set('none');
     this.cartDiscountValue.set(0);
@@ -1859,6 +2381,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
   openCheckout(): void {
     if (this.cart().length === 0) return;
     this.amountReceived.set(this.cartTotal());
+    this.transferAmountDeposited.set(this.cartTotal());
     this.isCartDrawerOpen.set(false);
     this.isPaymentModalOpen.set(true);
   }
@@ -2132,7 +2655,14 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     }
 
     this.isSubmitting.set(true);
-    const companyId = this.authService.companyId() || 1;
+    const companyId = this.authService.companyId();
+    if (!companyId) {
+      this.notificationService.error(
+        'Se requiere seleccionar una empresa activa para registrar ventas.',
+      );
+      this.isSubmitting.set(false);
+      return;
+    }
     const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
     const total = this.cartTotal();
@@ -2142,7 +2672,28 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     const customerId = this.selectedCustomerId();
     const phone = this.customerPhone().trim();
     const method = this.selectedMethod();
-    const amountRec = this.amountReceived() || total;
+
+    if (method === 'Transferencia') {
+      const four = this.transferAccountLastFour().trim();
+      const dep = Number(this.transferAmountDeposited()) || total;
+      if (!four || four.length !== 4) {
+        this.notificationService.warning('Debes ingresar los últimos 4 dígitos de la cuenta de origen del cliente.');
+        this.isSubmitting.set(false);
+        return;
+      }
+      if (dep < total) {
+        this.notificationService.warning(`El monto transferido (RD$ ${dep.toFixed(2)}) no cubre el total de la venta.`);
+        this.isSubmitting.set(false);
+        return;
+      }
+      if (!this.transferReferenceNumber().trim()) {
+        this.notificationService.warning('Debes ingresar el número de confirmación o referencia de la transferencia.');
+        this.isSubmitting.set(false);
+        return;
+      }
+    }
+
+    const amountRec = method === 'Transferencia' ? (Number(this.transferAmountDeposited()) || total) : (this.amountReceived() || total);
     const change = this.changeDue();
     const idempotencyKey =
       typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -2261,9 +2812,12 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
     // B) MODO ONLINE: Registrar venta mediante CashRegisterService
     try {
       // 1. Registrar venta rápida asociada a la sesión de caja activa
+      const four = this.transferAccountLastFour().trim();
+      const dep = Number(this.transferAmountDeposited()) || total;
+      const ref = this.transferReferenceNumber().trim();
       const finalPaymentMethod =
-        method === 'Transferencia' && this.transferReferenceNumber().trim()
-          ? `Transferencia (Ref: ${this.transferReferenceNumber().trim()})`
+        method === 'Transferencia'
+          ? `Transferencia ${this.activeBankAccount().bankName} (Cta ****${four}) Depósito: RD$ ${dep.toFixed(2)} Ref: ${ref}`
           : method;
 
       const quickSaleRes = await this.cashRegisterService.registerQuickSale({
@@ -2310,7 +2864,7 @@ export class MobileOwnerPosComponent implements OnInit, OnDestroy {
           clientName: customer,
           billingTypeId: 1,
           voucherTypeId: this.ncfType() === 'B01' ? 1 : 2,
-          warehouseId: 1,
+          warehouseId: this.selectedWarehouseId() || 1,
           rncOrCedula: '',
         };
         const items: ProductDetails[] = this.cart().map((item) => {
@@ -3181,6 +3735,384 @@ ${itemsList}
   }
 
   // =========================================================================
+  // GESTIÓN RÁPIDA: CLIENTE, VENTA POR COBRAR (FIAO) Y PRODUCTO
+  // =========================================================================
+  openCreateCustomerModal(): void {
+    this.newCustomerName.set('');
+    this.newCustomerPhone.set('');
+    this.newCustomerRnc.set('');
+    this.newCustomerCreditLimit.set(0);
+    this.newCustomerEmail.set('');
+    this.isCreateCustomerModalOpen.set(true);
+    triggerHaptic(10);
+  }
+
+  closeCreateCustomerModal(): void {
+    this.isCreateCustomerModalOpen.set(false);
+  }
+
+  async saveNewCustomer(): Promise<void> {
+    const name = this.newCustomerName().trim();
+    if (!name) {
+      this.notificationService.warning(
+        'Por favor ingresa el nombre o razón social del cliente.',
+      );
+      return;
+    }
+
+    this.isSubmittingCustomer.set(true);
+    try {
+      const phone = this.newCustomerPhone().trim();
+      const rnc = this.newCustomerRnc().trim();
+      const email = this.newCustomerEmail().trim();
+      const creditLimit = Number(this.newCustomerCreditLimit()) || 0;
+
+      const payload: CustomerDto = {
+        name,
+        phone: phone || null,
+        identification: rnc || null,
+        rnc: rnc || null,
+        email: email || null,
+        creditLimit: creditLimit > 0 ? creditLimit : undefined,
+        active: true,
+      };
+
+      const res = await this.customerService.createCustomer(payload);
+      const created = res?.data || (res as any);
+
+      this.notificationService.success(
+        `¡Cliente "${name}" registrado exitosamente!`,
+      );
+      soundEffects.playKaChing();
+      triggerHapticSuccess();
+
+      await this.loadClients(true);
+
+      const createdId = created?.id || created?.Id;
+      if (createdId) {
+        this.selectedCustomerId.set(createdId);
+        this.fiaoCustomerId.set(createdId);
+        this.fiaoCustomerName.set(name);
+        this.fiaoCustomerPhone.set(phone);
+      }
+
+      this.closeCreateCustomerModal();
+    } catch (err: any) {
+      this.notificationService.showApiError(err);
+    } finally {
+      this.isSubmittingCustomer.set(false);
+    }
+  }
+
+  openCreateFiaoModal(): void {
+    const currentCustId = this.selectedCustomerId();
+    if (currentCustId && currentCustId > 1) {
+      this.fiaoCustomerId.set(currentCustId);
+      this.onFiaoCustomerChange(currentCustId);
+    } else {
+      const firstValid = this.clientsList().find((c) => c.id > 1);
+      if (firstValid) {
+        this.fiaoCustomerId.set(firstValid.id);
+        this.onFiaoCustomerChange(firstValid.id);
+      } else {
+        this.fiaoCustomerId.set(null);
+        this.fiaoCustomerName.set('');
+        this.fiaoCustomerPhone.set('');
+      }
+    }
+
+    this.fiaoDescription.set('');
+    this.fiaoTotalAmount.set(0);
+    this.fiaoInitialAmount.set(0);
+    this.fiaoSelectedProducts.set([]);
+    this.fiaoDueDate.set(
+      new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0],
+    );
+    this.fiaoFrequency.set('Quincenal');
+    this.fiaoInstallments.set(1);
+    this.isCreateFiaoModalOpen.set(true);
+    triggerHaptic(10);
+  }
+
+  closeCreateFiaoModal(): void {
+    this.isCreateFiaoModalOpen.set(false);
+    this.fiaoSelectedProducts.set([]);
+  }
+
+  onFiaoProductSelect(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    if (!target || !target.value) return;
+    const prodId = Number(target.value);
+    const prod = this.products().find((p) => p.id === prodId);
+    if (prod) {
+      this.addFiaoProduct(prod);
+    }
+    target.value = '';
+  }
+
+  addFiaoProduct(prod: ProductDto): void {
+    const list = [...this.fiaoSelectedProducts()];
+    const idx = list.findIndex((i) => i.product.id === prod.id);
+    const unitPrice = Number(prod.price || prod.priceList || 0);
+    if (idx > -1) {
+      list[idx].quantity += 1;
+    } else {
+      list.push({ product: prod, quantity: 1, price: unitPrice });
+    }
+    this.fiaoSelectedProducts.set(list);
+    this.recomputeFiaoTotalFromProducts();
+    triggerHaptic(10);
+  }
+
+  updateFiaoProductQty(productId: number, delta: number): void {
+    let list = [...this.fiaoSelectedProducts()];
+    const idx = list.findIndex((i) => i.product.id === productId);
+    if (idx > -1) {
+      list[idx].quantity += delta;
+      if (list[idx].quantity <= 0) {
+        list.splice(idx, 1);
+      }
+    }
+    this.fiaoSelectedProducts.set(list);
+    this.recomputeFiaoTotalFromProducts();
+    triggerHaptic(10);
+  }
+
+  removeFiaoProduct(productId: number): void {
+    const list = this.fiaoSelectedProducts().filter(
+      (i) => i.product.id !== productId,
+    );
+    this.fiaoSelectedProducts.set(list);
+    this.recomputeFiaoTotalFromProducts();
+    triggerHaptic(10);
+  }
+
+  private recomputeFiaoTotalFromProducts(): void {
+    const list = this.fiaoSelectedProducts();
+    if (list.length > 0) {
+      const sum = list.reduce((acc, it) => acc + it.quantity * it.price, 0);
+      this.fiaoTotalAmount.set(sum);
+      const desc = list
+        .map((it) => `${it.quantity}x ${it.product.description}`)
+        .join(', ');
+      this.fiaoDescription.set(desc);
+    }
+  }
+
+  onFiaoCustomerChange(selectedId: number | null): void {
+    this.fiaoCustomerId.set(selectedId);
+    if (!selectedId) {
+      this.fiaoCustomerName.set('');
+      this.fiaoCustomerPhone.set('');
+      return;
+    }
+    const match = this.rawCustomersList().find((c) => c.id === selectedId);
+    if (match) {
+      this.fiaoCustomerName.set(match.name || '');
+      this.fiaoCustomerPhone.set(match.phone || match.contactName || '');
+    } else {
+      const option = this.clientsList().find((c) => c.id === selectedId);
+      if (option) {
+        this.fiaoCustomerName.set(option.name || '');
+      }
+    }
+  }
+
+  setFiaoDueDays(days: number): void {
+    this.fiaoDueDate.set(
+      new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0],
+    );
+    triggerHaptic(10);
+  }
+
+  async saveNewFiao(): Promise<void> {
+    const custId = this.fiaoCustomerId();
+    let custName = this.fiaoCustomerName().trim();
+    let custPhone = this.fiaoCustomerPhone().trim();
+
+    if (custId && custId > 1) {
+      const match = this.rawCustomersList().find((c) => c.id === custId);
+      if (match) {
+        custName = match.name || custName;
+        custPhone = match.phone || match.contactName || custPhone;
+      } else {
+        const option = this.clientsList().find((c) => c.id === custId);
+        if (option) {
+          custName = option.name || custName;
+        }
+      }
+    }
+
+    if (!custName || custName.toLowerCase() === 'consumidor final') {
+      this.notificationService.warning(
+        'Para registrar un fiao o cuenta por cobrar, debes seleccionar o crear un cliente con nombre.',
+      );
+      return;
+    }
+
+    const total = Number(this.fiaoTotalAmount()) || 0;
+    if (total <= 0) {
+      this.notificationService.warning('El monto total debe ser mayor a 0.');
+      return;
+    }
+
+    const initial = Number(this.fiaoInitialAmount()) || 0;
+    if (initial >= total) {
+      this.notificationService.warning(
+        'El abono inicial no puede ser igual o mayor al total (debe quedar un saldo pendiente para fiao).',
+      );
+      return;
+    }
+
+    const installments = Math.max(1, Number(this.fiaoInstallments()) || 1);
+    const pendingAmount = Math.max(0, Math.round((total - initial) * 100) / 100);
+    const baseInstallment = Math.floor((pendingAmount / installments) * 100) / 100;
+    const lastInstallment = Math.round((pendingAmount - (baseInstallment * (installments - 1))) * 100) / 100;
+    const installmentAmount = baseInstallment;
+
+    let desc = this.fiaoDescription().trim() || 'Venta a crédito / Fiao';
+    if (installments > 1 && lastInstallment !== baseInstallment) {
+      desc += ` (${installments - 1} cuotas de RD$ ${baseInstallment.toFixed(2)} y última cuota de RD$ ${lastInstallment.toFixed(2)})`;
+    }
+
+    this.isSubmittingFiao.set(true);
+    try {
+      const res = await this.receivableService.createReceivable({
+        customerId: custId && custId > 1 ? custId : null,
+        customerName: custName,
+        customerPhone: custPhone,
+        description: desc,
+        totalAmount: total,
+        downPayment: initial > 0 ? initial : undefined,
+        installmentAmount,
+        totalInstallments: installments,
+        startDate: this.fiaoDueDate(),
+        frequency: this.fiaoFrequency(),
+        items: this.fiaoSelectedProducts().map((it) => ({
+          productId: it.product.id || 0,
+          productName: it.product.description || 'Producto',
+          quantity: it.quantity,
+          unitPrice: it.price,
+          subtotal: it.quantity * it.price,
+        })),
+      });
+
+      if (res?.success) {
+        this.notificationService.success(
+          `¡Venta por cobrar de RD$ ${total.toLocaleString()} registrada para ${custName}!`,
+        );
+        soundEffects.playKaChing();
+        triggerHapticSuccess();
+        await this.loadFiaoList();
+        this.closeCreateFiaoModal();
+      } else {
+        this.notificationService.error(
+          res?.message || 'No se pudo registrar la venta por cobrar.',
+        );
+      }
+    } catch (err: any) {
+      this.notificationService.showApiError(err);
+    } finally {
+      this.isSubmittingFiao.set(false);
+    }
+  }
+
+  openCreateProductModal(initialBarcode = '', initialName = ''): void {
+    this.newProductDescription.set(initialName || '');
+    this.newProductBarcode.set(initialBarcode || '');
+    this.newProductPrice.set(0);
+    this.newProductCost.set(0);
+    this.newProductStock.set(1);
+    const validCat = this.categories().find((c) => c.id != null);
+    this.newProductCategoryId.set(validCat ? Number(validCat.id) : 1);
+    this.newProductAutoAddToCart.set(this.activeTab() === 'ventas');
+    this.isCreateProductModalOpen.set(true);
+    triggerHaptic(10);
+  }
+
+  closeCreateProductModal(): void {
+    this.isCreateProductModalOpen.set(false);
+  }
+
+  scanBarcodeForNewProduct(): void {
+    this.closeCreateProductModal();
+    void this.openCameraScanner('new_product');
+  }
+
+  async saveNewProduct(): Promise<void> {
+    const desc = this.newProductDescription().trim();
+    if (!desc) {
+      this.notificationService.warning(
+        'Por favor ingresa el nombre o descripción del producto.',
+      );
+      return;
+    }
+
+    const price = Number(this.newProductPrice()) || 0;
+    if (price <= 0) {
+      this.notificationService.warning(
+        'El precio de venta debe ser mayor a RD$ 0.',
+      );
+      return;
+    }
+
+    const cost = Number(this.newProductCost()) || 0;
+    const stock = Number(this.newProductStock()) || 0;
+    const barcode = this.newProductBarcode().trim();
+    const categoryId = Number(this.newProductCategoryId()) || 1;
+
+    this.isSubmittingProduct.set(true);
+    try {
+      const payload: ProductDto = {
+        description: desc,
+        barcode: barcode || undefined,
+        price,
+        cost: cost > 0 ? cost : 0,
+        stock,
+        categoryId,
+        productTypeId: 1,
+        unitOfMeasurementId: 1,
+        invoiceWithoutStock: true,
+        allowFractional: false,
+        isOrganic: false,
+      };
+
+      const res = await this.productService.createProduct(payload);
+      const created = res?.data || (res as any);
+
+      this.notificationService.success(
+        `¡Producto "${desc}" registrado exitosamente con precio RD$ ${price.toLocaleString()}!`,
+      );
+      soundEffects.playKaChing();
+      triggerHapticSuccess();
+
+      await this.loadCatalog();
+
+      if (this.newProductAutoAddToCart()) {
+        const prodToAdd: ProductDto =
+          created && created.id
+            ? created
+            : {
+                ...payload,
+                id: (created as any)?.id || Math.floor(Date.now() / 1000),
+              };
+        this.addToCart(prodToAdd);
+        this.notificationService.info(`"${desc}" agregado al pedido de venta.`);
+      }
+
+      this.closeCreateProductModal();
+    } catch (err: any) {
+      this.notificationService.showApiError(err);
+    } finally {
+      this.isSubmittingProduct.set(false);
+    }
+  }
+
+  // =========================================================================
   // HARDWARE BARCODE SCANNER (PISTOLAS USB / BLUETOOTH / WIRELESS WEDGE)
   // =========================================================================
   @HostListener('window:keydown', ['$event'])
@@ -3203,6 +4135,16 @@ ${itemsList}
         this.lastHardwareKeyTime = 0;
 
         const found = this.findProductByCode(code);
+        if (this.scannerMode() === 'new_product') {
+          this.newProductBarcode.set(code);
+          this.closeCameraScanner();
+          this.isCreateProductModalOpen.set(true);
+          this.notificationService.success(`Código de barra asignado: ${code}`);
+          soundEffects.playScannerBeep();
+          triggerHapticSuccess();
+          return;
+        }
+
         if (found) {
           event.preventDefault();
           event.stopPropagation();
@@ -3420,7 +4362,21 @@ ${itemsList}
   // =========================================================================
   // ESCÁNER CONTINUO EN RÁFAGA CON CÁMARA (NATIVE BARCODE DETECTOR + ZXING FALLBACK)
   // =========================================================================
-  async openCameraScanner(): Promise<void> {
+  openStockEntryScanner(): void {
+    this.isStockEntryModalOpen.set(false);
+    void this.openCameraScanner('stock_entry');
+  }
+
+  setScannerMode(mode: 'pos' | 'stock_entry' | 'new_product'): void {
+    this.scannerMode.set(mode);
+    soundEffects.playBeep();
+    triggerHaptic(15);
+  }
+
+  async openCameraScanner(
+    mode: 'pos' | 'stock_entry' | 'new_product' = 'pos',
+  ): Promise<void> {
+    this.scannerMode.set(mode);
     if (
       typeof window !== 'undefined' &&
       !window.isSecureContext &&
@@ -3608,7 +4564,9 @@ ${itemsList}
       hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
       hints.set(DecodeHintType.TRY_HARDER, true);
 
-      this.zxingReader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 120 });
+      this.zxingReader = new BrowserMultiFormatReader(hints, {
+        delayBetweenScanAttempts: 120,
+      });
     }
     return this.zxingReader;
   }
@@ -3757,7 +4715,8 @@ ${itemsList}
                 (cleanDigits.length >= 4 &&
                   bDigits &&
                   (bDigits === cleanDigits ||
-                    bDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, '')))
+                    bDigits.replace(/^0+/, '') ===
+                      cleanDigits.replace(/^0+/, '')))
               );
             }) || searchRes.data[0];
 
@@ -3783,7 +4742,48 @@ ${itemsList}
       }
     }
 
+    if (this.scannerMode() === 'new_product') {
+      this.newProductBarcode.set(code);
+      this.closeCameraScanner();
+      this.isCreateProductModalOpen.set(true);
+      this.notificationService.success(`Código de barra asignado: ${code}`);
+      soundEffects.playScannerBeep();
+      triggerHapticSuccess();
+      return;
+    }
+
     if (found) {
+      if (this.scannerMode() === 'stock_entry') {
+        this.cameraBurstScannedCount.update((c) => c + 1);
+        this.cameraLastScannedItem.set({
+          name: found.description || 'Producto',
+          price: found.cost || found.price || 0,
+          time: new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }),
+        });
+
+        this.cameraScanFlash.set(true);
+        setTimeout(() => this.cameraScanFlash.set(false), 250);
+
+        soundEffects.playScannerBeep();
+        triggerHaptic(30);
+
+        this.stockEntryProductId.set(found.id ?? null);
+        if (found.cost) {
+          this.stockEntryCost.set(found.cost);
+        }
+        this.closeCameraScanner();
+        this.isStockEntryModalOpen.set(true);
+        const unitSym = this.getProductUnitSymbol(found);
+        this.notificationService.success(
+          `📦 "${found.description}" seleccionado para Entrada de Almacén (Existencia actual: ${found.stock || 0} ${unitSym})`,
+        );
+        return;
+      }
+
       this.addToCart(found);
       this.cameraBurstScannedCount.update((c) => c + 1);
       this.cameraLastScannedItem.set({
@@ -3804,15 +4804,36 @@ ${itemsList}
 
       if (!isFromCamera) {
         this.notificationService.success(
-          `Producto agregado: ${found.description}`,
+          `Producto agregado: ${found.description} (Precio Venta: RD$ ${(found.price || 0).toLocaleString()})`,
         );
       }
     } else {
       soundEffects.playErrorBeep();
       triggerHaptic([30, 40, 30]);
-      this.notificationService.warning(
-        `Código "${barcode}" no registrado en el catálogo de esta empresa.`,
-      );
+      void (this.barcodeLookupService as any)
+        .lookupUniversalProduct(barcode)
+        .then((meta: any) => {
+          if (meta) {
+            this.notificationService.info(
+              `✨ Identificado globalmente: "${meta.name}" (${meta.brand || 'General'}). Abriendo registro rápido...`,
+            );
+            this.closeCameraScanner();
+            this.openCreateProductModal(barcode, meta.name);
+          } else {
+            this.notificationService.warning(
+              `Código "${barcode}" no registrado en el catálogo. Abriendo registro rápido...`,
+            );
+            this.closeCameraScanner();
+            this.openCreateProductModal(barcode);
+          }
+        })
+        .catch(() => {
+          this.notificationService.warning(
+            `Código "${barcode}" no registrado en el catálogo. Abriendo registro rápido...`,
+          );
+          this.closeCameraScanner();
+          this.openCreateProductModal(barcode);
+        });
       if (!isFromCamera) {
         this.searchTerm.set(barcode);
         this.closeCameraScanner();

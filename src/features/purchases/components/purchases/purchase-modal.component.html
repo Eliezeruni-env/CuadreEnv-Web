@@ -160,7 +160,7 @@
           </div>
 
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="fw-bold text-dark mb-0">Detalle de Artículos de la Compra ({{ getPurchaseDetailRows().length }} ítems)</h6>
+            <div></div>
             <button
               type="button"
               class="btn btn-sm btn-outline-success fw-semibold d-flex align-items-center gap-1 shadow-xs"
@@ -168,31 +168,74 @@
             >
               📥 Recepcionar en Almacén
             </button>
+            <button
+              type="button"
+              class="btn btn-outline-primary fw-semibold d-flex align-items-center gap-2"
+              (click)="goToPayment()"
+            >
+              <span>💳 Registrar Pago / CXP</span>
+            </button>
           </div>
 
-          <div class="table-responsive border rounded-3 mb-3">
-            <table class="table table-hover align-middle mb-0 small">
-              <thead class="table-light text-secondary">
-                <tr>
-                  <th class="ps-3">Descripción del Producto</th>
-                  <th class="text-center" style="width: 120px;">Cantidad</th>
-                  <th class="text-end" style="width: 130px;">Costo Unit.</th>
-                  <th class="text-end pe-3" style="width: 140px;">Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (item of getPurchaseDetailRows(); track $index) {
-                  <tr>
-                    <td class="ps-3 fw-semibold text-dark">{{ item.description }}</td>
-                    <td class="text-center font-monospace fw-bold text-primary">{{ item.quantity }} uds</td>
-                    <td class="text-end font-monospace">RD$ {{ item.costPrice | number:'1.2-2' }}</td>
-                    <td class="text-end pe-3 font-monospace fw-bold text-dark">
-                      RD$ {{ (item.quantity * item.costPrice) | number:'1.2-2' }}
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+          <!-- Detalle de Artículos Comprados (Diseño Unificado Captura 3) -->
+          <div class="billing-detail-card mb-3" style="border-top-color: #0D6EFD;">
+            <div class="billing-detail-header">
+              <div class="d-flex align-items-center gap-2">
+                <div class="detail-header-icon" style="background: #EFF6FF; color: #1D4ED8;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                    <path d="M3 6h18"></path>
+                    <path d="M16 10a4 4 0 0 1-8 0"></path>
+                  </svg>
+                </div>
+                <span class="detail-header-title">Detalle de Artículos Comprados</span>
+                <span class="detail-items-count-badge">
+                  {{ getPurchaseDetailRows().length }} {{ getPurchaseDetailRows().length === 1 ? 'ítem' : 'ítems' }}
+                </span>
+              </div>
+
+              <div class="detail-summary-pills">
+                <span class="summary-pill total-pill">
+                  <span class="pill-label">Total Orden</span>
+                  <strong class="pill-value text-primary">RD$ {{ selectedPurchase.total | number:'1.2-2' }}</strong>
+                </span>
+              </div>
+            </div>
+
+            <div class="billing-detail-body">
+              <div class="table-responsive">
+                <table class="table billing-subtable mb-0 align-middle">
+                  <thead>
+                    <tr>
+                      <th class="ps-3" style="width: 130px;">CÓDIGO</th>
+                      <th>DESCRIPCIÓN</th>
+                      <th class="text-center" style="width: 90px;">CANT.</th>
+                      <th class="text-end" style="width: 130px;">COSTO UNIT.</th>
+                      <th class="text-end pe-3" style="width: 140px;">IMPORTE TOTAL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of getPurchaseDetailRows(); track $index) {
+                      <tr>
+                        <td class="ps-3">
+                          <span class="product-code-pill font-monospace">{{ item.productCode }}</span>
+                        </td>
+                        <td>
+                          <span class="product-name-text">{{ item.description }}</span>
+                        </td>
+                        <td class="text-center">
+                          <span class="quantity-badge font-monospace">{{ item.quantity }}</span>
+                        </td>
+                        <td class="text-end font-monospace text-muted">RD$ {{ item.costPrice | number:'1.2-2' }}</td>
+                        <td class="text-end pe-3 font-monospace fw-bold text-primary">
+                          RD$ {{ (item.quantity * item.costPrice) | number:'1.2-2' }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <div class="p-3 bg-light rounded-3 border d-flex justify-content-between align-items-center">

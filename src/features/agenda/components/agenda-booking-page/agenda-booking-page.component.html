@@ -1,0 +1,171 @@
+<div class="agenda-booking-page-container">
+  <!-- Top bar -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h2 class="page-title mb-0">Mi página de reservas</h2>
+        <span class="badge" [class.bg-success-subtle]="isPublished" [class.text-success]="isPublished" [class.bg-secondary]="!isPublished">
+          ● {{ isPublished ? 'Publicada' : 'Borrador' }}
+        </span>
+      </div>
+      <p class="text-muted mb-0">Personaliza y comparte el portal de tu negocio.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-secondary d-flex align-items-center gap-1" (click)="openPublicPage()">
+        <i class="cil-external-link"></i>
+        <span>Vista previa</span>
+      </button>
+      <button class="btn btn-primary d-flex align-items-center gap-1" (click)="saveSettings()" [disabled]="isSaving()">
+        <i class="cil-save"></i>
+        <span>{{ isSaving() ? 'Guardando...' : 'Guardar cambios' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Share Banner -->
+  <div class="share-banner-card mb-4">
+    <div class="row align-items-center g-3">
+      <div class="col-12 col-md-7">
+        <h5 class="fw-bold mb-1"><i class="cil-link text-primary me-2"></i>Comparte tu página de reservas</h5>
+        <p class="text-muted small mb-3">Este es el enlace público de tu negocio. Compártelo con tus clientes para que reserven sus citas.</p>
+
+        <div class="input-group mb-2">
+          <input type="text" class="form-control bg-light" [value]="publicBookingUrl" readonly />
+          <button class="btn btn-outline-secondary" type="button" (click)="copyLink()" title="Copiar enlace">
+            <i class="cil-copy"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-5 d-flex align-items-center justify-content-md-end gap-3 flex-wrap">
+        <div class="qr-box p-2 bg-white rounded border shadow-sm text-center">
+          <!-- Rendered QR code via SVG / Canvas -->
+          <div class="qr-placeholder d-flex align-items-center justify-content-center">
+            <i class="cil-qr-code" style="font-size: 3rem; color: #111827;"></i>
+          </div>
+        </div>
+
+        <div class="d-flex flex-column gap-2">
+          <button class="btn btn-sm btn-outline-success d-flex align-items-center gap-1" (click)="shareWhatsApp()">
+            <i class="cil-speech"></i> Compartir por WhatsApp
+          </button>
+          <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" (click)="openPublicPage()">
+            <i class="cil-external-link"></i> Abrir página
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 Columns: Identity Form & Live Preview -->
+  <div class="row g-4">
+    <!-- Form settings -->
+    <div class="col-12 col-xl-7">
+      <div class="settings-card p-4">
+        <h5 class="fw-bold mb-4">Identidad y marca</h5>
+
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-semibold small">Nombre del negocio *</label>
+            <input type="text" class="form-control" [(ngModel)]="businessName" />
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-semibold small">Slug (URL) *</label>
+            <input type="text" class="form-control" [(ngModel)]="vanitySlug" />
+            <small class="text-muted">Tu enlace será: cuadreenv.app/reservas/{{ vanitySlug }}</small>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-semibold small">Color de marca</label>
+            <div class="d-flex align-items-center gap-2">
+              <input type="color" class="form-control form-control-color" [(ngModel)]="brandColorHex" />
+              <input type="text" class="form-control" [(ngModel)]="brandColorHex" />
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-semibold small">WhatsApp de contacto</label>
+            <input type="tel" class="form-control" [(ngModel)]="contactWhatsApp" placeholder="8095550100" />
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Descripción del negocio</label>
+          <textarea class="form-control" rows="3" [(ngModel)]="businessDescription" maxlength="200"></textarea>
+          <div class="text-end small text-muted">{{ businessDescription.length }} / 200</div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold small">Dirección física</label>
+          <input type="text" class="form-control" [(ngModel)]="address" />
+        </div>
+
+        <hr class="my-4" />
+
+        <div class="d-flex flex-column gap-3">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="publishedSwitch" [(ngModel)]="isPublished" />
+            <label class="form-check-label fw-semibold" for="publishedSwitch">Reservas públicas activas</label>
+            <p class="text-muted small mb-0">Permite que cualquier cliente reserve desde tu página web.</p>
+          </div>
+
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="confirmationSwitch" [(ngModel)]="requireManualConfirmation" />
+            <label class="form-check-label fw-semibold" for="confirmationSwitch">Confirmación manual</label>
+            <p class="text-muted small mb-0">Tú revisas y confirmas cada reserva antes de aceptarla.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Preview Card -->
+    <div class="col-12 col-xl-5">
+      <div class="preview-wrapper">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fw-bold small text-muted">Vista previa (página pública)</span>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" [class.active]="previewDevice() === 'desktop'" (click)="previewDevice.set('desktop')">
+              <i class="cil-laptop"></i>
+            </button>
+            <button class="btn btn-outline-secondary" [class.active]="previewDevice() === 'mobile'" (click)="previewDevice.set('mobile')">
+              <i class="cil-mobile"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Phone / Card Frame -->
+        <div class="preview-frame" [class.mobile-view]="previewDevice() === 'mobile'">
+          <div class="preview-header" [style.background-color]="brandColorHex">
+            <div class="preview-brand-title text-white fw-bold">{{ businessName }}</div>
+          </div>
+
+          <div class="preview-hero text-white p-3" [style.background-color]="brandColorHex">
+            <h5 class="fw-bold mb-1">Reserva tu cita</h5>
+            <p class="small opacity-75 mb-2">{{ businessDescription }}</p>
+            <small class="opacity-75"><i class="cil-location-pin me-1"></i>{{ address }}</small>
+          </div>
+
+          <div class="preview-content p-3">
+            <h6 class="fw-bold mb-2">Selecciona un servicio</h6>
+            <div class="d-flex flex-column gap-2">
+              @for (svc of services().slice(0, 3); track svc.id) {
+                <div class="preview-service-item d-flex justify-content-between align-items-center p-2 rounded border bg-white">
+                  <div>
+                    <div class="fw-semibold small text-dark">{{ svc.productName }}</div>
+                    <small class="text-muted"><i class="cil-clock"></i> {{ svc.durationMinutes }} min</small>
+                  </div>
+                  <div class="fw-bold text-dark small">
+                    RD${{ svc.price | number:'1.0-0' }} &rsaquo;
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

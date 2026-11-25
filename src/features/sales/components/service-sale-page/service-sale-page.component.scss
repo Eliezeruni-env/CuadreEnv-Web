@@ -3,6 +3,184 @@
   margin: 0 auto;
 }
 
-.font-size-xs {
-  font-size: 0.75rem;
+.page-title {
+  font-size: 26px;
+  letter-spacing: -0.02em;
+}
+
+.btn-navy {
+  background-color: #1E293B;
+  color: #FFFFFF;
+  border: 1px solid #1E293B;
+  border-radius: 9px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #0F172A;
+    border-color: #0F172A;
+    color: #FFFFFF;
+  }
+
+  &:disabled {
+    background-color: #94A3B8;
+    border-color: #94A3B8;
+    color: #FFFFFF;
+    opacity: 0.7;
+  }
+}
+
+.payment-toggle-btn {
+  padding: 8px 12px;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 9px;
+  background: #FFFFFF;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #475569;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #F8FAFC;
+    border-color: #94A3B8;
+  }
+
+  &.active-cash {
+    border-color: #22C55E;
+    background-color: #F0FDF4;
+    color: #15803D;
+  }
+
+  &.active-credit {
+    border-color: #3B82F6;
+    background-color: #EFF6FF;
+    color: #1D4ED8;
+  }
+}
+
+.service-notice-badge {
+  background: #EFF6FF;
+  border: 1px solid #DBEAFE;
+  color: #1D4ED8;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.input-stepper-group {
+  border-color: #CBD5E1;
+
+  .stepper-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    background: #F1F5F9;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.12s ease;
+
+    &:hover {
+      background: #E2E8F0;
+      color: #0F172A;
+    }
+  }
+
+  .stepper-val {
+    font-size: 14px;
+    color: #0F172A;
+  }
+}
+
+.table-stepper-box {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+
+  .stepper-mini-btn {
+    border: none;
+    background: transparent;
+    color: #64748B;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+    line-height: 1;
+
+    &:hover {
+      color: #0F172A;
+    }
+  }
+
+  .stepper-mini-val {
+    font-size: 13px;
+    min-width: 24px;
+    text-align: center;
+  }
+}
+
+.service-items-table {
+  thead {
+    background-color: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+
+    th {
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748B;
+      letter-spacing: 0.04em;
+      padding: 10px 14px;
+      border-bottom: 1px solid #E2E8F0;
+    }
+  }
+
+  tbody {
+    tr {
+      td {
+        padding: 12px 14px;
+        font-size: 13.5px;
+        border-bottom: 1px solid #F1F5F9;
+      }
+
+      &:last-child td {
+        border-bottom: none;
+      }
+    }
+  }
+}
+
+.btn-trash-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s ease;
+
+  &:hover {
+    background: #FEF2F2;
+  }
+}
+
+.total-cobrar-banner {
+  background: #DCFCE7;
+  border: 1px solid #BBF7D0;
+  color: #15803D;
+
+  .total-label {
+    font-size: 15px;
+  }
+
+  .total-value {
+    font-size: 20px;
+    letter-spacing: -0.01em;
+  }
+}
+
+.modalidad-cobro-pill {
+  border-color: #E2E8F0;
+}
+
+.shadow-2xs {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }

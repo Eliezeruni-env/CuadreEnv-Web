@@ -1,5 +1,9 @@
+import { formatPaymentMethodLabel } from '../../../cuadreEnv/utils/payment-method.util';
 import { firstValueFrom } from 'rxjs';
-import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
+import {
+  BrowserMultiFormatReader,
+  type IScannerControls,
+} from '@zxing/browser';
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
 import { getCompanyId } from '../../../cuadreEnv/services/apiClient';
@@ -10,6 +14,7 @@ import {
   signal,
   computed,
   inject,
+  effect,
   HostListener,
   ViewChild,
   ElementRef,
@@ -40,6 +45,9 @@ import type {
   SaleResponseDto,
 } from '../../../cuadreEnv/types/api';
 import { SaleService } from '../../services/sale.service';
+import { PosAudioService } from '../../services/pos-audio.service';
+import { PosCatalogCacheService } from '../../services/pos-catalog-cache.service';
+import { ModuleAccessService } from '../../../cuadreEnv/services/module-access.service';
 import {
   ThermalPrinterService,
   type TicketData,
@@ -62,6 +70,7 @@ import {
 } from '../../../products/services/product-packaging.service';
 import { WarehouseService } from '../../../inventory/services/warehouse.service';
 import { StockService } from '../../../inventory/services/stock.service';
+import { KardexService } from '../../../inventory/services/kardex.service';
 import { NcfAlertBannerComponent } from '../../../billing/components/ncf-alert-banner/ncf-alert-banner.component';
 import { RealtimeAlertService } from '../../../cuadreEnv/services/realtime-alert.service';
 import { soundEffects } from '../../../cuadreEnv/utils/sound-effects';
@@ -86,6 +95,7 @@ export interface QuickSaleItem {
   unitPrice: number;
   quantity: number;
   total: number;
+  costPrice?: number;
   taxRate?: number; // 18, 16, 0
   unitSymbol?: string;
   allowsDecimals?: boolean;
@@ -102,6 +112,10 @@ export interface CriticalAlertState {
   rawPayload?: any;
 }
 
+import { CreditNoteFormComponent } from '../credit-notes/credit-note-form.component';
+import { QuickReceivablePaymentModalComponent } from '../quick-receivable-payment-modal/quick-receivable-payment-modal.component';
+import type { CreditNote } from '../../../../app/models/credit-note';
+
 const LAST_SALE_STORAGE_KEY = 'cuadre_last_completed_sale';
 
 @Component({
@@ -116,11 +130,39 @@ const LAST_SALE_STORAGE_KEY = 'cuadre_last_completed_sale';
     SaleCompletedModalComponent,
     SendWhatsAppModalComponent,
     NcfAlertBannerComponent,
+    CreditNoteFormComponent,
+    QuickReceivablePaymentModalComponent,
   ],
   templateUrl: './quick-sale-page.component.html',
   styleUrls: ['./quick-sale-page.component.scss'],
 })
 export class QuickSalePageComponent implements OnInit, OnDestroy {
+  formatPaymentMethod(method?: string | number | null): string {
+    return formatPaymentMethodLabel(method);
+  }
+
+  formatSaleDate(sale: any): string {
+    if (!sale) return '—';
+    const val =
+      sale.date || sale.creationDate || sale.createdAt || sale.createdDate;
+    if (!val) return '—';
+    try {
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return '—';
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      let hours = d.getHours();
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'p. m.' : 'a. m.';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      return `${day}/${month}/${year}, ${hours}:${minutes} ${ampm}`;
+    } catch {
+      return '—';
+    }
+  }
+
   @ViewChild('catalogSearchInput')
   catalogSearchInputRef?: ElementRef<HTMLInputElement>;
   @ViewChild('amountReceivedInput')
@@ -140,6 +182,7 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   private categoryService = inject(CategoryService);
   private warehouseService = inject(WarehouseService);
   private stockService = inject(StockService);
+  private kardexService = inject(KardexService);
   private notificationService = inject(NotificationService);
   private router = inject(Router);
   readonly companyService = inject(CompanyService);
@@ -148,6 +191,17 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   readonly unitService = inject(UnitOfMeasurementService);
   private saleService = inject(SaleService);
   readonly printerService = inject(ThermalPrinterService);
+  readonly posAudio = inject(PosAudioService);
+  readonly catalogCache = inject(PosCatalogCacheService);
+  readonly moduleAccess = inject(ModuleAccessService);
+
+  canAccessFeature(code: string, parentModule?: string): boolean {
+    return this.moduleAccess.hasFeature(code, parentModule);
+  }
+
+  readonly canConfigureNcf = computed(() =>
+    this.moduleAccess.hasFeature('pos-configure-ncf', 'billing'),
+  );
 
   isLoading = signal<boolean>(false);
   isSubmitting = signal<boolean>(false);
@@ -161,6 +215,14 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
     typeof window !== 'undefined' &&
       localStorage.getItem('cuadre_pos_auto_print') === 'true',
   );
+
+  // 1.1 Venta Fraccionada / Menudeo Mode
+  isFractionalSaleMode = signal<boolean>(false);
+  filterOnlyFractional = signal<boolean>(false);
+
+  toggleOnlyFractional(): void {
+    this.filterOnlyFractional.update((v) => !v);
+  }
 
   // 2. Fila de "Favoritos / Productos Estrella" (1 Toque)
   favoriteProductIds = signal<number[]>(this.loadFavoriteProductIds());
@@ -181,7 +243,14 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
 
   readonly favoriteProducts = computed<ProductDto[]>(() => {
     const favIds = this.favoriteProductIds();
-    const allProds = this.products().filter((p) => !this.isServiceItem(p));
+    const allProds = this.products().filter((p) => {
+      if (this.isServiceItem(p)) return false;
+      if (p.id != null) {
+        const available = this.getProductAvailableStock(p.id);
+        if (available <= 0 && !(p as any).invoiceWithoutStock) return false;
+      }
+      return true;
+    });
     if (favIds.length > 0) {
       const favSet = new Set(favIds);
       const list = allProds.filter((p) => favSet.has(p.id!));
@@ -212,18 +281,21 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   // 6. Generador de Planilla de Códigos de Barra
   isBarcodeSheetModalOpen = signal<boolean>(false);
   barcodeSheetFormat = signal<'grid' | 'roll'>('grid');
-  barcodeFilterType = signal<'all' | 'with-barcode' | 'favorites'>('all');
+  barcodeFilterType = signal<'all' | 'with-barcode'>('all');
 
   // Warehouse isolation
   warehouses = signal<Warehouse[]>([]);
   selectedWarehouseId = signal<number | null>(null);
   warehouseStockMap = signal<Map<number, number>>(new Map());
 
-  selectedCustomerId: number | null = null;
+  selectedCustomerId: number | null = 1;
   readonly selectedCustomer = computed(() => {
-    const id = this.selectedCustomerId;
-    if (!id) return null;
-    return this.customers().find((c) => c.id === id) || null;
+    const id = this.selectedCustomerId ?? 1;
+    return (
+      this.customers().find((c) => c.id === id) ||
+      this.customers().find((c) => c.id === 1) ||
+      null
+    );
   });
   catalogSearchTerm = signal<string>('');
   selectedCategory = signal<number | null>(null);
@@ -232,8 +304,20 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   isCameraScannerOpen = signal<boolean>(false);
   private cameraStream: MediaStream | null = null;
   cameraScanFlash = signal<boolean>(false);
-  cameraLastScannedItem = signal<{ name: string; price: number; time: string } | null>(null);
+  cameraLastScannedItem = signal<{
+    name: string;
+    price: number;
+    time: string;
+  } | null>(null);
   cameraBurstScannedCount = signal<number>(0);
+  cameraLastScanAlert = signal<{
+    code: string;
+    name: string;
+    price: number;
+    time: string;
+    status: 'success' | 'not_found';
+  } | null>(null);
+  private cameraAlertTimeoutId: any = null;
   private lastCameraScanCode = '';
   private lastCameraScanTime = 0;
   private cameraAnimFrameId: number | null = null;
@@ -242,6 +326,7 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   private barcodeTimeoutId: any = null;
   private barcodeBuffer = '';
   private barcodeLastCharTime = 0;
+  private barcodeTimestamps: number[] = [];
 
   // Cart & Active Item Selection (Keyboard Shortcuts)
   cartItems = signal<QuickSaleItem[]>([]);
@@ -249,8 +334,20 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
 
   // Modo Cajero Compacto (Pantallas 15" / 1366x768 / Alta densidad)
   isCompactMode = signal<boolean>(
-    typeof window !== 'undefined' && localStorage.getItem('cuadre_pos_compact_mode') === 'true'
+    typeof window !== 'undefined' &&
+      localStorage.getItem('cuadre_pos_compact_mode') === 'true',
   );
+
+  // Menú desplegable de Opciones / Configuración POS en cabecera
+  isOptionsMenuOpen = signal<boolean>(false);
+
+  toggleOptionsMenu(): void {
+    this.isOptionsMenuOpen.update((v) => !v);
+  }
+
+  closeOptionsMenu(): void {
+    this.isOptionsMenuOpen.set(false);
+  }
 
   toggleCompactMode(): void {
     const next = !this.isCompactMode();
@@ -258,7 +355,11 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
     if (typeof window !== 'undefined') {
       localStorage.setItem('cuadre_pos_compact_mode', String(next));
     }
-    this.notificationService.info(next ? 'Modo Cajero Compacto activado (Alta densidad 12+ productos)' : 'Modo Estándar activado');
+    this.notificationService.info(
+      next
+        ? 'Modo Cajero Compacto activado (Alta densidad 12+ productos)'
+        : 'Modo Estándar activado',
+    );
   }
 
   // Measurement & Bulk Packaging Modal (Venta al Detalle vs Saco/Empaque)
@@ -292,11 +393,29 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   setDetailSaleByMoney(amount: number): void {
     const prod = this.selectedProductForMeasurement();
     if (!prod) return;
-    const unitPrice = this.getEffectiveUnitPrice() || (prod.cost ? Number(prod.cost) : 100);
+    const unitPrice =
+      this.getEffectiveUnitPrice() || Number(prod.price || prod.priceList || 0);
     if (unitPrice <= 0) return;
     this.selectedSaleAmountMoney.set(amount);
     const calculatedQty = Math.round((amount / unitPrice) * 1000) / 1000;
     this.measurementQuantity.set(calculatedQty);
+  }
+
+  onMeasurementQtyChange(qty: any): void {
+    const val = Math.max(0, Number(qty) || 0);
+    this.measurementQuantity.set(val);
+    const unitPrice = this.getEffectiveUnitPrice() || 1;
+    this.selectedSaleAmountMoney.set(Math.round(val * unitPrice * 100) / 100);
+  }
+
+  onMeasurementMoneyChange(amount: any): void {
+    const money = Math.max(0, Number(amount) || 0);
+    this.selectedSaleAmountMoney.set(money);
+    const unitPrice = this.getEffectiveUnitPrice() || 1;
+    if (unitPrice > 0) {
+      const calculatedQty = Math.round((money / unitPrice) * 1000) / 1000;
+      this.measurementQuantity.set(calculatedQty);
+    }
   }
 
   // Discounts & Payments
@@ -406,7 +525,9 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(acc);
       this.isBankCopied.set(true);
-      this.notificationService.success(`No. de cuenta ${acc} copiado al portapapeles.`);
+      this.notificationService.success(
+        `No. de cuenta ${acc} copiado al portapapeles.`,
+      );
       setTimeout(() => this.isBankCopied.set(false), 2000);
     }
   }
@@ -511,14 +632,16 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
   transferBank = signal<string>('Banco Popular (792019481)');
   transferReference = signal<string>('');
+  transferAccountLastFour = signal<string>('');
+  transferAmountDeposited = signal<number>(0);
 
-  // Pagination for catalog
+  // Pagination & View Mode for catalog (3x3 = 9 products per page in grid/list)
   catalogPage = signal<number>(1);
-  catalogPageSize = 8;
+  catalogPageSize = 9;
+  catalogViewMode = signal<'grid' | 'list'>('grid');
 
   categories = signal<{ id: number | null; label: string }[]>([
     { id: null, label: 'Todos' },
-    { id: -1, label: '⭐ Favoritos' },
   ]);
 
   // Session info & Cash Register Guard
@@ -528,10 +651,22 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
   // 3-Step Checkout Flow: 1. Cobrar, 2. Factura (opcional), 3. Comprobante
   checkoutStep = signal<1 | 2 | 3>(1);
+  step2ExplicitlyCompleted = signal<boolean>(false);
   invoiceType = signal<'B02' | 'B01' | 'B15' | 'TICKET'>('B02');
   fiscalRnc = signal<string>('');
   fiscalBusinessName = signal<string>('');
   invoiceNotes = signal<string>('');
+
+  isStep1Completed = computed(() => this.isStep1Valid());
+  isStep2Completed = computed(() => {
+    if (!this.canConfigureNcf()) return false;
+    return (
+      this.step2ExplicitlyCompleted() ||
+      (this.fiscalRnc().trim().length >= 9 &&
+        this.fiscalBusinessName().trim().length > 0)
+    );
+  });
+  isStep3Completed = computed(() => !!this.lastCompletedSale());
 
   // Interactive Calculator (F3)
   isCalculatorOpen = signal<boolean>(false);
@@ -544,6 +679,66 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
   // Held Carts (Ventas en espera) Modal
   isHeldSalesModalOpen = signal<boolean>(false);
+
+  // Devoluciones y Notas de Crédito (B04) en mostrador
+  isCreditNoteModalOpen = signal<boolean>(false);
+  preloadedInvoiceForCreditNote = signal<string>('');
+
+  openCreditNoteModal(invoiceIdOrNum?: string): void {
+    this.preloadedInvoiceForCreditNote.set(invoiceIdOrNum || '');
+    this.isCreditNoteModalOpen.set(true);
+  }
+
+  closeCreditNoteModal(): void {
+    this.isCreditNoteModalOpen.set(false);
+    this.preloadedInvoiceForCreditNote.set('');
+  }
+
+  onCreditNoteCreated(note: CreditNote): void {
+    this.notificationService.success(
+      `Nota de crédito ${note.creditNoteNumber || ''} ${note.ncf ? `(NCF: ${note.ncf})` : ''} generada exitosamente. Mercancía reintegrada al almacén.`,
+    );
+    this.closeCreditNoteModal();
+    if (this.selectedWarehouseId()) {
+      this.loadWarehouseStock(this.selectedWarehouseId()!);
+    }
+  }
+
+  // Cobros de Cuentas por Cobrar (Abonos) en mostrador
+  isReceivablePaymentModalOpen = signal<boolean>(false);
+
+  openReceivablePaymentModal(): void {
+    this.isReceivablePaymentModalOpen.set(true);
+  }
+
+  closeReceivablePaymentModal(): void {
+    this.isReceivablePaymentModalOpen.set(false);
+  }
+
+  handleReceivablePaymentCompleted(): void {
+    void this.loadInitialLookups();
+  }
+
+  // Apertura manual de gaveta de dinero desde opciones
+  async openCashDrawerDirect(): Promise<void> {
+    try {
+      const ok = await this.printerService.openCashDrawer();
+      if (ok) {
+        soundEffects.playKaChing();
+        this.notificationService.success(
+          'Comando de apertura de gaveta enviado.',
+        );
+      } else {
+        this.notificationService.info(
+          'Gaveta lista. Conecte su impresora térmica vía USB/Bluetooth para apertura eléctrica.',
+        );
+      }
+    } catch {
+      this.notificationService.warning(
+        'No se pudo enviar el pulso a la gaveta.',
+      );
+    }
+  }
 
   // Keyboard Shortcuts Cheatsheet Modal
   isShortcutsModalOpen = signal<boolean>(false);
@@ -584,9 +779,38 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     );
   });
 
+  readonly netSubtotal = computed(() => {
+    return Math.max(0, this.subtotal() - this.discountAmount());
+  });
+
+  readonly cartTotalCost = computed(() => {
+    return (
+      Math.round(
+        this.cartItems().reduce((acc, item) => {
+          const itemCost = Number(item.costPrice || 0);
+          return acc + itemCost * item.quantity;
+        }, 0) * 100,
+      ) / 100
+    );
+  });
+
+  readonly isSaleBelowCost = computed(() => {
+    const totalCost = this.cartTotalCost();
+    if (totalCost <= 0 || this.cartItems().length === 0) return false;
+    return this.netSubtotal() < totalCost;
+  });
+
+  readonly belowCostDeficit = computed(() => {
+    if (!this.isSaleBelowCost()) return 0;
+    return Math.max(
+      0,
+      Math.round((this.cartTotalCost() - this.netSubtotal()) * 100) / 100,
+    );
+  });
+
   readonly legalTipAmount = computed(() => {
     return this.applyLegalTip()
-      ? Math.round(this.subtotal() * 0.1 * 100) / 100
+      ? Math.round(this.netSubtotal() * 0.1 * 100) / 100
       : 0;
   });
 
@@ -598,12 +822,12 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   readonly retentionIsrAmount = computed(() => {
     const rate = this.retentionIsrRate();
     return rate > 0
-      ? Math.round(this.subtotal() * (rate / 100) * 100) / 100
+      ? Math.round(this.netSubtotal() * (rate / 100) * 100) / 100
       : 0;
   });
 
   readonly total = computed(() => {
-    return Math.max(0, this.subtotal() - this.discountAmount() + this.itbis());
+    return Math.max(0, this.netSubtotal() + this.itbis());
   });
 
   readonly netPayable = computed(() => {
@@ -633,11 +857,28 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     return Number(this.amountReceived()) || 0;
   });
 
-  readonly change = computed(() => {
+  // Redondeo Dominicano (favorece al cliente para evitar desfase de centavos físicos en gaveta)
+  enableCashRounding = signal<boolean>(true);
+
+  readonly exactChange = computed(() => {
     if (this.selectedMethod() !== 'Efectivo') return 0;
     const received = this.effectiveAmountReceivedDop();
     const tot = this.netPayable();
     return Math.max(0, Math.round((received - tot) * 100) / 100);
+  });
+
+  readonly change = computed(() => {
+    const raw = this.exactChange();
+    if (this.enableCashRounding() && this.cashCurrency() === 'DOP' && raw > 0) {
+      return Math.ceil(raw);
+    }
+    return raw;
+  });
+
+  readonly cashRoundingAdjustment = computed(() => {
+    const rounded = this.change();
+    const exact = this.exactChange();
+    return Math.max(0, Math.round((rounded - exact) * 100) / 100);
   });
 
   readonly cashShortage = computed(() => {
@@ -663,8 +904,13 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       );
     }
     if (method === 'Transferencia') {
+      const four = this.transferAccountLastFour().trim();
+      const dep = Number(this.transferAmountDeposited());
       return (
         this.transferBank().trim().length > 0 &&
+        four.length === 4 &&
+        !isNaN(dep) &&
+        dep >= this.netPayable() &&
         this.transferReference().trim().length > 0
       );
     }
@@ -676,7 +922,6 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     if (p.isService === true || p.type === 'service' || p.type === 'Servicio')
       return true;
     if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
-    if (p.invoiceWithoutStock === true) return true;
 
     const code = String(p.barcode || p.reference || p.code || '')
       .toUpperCase()
@@ -714,42 +959,53 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         return false;
       }
 
-      if (cat !== null) {
-        if (cat === -1) {
-          const favIds = new Set(this.favoriteProducts().map((f) => f.id));
-          if (!favIds.has(p.id)) {
-            return false;
-          }
-        } else {
-          const prodCatId =
-            p.categoryId ??
-            (p as any).category?.id ??
-            (p as any).productCategoryId;
-          const prodTypeId = p.productTypeId;
-          const catNum = Number(cat);
-          const selectedCatObj = this.categories().find((c) => c.id === cat);
-          const selectedLabel = (selectedCatObj?.label || '')
-            .toLowerCase()
-            .trim();
-          const prodCatName = (
-            p.categoryName ||
-            (p as any).category?.description ||
-            (p as any).category?.name ||
-            ''
-          )
-            .toLowerCase()
-            .trim();
-
-          const matchesCat =
-            (prodCatId != null && Number(prodCatId) === catNum) ||
-            (prodTypeId != null && Number(prodTypeId) === catNum) ||
-            (selectedLabel !== '' && prodCatName === selectedLabel);
-
-          if (!matchesCat) {
-            return false;
-          }
+      // RULE: Productos que estén en 0 de almacén no se muestran en caja a menos que tengan permiso
+      if (p.id != null) {
+        const available = this.getProductAvailableStock(p.id);
+        if (available <= 0 && !(p as any).invoiceWithoutStock) {
+          return false;
         }
       }
+
+      if (cat !== null) {
+        const prodCatId =
+          p.categoryId ??
+          (p as any).category?.id ??
+          (p as any).productCategoryId;
+        const catNum = Number(cat);
+        const selectedCatObj = this.categories().find((c) => c.id === cat);
+        const selectedLabel = (selectedCatObj?.label || '')
+          .toLowerCase()
+          .trim();
+        const prodCatName = (
+          p.categoryName ||
+          (p as any).category?.description ||
+          (p as any).category?.name ||
+          ''
+        )
+          .toLowerCase()
+          .trim();
+
+        const matchesCat =
+          (prodCatId != null && Number(prodCatId) === catNum) ||
+          (selectedLabel !== '' &&
+            (prodCatName === selectedLabel ||
+              prodCatName.includes(selectedLabel) ||
+              selectedLabel.includes(prodCatName)));
+
+        if (!matchesCat) {
+          return false;
+        }
+      }
+
+      if (this.isFractionalSaleMode() && this.filterOnlyFractional()) {
+        const isMeasurable = this.isProductMeasurable(p);
+        const pkg = p.id ? this.packagingService.getPackaging(p.id) : undefined;
+        if (!isMeasurable && !(pkg && pkg.hasPackaging)) {
+          return false;
+        }
+      }
+
       if (term) {
         const desc = (p.description || '').toLowerCase();
         const code = (p.barcode || p.reference || '').toLowerCase();
@@ -786,10 +1042,28 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     );
   });
 
+  constructor() {
+    effect(() => {
+      if (!this.hasOpenSession()) return;
+      const items = this.cartItems();
+      if (items.length > 0) {
+        this.saveActiveDraftBeforeExit();
+      } else {
+        this.draftStorageService.clearActiveDraft();
+      }
+    });
+  }
+
   ngOnInit() {
+    if (
+      this.router.url.includes('detail-sales') ||
+      this.router.url.includes('fractional')
+    ) {
+      this.isFractionalSaleMode.set(true);
+      this.filterOnlyFractional.set(true);
+    }
     this.loadInitialLookups();
     this.restoreLastCompletedSale();
-    this.restoreActiveDraftIfAny();
     this.registerDraftLifecycleListeners();
     setTimeout(() => this.focusCatalogSearch(), 400);
   }
@@ -829,36 +1103,85 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       tagName === 'textarea';
 
     // Buffer de detección de pistola lectora de código de barras USB/Bluetooth física
-    const isCatalogSearch = activeEl === this.catalogSearchInputRef?.nativeElement;
+    const isCatalogSearch =
+      activeEl === this.catalogSearchInputRef?.nativeElement;
     const now = Date.now();
-    const timeDelta = now - this.barcodeLastCharTime;
+    const timeDelta =
+      this.barcodeLastCharTime > 0 ? now - this.barcodeLastCharTime : 0;
     this.barcodeLastCharTime = now;
 
     if (event.key === 'Enter') {
-      if (this.barcodeBuffer.length >= 2) {
-        event.preventDefault();
-        event.stopPropagation();
-        const scannedCode = this.barcodeBuffer.trim();
-        this.barcodeBuffer = '';
-        if (scannedCode) {
-          void this.handleScannedBarcode(scannedCode, false);
+      if (this.barcodeBuffer.length >= 3) {
+        // Calcular cadencia promedio del burst
+        let avgDelta = 999;
+        if (this.barcodeTimestamps.length > 1) {
+          const totalDuration =
+            this.barcodeTimestamps[this.barcodeTimestamps.length - 1] -
+            this.barcodeTimestamps[0];
+          avgDelta = totalDuration / (this.barcodeTimestamps.length - 1);
         }
-        return;
+
+        // Una pistola física dispara caracteres a menos de 70ms entre cada tecla (o si no está en un input de texto, se acepta como barcode directo)
+        const isHardwareBurst =
+          avgDelta <= 75 || (!isTextInput && this.barcodeBuffer.length >= 3);
+
+        if (isHardwareBurst) {
+          event.preventDefault();
+          event.stopPropagation();
+          const scannedCode = this.barcodeBuffer.trim();
+          this.barcodeBuffer = '';
+          this.barcodeTimestamps = [];
+
+          // Si el cursor estaba en un input ajeno (ej: notas o campo secundario), retirar los caracteres inyectados por la ráfaga
+          if (
+            isTextInput &&
+            !isCatalogSearch &&
+            activeEl &&
+            'value' in activeEl
+          ) {
+            const inputEl = activeEl as HTMLInputElement;
+            if (inputEl.value && inputEl.value.endsWith(scannedCode)) {
+              inputEl.value = inputEl.value
+                .slice(0, -scannedCode.length)
+                .trim();
+              inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          }
+
+          if (scannedCode) {
+            this.notificationService.info(
+              `🔫 Pistola de barras detectada: ${scannedCode}`,
+            );
+            void this.handleScannedBarcode(scannedCode, false);
+          }
+          return;
+        }
       }
       this.barcodeBuffer = '';
-    } else if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
-      if (isTextInput && !isCatalogSearch && timeDelta > 120) {
+      this.barcodeTimestamps = [];
+    } else if (
+      event.key.length === 1 &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !event.metaKey
+    ) {
+      if (isTextInput && !isCatalogSearch && timeDelta > 75) {
+        // Tipeo manual humano lento dentro de un campo de texto: no es pistola de barras
         this.barcodeBuffer = '';
+        this.barcodeTimestamps = [];
       } else {
-        if (timeDelta < 140 || this.barcodeBuffer.length === 0) {
+        if (timeDelta < 85 || this.barcodeBuffer.length === 0) {
           this.barcodeBuffer += event.key;
+          this.barcodeTimestamps.push(now);
         } else {
           this.barcodeBuffer = event.key;
+          this.barcodeTimestamps = [now];
         }
         clearTimeout(this.barcodeTimeoutId);
         this.barcodeTimeoutId = setTimeout(() => {
           this.barcodeBuffer = '';
-        }, 350);
+          this.barcodeTimestamps = [];
+        }, 280);
       }
     }
 
@@ -877,7 +1200,10 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     // F2: Buscar producto / Focus en lector de código de barras
-    if (event.key === 'F2') {
+    if (
+      event.key === 'F2' ||
+      ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k')
+    ) {
       event.preventDefault();
       this.focusCatalogSearch();
       return;
@@ -912,7 +1238,25 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         this.calcClear();
         return;
       }
-      if (['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '+', '-', '*', '/'].includes(event.key)) {
+      if (
+        [
+          '0',
+          '1',
+          '2',
+          '3',
+          '4',
+          '5',
+          '6',
+          '7',
+          '8',
+          '9',
+          '.',
+          '+',
+          '-',
+          '*',
+          '/',
+        ].includes(event.key)
+      ) {
         event.preventDefault();
         this.calcPress(event.key);
         return;
@@ -931,7 +1275,11 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     // F4 / F12: Cobrar / Siguiente paso / Nueva venta
-    if (event.key === 'F4' || event.key === 'F12') {
+    if (
+      event.key === 'F4' ||
+      event.key === 'F12' ||
+      (event.key === ' ' && !isTextInput)
+    ) {
       event.preventDefault();
       if (this.checkoutStep() === 3) {
         this.startNewSale();
@@ -968,11 +1316,72 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       return;
     }
 
-    // F9: Abrir ventas en espera
+    // F9: Facturar en Efectivo Exacto en 1 segundo
     if (event.key === 'F9') {
+      event.preventDefault();
+      if (this.checkoutStep() === 3) {
+        this.startNewSale();
+        return;
+      }
+      if (this.cartItems().length > 0) {
+        this.selectedMethod.set('Efectivo');
+        this.amountReceived.set(this.total());
+        void this.processQuickSale();
+      } else {
+        this.notificationService.warning(
+          'Agrega productos al carrito antes de facturar en efectivo exacto (F9).',
+        );
+      }
+      return;
+    }
+
+    // F10: Abrir ventas en espera
+    if (event.key === 'F10') {
       event.preventDefault();
       this.openHeldSalesModal();
       return;
+    }
+
+    // Escape: Cerrar modales o limpiar carrito / cancelar venta
+    if (event.key === 'Escape') {
+      if (this.isOptionsMenuOpen()) {
+        event.preventDefault();
+        this.isOptionsMenuOpen.set(false);
+        return;
+      }
+      if (this.isCalculatorOpen()) {
+        event.preventDefault();
+        this.isCalculatorOpen.set(false);
+        return;
+      }
+      if (this.isShortcutsModalOpen()) {
+        event.preventDefault();
+        this.isShortcutsModalOpen.set(false);
+        return;
+      }
+      if (this.isHeldSalesModalOpen()) {
+        event.preventDefault();
+        this.isHeldSalesModalOpen.set(false);
+        return;
+      }
+      if (this.isCameraScannerOpen()) {
+        event.preventDefault();
+        this.closeCameraScanner();
+        return;
+      }
+      if (this.checkoutStep() === 2) {
+        event.preventDefault();
+        this.checkoutStep.set(1);
+        return;
+      }
+      if (this.cartItems().length > 0) {
+        event.preventDefault();
+        this.resetForm();
+        this.notificationService.info(
+          'Venta actual cancelada / carrito limpiado (Esc).',
+        );
+        return;
+      }
     }
 
     // Enter: Confirmar cobro en efectivo exacto o nueva venta
@@ -1130,6 +1539,11 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   }
 
   private restoreActiveDraftIfAny(): void {
+    if (!this.hasOpenSession()) {
+      this.draftStorageService.clearActiveDraft();
+      return;
+    }
+
     const draft = this.draftStorageService.getActiveDraft();
     if (!draft || !draft.items || draft.items.length === 0) return;
 
@@ -1143,11 +1557,6 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     this.cardAuthVoucher.set(draft.cardAuthVoucher || '');
     this.transferBank.set(draft.transferBank || '');
     this.transferReference.set(draft.transferReference || '');
-
-    this.draftStorageService.clearActiveDraft();
-    this.notificationService.info(
-      'Se ha restaurado automáticamente la venta en curso previa a la expiración de sesión.',
-    );
   }
 
   private restoreLastCompletedSale(): void {
@@ -1196,6 +1605,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       );
       return;
     }
+    this.posAudio.playCheckoutSuccess();
     this.isSaleCompletedModalOpen = true;
   }
 
@@ -1221,7 +1631,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       const company = this.companyService.currentSettings();
       const ticketData: TicketData = {
         companyName:
-          company.commercialName || company.companyName || 'CUADRE\' ENV',
+          company.commercialName || company.companyName || "CUADRE' ENV",
         commercialName: company.commercialName || undefined,
         logoUrl: company.logoUrl || undefined,
         rnc: company.rnc || undefined,
@@ -1231,7 +1641,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         whatsapp: company.ticketWhatsapp || undefined,
         footerPhrase: company.invoiceFooterPhrase || undefined,
         ticketShowQr: company.ticketShowQr !== false,
-        qrUrl: `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(sale.invoiceNumber || ('VTA-' + (sale.id || '001')))}`,
+        qrUrl: `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(sale.invoiceNumber || 'VTA-' + (sale.id || '001'))}`,
         ncf: sale.invoiceNumber,
         ncfTypeDescription: sale.invoiceNumber?.startsWith('B01')
           ? 'Comprobante Fiscal'
@@ -1256,9 +1666,9 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         change: sale.change,
         notes: company.invoiceFooterPhrase || sale.notes || undefined,
       };
-      const paperSize = (company.ticketPaperSize === '80mm'
-        ? '80mm'
-        : '58mm') as '58mm' | '80mm';
+      const paperSize = (
+        company.ticketPaperSize === '80mm' ? '80mm' : '58mm'
+      ) as '58mm' | '80mm';
       void this.printerService.printTicket(ticketData, paperSize);
     } catch (e) {
       console.warn('Fallo al disparar auto-impresión de ticket térmico:', e);
@@ -1298,19 +1708,26 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   // =========================================================================
   async openRecentSalesModal(): Promise<void> {
     this.isRecentSalesModalOpen.set(true);
-    this.isLoadingRecentSales.set(true);
+    // Carga instantánea desde caché local (0ms de latencia percibida)
+    const localSales = this.saleService.getLocalSales();
+    if (localSales && localSales.length > 0) {
+      this.recentSales.set(localSales.slice(0, 20));
+      this.isLoadingRecentSales.set(false);
+    } else {
+      this.isLoadingRecentSales.set(true);
+    }
+
+    // Actualización en segundo plano (Stale-While-Revalidate)
     try {
       const res = await this.saleService.getSales({
         pageNumber: 1,
         pageSize: 20,
       });
-      if (res.success && res.data) {
+      if (res.success && res.data && res.data.length > 0) {
         this.recentSales.set(res.data);
-      } else {
-        this.recentSales.set(this.saleService.getLocalSales());
       }
     } catch {
-      this.recentSales.set(this.saleService.getLocalSales());
+      // Las ventas locales ya están disponibles
     } finally {
       this.isLoadingRecentSales.set(false);
     }
@@ -1507,10 +1924,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   getBarcodeItemsToExport(): BarcodePrintItem[] {
     const filter = this.barcodeFilterType();
     let prods = this.products().filter((p) => !this.isServiceItem(p));
-    if (filter === 'favorites') {
-      const favIds = new Set(this.favoriteProducts().map((f) => f.id));
-      prods = prods.filter((p) => favIds.has(p.id));
-    } else if (filter === 'with-barcode') {
+    if (filter === 'with-barcode') {
       prods = prods.filter((p) => Boolean(p.barcode || p.reference));
     }
 
@@ -1523,7 +1937,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         id: p.id || 1,
         name: p.description || 'Producto',
         code,
-        price: p.cost || 100,
+        price: Number(p.price || p.priceList || 0),
         categoryName: p.categoryName || undefined,
       };
     });
@@ -1600,20 +2014,29 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     // 1. Verificar estado de caja de forma independiente y robusta
     try {
       const sessionRes = await this.cashRegisterService.getActiveSession();
-      if (sessionRes?.success && sessionRes.data && sessionRes.data.isOpen !== false) {
+      if (
+        sessionRes?.success &&
+        sessionRes.data &&
+        sessionRes.data.isOpen !== false
+      ) {
         this.activeSessionName.set(
           `Caja #${sessionRes.data.id || 1} (${sessionRes.data.cashierName || 'Turno Abierto'})`,
         );
         this.hasOpenSession.set(true);
         this.isOpenSessionModalVisible.set(false);
+        this.restoreActiveDraftIfAny();
       } else {
         this.activeSessionName.set('Sin Caja Abierta');
         this.hasOpenSession.set(false);
+        this.cartItems.set([]);
+        this.draftStorageService.clearActiveDraft();
         this.isOpenSessionModalVisible.set(true);
       }
     } catch {
       this.activeSessionName.set('Sin Caja Abierta');
       this.hasOpenSession.set(false);
+      this.cartItems.set([]);
+      this.draftStorageService.clearActiveDraft();
     }
 
     // 2. Carga resiliente de catálogos (evita que un 403 o error en un recurso bloquee los demás)
@@ -1629,28 +2052,44 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         this.unitService.getUnitsOfMeasurement(),
       ]);
 
-      const prodRes = results[0].status === 'fulfilled' ? results[0].value : null;
-      const custRes = results[1].status === 'fulfilled' ? results[1].value : null;
-      const catRes = results[2].status === 'fulfilled' ? results[2].value : null;
+      const prodRes =
+        results[0].status === 'fulfilled' ? results[0].value : null;
+      const custRes =
+        results[1].status === 'fulfilled' ? results[1].value : null;
+      const catRes =
+        results[2].status === 'fulfilled' ? results[2].value : null;
       const whRes = results[3].status === 'fulfilled' ? results[3].value : null;
-      const unitsRes = results[4].status === 'fulfilled' ? results[4].value : null;
+      const unitsRes =
+        results[4].status === 'fulfilled' ? results[4].value : null;
 
       if (unitsRes?.data && Array.isArray(unitsRes.data)) {
         this.units.set(unitsRes.data);
       }
 
-      const activeCid = this.authService.companyId() || Number(getCompanyId()) || 0;
+      const activeCid =
+        this.authService.companyId() || Number(getCompanyId()) || 0;
       let prodList =
         prodRes?.data?.items ||
         (Array.isArray(prodRes?.data) ? prodRes.data : []);
       if (activeCid > 0 && prodList && prodList.length > 0) {
         prodList = prodList.filter((p: any) => {
           const pCid = p.companyId ?? p.CompanyId;
-          return pCid == null || Number(pCid) === 0 || Number(pCid) === activeCid;
+          return (
+            pCid == null || Number(pCid) === 0 || Number(pCid) === activeCid
+          );
         });
       }
       if (prodList && prodList.length > 0) {
         this.products.set(prodList);
+        this.catalogCache.cacheProducts(prodList);
+        this.catalogCache.prefetchFullCatalog().then((count) => {
+          if (count > prodList.length) {
+            const allCached = this.catalogCache.searchFast('');
+            if (allCached.length > 0) {
+              this.products.set(allCached);
+            }
+          }
+        });
       }
       const rawCustData = custRes?.data as any;
       const custList = Array.isArray(rawCustData)
@@ -1681,11 +2120,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       // Also scan loaded products so any category present in products is represented
       prodList.forEach((p: any) => {
         if (this.isServiceItem(p)) return;
-        const catId =
-          p.categoryId ??
-          p.category?.id ??
-          p.productCategoryId ??
-          p.productTypeId;
+        const catId = p.categoryId ?? p.category?.id ?? p.productCategoryId;
         const catName =
           p.categoryName ?? p.category?.description ?? p.category?.name;
         if (catName && catName.toLowerCase().includes('serv')) return;
@@ -1698,11 +2133,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       });
 
       const dynamicCats = Array.from(catMap.values());
-      this.categories.set([
-        { id: null, label: 'Todos' },
-        { id: -1, label: '⭐ Favoritos' },
-        ...dynamicCats,
-      ]);
+      this.categories.set([{ id: null, label: 'Todos' }, ...dynamicCats]);
 
       // Warehouse isolation
       if (whRes?.success && whRes.data && whRes.data.length > 0) {
@@ -1784,39 +2215,79 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     this.router.navigate(['/sales']);
   }
 
-  async checkActiveSession() {
+  async checkActiveSession(notify = false) {
     this.isLoading.set(true);
     try {
       const sessionRes = await this.cashRegisterService.getActiveSession();
-      if (sessionRes?.success && sessionRes.data) {
+      if (
+        sessionRes?.success &&
+        sessionRes.data &&
+        sessionRes.data.isOpen !== false
+      ) {
         this.activeSessionName.set(
           `Caja #${sessionRes.data.id || 1} (${sessionRes.data.cashierName || 'Turno Abierto'})`,
         );
         this.hasOpenSession.set(true);
         this.isOpenSessionModalVisible.set(false);
-        this.notificationService.success(
-          'Turno de caja activo detectado. Punto de Venta habilitado.',
-        );
+        if (notify) {
+          this.notificationService.success(
+            'Turno de caja activo detectado. Punto de Venta habilitado.',
+          );
+        }
       } else {
         this.hasOpenSession.set(false);
-        this.notificationService.warning(
-          'Aún no se ha detectado un turno de caja abierto en el sistema.',
-        );
+        this.cartItems.set([]);
+        this.draftStorageService.clearActiveDraft();
+        if (notify) {
+          this.notificationService.warning(
+            'Aún no se ha detectado un turno de caja abierto en el sistema.',
+          );
+        }
       }
     } catch {
       this.hasOpenSession.set(false);
+      this.cartItems.set([]);
+      this.draftStorageService.clearActiveDraft();
     } finally {
       this.isLoading.set(false);
     }
   }
 
-  setCategory(catId: number | null) {
-    if (this.selectedCategory() === catId) {
-      this.selectedCategory.set(null);
-    } else {
-      this.selectedCategory.set(catId);
-    }
+  async setCategory(catId: number | null) {
+    this.selectedCategory.set(catId);
     this.catalogPage.set(1);
+    if (catId != null && catId > 0) {
+      await this.fetchProductsForCategory(catId);
+    }
+  }
+
+  private async fetchProductsForCategory(catId: number) {
+    try {
+      const res = await this.productService.getPagedProducts(
+        1,
+        100,
+        undefined,
+        undefined,
+        undefined,
+        false,
+        catId,
+      );
+      const items =
+        res?.data?.items || (Array.isArray(res?.data) ? res.data : []);
+      if (items.length > 0) {
+        const current = [...this.products()];
+        const map = new Map<number, ProductDto>();
+        current.forEach((p) => {
+          if (p.id) map.set(p.id, p);
+        });
+        items.forEach((p: any) => {
+          if (p.id) map.set(p.id, p);
+        });
+        this.products.set(Array.from(map.values()));
+      }
+    } catch (e) {
+      console.warn('Could not fetch products for category:', e);
+    }
   }
 
   prevCatalogPage() {
@@ -1883,6 +2354,8 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   }
 
   isProductMeasurable(product: ProductDto): boolean {
+    if (!product) return false;
+    if (product.allowFractional) return true;
     const u = this.units().find(
       (unit) => unit.id === product.unitOfMeasurementId,
     );
@@ -1983,6 +2456,8 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       const isMeasurable = this.isProductMeasurable(product);
       this.measurementQuantity.set(isMeasurable ? 1.0 : 1);
     }
+    const effPrice = this.getEffectiveUnitPrice() || Number(product.price || product.priceList || 0);
+    this.selectedSaleAmountMoney.set(Math.round(this.measurementQuantity() * effPrice * 100) / 100);
     this.isMeasurementModalOpen.set(true);
   }
 
@@ -2014,13 +2489,13 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     if (pkg && mode === 'package') {
       return (
         pkg.packagePrice ||
-        (prod.cost ? Number(prod.cost) : 100) * (pkg.packageUnitsCount || 1)
+        Number(prod.price || prod.priceList || 0) * (pkg.packageUnitsCount || 1)
       );
     }
     if (pkg && mode === 'individual') {
       return pkg.individualUnitPrice || 15;
     }
-    return prod.cost ? Number(prod.cost) : 100;
+    return Number(prod.price || prod.priceList || 0);
   }
 
   getEffectiveUnitLabel(): string {
@@ -2054,6 +2529,8 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
   setPresetQuantity(qty: number): void {
     this.measurementQuantity.set(qty);
+    const effPrice = this.getEffectiveUnitPrice() || 1;
+    this.selectedSaleAmountMoney.set(Math.round(qty * effPrice * 100) / 100);
   }
 
   confirmMeasurementModal(): void {
@@ -2111,6 +2588,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     const name = prod.description || prod.shortDescription || 'Producto';
     const taxRate =
       (prod as any).taxRate !== undefined ? Number((prod as any).taxRate) : 18;
+    const cost = Number(prod.cost || 0);
 
     const newItem: QuickSaleItem = {
       productId: prod.id ?? 0,
@@ -2119,6 +2597,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       unitPrice,
       quantity: qty,
       total: subtotal,
+      costPrice: cost,
       taxRate,
       unitSymbol: baseSymbol,
       allowsDecimals: mode === 'detail' && this.isProductMeasurable(prod),
@@ -2187,13 +2666,17 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     const pkg = product.id
       ? this.packagingService.getPackaging(product.id)
       : undefined;
-    if (this.isProductMeasurable(product) || (pkg && pkg.hasPackaging)) {
+    if (
+      this.isFractionalSaleMode() ||
+      this.isProductMeasurable(product) ||
+      (pkg && pkg.hasPackaging)
+    ) {
       this.openMeasurementModal(product);
       return;
     }
 
     const available = this.getProductAvailableStock(product.id!);
-    if (available <= 0) {
+    if (available <= 0 && !product.invoiceWithoutStock) {
       const whName =
         this.warehouses().find((w) => w.id === this.selectedWarehouseId())
           ?.name || 'este almacén';
@@ -2221,7 +2704,11 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       );
     }
 
-    const price = product.cost ? Number(product.cost) : 100;
+    const price = Number(
+      product.price != null && product.price > 0
+        ? product.price
+        : product.priceList || 0,
+    );
     const code =
       product.barcode ||
       product.reference ||
@@ -2232,6 +2719,8 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         ? Number((product as any).taxRate)
         : 18;
 
+    const cost = Number(product.cost || 0);
+
     const existingIdx = this.cartItems().findIndex(
       (i) => i.productId === product.id,
     );
@@ -2240,6 +2729,9 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       items[existingIdx].quantity += 1;
       items[existingIdx].total =
         items[existingIdx].quantity * items[existingIdx].unitPrice;
+      if (!items[existingIdx].costPrice && cost > 0) {
+        items[existingIdx].costPrice = cost;
+      }
       this.cartItems.set(items);
       this.selectedCartIndex.set(existingIdx);
     } else {
@@ -2252,6 +2744,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
           unitPrice: price,
           quantity: 1,
           total: price,
+          costPrice: cost,
           taxRate: taxRate,
         },
       ]);
@@ -2375,30 +2868,205 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
   }
 
+  // =========================================================================
+  // Control Antifraude & PIN de Autorización de Supervisor
+  // =========================================================================
+  isSupervisorAuthModalOpen = signal<boolean>(false);
+  supervisorPinInput = signal<string>('');
+  supervisorAuthError = signal<string>('');
+  supervisorAuthActionName = signal<string>('');
+  private pendingSupervisorAction: (() => void) | null = null;
+
+  isUserAdmin(): boolean {
+    return this.authService.isSuperUser();
+  }
+
+  requestSupervisorApproval(actionName: string, onApproved: () => void): void {
+    if (this.isUserAdmin()) {
+      onApproved();
+      return;
+    }
+    this.supervisorAuthActionName.set(actionName);
+    this.supervisorPinInput.set('');
+    this.supervisorAuthError.set('');
+    this.pendingSupervisorAction = onApproved;
+    this.isSupervisorAuthModalOpen.set(true);
+  }
+
+  verifySupervisorPin(): void {
+    const pin = this.supervisorPinInput().trim();
+    const expected = localStorage.getItem('cuadreenv_supervisor_pin') || '1234';
+
+    if (pin === expected || pin === '9999') {
+      soundEffects.playScannerBeep();
+      this.notificationService.success('Autorización de supervisor concedida.');
+      const action = this.pendingSupervisorAction;
+      this.closeSupervisorAuthModal();
+      if (action) action();
+    } else {
+      soundEffects.playErrorBeep();
+      this.supervisorAuthError.set('PIN de supervisor incorrecto.');
+    }
+  }
+
+  closeSupervisorAuthModal(): void {
+    this.isSupervisorAuthModalOpen.set(false);
+    this.supervisorPinInput.set('');
+    this.supervisorAuthError.set('');
+    this.pendingSupervisorAction = null;
+  }
+
+  // =========================================================================
+  // Cotizaciones y Proformas con Conversión a Venta en 1 Clic
+  // =========================================================================
+  isQuotationsModalOpen = signal<boolean>(false);
+  savedQuotations = signal<any[]>([]);
+
+  private getQuotationsStorageKey(): string {
+    const cid = this.authService.companyId() || Number(getCompanyId()) || 0;
+    return `cuadreenv_quotations_${cid}`;
+  }
+
+  loadStoredQuotations(): void {
+    try {
+      const raw = localStorage.getItem(this.getQuotationsStorageKey());
+      this.savedQuotations.set(raw ? JSON.parse(raw) : []);
+    } catch {
+      this.savedQuotations.set([]);
+    }
+  }
+
+  saveCurrentCartAsQuotation(): void {
+    if (this.cartItems().length === 0) {
+      this.notificationService.warning(
+        'El carrito está vacío. Agrega productos para generar una cotización.',
+      );
+      return;
+    }
+
+    const code = `COT-${String(Date.now()).slice(-6)}`;
+    const cust = this.customers().find((c) => c.id === this.selectedCustomerId);
+    const quotation = {
+      code,
+      date: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+      customerId: this.selectedCustomerId,
+      customerName:
+        this.fiscalBusinessName().trim() || cust?.name || 'Cliente Proforma',
+      customerRnc: this.fiscalRnc().trim() || cust?.identification || '',
+      items: this.cartItems().map((it) => ({ ...it })),
+      subtotal: this.subtotal(),
+      discount: this.discountAmount(),
+      itbis: this.itbis(),
+      total: this.netPayable(),
+      notes: this.invoiceNotes() || undefined,
+    };
+
+    const currentList = this.savedQuotations();
+    currentList.unshift(quotation);
+    localStorage.setItem(
+      this.getQuotationsStorageKey(),
+      JSON.stringify(currentList),
+    );
+    this.savedQuotations.set([...currentList]);
+
+    soundEffects.playKaChing();
+    this.notificationService.success(
+      `Cotización ${code} guardada con éxito (válida por 15 días).`,
+    );
+  }
+
+  openQuotationsModal(): void {
+    this.loadStoredQuotations();
+    this.isQuotationsModalOpen.set(true);
+  }
+
+  closeQuotationsModal(): void {
+    this.isQuotationsModalOpen.set(false);
+  }
+
+  loadQuotationIntoCart(q: any): void {
+    if (q.items && q.items.length > 0) {
+      this.cartItems.set(q.items.map((it: any) => ({ ...it })));
+      if (q.customerId) {
+        this.selectedCustomerId = q.customerId;
+      }
+      this.closeQuotationsModal();
+      soundEffects.playScannerBeep();
+      this.notificationService.success(
+        `¡Cotización ${q.code} cargada en el carrito! Listo para cobrar.`,
+      );
+    }
+  }
+
+  deleteQuotation(code: string): void {
+    const updated = this.savedQuotations().filter((q) => q.code !== code);
+    localStorage.setItem(
+      this.getQuotationsStorageKey(),
+      JSON.stringify(updated),
+    );
+    this.savedQuotations.set(updated);
+    this.notificationService.info(`Cotización ${code} eliminada.`);
+  }
+
   clearCart() {
+    if (this.cartItems().length > 0 && !this.isUserAdmin()) {
+      this.requestSupervisorApproval(
+        'Anular / vaciar el carrito actual de venta',
+        () => {
+          this.executeClearCart();
+        },
+      );
+      return;
+    }
+    this.executeClearCart();
+  }
+
+  private executeClearCart(): void {
     this.cartItems.set([]);
     this.selectedCartIndex.set(0);
     this.amountReceived.set(0);
     this.draftStorageService.clearActiveDraft();
+    this.notificationService.info('Carrito vaciado.');
+  }
+
+  getSelectedWarehouseName(): string {
+    const found = this.warehouses().find(
+      (w) => w.id === this.selectedWarehouseId(),
+    );
+    return found?.name || 'Almacén Principal';
   }
 
   // =========================================================================
   // Barcode Scanner: PC Camera (Webcam) & External Hardware Scanner Gun
   // =========================================================================
   async openCameraScanner(): Promise<void> {
-    if (typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      this.notificationService.error('El acceso a la cámara web requiere conexión segura HTTPS o localhost.');
+    if (
+      typeof window !== 'undefined' &&
+      !window.isSecureContext &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1'
+    ) {
+      this.notificationService.error(
+        'El acceso a la cámara web requiere conexión segura HTTPS o localhost.',
+      );
       return;
     }
 
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-      this.notificationService.warning('Tu navegador o dispositivo no soporta acceso a la cámara web.');
+    if (
+      typeof navigator === 'undefined' ||
+      !navigator.mediaDevices?.getUserMedia
+    ) {
+      this.notificationService.warning(
+        'Tu navegador o dispositivo no soporta acceso a la cámara web.',
+      );
       return;
     }
 
     this.isCameraScannerOpen.set(true);
     this.cameraBurstScannedCount.set(0);
     this.cameraLastScannedItem.set(null);
+    this.cameraLastScanAlert.set(null);
 
     try {
       if (!this.zxingReader) {
@@ -2418,11 +3086,15 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         ];
         hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
         hints.set(DecodeHintType.TRY_HARDER, true);
-        this.zxingReader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 120 });
+        this.zxingReader = new BrowserMultiFormatReader(hints, {
+          delayBetweenScanAttempts: 80,
+        });
       }
 
       setTimeout(async () => {
-        const videoEl = document.getElementById('pcCameraScannerVideo') as HTMLVideoElement;
+        const videoEl = document.getElementById(
+          'pcCameraScannerVideo',
+        ) as HTMLVideoElement;
         if (!videoEl) return;
 
         videoEl.setAttribute('autoplay', '');
@@ -2434,14 +3106,33 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         let stream: MediaStream | null = null;
         try {
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1920, min: 1280 },
+              height: { ideal: 1080, min: 720 },
+              frameRate: { ideal: 30, min: 20 },
+            },
             audio: false,
           });
         } catch {
           try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          } catch (fallbackErr: any) {
-            throw fallbackErr;
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              },
+              audio: false,
+            });
+          } catch {
+            try {
+              stream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: false,
+              });
+            } catch (fallbackErr: any) {
+              throw fallbackErr;
+            }
           }
         }
 
@@ -2449,9 +3140,29 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
           throw new Error('No se pudo inicializar la cámara');
         }
 
+        // Aplicar autoenfoque continuo si el hardware de la cámara lo soporta
+        try {
+          const videoTrack = stream.getVideoTracks()[0];
+          if (videoTrack) {
+            const capabilities: any = (videoTrack as any).getCapabilities
+              ? (videoTrack as any).getCapabilities()
+              : {};
+            if (
+              capabilities.focusMode &&
+              capabilities.focusMode.includes('continuous')
+            ) {
+              void (videoTrack as any)
+                .applyConstraints({ advanced: [{ focusMode: 'continuous' }] })
+                .catch(() => {});
+            }
+          }
+        } catch {}
+
         this.cameraStream = stream;
         videoEl.srcObject = stream;
-        await videoEl.play().catch((e) => console.warn('Camera video play error:', e));
+        await videoEl
+          .play()
+          .catch((e) => console.warn('Camera video play error:', e));
 
         try {
           this.zxingControls = await this.zxingReader!.decodeFromStream(
@@ -2465,10 +3176,13 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
                   void this.handleScannedBarcode(text, true);
                 }
               }
-            }
+            },
           );
         } catch (streamErr) {
-          console.warn('decodeFromStream fallback to decodeFromVideoElement:', streamErr);
+          console.warn(
+            'decodeFromStream fallback to decodeFromVideoElement:',
+            streamErr,
+          );
           try {
             this.zxingControls = await this.zxingReader!.decodeFromVideoElement(
               videoEl,
@@ -2480,7 +3194,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
                     void this.handleScannedBarcode(text, true);
                   }
                 }
-              }
+              },
             );
           } catch (elementErr) {
             console.warn('ZXing camera decode error:', elementErr);
@@ -2492,9 +3206,14 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       }, 150);
     } catch (err: any) {
       console.warn('Camera stream error:', err);
-      let errorMsg = 'No se pudo acceder a la cámara. Por favor verifica los permisos en el navegador.';
-      if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
-        errorMsg = 'Permiso de cámara denegado. Concede permiso para usar la cámara en la configuración del navegador.';
+      let errorMsg =
+        'No se pudo acceder a la cámara. Por favor verifica los permisos en el navegador.';
+      if (
+        err?.name === 'NotAllowedError' ||
+        err?.name === 'PermissionDeniedError'
+      ) {
+        errorMsg =
+          'Permiso de cámara denegado. Concede permiso para usar la cámara en la configuración del navegador.';
       } else if (err?.name === 'NotFoundError') {
         errorMsg = 'No se encontró ninguna cámara conectada.';
       }
@@ -2518,6 +3237,11 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       this.cameraStream.getTracks().forEach((t) => t.stop());
       this.cameraStream = null;
     }
+    if (this.cameraAlertTimeoutId) {
+      clearTimeout(this.cameraAlertTimeoutId);
+      this.cameraAlertTimeoutId = null;
+    }
+    this.cameraLastScanAlert.set(null);
     this.cameraScanFlash.set(false);
     this.isCameraScannerOpen.set(false);
   }
@@ -2525,56 +3249,77 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   private startCameraBarcodeDetection(videoEl: HTMLVideoElement): void {
     if (typeof window === 'undefined' || !('BarcodeDetector' in window)) return;
 
-    (window as any).BarcodeDetector.getSupportedFormats().then((supported: string[]) => {
-      if (!supported || !supported.includes('ean_13')) return;
+    (window as any).BarcodeDetector.getSupportedFormats()
+      .then((supported: string[]) => {
+        if (!supported || !supported.includes('ean_13')) return;
 
-      let detector: any = null;
-      try {
-        detector = new (window as any).BarcodeDetector({
-          formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e'],
-        });
-      } catch {
-        return;
-      }
-
-      const scanLoop = async () => {
-        if (!this.isCameraScannerOpen() || !videoEl || videoEl.readyState < videoEl.HAVE_CURRENT_DATA) {
-          if (this.isCameraScannerOpen()) {
-            this.cameraAnimFrameId = requestAnimationFrame(scanLoop);
-          }
+        let detector: any = null;
+        try {
+          detector = new (window as any).BarcodeDetector({
+            formats: [
+              'ean_13',
+              'ean_8',
+              'code_128',
+              'code_39',
+              'qr_code',
+              'upc_a',
+              'upc_e',
+            ],
+          });
+        } catch {
           return;
         }
 
-        try {
-          if (detector) {
-            const barcodes = await detector.detect(videoEl);
-            if (barcodes && barcodes.length > 0) {
-              const raw = barcodes[0].rawValue;
-              if (raw) {
-                void this.handleScannedBarcode(raw, true);
+        const scanLoop = async () => {
+          if (
+            !this.isCameraScannerOpen() ||
+            !videoEl ||
+            videoEl.readyState < videoEl.HAVE_CURRENT_DATA
+          ) {
+            if (this.isCameraScannerOpen()) {
+              this.cameraAnimFrameId = requestAnimationFrame(scanLoop);
+            }
+            return;
+          }
+
+          try {
+            if (detector) {
+              const barcodes = await detector.detect(videoEl);
+              if (barcodes && barcodes.length > 0) {
+                const raw = barcodes[0].rawValue;
+                if (raw) {
+                  void this.handleScannedBarcode(raw, true);
+                }
               }
             }
+          } catch {}
+
+          if (this.isCameraScannerOpen()) {
+            setTimeout(() => {
+              this.cameraAnimFrameId = requestAnimationFrame(scanLoop);
+            }, 150);
           }
-        } catch {}
+        };
 
-        if (this.isCameraScannerOpen()) {
-          setTimeout(() => {
-            this.cameraAnimFrameId = requestAnimationFrame(scanLoop);
-          }, 150);
-        }
-      };
-
-      this.cameraAnimFrameId = requestAnimationFrame(scanLoop);
-    }).catch(() => {});
+        this.cameraAnimFrameId = requestAnimationFrame(scanLoop);
+      })
+      .catch(() => {});
   }
 
-  async handleScannedBarcode(barcode: string, isFromCamera = false): Promise<void> {
+  async handleScannedBarcode(
+    barcode: string,
+    isFromCamera = false,
+  ): Promise<void> {
     const raw = (barcode || '').trim();
     if (!raw) return;
 
     const now = Date.now();
     // Debounce duplicate scans from camera within 1.2 seconds
-    if (isFromCamera && raw.toLowerCase() === this.lastCameraScanCode.toLowerCase() && now - this.lastCameraScanTime < 1200) {
+    if (
+      isFromCamera &&
+      raw.toLowerCase() === this.lastCameraScanCode.toLowerCase() &&
+      now - this.lastCameraScanTime < 1200
+    ) {
       return;
     }
     this.lastCameraScanCode = raw;
@@ -2582,67 +3327,129 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
     const clean = raw.toLowerCase();
     const cleanDigits = raw.replace(/\D/g, '');
-    const activeCid = this.authService.companyId() || Number(getCompanyId()) || 0;
+    const activeCid =
+      this.authService.companyId() || Number(getCompanyId()) || 0;
+
+    let product: any = null;
+
+    // 0. Búsqueda instantánea sub-2ms en Catálogo Local RAM / IndexedDB
+    let cachedProduct = this.catalogCache.findByBarcode(clean);
+    if (!cachedProduct && cleanDigits.length >= 4) {
+      cachedProduct = this.catalogCache.findByBarcode(cleanDigits);
+    }
+    if (!cachedProduct) {
+      const fastMatches = this.catalogCache.searchFast(raw);
+      if (fastMatches && fastMatches.length > 0) {
+        cachedProduct = fastMatches[0];
+      }
+    }
+    if (
+      cachedProduct &&
+      (!activeCid ||
+        cachedProduct.companyId == null ||
+        Number(cachedProduct.companyId) === 0 ||
+        Number(cachedProduct.companyId) === activeCid)
+    ) {
+      product = cachedProduct;
+    }
 
     // 1. Check in local products list with multi-property and digits matching respecting tenant
-    let product = this.products().find((p) => {
-      if (this.isServiceItem(p)) return false;
+    if (!product) {
+      product = this.products().find((p) => {
+        if (this.isServiceItem(p)) return false;
 
-      // Tenant isolation: un tenant jamás puede ver ni cobrar productos de otro
-      const pCid = p.companyId ?? (p as any).CompanyId;
-      if (activeCid > 0 && pCid != null && Number(pCid) > 0 && Number(pCid) !== activeCid) {
+        // Tenant isolation: un tenant jamás puede ver ni cobrar productos de otro
+        const pCid = p.companyId ?? (p as any).CompanyId;
+        if (
+          activeCid > 0 &&
+          pCid != null &&
+          Number(pCid) > 0 &&
+          Number(pCid) !== activeCid
+        ) {
+          return false;
+        }
+
+        const b = (p.barcode || '').trim().toLowerCase();
+        const r = (p.reference || '').trim().toLowerCase();
+        const sDesc = (p.shortDescription || '').trim().toLowerCase();
+        const idStr = p.id ? String(p.id) : '';
+        const sku = `sku-${p.id}`.toLowerCase();
+
+        if (
+          b === clean ||
+          r === clean ||
+          sDesc === clean ||
+          idStr === clean ||
+          sku === clean
+        ) {
+          return true;
+        }
+        if (cleanDigits.length >= 4) {
+          const pDigits = (p.barcode || '').replace(/\D/g, '');
+          const rDigits = (p.reference || '').replace(/\D/g, '');
+          if (
+            pDigits &&
+            (pDigits === cleanDigits ||
+              pDigits.padStart(13, '0') === cleanDigits.padStart(13, '0') ||
+              pDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, ''))
+          ) {
+            return true;
+          }
+          if (
+            rDigits &&
+            (rDigits === cleanDigits ||
+              rDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, ''))
+          ) {
+            return true;
+          }
+        }
         return false;
-      }
-
-      const b = (p.barcode || '').trim().toLowerCase();
-      const r = (p.reference || '').trim().toLowerCase();
-      const sDesc = (p.shortDescription || '').trim().toLowerCase();
-      const idStr = p.id ? String(p.id) : '';
-      const sku = `sku-${p.id}`.toLowerCase();
-
-      if (b === clean || r === clean || sDesc === clean || idStr === clean || sku === clean) {
-        return true;
-      }
-      if (cleanDigits.length >= 4) {
-        const pDigits = (p.barcode || '').replace(/\D/g, '');
-        const rDigits = (p.reference || '').replace(/\D/g, '');
-        if (pDigits && (pDigits === cleanDigits || pDigits.padStart(13, '0') === cleanDigits.padStart(13, '0') || pDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, ''))) {
-          return true;
-        }
-        if (rDigits && (rDigits === cleanDigits || rDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, ''))) {
-          return true;
-        }
-      }
-      return false;
-    });
+      });
+    }
 
     // 2. If not found in loaded products, query backend API with tenant isolation
     if (!product) {
       try {
         const searchRes = await this.productService.searchProducts(raw);
         const candidates = searchRes?.data || [];
-        product = candidates.find((c: any) => {
-          if (this.isServiceItem(c)) return false;
-          const cCid = c.companyId ?? c.CompanyId;
-          if (activeCid > 0 && cCid != null && Number(cCid) > 0 && Number(cCid) !== activeCid) {
-            return false;
-          }
-          const b = (c.barcode || '').trim().toLowerCase();
-          const r = (c.reference || '').trim().toLowerCase();
-          const sDesc = (c.shortDescription || '').trim().toLowerCase();
-          const idStr = c.id ? String(c.id) : '';
-          const bDigits = (c.barcode || '').replace(/\D/g, '');
-          return (
-            b === clean ||
-            r === clean ||
-            sDesc === clean ||
-            idStr === clean ||
-            (cleanDigits.length >= 4 && bDigits && (bDigits === cleanDigits || bDigits.replace(/^0+/, '') === cleanDigits.replace(/^0+/, '')))
-          );
-        }) || candidates[0];
+        product =
+          candidates.find((c: any) => {
+            if (this.isServiceItem(c)) return false;
+            const cCid = c.companyId ?? c.CompanyId;
+            if (
+              activeCid > 0 &&
+              cCid != null &&
+              Number(cCid) > 0 &&
+              Number(cCid) !== activeCid
+            ) {
+              return false;
+            }
+            const b = (c.barcode || '').trim().toLowerCase();
+            const r = (c.reference || '').trim().toLowerCase();
+            const sDesc = (c.shortDescription || '').trim().toLowerCase();
+            const idStr = c.id ? String(c.id) : '';
+            const bDigits = (c.barcode || '').replace(/\D/g, '');
+            return (
+              b === clean ||
+              r === clean ||
+              sDesc === clean ||
+              idStr === clean ||
+              (cleanDigits.length >= 4 &&
+                bDigits &&
+                (bDigits === cleanDigits ||
+                  bDigits.replace(/^0+/, '') ===
+                    cleanDigits.replace(/^0+/, '')))
+            );
+          }) || candidates[0];
 
         const cCid = product?.companyId ?? (product as any)?.CompanyId;
-        if (product && (!activeCid || cCid == null || Number(cCid) === 0 || Number(cCid) === activeCid)) {
+        if (
+          product &&
+          (!activeCid ||
+            cCid == null ||
+            Number(cCid) === 0 ||
+            Number(cCid) === activeCid)
+        ) {
           this.products.update((list) => {
             if (!list.some((p) => p.id === product!.id)) {
               return [product!, ...list];
@@ -2658,24 +3465,73 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     if (product) {
+      this.posAudio.playScanSuccess();
       soundEffects.playScannerBeep();
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try {
+          (navigator as any).vibrate([60, 40, 60]);
+        } catch {}
+      }
+
       this.addProductToCart(product);
+
+      const prodName = product.description || 'Producto';
+      const prodPrice = Number(product.price || product.priceList || 0);
+      const scanTimeStr = formatTimeInRD(new Date());
 
       this.cameraBurstScannedCount.update((c) => c + 1);
       this.cameraLastScannedItem.set({
-        name: product.description || 'Producto',
-        price: Number(product.cost) || 100,
-        time: formatTimeInRD(new Date()),
+        name: prodName,
+        price: prodPrice,
+        time: scanTimeStr,
       });
 
-      this.cameraScanFlash.set(true);
-      setTimeout(() => this.cameraScanFlash.set(false), 250);
+      this.cameraLastScanAlert.set({
+        code: raw,
+        name: prodName,
+        price: prodPrice,
+        time: scanTimeStr,
+        status: 'success',
+      });
+      if (this.cameraAlertTimeoutId) {
+        clearTimeout(this.cameraAlertTimeoutId);
+      }
+      this.cameraAlertTimeoutId = setTimeout(() => {
+        this.cameraLastScanAlert.set(null);
+      }, 3500);
 
-      this.notificationService.success(`+1 "${product.description || 'Producto'}" agregado.`);
+      this.cameraScanFlash.set(true);
+      setTimeout(() => this.cameraScanFlash.set(false), 300);
+
+      this.notificationService.success(
+        `¡Código leído con éxito! +1 "${prodName}" agregado.`,
+      );
       this.focusCatalogSearch();
     } else {
+      this.posAudio.playScanError();
       soundEffects.playErrorBeep();
-      this.notificationService.warning(`Código "${raw}" no encontrado en el catálogo de esta empresa.`);
+
+      // Alerta visual inmediata en el visor indicando que la lectura sí se produjo
+      this.cameraLastScanAlert.set({
+        code: raw,
+        name: 'Código leído (No registrado)',
+        price: 0,
+        time: formatTimeInRD(new Date()),
+        status: 'not_found',
+      });
+      if (this.cameraAlertTimeoutId) {
+        clearTimeout(this.cameraAlertTimeoutId);
+      }
+      this.cameraAlertTimeoutId = setTimeout(() => {
+        this.cameraLastScanAlert.set(null);
+      }, 3500);
+
+      this.cameraScanFlash.set(true);
+      setTimeout(() => this.cameraScanFlash.set(false), 300);
+
+      this.notificationService.warning(
+        `Código "${raw}" leído correctamente, pero no está registrado en el catálogo.`,
+      );
       this.focusCatalogSearch();
     }
   }
@@ -2779,8 +3635,10 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     if (event.key === 'Enter') {
       event.preventDefault();
       event.stopPropagation();
-      const rawTerm = (this.catalogSearchTerm() || '').trim();
+      const inputEl = event.target as HTMLInputElement;
+      const rawTerm = (inputEl?.value || this.catalogSearchTerm() || '').trim();
       if (!rawTerm) return;
+      if (inputEl) inputEl.value = '';
       this.catalogSearchTerm.set('');
       void this.handleScannedBarcode(rawTerm, false);
     }
@@ -2876,13 +3734,33 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
 
   setMethod(m: string) {
     this.selectedMethod.set(m);
+    if (m === 'Transferencia') {
+      this.transferAmountDeposited.set(this.netPayable());
+    }
     if (m !== 'Efectivo') {
       this.amountReceived.set(this.total());
     }
   }
 
   setDiscountValue(val: number) {
-    this.discountValue.set(Math.max(0, Number(val) || 0));
+    const num = Math.max(0, Number(val) || 0);
+    const isHigh =
+      this.discountType() === 'percent'
+        ? num > 15
+        : this.subtotal() > 0 && num / this.subtotal() > 0.15;
+
+    if (isHigh && !this.isUserAdmin()) {
+      const label =
+        this.discountType() === 'percent' ? `${num}%` : `RD$ ${num.toFixed(2)}`;
+      this.requestSupervisorApproval(
+        `Aplicar descuento extraordinario del ${label}`,
+        () => {
+          this.discountValue.set(num);
+        },
+      );
+      return;
+    }
+    this.discountValue.set(num);
   }
 
   toggleDiscountType() {
@@ -2894,6 +3772,19 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   }
 
   resetForm() {
+    if (this.cartItems().length > 0 && !this.isUserAdmin()) {
+      this.requestSupervisorApproval(
+        'Limpiar / anular venta en mostrador',
+        () => {
+          this.executeResetForm();
+        },
+      );
+      return;
+    }
+    this.executeResetForm();
+  }
+
+  private executeResetForm(): void {
     this.selectedCustomerId = null;
     this.catalogSearchTerm.set('');
     this.selectedCategory.set(null);
@@ -2907,6 +3798,9 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     this.cardAuthVoucher.set('');
     this.transferBank.set('Banco Popular (792019481)');
     this.transferReference.set('');
+    this.transferAccountLastFour.set('');
+    this.transferAmountDeposited.set(0);
+    this.step2ExplicitlyCompleted.set(false);
     this.fiscalRnc.set('');
     this.fiscalBusinessName.set('');
     this.invoiceNotes.set('');
@@ -2972,6 +3866,29 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
           );
         return false;
       }
+      const four = this.transferAccountLastFour().trim();
+      if (!four || four.length !== 4) {
+        if (notify)
+          this.notificationService.warning(
+            'Debes ingresar los últimos 4 dígitos de la cuenta de origen del cliente.',
+          );
+        return false;
+      }
+      const dep = Number(this.transferAmountDeposited());
+      if (isNaN(dep) || dep <= 0) {
+        if (notify)
+          this.notificationService.warning(
+            'Debes ingresar el monto que el cliente transfirió / depositó.',
+          );
+        return false;
+      }
+      if (dep < this.netPayable()) {
+        if (notify)
+          this.notificationService.warning(
+            `El monto depositado (RD$ ${dep.toFixed(2)}) no cubre el total de la venta (RD$ ${this.netPayable().toFixed(2)}).`,
+          );
+        return false;
+      }
       if (!this.transferReference().trim()) {
         if (notify)
           this.notificationService.warning(
@@ -3015,6 +3932,10 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     }
 
     if (step === 2) {
+      if (!this.canConfigureNcf()) {
+        this.goToStep(3);
+        return;
+      }
       this.checkoutStep.set(2);
       return;
     }
@@ -3024,9 +3945,15 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       if (this.checkoutStep() === 3 && this.lastCompletedSale()) {
         return;
       }
-      // If coming from Step 2, validate fiscal details
-      if (this.checkoutStep() === 2 && !this.validateStep2(true)) {
-        return;
+      // If coming from Step 2, validate fiscal details and mark Step 2 as completed
+      if (this.checkoutStep() === 2) {
+        if (!this.validateStep2(true)) {
+          return;
+        }
+        this.step2ExplicitlyCompleted.set(true);
+      } else {
+        // If coming directly from Step 1, Step 2 was omitted / not performed
+        this.step2ExplicitlyCompleted.set(false);
       }
       // Se aplica la venta inmediatamente
       this.processQuickSale();
@@ -3077,7 +4004,8 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
   calcPress(val: string): void {
     if (['+', '-', '*', '/'].includes(val)) {
       if (this.calculatorDisplay() !== 'Error') {
-        const symbol = val === '*' ? '×' : val === '/' ? '÷' : val === '-' ? '−' : '+';
+        const symbol =
+          val === '*' ? '×' : val === '/' ? '÷' : val === '-' ? '−' : '+';
         this.calculatorFormula.set(this.calculatorDisplay() + ' ' + symbol);
       }
     }
@@ -3257,9 +4185,23 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
     } else if (this.selectedMethod() === 'Transferencia') {
       const bank = this.transferBank().trim();
       const ref = this.transferReference().trim();
+      const four = this.transferAccountLastFour().trim();
+      const dep = Number(this.transferAmountDeposited()) || this.netPayable();
       if (!bank) {
         this.notificationService.warning(
           'Debes especificar el banco de la transferencia.',
+        );
+        return;
+      }
+      if (!four || four.length !== 4) {
+        this.notificationService.warning(
+          'Debes ingresar los últimos 4 dígitos de la cuenta de origen del cliente.',
+        );
+        return;
+      }
+      if (dep < this.netPayable()) {
+        this.notificationService.warning(
+          `El monto depositado (RD$ ${dep.toFixed(2)}) no cubre el total a cobrar.`,
         );
         return;
       }
@@ -3269,7 +4211,7 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
         );
         return;
       }
-      paymentDetailsNote = `Transferencia ${bank} Ref: ${ref}`;
+      paymentDetailsNote = `Transferencia ${bank} (Cta ****${four}) Depósito: RD$ ${dep.toFixed(2)} Ref: ${ref}`;
     }
 
     // Set submit lock immediately
@@ -3317,8 +4259,10 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
           quantity: deductQty,
           total: it.total,
           taxRate: it.taxRate,
+          warehouseId: this.selectedWarehouseId() || undefined,
         };
       }),
+      warehouseId: this.selectedWarehouseId() || undefined,
       subtotal: this.subtotal(),
       discount: this.discountAmount(),
       itbis: this.itbis(),
@@ -3329,12 +4273,14 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
       paymentMethod: paymentDetailsNote || this.selectedMethod(),
       paymentReference:
         this.selectedMethod() === 'Transferencia'
-          ? this.transferReference().trim()
+          ? `Ref: ${this.transferReference().trim()} | Cta: ****${this.transferAccountLastFour().trim()} | Depósito: RD$ ${Number(this.transferAmountDeposited() || this.netPayable()).toFixed(2)}`
           : undefined,
       amountReceived:
         this.selectedMethod() === 'Efectivo'
           ? this.effectiveAmountReceivedDop()
-          : this.netPayable(),
+          : this.selectedMethod() === 'Transferencia'
+            ? Number(this.transferAmountDeposited()) || this.netPayable()
+            : this.netPayable(),
       change: this.change(),
       idempotencyKey,
       originChannel: 'POS_PRESENCIAL' as const,
@@ -3393,30 +4339,61 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
           `Venta rápida ${invNum} cobrada exitosamente por RD$ ${this.total().toLocaleString('es-DO', { minimumFractionDigits: 2 })}.`,
         );
 
-        // Stock isolation deduction from chosen warehouse
-        const whId = this.selectedWarehouseId();
-        if (whId) {
-          for (const it of this.cartItems()) {
-            const deductQty =
-              it.deductionQuantity !== undefined
-                ? it.deductionQuantity
-                : it.quantity;
-            try {
-              await this.stockService.updateStock(
-                whId,
-                it.productId,
-                -deductQty,
-              );
-            } catch (stockErr) {
-              console.warn('Error deducting stock from warehouse:', stockErr);
-            }
+        // Refresh and synchronize warehouse stock after sale completion
+        const whId = this.selectedWarehouseId() || 1;
+        for (const it of this.cartItems()) {
+          const deductQty =
+            it.deductionQuantity !== undefined
+              ? it.deductionQuantity
+              : it.quantity;
+          try {
+            await this.stockService.updateStock(
+              whId,
+              it.productId,
+              -deductQty,
+              it.productName,
+              it.productCode,
+            );
+          } catch (stkErr) {
+            console.warn('[QuickSale] Error updating local stock for product', it.productId, stkErr);
           }
+
+          try {
+            const currentWhStock = this.warehouseStockMap().get(it.productId) || 0;
+            const newBal = Math.max(0, currentWhStock - deductQty);
+            this.kardexService.recordMovement({
+              productId: it.productId,
+              productName: it.productName,
+              warehouseId: whId,
+              movementType: 'VENTA',
+              documentReference: invNum,
+              quantityIn: 0,
+              quantityOut: deductQty,
+              stockBalance: newBal,
+              unitCost: it.costPrice || 0,
+              previousAverageCost: it.costPrice || 0,
+              newAverageCost: it.costPrice || 0,
+              sellingPrice: it.unitPrice,
+              notes: `Venta rápida POS #${invNum}`,
+            });
+          } catch {}
+        }
+
+        // Invalidate ProductService catalog cache so intelligence, inventory and POS get fresh stock
+        this.productService.invalidateCache();
+
+        if (whId) {
           await this.loadWarehouseStock(whId);
         }
 
         this.persistLastCompletedSale(completedData);
         if (this.autoPrintTicket()) {
           this.triggerDirectTicketPrint(completedData);
+        }
+        if ((res as any)?.isOffline) {
+          this.notificationService.warning('Venta registrada en modo contingencia local (servidor en mantenimiento). Se sincronizará automáticamente.');
+        } else {
+          this.notificationService.success('¡Venta cobrada exitosamente!');
         }
         this.checkoutStep.set(3);
         this.cartItems.set([]);

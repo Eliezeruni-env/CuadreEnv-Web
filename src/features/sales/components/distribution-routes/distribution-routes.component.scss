@@ -1,81 +1,265 @@
-.distribution-container {
-  min-height: calc(100vh - 120px);
+.distribution-module-wrapper {
+  min-height: calc(100vh - 100px);
 }
 
 .header-icon-box {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
+  background-color: #0f172a;
   border-radius: 12px;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  flex-shrink: 0;
 }
 
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
+.module-title {
+  font-size: 1.45rem;
+  font-weight: 800;
   letter-spacing: -0.02em;
   color: #0f172a;
 }
 
-.metric-card {
-  background: #ffffff;
-  border-radius: 14px;
-  padding: 1.15rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.module-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+// KPI Cards
+.kpi-card-lux {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08) !important;
   }
 }
 
-.metric-icon {
-  width: 48px;
-  height: 48px;
+.kpi-icon-pill {
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bg-blue-soft {
+  background-color: #eff6ff;
+}
+
+.bg-purple-soft {
+  background-color: #f5f3ff;
+}
+
+.text-purple {
+  color: #7c3aed;
+}
+
+.bg-slate-soft {
+  background-color: #f8fafc;
+}
+
+.kpi-caption {
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: block;
+}
+
+.kpi-number {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+// Route Select Card (Left List)
+.route-select-card {
+  background-color: #ffffff;
+  border-color: #e2e8f0 !important;
+  transition: all 0.15s ease-in-out;
+
+  &:hover {
+    background-color: #f8fafc;
+    border-color: #cbd5e1 !important;
+  }
+
+  &.active-selected {
+    background-color: #eff6ff !important;
+    border-color: #93c5fd !important;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+
+    .route-truck-icon {
+      color: #2563eb !important;
+    }
+  }
+}
+
+.route-truck-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background-color: #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.metric-label {
-  font-size: 0.78rem;
-  text-transform: uppercase;
+// Buttons
+.btn-navy {
+  background-color: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
   font-weight: 600;
-  color: #64748b;
-  letter-spacing: 0.03em;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #1e293b;
+    border-color: #1e293b;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+  }
+
+  &:disabled {
+    background-color: #94a3b8;
+    border-color: #94a3b8;
+    color: #f8fafc;
+  }
 }
 
-.metric-value {
-  font-size: 1.25rem;
-  font-weight: 700;
+.btn-outline-navy {
+  background-color: transparent;
+  border: 1px solid #0f172a;
   color: #0f172a;
-  line-height: 1.2;
-}
-
-.route-item {
-  cursor: pointer;
-  transition: all 0.15s ease-in-out;
-  border-left: 4px solid transparent;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.15s ease;
 
   &:hover {
     background-color: #f8fafc;
-  }
-
-  &.active-route {
-    background-color: #eff6ff;
-    border-left-color: #2563eb;
+    color: #0f172a;
+    border-color: #0f172a;
   }
 }
 
-.smaller {
+// Manifest Table
+.route-manifest-table {
+  tbody tr {
+    transition: background-color 0.1s ease;
+    &:hover {
+      background-color: #f8fafc;
+    }
+  }
+}
+
+// Compensation Pills (Radio pills)
+.comp-pill {
+  cursor: pointer;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #475569;
+  transition: all 0.15s ease;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+
+  input[type='radio'] {
+    display: none;
+  }
+
+  &:hover {
+    border-color: #cbd5e1;
+    background-color: #f8fafc;
+  }
+
+  &.active {
+    border-color: #2563eb;
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+  }
+}
+
+// Amber alert styles
+.amber-info-banner {
+  background-color: #fffbeb;
+  border: 1px solid #fef3c7;
+}
+
+.text-amber-900 {
+  color: #78350f;
+}
+
+.bg-amber-soft {
+  background-color: #fffbeb;
+}
+
+.border-amber-light {
+  border-color: #fde68a !important;
+}
+
+// Custom Modal Backdrop
+.custom-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 1055;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.custom-modal-content {
+  background: #ffffff;
+  border-radius: 1rem;
+  width: 100%;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-icon-box {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.font-size-xs {
   font-size: 0.75rem;
+}
+
+.font-size-sm {
+  font-size: 0.875rem;
+}
+
+.shadow-2xs {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.routes-list-card {
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+}
+
+.route-details-placeholder-card {
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }

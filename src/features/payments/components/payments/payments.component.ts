@@ -1,7 +1,9 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { PaymentService } from '../../services/payment.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
+import { PermissionService } from '../../../roles/services/permission.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { ConfirmDialogService } from '../../../cuadreEnv/services/confirm-dialog.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
@@ -146,11 +148,23 @@ export class PaymentsComponent implements OnInit {
   constructor(
     private paymentService: PaymentService,
     public authService: AuthService,
+    public permissionService: PermissionService,
     private notificationService: NotificationService,
+    private route: ActivatedRoute,
   ) {}
 
-  ngOnInit() {
-    this.loadData();
+  async ngOnInit() {
+    await this.loadData();
+    const paramPurchaseId = this.route.snapshot.queryParamMap.get('purchaseId');
+    if (paramPurchaseId) {
+      this.activeTab.set('pending');
+      this.paySpecificPurchase(Number(paramPurchaseId));
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('cuadre_payment_registered', () => {
+        void this.loadData();
+      });
+    }
   }
 
   async loadData() {
@@ -167,7 +181,15 @@ export class PaymentsComponent implements OnInit {
         this.payments.set(payRes.data);
       }
       if (purRes?.success && purRes.data) {
-        this.purchases.set(purRes.data);
+        const purs = [...purRes.data];
+        for (const lp of this.purchaseService.getLocalPurchases()) {
+          if (!purs.some((p) => p.id === lp.id)) {
+            purs.unshift(lp);
+          }
+        }
+        this.purchases.set(purs);
+      } else {
+        this.purchases.set(this.purchaseService.getLocalPurchases());
       }
       if (supRes?.success && supRes.data) {
         this.suppliers.set(supRes.data);

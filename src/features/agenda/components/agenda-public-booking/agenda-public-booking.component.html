@@ -1,0 +1,261 @@
+<div class="public-booking-layout">
+  <!-- Top Header -->
+  <header class="public-header" [style.background-color]="profile()?.brandColorHex || '#111827'">
+    <div class="container d-flex justify-content-between align-items-center py-3">
+      <div class="d-flex align-items-center gap-2">
+        <i class="cil-cut text-white" style="font-size: 1.5rem;"></i>
+        <h4 class="text-white mb-0 fw-bold">{{ profile()?.businessName || 'Barbería Central' }}</h4>
+      </div>
+      <span class="text-white opacity-75 small">Reservas en línea</span>
+    </div>
+  </header>
+
+  <!-- Main Wizard Container -->
+  <main class="container py-4 py-md-5">
+    <!-- Wizard Title & Steps Indicator -->
+    <div class="text-center mb-4">
+      <h2 class="wizard-title mb-1">Reserva tu cita</h2>
+      <p class="text-muted">Elige el servicio, selecciona el horario y completa tus datos.</p>
+
+      <div class="stepper-wrapper mt-4">
+        <div class="step-item" [class.active]="currentStep() >= 1" (click)="goToStep(1)">
+          <div class="step-circle">
+            @if (currentStep() > 1) { <i class="cil-check"></i> } @else { 1 }
+          </div>
+          <span class="step-label">Servicio</span>
+        </div>
+        <div class="step-line" [class.active]="currentStep() >= 2"></div>
+        <div class="step-item" [class.active]="currentStep() >= 2" (click)="goToStep(2)">
+          <div class="step-circle">
+            @if (currentStep() > 2) { <i class="cil-check"></i> } @else { 2 }
+          </div>
+          <span class="step-label">Horario</span>
+        </div>
+        <div class="step-line" [class.active]="currentStep() >= 3"></div>
+        <div class="step-item" [class.active]="currentStep() >= 3">
+          <div class="step-circle">3</div>
+          <span class="step-label">Tus datos</span>
+        </div>
+      </div>
+    </div>
+
+    @if (isLoading()) {
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+      </div>
+    } @else {
+      <!-- STEP 1: Selecciona Servicio -->
+      @if (currentStep() === 1) {
+        <div class="row justify-content-center">
+          <div class="col-12 col-md-8 col-lg-6">
+            <div class="card p-4 shadow-sm border-0 rounded-4">
+              <h5 class="fw-bold mb-3">Servicios disponibles</h5>
+              <div class="d-flex flex-column gap-3">
+                @for (svc of profile()?.services; track svc.id) {
+                  <div
+                    class="service-selection-card d-flex justify-content-between align-items-center p-3 rounded-3 border"
+                    [class.selected]="selectedService()?.id === svc.id"
+                    (click)="selectService(svc)"
+                  >
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="service-icon-box">
+                        <i class="cil-cut"></i>
+                      </div>
+                      <div>
+                        <h6 class="mb-0 fw-bold text-dark">{{ svc.name }}</h6>
+                        <small class="text-muted"><i class="cil-clock"></i> {{ svc.durationMinutes }} min</small>
+                      </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                      <span class="fw-bold fs-6">RD${{ svc.price | number:'1.0-0' }}</span>
+                      <i class="cil-chevron-right text-muted"></i>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- STEP 2: Horario y Profesional + Resumen -->
+      @if (currentStep() === 2) {
+        <div class="row g-4">
+          <!-- Left: Selection columns -->
+          <div class="col-12 col-lg-8">
+            <!-- Selected service summary row -->
+            <div class="d-flex justify-content-between align-items-center p-3 rounded-3 bg-white border mb-3">
+              <div class="d-flex align-items-center gap-2">
+                <i class="cil-cut text-primary"></i>
+                <span class="fw-semibold">{{ selectedService()?.name }}</span>
+                <span class="text-muted small">&bull; {{ selectedService()?.durationMinutes }} min &bull; RD${{ selectedService()?.price }}</span>
+              </div>
+              <button class="btn btn-sm btn-link text-decoration-none" (click)="goToStep(1)">Cambiar</button>
+            </div>
+
+            <!-- Professional selector -->
+            <div class="card p-3 shadow-sm border-0 rounded-4 mb-3">
+              <h6 class="fw-bold mb-2">Profesional</h6>
+              <div class="d-flex flex-wrap gap-2">
+                <button
+                  class="btn btn-sm"
+                  [class.btn-primary]="selectedProfessional() === null"
+                  [class.btn-outline-secondary]="selectedProfessional() !== null"
+                  (click)="selectProfessional(null)"
+                >
+                  Cualquier disponible
+                </button>
+                @for (prof of profile()?.professionals; track prof.id) {
+                  <button
+                    class="btn btn-sm"
+                    [class.btn-primary]="selectedProfessional()?.id === prof.id"
+                    [class.btn-outline-secondary]="selectedProfessional()?.id !== prof.id"
+                    (click)="selectProfessional(prof)"
+                  >
+                    {{ prof.name }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Calendar and Slots Grid -->
+            <div class="card p-4 shadow-sm border-0 rounded-4">
+              <h6 class="fw-bold mb-3"><i class="cil-calendar me-2"></i>Selecciona la fecha y hora</h6>
+
+              <!-- Day pill scroll -->
+              <div class="dates-pill-scroller mb-4">
+                @for (d of monthDates(); track d.date) {
+                  <div
+                    class="date-pill-item"
+                    [class.active]="d.isSelected"
+                    (click)="selectDate(d.date)"
+                  >
+                    <span class="day-name">{{ d.dayName }}</span>
+                    <span class="day-num">{{ d.dayNum }}</span>
+                  </div>
+                }
+              </div>
+
+              <!-- Slots Grid -->
+              <h6 class="small fw-semibold text-muted mb-2">Horarios disponibles</h6>
+              @if (availableSlots().length === 0) {
+                <div class="text-center py-4 text-muted bg-light rounded-3">
+                  <i class="cil-clock mb-2" style="font-size: 1.5rem;"></i>
+                  <p class="mb-0">No hay horarios disponibles para esta fecha. Intenta con otro día.</p>
+                </div>
+              } @else {
+                <div class="slots-grid">
+                  @for (slot of availableSlots(); track slot.startAt) {
+                    <button
+                      class="slot-btn"
+                      [class.selected]="selectedSlot()?.startAt === slot.startAt"
+                      (click)="selectSlot(slot)"
+                    >
+                      {{ slot.startAt | date:'hh:mm a' }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Right: Summary Card -->
+          <div class="col-12 col-lg-4">
+            <div class="summary-card p-4 shadow-sm rounded-4 sticky-top">
+              <h5 class="fw-bold mb-3"><i class="cil-calendar me-2 text-primary"></i>Resumen de tu cita</h5>
+
+              <div class="summary-item mb-2">
+                <span class="text-muted small">Servicio</span>
+                <div class="fw-semibold">{{ selectedService()?.name }}</div>
+              </div>
+
+              <div class="summary-item mb-2">
+                <span class="text-muted small">Duración</span>
+                <div class="fw-semibold">{{ selectedService()?.durationMinutes }} min</div>
+              </div>
+
+              <div class="summary-item mb-2">
+                <span class="text-muted small">Profesional</span>
+                <div class="fw-semibold">{{ selectedSlot()?.professionalName || 'Cualquier disponible' }}</div>
+              </div>
+
+              <div class="summary-item mb-2">
+                <span class="text-muted small">Fecha</span>
+                <div class="fw-semibold">{{ selectedDate() | date:'EEEE, d MMMM yyyy' }}</div>
+              </div>
+
+              <div class="summary-item mb-3">
+                <span class="text-muted small">Hora</span>
+                <div class="fw-semibold text-primary fs-5">
+                  {{ selectedSlot()?.startAt ? (selectedSlot()?.startAt | date:'hh:mm a') : 'Selecciona una hora' }}
+                </div>
+              </div>
+
+              <hr />
+
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                <span class="fw-bold">Total</span>
+                <span class="fw-bold fs-4 text-dark">RD${{ selectedService()?.price | number:'1.0-0' }}</span>
+              </div>
+
+              <button
+                class="btn btn-primary w-100 py-2 fs-6 fw-bold rounded-3"
+                [disabled]="!selectedSlot()"
+                (click)="goToStep(3)"
+              >
+                Continuar &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- STEP 3: Tus datos -->
+      @if (currentStep() === 3) {
+        <div class="row justify-content-center">
+          <div class="col-12 col-md-8 col-lg-6">
+            <div class="card p-4 shadow-sm border-0 rounded-4">
+              <h5 class="fw-bold mb-3">Completa tus datos</h5>
+              <p class="text-muted small mb-4">Te enviaremos los detalles y confirmación de tu cita.</p>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold small">Nombre completo *</label>
+                <input type="text" class="form-control" [(ngModel)]="customerName" placeholder="Juan Pérez" />
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold small">Teléfono / WhatsApp *</label>
+                <input type="tel" class="form-control" [(ngModel)]="customerPhone" placeholder="(809) 555-0199" />
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold small">Correo electrónico</label>
+                <input type="email" class="form-control" [(ngModel)]="customerEmail" placeholder="juan@ejemplo.com" />
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label fw-semibold small">Notas adicionales</label>
+                <textarea class="form-control" rows="2" [(ngModel)]="customerNotes" placeholder="Alguna indicación para el profesional..."></textarea>
+              </div>
+
+              <div class="d-flex gap-2">
+                <button class="btn btn-light flex-grow-1" (click)="goToStep(2)">Atrás</button>
+                <button
+                  class="btn btn-primary flex-grow-1 py-2 fw-bold"
+                  [disabled]="isSubmitting() || !customerName || !customerPhone"
+                  (click)="submitReservation()"
+                >
+                  {{ isSubmitting() ? 'Confirmando...' : 'Confirmar Reserva' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  </main>
+
+  <footer class="public-footer text-center py-4 border-top mt-5">
+    <p class="mb-0 text-muted small">Gestionado con <strong>CuadreEnv</strong>.</p>
+  </footer>
+</div>

@@ -425,9 +425,9 @@ export class ReceivableDetailModalComponent {
     });
   }
 
-  open(item: ReceivableDto) {
+  open(item: ReceivableDto, initialTab: 'timeline' | 'payment' | 'cuotas' | 'sale' | 'client' = 'timeline') {
     this.receivable = item;
-    this.activeTab.set('payment');
+    this.activeTab.set(initialTab);
     this.editingPayment.set(null);
     this.uploadedVoucher.set(null);
     this.voucherDetectionMessage.set(null);
@@ -643,12 +643,13 @@ export class ReceivableDetailModalComponent {
     }
 
     const currentEditing = this.editingPayment();
-    const isFinalSettlement = !currentEditing && (amount >= r.pendingAmount || (r.paidAmount + amount) >= r.totalAmount);
+    const isFinalSettlement = !currentEditing && (amount >= (r.pendingAmount - 0.01) || (r.paidAmount + amount) >= (r.totalAmount - 0.01));
+    const effectiveAmount = isFinalSettlement ? r.pendingAmount : amount;
 
     if (isFinalSettlement) {
       const confirmed = await this.confirmService.confirm({
         title: '⚠️ Aviso de Último Pago / Liquidación Total',
-        message: `Este pago de RD$ ${amount.toLocaleString('es-DO', { minimumFractionDigits: 2 })} liquidará por completo la cuenta por cobrar #${r.invoiceNumber}. Al completarse, se generará automáticamente la venta oficial correspondiente en el módulo de ventas y se computará en los KPIs de ventas e ingresos recuperados. ¿Deseas confirmar la transacción?`,
+        message: `Este pago de RD$ ${effectiveAmount.toLocaleString('es-DO', { minimumFractionDigits: 2 })} liquidará por completo la cuenta por cobrar #${r.invoiceNumber}. Al completarse, se generará automáticamente la venta oficial correspondiente en el módulo de ventas y se computará en los KPIs de ventas e ingresos recuperados. ¿Deseas confirmar la transacción?`,
         confirmText: 'Sí, aplicar pago y liquidar',
         cancelText: 'Cancelar',
         variant: 'primary',
@@ -706,7 +707,7 @@ export class ReceivableDetailModalComponent {
         const res = await this.receivableService.addPayment(
           r.id,
           {
-            amount,
+            amount: effectiveAmount,
             date: formattedDate,
             method: formVal.method,
             bank: formVal.bank || null,

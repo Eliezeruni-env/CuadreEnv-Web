@@ -1,11 +1,15 @@
 import { Injectable, inject } from '@angular/core';
-import { ApiClientService, extractArray } from '../../cuadreEnv/services/apiClient';
+import { ApiClientService, extractArray, getCompanyId } from '../../cuadreEnv/services/apiClient';
 import { CashRegisterService } from '../../cash-register/services/cash-register.service';
 import { ProductService } from '../../products/services/product.service';
 import type { ApiResponse } from '../../cuadreEnv/types/api';
 import type { Billing, HeaderDto, ProductDetails, TotalModels } from '../../../app/models/billing';
 
-const BILLING_STORAGE_KEY = 'cuadreenv_billing_invoices_db';
+const BILLING_STORAGE_KEY_BASE = 'cuadreenv_billing_invoices_db';
+function getBillingStorageKey(): string {
+  const compId = getCompanyId() || 'default';
+  return `${BILLING_STORAGE_KEY_BASE}_${compId}`;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -15,18 +19,55 @@ export class BillingService {
   private cashRegisterService = inject(CashRegisterService);
   private productService = inject(ProductService);
 
-  private getLocalBillings(): Billing[] {
+  getLocalBillings(): Billing[] {
+    const list: Billing[] = [];
+    const seen = new Set<string>();
+
+    const checkAndAdd = (arr: any[]) => {
+      if (!Array.isArray(arr)) return;
+      for (const item of arr) {
+        if (!item) continue;
+        const key = `${item.id ?? ''}_${item.billingNumber ?? item.invoiceNumber ?? ''}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push(item);
+        }
+      }
+    };
+
     try {
-      const raw = localStorage.getItem(BILLING_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+      if (typeof localStorage !== 'undefined') {
+        const kScoped = getBillingStorageKey();
+        const rawScoped = localStorage.getItem(kScoped);
+        if (rawScoped) {
+          try { checkAndAdd(JSON.parse(rawScoped)); } catch {}
+        }
+
+        const rawBase = localStorage.getItem(BILLING_STORAGE_KEY_BASE);
+        if (rawBase) {
+          try { checkAndAdd(JSON.parse(rawBase)); } catch {}
+        }
+
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(BILLING_STORAGE_KEY_BASE)) {
+            try {
+              const val = localStorage.getItem(k);
+              if (val) checkAndAdd(JSON.parse(val));
+            } catch {}
+          }
+        }
+      }
+    } catch {}
+
+    return list;
   }
 
-  private saveLocalBillings(list: Billing[]): void {
+  saveLocalBillings(list: Billing[]): void {
     try {
-      localStorage.setItem(BILLING_STORAGE_KEY, JSON.stringify(list));
+      if (typeof localStorage === 'undefined') return;
+      localStorage.setItem(getBillingStorageKey(), JSON.stringify(list));
+      localStorage.setItem(BILLING_STORAGE_KEY_BASE, JSON.stringify(list));
     } catch (e) {
       console.error('Error saving local billings:', e);
     }
@@ -131,21 +172,76 @@ export class BillingService {
       if (creditNotes.length === 0) return billings;
 
       return billings.map((b) => {
-        const fullNote = creditNotes.find(
+        // Find all credit notes related to this invoice
+        const matchedNotes = creditNotes.filter(
           (cn) =>
-            (cn.billingId === b.id ||
-              cn.billingNumber === b.billingNumber ||
-              (cn.originalNcf && b.ncf && cn.originalNcf === b.ncf)) &&
-            (cn.creditNoteType === 1 || cn.amountTotal >= (b.amountTotal || 0)),
+            cn.billingId === b.id ||
+            (cn.billingNumber && b.billingNumber && cn.billingNumber.toLowerCase() === b.billingNumber.toLowerCase()) ||
+            (cn.originalNcf && b.ncf && cn.originalNcf.toLowerCase() === b.ncf.toLowerCase()),
         );
-        if (fullNote) {
-          return {
-            ...b,
-            hasAFullCreditNote: true,
-            statusId: 3, // Anulada/Devuelta
-          };
+
+        if (matchedNotes.length === 0) {
+          return b;
         }
-        return b;
+
+        // Check if there is an explicit full cancellation
+        const hasFullNote = matchedNotes.some(
+          (cn) => cn.creditNoteType === 1 || cn.amountTotal >= (b.amountTotal || 0),
+        );
+
+        // Accumulate credited quantities per product
+        const creditedByProduct = new Map<number, number>();
+        for (const note of matchedNotes) {
+          const rawDetails = note.creditNoteDetails || note.details || [];
+          for (const d of rawDetails) {
+            const pId = Number(d.productId || d.id);
+            const q = Number(d.quantity || 0);
+            creditedByProduct.set(pId, (creditedByProduct.get(pId) || 0) + q);
+          }
+        }
+
+        const details = (b.productDetails || b.details || []).map((it: any) => {
+          const pId = Number(it.productId || it.id);
+          const credited = creditedByProduct.get(pId) || 0;
+          const origQty = it.originalQuantity != null ? it.originalQuantity : it.quantity;
+          const remainingQty = Math.max(0, Math.round((origQty - credited) * 100) / 100);
+          const pPrice = it.price || it.unitPrice || 0;
+          const discPerc = it.discountPercentage || 0;
+          const discAmt = Math.round(pPrice * remainingQty * (discPerc / 100) * 100) / 100;
+          const sub = Math.round((pPrice * remainingQty - discAmt) * 100) / 100;
+          const itbisAmt = Math.round(sub * 0.18 * 100) / 100;
+          const tot = Math.round((sub + itbisAmt) * 100) / 100;
+
+          return {
+            ...it,
+            originalQuantity: origQty,
+            creditedQuantity: credited,
+            quantity: remainingQty,
+            discountAmount: discAmt,
+            subTotal: sub,
+            itbisAmount: itbisAmt,
+            totalAmount: tot,
+          };
+        });
+
+        const allItemsCredited = hasFullNote || (details.length > 0 && details.every((it: any) => it.quantity === 0));
+        const newSubTotal = Math.round(details.reduce((sum: number, it: any) => sum + (it.subTotal || 0), 0) * 100) / 100;
+        const newItbis = Math.round(details.reduce((sum: number, it: any) => sum + (it.itbisAmount || 0), 0) * 100) / 100;
+        const newTotal = Math.round(details.reduce((sum: number, it: any) => sum + (it.totalAmount || 0), 0) * 100) / 100;
+
+        return {
+          ...b,
+          productDetails: details,
+          details: details,
+          amountSubTotal: allItemsCredited ? 0 : newSubTotal,
+          amountItbis: allItemsCredited ? 0 : newItbis,
+          amountTotal: allItemsCredited ? 0 : newTotal,
+          hasPartialCreditNote: !allItemsCredited,
+          hasAFullCreditNote: allItemsCredited,
+          creditNoteStatus: allItemsCredited ? 'NC Total' : 'NC Parcial',
+          statusName: allItemsCredited ? 'Anulada por NC' : 'NC Parcial Aplicada',
+          statusId: allItemsCredited ? 3 : b.statusId,
+        };
       });
     } catch {
       return billings;
@@ -163,14 +259,65 @@ export class BillingService {
   }): Promise<ApiResponse<Billing[]>> {
     let list: Billing[] = [];
     try {
-      const res = await this.api.get<any, any>('/Sale', { params: filters });
+      const res = await this.api.get<any, any>('/Sale', {
+        params: filters,
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const apiList = extractArray<any>(res);
       if (apiList && apiList.length > 0) {
         list = apiList.map((s: any) => this.mapSaleToBilling(s));
       }
     } catch {
-      return { success: false, data: [], message: 'No se pudo conectar con el servidor.' };
+      // Backend unavailable or 500 error, will merge local cache seamlessly
     }
+
+    // Merge with local billings
+    const localBillings = this.getLocalBillings();
+    for (const lb of localBillings) {
+      if (
+        !list.some(
+          (b) =>
+            b.id === lb.id ||
+            (lb.billingNumber && b.billingNumber === lb.billingNumber),
+        )
+      ) {
+        list.unshift(lb);
+      }
+    }
+
+    // Merge with local sales (POS sales, Quick sales, etc.)
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const salesKeys = [
+          'cuadreenv_local_sales_cache',
+          'cuadreenv_local_sales',
+          `cuadreenv_local_sales_cache_${getCompanyId() || 'default'}`,
+        ];
+        for (const sk of salesKeys) {
+          const rawS = localStorage.getItem(sk);
+          if (rawS) {
+            try {
+              const salesArr = JSON.parse(rawS);
+              if (Array.isArray(salesArr)) {
+                for (const saleItem of salesArr) {
+                  const mapped = this.mapSaleToBilling(saleItem);
+                  if (
+                    !list.some(
+                      (b) =>
+                        b.id === mapped.id ||
+                        (mapped.billingNumber &&
+                          b.billingNumber === mapped.billingNumber),
+                    )
+                  ) {
+                    list.unshift(mapped);
+                  }
+                }
+              }
+            } catch {}
+          }
+        }
+      }
+    } catch {}
 
     list = this.applyCreditNotesToBillings(list);
 
@@ -325,7 +472,9 @@ export class BillingService {
       voucherTypeId: s.voucherTypeId || 1,
       voucherTypeName: s.voucherTypeName || (s.voucherTypeId === 2 ? 'Crédito Fiscal' : 'Consumidor Final'),
       ncf: s.ncf || (s.invoiceFolio && s.invoiceFolio.startsWith('B') ? s.invoiceFolio : ''),
-      statusId: s.status === 2 || s.statusId === 2 ? 2 : 1,
+      statusId: (s.status === 4 || s.isCancelled || (typeof s.notes === 'string' && s.notes.includes('DEVUELTA'))) ? 3 : (s.status === 2 || s.statusId === 2 ? 2 : 1),
+      hasAFullCreditNote: (s.status === 4 || s.isCancelled || (typeof s.notes === 'string' && s.notes.includes('DEVUELTA')) || s.hasAFullCreditNote === true),
+      notes: s.notes,
       amountSubTotal: subTotal,
       amountDesc: Number(s.discount ?? s.amountDesc ?? 0),
       amountItbis: itbis,
@@ -375,6 +524,7 @@ export class BillingService {
         discount: (it as any).discount || 0,
         itbis: (it as any).itbis || 0,
         subtotal: it.subTotal || it.quantity * it.price,
+        warehouseId: header.warehouseId || 1,
       })),
       productDetails: items,
     };
@@ -400,6 +550,7 @@ export class BillingService {
             quantity: it.quantity,
             unitPrice: it.price,
             discount: (it as any).discount || 0,
+            warehouseId: header.warehouseId || 1,
           })),
         });
         createdBilling = saleRes?.data || saleRes;
@@ -487,37 +638,14 @@ export class BillingService {
           },
         };
       }
-    } catch {
-      // Mock quotation conversion
+    } catch (e) {
+      console.error('Error fetching quotation for billing:', e);
     }
 
     return {
-      success: true,
-      data: {
-        header: {
-          clientId: 1,
-          clientName: 'Cliente Ejemplo Cotización',
-          billingTypeId: 1,
-          voucherTypeId: 1,
-          warehouseId: 1,
-        },
-        items: [
-          {
-            productId: 1,
-            barCode: 'PROD-001',
-            productName: 'Servicio / Producto de Cotización',
-            quantity: 2,
-            price: 500,
-            discountPercentage: 0,
-            discountAmount: 0,
-            itbisPercentage: 18,
-            itbisAmount: 180,
-            subTotal: 1000,
-            totalAmount: 1180,
-            warehouseId: 1,
-          },
-        ],
-      },
+      success: false,
+      message: 'No se pudo cargar la cotización desde el servidor.',
+      data: null as any,
     };
   }
 }

@@ -90,101 +90,50 @@ export class FraudGuardianService {
   async loadInitialForensicData(): Promise<void> {
     this.isLoading.set(true);
     try {
-      // Datos forenses iniciales simulados con base en historial de caja para alertar de inmediato
-      const initialFlags: FraudFlag[] = [
-        {
-          id: 'FLAG-001',
-          type: 'EXCESSIVE_CANCELLATIONS',
-          cashierName: 'Pedro Ramírez',
-          cashierId: 104,
-          cashRegisterName: 'Caja 02 - Pasillo Central',
-          timestamp: new Date(Date.now() - 42 * 60 * 1000).toISOString(),
-          severity: 'CRITICAL',
-          title: 'Tasa de Anulación Excesiva (8.4%)',
-          description: 'El cajero ha anulado 4 comprobantes fiscales de 48 facturados en el turno actual, superando el límite del 5%.',
-          metricValue: '8.4%',
-          thresholdLimit: '5.0%',
-          status: 'ACTIVE'
-        },
-        {
-          id: 'FLAG-002',
-          type: 'DRAWER_KICK_NO_SALE',
-          cashierName: 'María Santos',
-          cashierId: 108,
-          cashRegisterName: 'Caja 01 - Rápida',
-          timestamp: new Date(Date.now() - 95 * 60 * 1000).toISOString(),
-          severity: 'MEDIUM',
-          title: 'Aperturas de Gaveta Sin Venta (4 eventos)',
-          description: 'Se registraron 4 comandos de apertura de gaveta (Drawer Kick) en un lapso de 30 minutos sin transacciones registradas.',
-          metricValue: '4 aperturas',
-          thresholdLimit: 'Máx 3 por turno',
-          status: 'ACTIVE'
-        },
-        {
-          id: 'FLAG-003',
-          type: 'SUSPICIOUS_CONSECUTIVE_DISCOUNTS',
-          cashierName: 'Carlos Santana',
-          cashierId: 102,
-          cashRegisterName: 'Caja 01 - Rápida',
-          timestamp: new Date(Date.now() - 180 * 60 * 1000).toISOString(),
-          severity: 'MEDIUM',
-          title: 'Descuentos Manuales Sucesivos (15%)',
-          description: 'Se aplicaron 3 descuentos manuales consecutivos del 15% al mismo cliente sin código de autorización de supervisor.',
-          metricValue: '3 ventas con -15%',
-          thresholdLimit: 'Máx 2 consecutivas',
-          status: 'ACTIVE'
+      try {
+        const resAlerts = await this.api.get<any, any>('/FraudGuardian/alerts');
+        const alertData = Array.isArray(resAlerts) ? resAlerts : resAlerts?.data;
+        if (Array.isArray(alertData)) {
+          this.flags.set(alertData.map((a: any) => ({
+            id: a.id,
+            type: a.type || 'EXCESSIVE_CANCELLATIONS',
+            cashierName: a.operator || 'Cajero',
+            cashierId: a.cashierId || 104,
+            cashRegisterName: a.registerTime || 'Caja Activa',
+            timestamp: new Date().toISOString(),
+            severity: (a.severityCode === 'critical' ? 'CRITICAL' : a.severityCode === 'low' ? 'LOW' : 'MEDIUM') as RiskSeverity,
+            title: a.title,
+            description: a.description,
+            metricValue: a.observedMetric,
+            thresholdLimit: a.thresholdLimit,
+            status: a.status || 'ACTIVE',
+            supervisorNotes: a.supervisorNotes
+          })));
+        } else {
+          this.flags.set([]);
         }
-      ];
 
-      const initialScores: CashierIntegrityScore[] = [
-        {
-          cashierId: 102,
-          cashierName: 'Carlos Santana',
-          totalSalesCount: 142,
-          cancelledSalesCount: 2,
-          cancellationRate: 1.4,
-          noSaleDrawerKicksCount: 1,
-          consecutiveDiscountsCount: 3,
-          accumulatedDiscrepancyDop: -15.00,
-          riskStatus: 'MONITORED'
-        },
-        {
-          cashierId: 104,
-          cashierName: 'Pedro Ramírez',
-          totalSalesCount: 48,
-          cancelledSalesCount: 4,
-          cancellationRate: 8.33,
-          noSaleDrawerKicksCount: 2,
-          consecutiveDiscountsCount: 0,
-          accumulatedDiscrepancyDop: -180.00,
-          riskStatus: 'HIGH_RISK'
-        },
-        {
-          cashierId: 108,
-          cashierName: 'María Santos',
-          totalSalesCount: 96,
-          cancelledSalesCount: 1,
-          cancellationRate: 1.04,
-          noSaleDrawerKicksCount: 4,
-          consecutiveDiscountsCount: 1,
-          accumulatedDiscrepancyDop: 0.00,
-          riskStatus: 'MONITORED'
-        },
-        {
-          cashierId: 112,
-          cashierName: 'Ana Gómez',
-          totalSalesCount: 110,
-          cancelledSalesCount: 0,
-          cancellationRate: 0.0,
-          noSaleDrawerKicksCount: 0,
-          consecutiveDiscountsCount: 0,
-          accumulatedDiscrepancyDop: +5.00,
-          riskStatus: 'TRUSTED'
+        const resScores = await this.api.get<any, any>('/FraudGuardian/cashier-scores');
+        const scoreData = Array.isArray(resScores) ? resScores : resScores?.data;
+        if (Array.isArray(scoreData)) {
+          this.cashierScores.set(scoreData.map((s: any) => ({
+            cashierId: s.cashierId,
+            cashierName: s.cashierName,
+            totalSalesCount: s.totalSales,
+            cancelledSalesCount: Math.round(s.totalSales * (s.cancellationRate / 100)),
+            cancellationRate: s.cancellationRate,
+            noSaleDrawerKicksCount: s.noSaleDrawers,
+            consecutiveDiscountsCount: 0,
+            accumulatedDiscrepancyDop: s.accumulatedDiscrepancyDop || 0,
+            riskStatus: (s.status === 'Por revisar' ? 'MONITORED' : 'TRUSTED') as 'TRUSTED' | 'MONITORED' | 'HIGH_RISK'
+          })));
+        } else {
+          this.cashierScores.set([]);
         }
-      ];
-
-      this.flags.set(initialFlags);
-      this.cashierScores.set(initialScores);
+      } catch (err) {
+        this.flags.set([]);
+        this.cashierScores.set([]);
+      }
     } finally {
       this.isLoading.set(false);
     }
@@ -244,6 +193,11 @@ export class FraudGuardianService {
     this.flags.update(prev =>
       prev.map(f => f.id === flagId ? { ...f, status: 'RESOLVED', supervisorNotes: notes } : f)
     );
+    this.api.post(`/FraudGuardian/alerts/${flagId}/resolve`, {
+      reviewResult: 'Justificada',
+      supervisorNotes: notes,
+      evidenceAttached: false
+    }).catch(() => {});
   }
 
   /**
@@ -253,5 +207,6 @@ export class FraudGuardianService {
     this.flags.update(prev =>
       prev.map(f => f.id === flagId ? { ...f, status: 'DISMISSED', supervisorNotes: reason } : f)
     );
+    this.api.post(`/FraudGuardian/alerts/${flagId}/dismiss`, { reason }).catch(() => {});
   }
 }

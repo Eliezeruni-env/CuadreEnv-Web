@@ -1,3 +1,4 @@
+import { formatPaymentMethodLabel } from '../../../cuadreEnv/utils/payment-method.util';
 import {
   Component,
   Input,
@@ -19,6 +20,7 @@ import {
 import { SaleService } from '../../services/sale.service';
 import { ProductService } from '../../../products/services/product.service';
 import { AuthService } from '../../../cuadreEnv/services/auth.service';
+import { PermissionService } from '../../../roles/services/permission.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { TranslationService } from '../../../cuadreEnv/services/translation.service';
 import type { SaleResponseDto, ProductDto } from '../../../cuadreEnv/types/api';
@@ -35,11 +37,15 @@ import { TableComponent } from '../../../cuadreEnv/components/table/table.compon
 
 export interface SaleDetailItemView {
   productId: number;
+  productCode?: string;
   productName: string;
   description: string;
   quantity: number;
   unitPrice: number;
+  discount?: number;
   subtotal: number;
+  itbis?: number;
+  totalAmount?: number;
 }
 
 @Component({
@@ -57,12 +63,22 @@ export interface SaleDetailItemView {
   templateUrl: './sale-detail-modal.component.html',
 })
 export class SaleDetailModalComponent implements OnInit, OnChanges {
+  formatPaymentMethod(method?: string | null): string {
+    return formatPaymentMethodLabel(method);
+  }
+
   readonly translationService = inject(TranslationService);
 
   @Input() visible = false;
   @Output() visibleChange = new EventEmitter<boolean>();
   @Input() sale: SaleResponseDto | null = null;
   @Output() cancelled = new EventEmitter<void>();
+  @Output() printRequested = new EventEmitter<SaleResponseDto>();
+
+  printInvoice() {
+    if (!this.sale) return;
+    this.printRequested.emit(this.sale);
+  }
 
   products = signal<ProductDto[]>([]);
   itemsList = signal<SaleDetailItemView[]>([]);
@@ -76,6 +92,7 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
     private saleService: SaleService,
     private productService: ProductService,
     public authService: AuthService,
+    public permissionService: PermissionService,
     private notificationService: NotificationService,
     private fb: FormBuilder,
   ) {
@@ -103,7 +120,8 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
   async loadProducts() {
     try {
       const pRes = await this.productService.getPagedProducts(1, 100);
-      const items = pRes?.data?.items || (Array.isArray(pRes?.data) ? pRes.data : []);
+      const items =
+        pRes?.data?.items || (Array.isArray(pRes?.data) ? pRes.data : []);
       if (items.length > 0) {
         this.products.set(items);
       } else {
@@ -158,6 +176,8 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
     if (rawDetails && rawDetails.length > 0) {
       const mapped: SaleDetailItemView[] = rawDetails.map((item: any) => {
         const pId = item.productId || item.id || 0;
+        const pCode =
+          item.productCode || item.code || item.barcode || `PROD-${pId}`;
         const pName =
           item.productName ||
           item.description ||
@@ -165,27 +185,52 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
           this.getProductName(pId);
         const qty = Number(item.quantity ?? 1) || 1;
         const price = Number(item.unitPrice ?? item.price ?? 0) || 0;
-        const sub = Number(item.subtotal ?? item.total ?? (qty * price)) || (qty * price);
+        const disc = Number(item.discount ?? item.discountPercentage ?? 0) || 0;
+        const lineTotal =
+          Number(item.totalAmount ?? item.total ?? qty * price) || qty * price;
+        const sub =
+          Number(item.subtotal ?? item.subTotal ?? lineTotal / 1.18) ||
+          Math.round((lineTotal / 1.18) * 100) / 100;
+        const itbis =
+          Number(item.itbisAmount ?? item.itbis ?? lineTotal - sub) ||
+          Math.round((lineTotal - sub) * 100) / 100;
 
         return {
           productId: pId,
+          productCode: pCode,
           productName: pName,
           description: pName,
           quantity: qty,
           unitPrice: price,
+          discount: disc,
           subtotal: sub,
+          itbis,
+          totalAmount: lineTotal,
         };
       });
       this.itemsList.set(mapped);
     } else if (this.sale.total && this.sale.total > 0) {
       // Fallback if backend returned summary sale without line details
+      const invTotal = this.sale.total;
+      const sub = Math.round((invTotal / 1.18) * 100) / 100;
+      const itbis = Math.round((invTotal - sub) * 100) / 100;
       const fallbackItem: SaleDetailItemView = {
         productId: (this.sale as any).productId || 1,
-        productName: (this.sale as any).notes || (this.sale as any).description || `Venta #${this.sale.id}`,
-        description: (this.sale as any).notes || (this.sale as any).description || `Venta #${this.sale.id}`,
+        productCode: (this.sale as any).productCode || `VTA-${this.sale.id}`,
+        productName:
+          (this.sale as any).notes ||
+          (this.sale as any).description ||
+          `Venta #${this.sale.id}`,
+        description:
+          (this.sale as any).notes ||
+          (this.sale as any).description ||
+          `Venta #${this.sale.id}`,
         quantity: 1,
-        unitPrice: this.sale.total,
-        subtotal: this.sale.total,
+        unitPrice: invTotal,
+        discount: 0,
+        subtotal: sub,
+        itbis,
+        totalAmount: invTotal,
       };
       this.itemsList.set([fallbackItem]);
     } else {
@@ -231,13 +276,20 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
 
   getProductName(productId: number): string {
     const p = this.products().find((item) => item.id === productId);
-    return p ? p.description || p.barcode || 'Producto' : `Producto #${productId}`;
+    return p
+      ? p.description || p.barcode || 'Producto'
+      : `Producto #${productId}`;
   }
 
   isServiceSale(): boolean {
     if (!this.sale) return false;
     const s: any = this.sale;
-    if (s.originChannel === 'SERVICIO' || s.originChannel === 'SERVICE' || s.originChannel === 3) return true;
+    if (
+      s.originChannel === 'SERVICIO' ||
+      s.originChannel === 'SERVICE' ||
+      s.originChannel === 3
+    )
+      return true;
     if (typeof s.notes === 'string') {
       const upper = s.notes.toUpperCase();
       if (
@@ -249,17 +301,77 @@ export class SaleDetailModalComponent implements OnInit, OnChanges {
         return true;
       }
     }
-    if (typeof s.invoiceNumber === 'string' && s.invoiceNumber.toUpperCase().includes('SERV')) return true;
+    if (
+      typeof s.invoiceNumber === 'string' &&
+      s.invoiceNumber.toUpperCase().includes('SERV')
+    )
+      return true;
     const items = this.itemsList();
     if (items && items.length > 0) {
       return items.some((it: any) => {
         if (it.isService === true || it.productTypeId === 2) return true;
         const code = String(it.productCode || it.code || '').toUpperCase();
         if (code.startsWith('SERV') || code.startsWith('SRV')) return true;
-        const name = String(it.productName || it.description || '').toLowerCase();
-        return name.includes('servicio') || name.includes('mano de obra') || name.includes('mantenimiento');
+        const name = String(
+          it.productName || it.description || '',
+        ).toLowerCase();
+        return (
+          name.includes('servicio') ||
+          name.includes('mano de obra') ||
+          name.includes('mantenimiento')
+        );
       });
     }
     return false;
+  }
+
+  getPaymentStatusLabel(): string {
+    if (!this.sale) return 'Pendiente';
+    const total = Number(this.sale.total ?? 0);
+    const paid = Number(this.sale.paidAmount ?? 0);
+    if (this.sale.isCancelled) return 'Anulado / Devuelto';
+    if (paid >= total && total > 0) return 'Pagado';
+    if (paid > 0) return `Parcial (RD$ ${paid.toLocaleString()})`;
+    return 'Pendiente';
+  }
+
+  getPaymentStatusClass(): string {
+    const label = this.getPaymentStatusLabel();
+    if (label === 'Pagado') return 'bg-success-subtle text-success border-success-subtle';
+    if (label.startsWith('Parcial')) return 'bg-warning-subtle text-warning-emphasis border-warning-subtle';
+    if (label.includes('Anulado')) return 'bg-secondary-subtle text-secondary border-secondary-subtle';
+    return 'bg-danger-subtle text-danger border-danger-subtle';
+  }
+
+  getDeliveryStatusLabel(): string {
+    if (this.isServiceSale()) return 'No Aplica (Servicio)';
+    if (this.sale?.isCancelled) return 'Devuelta a Almacén';
+    return 'Completa';
+  }
+
+  getDeliveryStatusClass(): string {
+    if (this.isServiceSale()) return 'bg-info-subtle text-info border-info-subtle';
+    if (this.sale?.isCancelled) return 'bg-secondary-subtle text-secondary border-secondary-subtle';
+    return 'bg-primary-subtle text-primary border-primary-subtle';
+  }
+
+  getCreditNoteStatusLabel(): string {
+    if (!this.sale) return 'Sin Acreditar';
+    const notes = String(this.sale.notes || '').toUpperCase();
+    const reason = String(this.sale.cancellationReason || '').toUpperCase();
+    if (this.sale.isCancelled && (notes.includes('NOTA DE CRÉDITO') || reason.includes('NOTA DE CRÉDITO') || notes.includes('DEVUELTA'))) {
+      return 'Totalmente Acreditada';
+    }
+    if (notes.includes('DEVOLUCIÓN PARCIAL') || notes.includes('PARCIAL')) {
+      return 'Parcialmente Acreditada';
+    }
+    return 'Sin Acreditar';
+  }
+
+  getCreditNoteStatusClass(): string {
+    const label = this.getCreditNoteStatusLabel();
+    if (label === 'Totalmente Acreditada') return 'bg-danger-subtle text-danger border-danger-subtle';
+    if (label === 'Parcialmente Acreditada') return 'bg-warning-subtle text-warning-emphasis border-warning-subtle';
+    return 'bg-light text-secondary border-secondary-subtle';
   }
 }

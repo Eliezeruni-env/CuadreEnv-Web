@@ -1,0 +1,62 @@
+.voucher-layout {
+  min-height: 100vh;
+  background-color: #f1f5f9;
+}
+
+.voucher-header {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.voucher-card {
+  max-width: 480px;
+  width: 100%;
+  border: 1px solid #e2e8f0;
+
+  .check-circle {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #dcfce7;
+    color: #16a34a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+
+  .status-pill {
+    padding: 0.35rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+
+    &.status-pending {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+    &.status-confirmed {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+  }
+
+  .details-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+
+    .code-badge {
+      background: #e0e7ff;
+      color: #3730a3;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 700;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+  }
+
+  .notice-pill {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+  }
+}

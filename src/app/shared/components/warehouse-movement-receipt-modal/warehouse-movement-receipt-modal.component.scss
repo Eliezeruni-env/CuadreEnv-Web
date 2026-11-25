@@ -1,0 +1,232 @@
+.receipt-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 1060;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.receipt-modal-dialog {
+  background: #ffffff;
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 820px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  padding: 1.75rem;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.receipt-header {
+  margin-bottom: 1.25rem;
+}
+
+.receipt-type-icon-box {
+  width: 44px;
+  height: 44px;
+  background-color: #ecfdf5;
+  color: #16a34a;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &.entry {
+    background-color: #ecfdf5;
+    color: #16a34a;
+  }
+  &.outlet {
+    background-color: #fef2f2;
+    color: #dc2626;
+  }
+  &.transfer {
+    background-color: #f5f3ff;
+    color: #7c3aed;
+  }
+  &.sale {
+    background-color: #eff6ff;
+    color: #2563eb;
+  }
+  &.purchase {
+    background-color: #fef3c7;
+    color: #d97706;
+  }
+}
+
+.receipt-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.status-pill-applied {
+  background-color: #dcfce7;
+  color: #15803d;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  line-height: 1;
+}
+
+.receipt-subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+
+  .movement-code {
+    color: #16a34a;
+    font-weight: 700;
+    font-family: monospace;
+  }
+}
+
+.btn-close-receipt {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.25rem;
+
+  &:hover {
+    color: #0f172a;
+  }
+}
+
+// 4 Columns Info Grid
+.receipt-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .info-cell {
+    display: flex;
+    flex-direction: column;
+
+    .cell-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .cell-value-green {
+      color: #16a34a;
+      font-weight: 700;
+      font-size: 0.9375rem;
+    }
+
+    .cell-value-bold {
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 0.875rem;
+      line-height: 1.2;
+    }
+
+    .cell-subtext {
+      color: #64748b;
+      font-size: 0.75rem;
+      margin-top: 0.15rem;
+    }
+  }
+}
+
+// Section
+.receipt-section-header {
+  margin-bottom: 0.75rem;
+
+  .section-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+}
+
+// Items Table
+.receipt-table-wrapper {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.receipt-items-table {
+  thead th {
+    background-color: #f8fafc;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.05em;
+    padding: 0.65rem 0.85rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  tbody td {
+    padding: 0.75rem 0.85rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.8125rem;
+  }
+}
+
+// Summary Box
+.receipt-summary-box {
+  .summary-line {
+    .summary-label {
+      min-width: 140px;
+      font-size: 0.8125rem;
+    }
+    .summary-value {
+      min-width: 100px;
+      text-align: right;
+    }
+  }
+}
+
+// Footer Buttons
+.btn-receipt-close {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  padding: 0.45rem 1rem;
+  border-radius: 0.5rem;
+
+  &:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+  }
+}
+
+.btn-receipt-print {
+  background-color: #1e293b;
+  border: 1px solid #1e293b;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  padding: 0.45rem 1rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  &:hover {
+    background-color: #0f172a;
+  }
+}

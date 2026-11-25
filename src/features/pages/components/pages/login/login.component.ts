@@ -1,4 +1,4 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -34,7 +34,36 @@ function getStableDeviceId(): string {
     RouterLink,
   ],
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
+  ngOnInit(): void {
+    if (typeof window !== 'undefined') {
+      const isStandalonePwa =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (navigator as any).standalone === true ||
+        window.location.search.includes('source=pwa') ||
+        window.location.search.includes('pwa=true');
+
+      if (isStandalonePwa) {
+        try {
+          localStorage.setItem('cuadre_is_pwa_detected', 'true');
+        } catch {}
+      }
+
+      // Si el usuario ya cuenta con sesión autenticada activa, redirigir a su vista correspondiente
+      if (this.authService.isAuthenticated()) {
+        const isMobileDevice =
+          window.innerWidth <= 768 ||
+          /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent.toLowerCase());
+        const forceDesktop = this.route.snapshot.queryParamMap.get('view') === 'desktop';
+
+        if ((isStandalonePwa || isMobileDevice) && !forceDesktop) {
+          this.router.navigate(['/mobile']);
+        } else {
+          this.router.navigate(['/dashboard']);
+        }
+      }
+    }
+  }
   readonly translationService = inject(TranslationService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -56,10 +85,21 @@ export class LoginComponent {
       : false;
 
     this.loginForm = this.fb.group({
-      email: [rememberedUser, [Validators.required, Validators.email]],
+      email: [rememberedUser, [Validators.required]],
       password: ['', [Validators.required]],
       rememberMe: [wasRemembered],
     });
+  }
+
+  readonly isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  readonly isUsingLocalApi = typeof window !== 'undefined' && localStorage.getItem('cuadre_api_target') === 'local';
+
+  toggleApiTarget(): void {
+    if (typeof window !== 'undefined') {
+      const next = this.isUsingLocalApi ? 'remote' : 'local';
+      localStorage.setItem('cuadre_api_target', next);
+      window.location.reload();
+    }
   }
 
   toggleShowPassword() {

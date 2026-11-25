@@ -1,0 +1,157 @@
+@if (isOpen && data) {
+  <div class="receipt-modal-backdrop" (click)="onClose()">
+    <div class="receipt-modal-dialog" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="receipt-header d-flex justify-content-between align-items-start">
+        <div class="d-flex align-items-center gap-3">
+          <div class="receipt-type-icon-box" [ngClass]="data.movementType">
+            @if (data.movementType === 'entry') {
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <polyline points="19 12 12 19 5 12"></polyline>
+              </svg>
+            } @else if (data.movementType === 'outlet') {
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="19" x2="12" y2="5"></line>
+                <polyline points="5 12 12 5 19 12"></polyline>
+              </svg>
+            } @else if (data.movementType === 'transfer') {
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="17 1 21 5 17 9"></polyline>
+                <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                <polyline points="7 23 3 19 7 15"></polyline>
+                <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+              </svg>
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            }
+          </div>
+
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <h4 class="receipt-title mb-0">
+                {{ data.title || (data.movementType === 'entry' ? 'Comprobante de entrada de almacén' : data.movementType === 'outlet' ? 'Comprobante de salida de almacén' : data.movementType === 'transfer' ? 'Comprobante de transferencia de almacén' : 'Comprobante de venta y facturación') }}
+              </h4>
+              <span class="status-pill-applied">{{ data.statusLabel || 'Aplicado' }}</span>
+            </div>
+            <div class="receipt-subtitle">
+              {{ (data.movementType === 'entry' || data.movementType === 'outlet' || data.movementType === 'transfer') ? 'Movimiento' : 'Movimiento / Factura' }} <span class="movement-code">{{ data.movementCode }}</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-close-receipt" (click)="onClose()" title="Cerrar">
+          ✕
+        </button>
+      </div>
+
+      <!-- 4 Columns Info Grid -->
+      <div class="receipt-info-grid">
+        <div class="info-cell">
+          <span class="cell-label">{{ data.firstColumnHeader || 'COMPROBANTE' }}</span>
+          <span class="cell-value-green font-monospace">{{ data.movementCode }}</span>
+        </div>
+        <div class="info-cell">
+          <span class="cell-label">{{ data.secondColumnHeader || 'ALMACÉN DESTINO' }}</span>
+          <span class="cell-value-bold">{{ data.warehouseName }}</span>
+          <span class="cell-subtext">{{ data.warehouseLocation || 'Bodega Central' }}</span>
+        </div>
+        <div class="info-cell">
+          <span class="cell-label">{{ data.thirdColumnHeader || 'CONCEPTO' }}</span>
+          <span class="cell-value-bold">{{ data.conceptName }}</span>
+          <span class="cell-subtext">{{ data.conceptDescription || 'Recepción de stock' }}</span>
+        </div>
+        <div class="info-cell">
+          <span class="cell-label">{{ data.fourthColumnHeader || 'FECHA Y HORA' }}</span>
+          <span class="cell-value-bold">{{ data.date }}</span>
+          <span class="cell-subtext">{{ data.time }}</span>
+        </div>
+      </div>
+
+      <!-- Section Title -->
+      <div class="receipt-section-header d-flex align-items-baseline gap-2">
+        <h5 class="section-heading mb-0">{{ data.itemsSectionTitle || 'Productos ingresados' }}</h5>
+        <span class="section-count text-muted">{{ data.items.length }} {{ data.items.length === 1 ? 'producto' : 'productos' }}</span>
+      </div>
+
+      <!-- Items Table -->
+      <div class="table-responsive receipt-table-wrapper mb-3">
+        <table class="table align-middle receipt-items-table mb-0">
+          <thead>
+            <tr>
+              <th style="width: 160px;">CÓDIGO</th>
+              <th>PRODUCTO</th>
+              <th class="text-center" style="width: 120px;">CANTIDAD</th>
+              <th class="text-end" style="width: 130px;">{{ data.movementType === 'entry' || data.movementType === 'purchase' ? 'COSTO UNITARIO' : 'COSTO / PRECIO UNIT.' }}</th>
+              <th class="text-end" style="width: 130px;">IMPORTE</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of data.items; track item.code) {
+              <tr>
+                <td class="font-monospace text-dark">{{ item.code }}</td>
+                <td>
+                  <div class="fw-bold text-dark">{{ item.name }}</div>
+                  @if (item.description) {
+                    <div class="text-muted small text-uppercase">{{ item.description }}</div>
+                  }
+                </td>
+                <td class="text-center fw-bold text-success font-monospace">
+                  +{{ item.quantity }} ud.
+                </td>
+                <td class="text-end font-monospace text-dark">
+                  RD$ {{ item.unitCost | number:'1.2-2' }}
+                </td>
+                <td class="text-end font-monospace fw-bold text-success">
+                  RD$ {{ item.totalCost | number:'1.2-2' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Summary Rows -->
+      <div class="receipt-summary-box mb-4">
+        <div class="summary-line d-flex justify-content-end gap-5">
+          <span class="summary-label text-secondary">{{ data.movementType === 'entry' ? 'Unidades ingresadas' : 'Unidades totales' }}</span>
+          <strong class="summary-value text-dark font-monospace">{{ data.totalUnits }}</strong>
+        </div>
+        <div class="summary-line d-flex justify-content-end gap-5 mt-2">
+          <span class="summary-label text-secondary">{{ data.movementType === 'entry' || data.movementType === 'purchase' ? 'Costo total' : 'Importe / Costo total' }}</span>
+          <strong class="summary-value text-success font-monospace fs-6">RD$ {{ data.totalCost | number:'1.2-2' }}</strong>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="receipt-footer d-flex justify-content-between align-items-center pt-3 border-top">
+        <div class="d-flex align-items-center gap-1.5 text-success fw-medium small">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <span>{{ data.footerNote || 'Movimiento aplicado al inventario' }}</span>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-receipt-close" (click)="onClose()">
+            Cerrar
+          </button>
+          <button class="btn btn-receipt-print" (click)="printReceipt()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            <span>Imprimir comprobante</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

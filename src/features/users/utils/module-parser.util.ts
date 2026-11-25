@@ -1,49 +1,68 @@
 export function parseUserModules(user: any): string[] {
   if (!user) return [];
 
-  const role = String(user.role || '').toLowerCase();
-  // SuperAdmin global siempre retorna acceso total
-  if (user.isSuperUser === true || role === 'superadmin') {
-    return ['*'];
-  }
-
   const raw =
     user.allowedModules ??
     user.AllowedModules ??
     user.AllowedModulesJson ??
     user.allowedModulesJson;
 
+  let list: string[] = [];
   if (Array.isArray(raw)) {
-    return [...new Set(raw.map((m) => String(m).trim()).filter(Boolean))];
-  }
-
-  if (typeof raw === 'string') {
+    list = [...new Set(raw.map((m) => String(m).trim()).filter(Boolean))];
+  } else if (typeof raw === 'string') {
     const trimmed = raw.trim();
     if (trimmed === '*' || trimmed === 'ALL' || trimmed === 'all') return ['*'];
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
-        return [
-          ...new Set(parsed.map((m) => String(m).trim()).filter(Boolean)),
-        ];
+        list = [...new Set(parsed.map((m) => String(m).trim()).filter(Boolean))];
       }
     } catch {
-      return [];
+      list = trimmed.includes(',') ? trimmed.split(',').map((s) => s.trim()).filter(Boolean) : [trimmed];
     }
   }
 
-  // Fallback si no tiene módulos explícitos configurados según su rol
-  if (role === 'admin') {
+  // Si el usuario tiene una lista explícita configurada desde el USM, respetarla estrictamente
+  if (raw !== undefined && raw !== null) {
+    if (list.includes('*') || list.includes('all') || list.includes('ALL')) {
+      return ['*'];
+    }
+    return list;
+  }
+
+  // Fallback únicamente si el usuario nunca ha tenido módulos asignados en la base de datos
+  const role = String(user.role || '').toLowerCase();
+  const isAdminRole =
+    user.isSuperUser === true ||
+    role === 'superadmin' ||
+    role === 'superuser' ||
+    role === 'sysadmin' ||
+    role === 'admin' ||
+    role === 'administrador' ||
+    role === 'owner' ||
+    role === 'dueño' ||
+    role === 'dueno' ||
+    role === 'gerente';
+
+  if (isAdminRole) {
     return ['*'];
   }
+
+  // Fallback si no tiene módulos explícitos configurados según su rol
   if (role === 'supervisor') {
     return [
       'dashboard',
       'sales',
       'cash-register',
+      'cashregister',
       'inventory-stock',
+      'inventory',
       'customers',
       'reports',
+      'purchases',
+      'users',
+      'audit',
       'fraud-guardian',
     ];
   }
@@ -52,15 +71,16 @@ export function parseUserModules(user: any): string[] {
       'dashboard',
       'sales',
       'cash-register',
+      'cashregister',
       'customers',
       'products-detail-sales',
     ];
   }
-  if (role === 'vendedor') {
-    return ['dashboard', 'sales', 'inventory-stock', 'customers'];
+  if (role.includes('vendedor') || role.includes('seller')) {
+    return ['dashboard', 'sales', 'inventory-stock', 'inventory', 'customers'];
   }
 
-  return [];
+  return ['dashboard', 'sales', 'cashregister', 'customers'];
 }
 
 export interface MenuItemDefinition {
@@ -102,6 +122,7 @@ export const SAAS_MENU_SECTIONS: MenuSectionDefinition[] = [
       { id: 'cash-register', canonical: 'cashregister', name: 'Caja' },
       { id: 'fraud-guardian', canonical: 'audit', name: 'Auditoría Antirrobo' },
       { id: 'receivables', canonical: 'receivables', name: 'Cobros' },
+      { id: 'bank-reconciliation', canonical: 'bank-reconciliation', name: 'Conciliación Bancaria' },
       { id: 'credit-notes', canonical: 'billing', name: 'Notas de Crédito' },
       { id: 'customers', canonical: 'customers', name: 'Clientes' },
     ],
@@ -145,6 +166,26 @@ export const SAAS_MENU_SECTIONS: MenuSectionDefinition[] = [
         canonical: 'inventory',
         name: 'Categorías y Tipos',
       },
+      {
+        id: 'inventory-intelligence',
+        canonical: 'inventory-stock',
+        name: 'Punto de Reorden & Inteligencia',
+      },
+      {
+        id: 'inventory-lot-expiration',
+        canonical: 'inventory-stock',
+        name: 'Control de Lotes & Vencimientos (FEFO)',
+      },
+    ],
+  },
+  {
+    section: 'Funcionalidades & Botones de Caja POS',
+    items: [
+      { id: 'pos-quick-receivables', canonical: 'pos-quick-receivables', name: 'Cobro Rápido de CxC (Abonos)' },
+      { id: 'pos-supervisor-pin', canonical: 'pos-supervisor-pin', name: 'PIN de Supervisor Antifraude' },
+      { id: 'pos-global-scanner', canonical: 'pos-global-scanner', name: 'Escaneo Global con Pistola' },
+      { id: 'pos-quotations', canonical: 'pos-quotations', name: 'Cotizaciones / Presupuestos' },
+      { id: 'pos-digital-signature', canonical: 'pos-digital-signature', name: 'Firma Digital Táctil' },
     ],
   },
   {
@@ -206,9 +247,12 @@ export const MENU_TO_CANONICAL: Record<string, string> = {
   'fraud-guardian': 'audit',
   audit: 'audit',
   receivables: 'receivables',
+  'bank-reconciliation': 'bank-reconciliation',
   'credit-notes': 'credit-notes',
   customers: 'customers',
   'inventory-stock': 'inventory-stock',
+  'inventory-intelligence': 'inventory-stock',
+  'inventory-lot-expiration': 'inventory-stock',
   'inventory-entries': 'inventory-entries',
   'inventory-outlets': 'inventory-outlets',
   'inventory-transfers': 'inventory-transfers',
@@ -235,4 +279,9 @@ export const MENU_TO_CANONICAL: Record<string, string> = {
   'admin-approvals': 'admin-approvals',
   'company-settings': 'company-settings',
   company: 'company',
+  'pos-quick-receivables': 'pos-quick-receivables',
+  'pos-supervisor-pin': 'pos-supervisor-pin',
+  'pos-global-scanner': 'pos-global-scanner',
+  'pos-quotations': 'pos-quotations',
+  'pos-digital-signature': 'pos-digital-signature',
 };
