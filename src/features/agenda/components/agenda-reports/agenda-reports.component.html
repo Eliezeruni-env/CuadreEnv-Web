@@ -1,0 +1,197 @@
+<div class="agenda-reports-container">
+  <!-- Top bar -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="page-title mb-1">Reportes de citas</h2>
+      <p class="text-muted mb-0">Analiza el rendimiento de tus citas, asistencia, ocupación y facturación.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <select class="form-select form-select-sm w-auto" [(ngModel)]="selectedMonth" (change)="loadReports()">
+        <option [value]="10">Octubre 2026</option>
+        <option [value]="11">Noviembre 2026</option>
+        <option [value]="12">Diciembre 2026</option>
+      </select>
+      <button class="btn btn-primary d-flex align-items-center gap-2" (click)="exportData()">
+        <i class="cil-cloud-download"></i>
+        <span>Exportar</span>
+      </button>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary"></div>
+    </div>
+  } @else {
+    <!-- 4 KPI Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-blue">
+            <i class="cil-calendar"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Citas</span>
+            <h3 class="kpi-value">{{ reportsData()?.totalAppointments ?? 0 }}</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-green">
+            <i class="cil-check"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Asistencia</span>
+            <h3 class="kpi-value">{{ reportsData()?.attendanceRate ?? 0 }}%</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-purple">
+            <i class="cil-chart-line"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Ocupación</span>
+            <h3 class="kpi-value">{{ reportsData()?.occupancyRate ?? 0 }}%</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-amber">
+            <i class="cil-money"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Facturado</span>
+            <h3 class="kpi-value">RD${{ (reportsData()?.invoicedTotal ?? 0) | number:'1.2-2' }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+      <!-- Citas atendidas por día -->
+      <div class="col-12 col-lg-7">
+        <div class="report-panel-card h-100">
+          <div class="panel-header">
+            <h5 class="panel-title mb-0">Citas atendidas por día</h5>
+            <span class="panel-subtitle">Citas completadas en {{ reportsData()?.monthLabel }}</span>
+          </div>
+          <div class="panel-body">
+            <div class="daily-chart-container">
+              <div class="daily-bars-grid">
+                @for (d of reportsData()?.dailyAppointments; track d.day) {
+                  <div class="daily-bar-item" [title]="'Día ' + d.day + ': ' + d.count + ' citas'">
+                    <div class="daily-bar-fill" [style.height.%]="(d.count / getMaxDaily()) * 100"></div>
+                    <span class="daily-day-label">{{ d.day }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Distribución de citas por estado -->
+      <div class="col-12 col-lg-5">
+        <div class="report-panel-card h-100">
+          <div class="panel-header">
+            <h5 class="panel-title mb-0">Distribución de citas por estado</h5>
+            <span class="panel-subtitle">Total: {{ reportsData()?.totalAppointments }} citas</span>
+          </div>
+          <div class="panel-body d-flex flex-column justify-content-center">
+            <div class="status-bars-list">
+              @for (st of reportsData()?.statusDistribution; track st.statusName) {
+                <div class="status-stat-item mb-3">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-semibold small">{{ st.statusName }}</span>
+                    <span class="text-muted small">{{ st.count }} ({{ st.percentage }}%)</span>
+                  </div>
+                  <div class="progress" style="height: 10px;">
+                    <div class="progress-bar" [style.width.%]="st.percentage" [style.background-color]="st.colorHex"></div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tables Row: Top servicios & Desempeño del personal -->
+    <div class="row g-4">
+      <div class="col-12 col-lg-6">
+        <div class="report-panel-card">
+          <div class="panel-header">
+            <h5 class="panel-title mb-0">Top servicios</h5>
+            <span class="panel-subtitle">Servicios más agendados</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>#</th>
+                  <th>Servicio</th>
+                  <th>Citas</th>
+                  <th>Facturado</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of reportsData()?.topServices; track s.serviceName; let i = $index) {
+                  <tr>
+                    <td class="fw-bold text-muted">{{ i + 1 }}</td>
+                    <td class="fw-semibold text-dark">{{ s.serviceName }}</td>
+                    <td>{{ s.count }}</td>
+                    <td class="fw-bold">RD${{ s.invoicedTotal | number:'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-6">
+        <div class="report-panel-card">
+          <div class="panel-header">
+            <h5 class="panel-title mb-0">Desempeño del personal</h5>
+            <span class="panel-subtitle">Citas completadas y ocupación</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Empleado</th>
+                  <th>Citas completadas</th>
+                  <th>Ocupación</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of reportsData()?.staffPerformance; track p.staffName) {
+                  <tr>
+                    <td class="fw-semibold text-dark">{{ p.staffName }}</td>
+                    <td>{{ p.completedAppointments }}</td>
+                    <td>
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="progress flex-grow-1" style="height: 8px;">
+                          <div class="progress-bar bg-primary" [style.width.%]="p.occupancyPercentage"></div>
+                        </div>
+                        <span class="small fw-semibold">{{ p.occupancyPercentage }}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

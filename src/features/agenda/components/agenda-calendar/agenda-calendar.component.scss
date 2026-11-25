@@ -1,0 +1,147 @@
+.agenda-calendar-container {
+  padding: 1.5rem 0;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.calendar-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.calendar-table-responsive {
+  overflow-x: auto;
+}
+
+.calendar-grid-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+
+  th, td {
+    border: 1px solid #e5e7eb;
+  }
+
+  .time-col-header {
+    width: 70px;
+    background: #f9fafb;
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 600;
+  }
+
+  .day-col-header {
+    background: #f9fafb;
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+
+    .day-name {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+    }
+
+    .day-number {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    &.today {
+      background: #eff6ff;
+      .day-name, .day-number {
+        color: #2563eb;
+      }
+    }
+  }
+
+  .time-cell {
+    background: #f9fafb;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6b7280;
+    vertical-align: top;
+    padding: 0.5rem 0.25rem;
+  }
+
+  .slot-cell {
+    height: 70px;
+    vertical-align: top;
+    padding: 0.35rem;
+    background: #ffffff;
+
+    &:hover {
+      background: #fafafa;
+    }
+  }
+}
+
+.calendar-event-pill {
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+
+  .event-time {
+    font-weight: 700;
+    font-size: 0.7rem;
+  }
+
+  .event-title {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .event-service {
+    font-size: 0.7rem;
+    opacity: 0.85;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &.slot-confirmed {
+    background: #e0f2fe;
+    border-left: 3px solid #0284c7;
+    color: #0369a1;
+  }
+
+  &.slot-pending {
+    background: #fef3c7;
+    border-left: 3px solid #d97706;
+    color: #b45309;
+  }
+
+  &.slot-completed {
+    background: #dcfce7;
+    border-left: 3px solid #16a34a;
+    color: #15803d;
+  }
+
+  &.slot-cancelled {
+    background: #fee2e2;
+    border-left: 3px solid #dc2626;
+    color: #b91c1c;
+  }
+
+  &.slot-default {
+    background: #f3f4f6;
+    border-left: 3px solid #6b7280;
+    color: #374151;
+  }
+}

@@ -1,0 +1,128 @@
+.agenda-reservations-container {
+  padding: 1.5rem 0;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.kpi-mini-card {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+
+  i {
+    font-size: 1.5rem;
+  }
+
+  .label {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  .val {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+    color: #111827;
+  }
+
+  &.kpi-amber i { color: #d97706; }
+  &.kpi-green i { color: #059669; }
+  &.kpi-blue i { color: #2563eb; }
+  &.kpi-red i { color: #dc2626; }
+}
+
+.table-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+
+  .tabs-header {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0 1.25rem;
+    background: #fafafa;
+    overflow-x: auto;
+
+    .tab-btn {
+      background: none;
+      border: none;
+      padding: 1rem 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #6b7280;
+      cursor: pointer;
+      position: relative;
+      white-space: nowrap;
+
+      &.active {
+        color: #4f46e5;
+        font-weight: 600;
+
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: -1px;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: #4f46e5;
+        }
+      }
+    }
+  }
+
+  .filters-bar {
+    padding: 1rem 1.25rem;
+    background: #ffffff;
+    border-bottom: 1px solid #f3f4f6;
+
+    .search-input-wrapper {
+      position: relative;
+
+      i {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+      }
+
+      input {
+        padding-left: 2.25rem;
+      }
+    }
+  }
+}
+
+.code-pill {
+  font-family: monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: #1f2937;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+
+  &.status-confirmed { background: #dcfce7; color: #15803d; }
+  &.status-pending { background: #fef3c7; color: #b45309; }
+  &.status-completed { background: #e0e7ff; color: #4338ca; }
+  &.status-cancelled { background: #fee2e2; color: #b91c1c; }
+  &.status-rescheduled { background: #e0f2fe; color: #0369a1; }
+  &.status-default { background: #f3f4f6; color: #4b5563; }
+}

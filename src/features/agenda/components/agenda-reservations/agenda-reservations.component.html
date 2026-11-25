@@ -1,0 +1,317 @@
+<div class="agenda-reservations-container">
+  <!-- Top bar -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="page-title mb-1">Reservas y solicitudes</h2>
+      <p class="text-muted mb-0">Gestiona las citas de tu negocio: confirma, reprograma o cancela reservas.</p>
+    </div>
+    <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openNewAppointmentModal()">
+      <i class="cil-plus"></i>
+      <span>Nueva cita</span>
+    </button>
+  </div>
+
+  <!-- KPI Badges -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="kpi-mini-card kpi-amber">
+        <i class="cil-calendar me-2"></i>
+        <div>
+          <span class="label">Pendientes</span>
+          <h4 class="val">{{ pendingCount }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-mini-card kpi-green">
+        <i class="cil-check me-2"></i>
+        <div>
+          <span class="label">Confirmadas</span>
+          <h4 class="val">{{ confirmedCount }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-mini-card kpi-blue">
+        <i class="cil-sync me-2"></i>
+        <div>
+          <span class="label">Reprogramaciones</span>
+          <h4 class="val">{{ rescheduledCount }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-mini-card kpi-red">
+        <i class="cil-x me-2"></i>
+        <div>
+          <span class="label">Canceladas</span>
+          <h4 class="val">{{ cancelledCount }}</h4>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main table card -->
+  <div class="table-card">
+    <!-- Tabs Header -->
+    <div class="tabs-header d-flex align-items-center gap-4">
+      <button class="tab-btn" [class.active]="activeTab() === 'all'" (click)="activeTab.set('all')">
+        Todas ({{ appointments().length }})
+      </button>
+      <button class="tab-btn" [class.active]="activeTab() === 'pending'" (click)="activeTab.set('pending')">
+        Pendientes ({{ pendingCount }})
+      </button>
+      <button class="tab-btn" [class.active]="activeTab() === 'confirmed'" (click)="activeTab.set('confirmed')">
+        Confirmadas ({{ confirmedCount }})
+      </button>
+      <button class="tab-btn" [class.active]="activeTab() === 'rescheduled'" (click)="activeTab.set('rescheduled')">
+        Reprogramadas ({{ rescheduledCount }})
+      </button>
+      <button class="tab-btn" [class.active]="activeTab() === 'completed'" (click)="activeTab.set('completed')">
+        Finalizadas
+      </button>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="filters-bar row g-2 align-items-center">
+      <div class="col-12 col-md-4">
+        <div class="search-input-wrapper">
+          <i class="cil-search"></i>
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            placeholder="Buscar cliente o código (ej. CIT-000128)"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+          />
+        </div>
+      </div>
+
+      <div class="col-6 col-md-2">
+        <select class="form-select form-select-sm" [ngModel]="selectedServiceId()" (ngModelChange)="selectedServiceId.set($event ? +$event : null)">
+          <option [ngValue]="null">Servicio: Todos</option>
+          @for (s of services(); track s.id) {
+            <option [value]="s.id">{{ s.productName }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <select class="form-select form-select-sm" [ngModel]="selectedProfessionalId()" (ngModelChange)="selectedProfessionalId.set($event ? +$event : null)">
+          <option [ngValue]="null">Profesional: Todos</option>
+          @for (p of professionals(); track p.id) {
+            <option [value]="p.id">{{ p.fullName }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-6 col-md-2">
+        <select class="form-select form-select-sm" [ngModel]="selectedOrigin()" (ngModelChange)="selectedOrigin.set($event)">
+          <option value="all">Origen: Todos</option>
+          <option value="web">Web</option>
+          <option value="manual">Manual</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Cliente</th>
+            <th>Servicio</th>
+            <th>Fecha / hora</th>
+            <th>Profesional</th>
+            <th>Origen</th>
+            <th>Estado</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading()) {
+            <tr>
+              <td colspan="8" class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-primary"></div>
+                <span class="ms-2">Cargando reservas...</span>
+              </td>
+            </tr>
+          } @else if (filteredAppointments.length === 0) {
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">
+                No se encontraron reservas con los filtros aplicados.
+              </td>
+            </tr>
+          } @else {
+            @for (appt of filteredAppointments; track appt.id) {
+              <tr>
+                <td><span class="code-pill">{{ appt.bookingCode }}</span></td>
+                <td>
+                  <div class="fw-semibold text-dark">{{ appt.customerName }}</div>
+                  <small class="text-muted">{{ appt.customerPhone }}</small>
+                </td>
+                <td>
+                  <div class="fw-medium">{{ appt.serviceName }}</div>
+                  <small class="text-muted">RD${{ appt.servicePrice | number:'1.2-2' }}</small>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-1">
+                    <i class="cil-calendar text-muted"></i>
+                    <span>{{ appt.startAt | date:'EEE, d MMM yyyy' }}</span>
+                  </div>
+                  <small class="text-muted"><i class="cil-clock"></i> {{ appt.startAt | date:'HH:mm' }}</small>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-1">
+                    <i class="cil-user text-muted"></i>
+                    <span>{{ appt.professionalName || 'Sin asignar' }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">
+                    {{ appt.origin === 1 ? 'Web' : 'Manual' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="status-badge" [ngClass]="getStatusClass(appt.status)">
+                    {{ getStatusLabel(appt.status) }}
+                  </span>
+                  @if (appt.billingStatus === 1 || appt.billingStatus === 3) {
+                    <span class="badge bg-success ms-1" title="Factura {{ appt.invoiceNumber }}">Facturada</span>
+                  }
+                </td>
+                <td class="text-end">
+                  <div class="d-flex gap-1 justify-content-end align-items-center">
+                    @if (appt.status === 0) {
+                      <button class="btn btn-sm btn-outline-primary" (click)="confirmAppointment(appt)">Confirmar</button>
+                    }
+                    <button class="btn btn-sm btn-outline-secondary" (click)="openRescheduleModal(appt)">Reprogramar</button>
+                    @if (appt.status === 1 || appt.status === 2) {
+                      @if (appt.billingStatus === 0) {
+                        <button class="btn btn-sm btn-outline-success" (click)="invoiceAppointment(appt)" title="Generar factura POS">Facturar</button>
+                      }
+                    }
+                    <button class="btn btn-sm btn-outline-danger" (click)="cancelAppointment(appt)" title="Cancelar cita">
+                      <i class="cil-x"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nueva Cita Manual -->
+@if (isNewAppointmentModalOpen()) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal fade show d-block" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Nueva Cita Manual</h5>
+          <button type="button" class="btn-close" (click)="isNewAppointmentModalOpen.set(false)"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Servicio *</label>
+            <select class="form-select" [(ngModel)]="formServiceId">
+              @for (s of services(); track s.id) {
+                <option [value]="s.id">{{ s.productName }} ({{ s.durationMinutes }} min) - RD${{ s.price }}</option>
+              }
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Profesional asignado</label>
+            <select class="form-select" [(ngModel)]="formProfessionalId">
+              <option [value]="0">Cualquiera disponible</option>
+              @for (p of professionals(); track p.id) {
+                <option [value]="p.id">{{ p.fullName }}</option>
+              }
+            </select>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label">Fecha *</label>
+              <input type="date" class="form-control" [(ngModel)]="formDate" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Hora *</label>
+              <input type="time" class="form-control" [(ngModel)]="formTime" />
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Nombre del cliente *</label>
+            <input type="text" class="form-control" [(ngModel)]="formCustomerName" placeholder="Juan Pérez" />
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label">Teléfono / WhatsApp *</label>
+              <input type="tel" class="form-control" [(ngModel)]="formCustomerPhone" placeholder="(809) 555-0199" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Correo electrónico</label>
+              <input type="email" class="form-control" [(ngModel)]="formCustomerEmail" placeholder="cliente@correo.com" />
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Notas u observaciones</label>
+            <textarea class="form-control" rows="2" [(ngModel)]="formNotes"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" (click)="isNewAppointmentModalOpen.set(false)">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="submitNewAppointment()">Guardar Cita</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal Reprogramar Cita -->
+@if (isRescheduleModalOpen()) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal fade show d-block" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Reprogramar Cita ({{ selectedAppointment()?.bookingCode }})</h5>
+          <button type="button" class="btn-close" (click)="isRescheduleModalOpen.set(false)"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small">
+            Cliente: <strong>{{ selectedAppointment()?.customerName }}</strong> &bull;
+            Servicio: <strong>{{ selectedAppointment()?.serviceName }}</strong>
+          </p>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label">Nueva Fecha *</label>
+              <input type="date" class="form-control" [(ngModel)]="rescheduleDate" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Nueva Hora *</label>
+              <input type="time" class="form-control" [(ngModel)]="rescheduleTime" />
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Profesional</label>
+            <select class="form-select" [(ngModel)]="rescheduleProfessionalId">
+              <option [value]="0">Conservar / Automático</option>
+              @for (p of professionals(); track p.id) {
+                <option [value]="p.id">{{ p.fullName }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" (click)="isRescheduleModalOpen.set(false)">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="submitReschedule()">Confirmar Reprogramación</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

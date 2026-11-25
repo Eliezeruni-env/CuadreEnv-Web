@@ -623,7 +623,37 @@ export const routes: Routes = [
             (m) => m.routes,
           ),
       },
+      {
+        path: 'agenda',
+        loadChildren: () =>
+          import('../features/agenda/routes').then((m) => m.routes),
+        data: { module: 'appointments', title: 'Agenda & Citas' },
+      },
     ],
+  },
+  {
+    path: 'reservas/:slug',
+    loadComponent: () =>
+      import('../features/agenda/components/agenda-public-booking/agenda-public-booking.component').then(
+        (m) => m.AgendaPublicBookingComponent,
+      ),
+    data: { title: 'Reservar Cita' },
+  },
+  {
+    path: 'reservas/:slug/comprobante/:code',
+    loadComponent: () =>
+      import('../features/agenda/components/agenda-public-voucher/agenda-public-voucher.component').then(
+        (m) => m.AgendaPublicVoucherComponent,
+      ),
+    data: { title: 'Comprobante de Cita' },
+  },
+  {
+    path: 'reservas/:slug/estado/:code',
+    loadComponent: () =>
+      import('../features/agenda/components/agenda-public-voucher/agenda-public-voucher.component').then(
+        (m) => m.AgendaPublicVoucherComponent,
+      ),
+    data: { title: 'Estado de Cita' },
   },
   {
     path: 'companies/create',

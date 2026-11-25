@@ -1,0 +1,180 @@
+.public-booking-layout {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+
+  main {
+    flex-grow: 1;
+  }
+}
+
+.public-header {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.wizard-title {
+  font-weight: 800;
+  color: #111827;
+}
+
+.stepper-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 400px;
+  margin: 0 auto;
+
+  .step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
+
+    .step-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      color: #64748b;
+      font-weight: 700;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .step-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+    }
+
+    &.active {
+      .step-circle {
+        background: #4f46e5;
+        color: #ffffff;
+      }
+      .step-label {
+        color: #111827;
+      }
+    }
+  }
+
+  .step-line {
+    flex: 1;
+    height: 2px;
+    background: #e2e8f0;
+    margin: 0 0.5rem -1rem 0.5rem;
+
+    &.active {
+      background: #4f46e5;
+    }
+  }
+}
+
+.service-selection-card {
+  cursor: pointer;
+  background: #ffffff;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: #6366f1 !important;
+    background: #fbfbfe;
+  }
+
+  &.selected {
+    border-color: #4f46e5 !important;
+    background: #f5f3ff;
+  }
+
+  .service-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: #eef2ff;
+    color: #4f46e5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+}
+
+.dates-pill-scroller {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+
+  .date-pill-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.6rem 0.85rem;
+    border-radius: 10px;
+    background: #f1f5f9;
+    cursor: pointer;
+    min-width: 55px;
+    transition: all 0.15s ease;
+
+    .day-name {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #64748b;
+    }
+    .day-num {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    &.active {
+      background: #4f46e5;
+      .day-name, .day-num {
+        color: #ffffff;
+      }
+    }
+
+    &:hover:not(.active) {
+      background: #e2e8f0;
+    }
+  }
+}
+
+.slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.75rem;
+
+  .slot-btn {
+    padding: 0.6rem 0.5rem;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1e293b;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      border-color: #4f46e5;
+      background: #f5f3ff;
+    }
+
+    &.selected {
+      background: #4f46e5;
+      border-color: #4f46e5;
+      color: #ffffff;
+    }
+  }
+}
+
+.summary-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  top: 2rem;
+}

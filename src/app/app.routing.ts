@@ -267,6 +267,12 @@ export const AppRoutes: Routes = [
           ),
         data: { breadcrumb: 'Caja y Cuadres' },
       },
+      {
+        path: 'agenda',
+        loadChildren: () =>
+          import('../features/agenda/routes').then((m) => m.routes),
+        data: { breadcrumb: 'Agenda & Citas' },
+      },
     ],
   },
   {
@@ -329,6 +335,27 @@ export const AppRoutes: Routes = [
         data: { breadcrumb: 'Error de Servidor' },
       },
     ],
+  },
+  {
+    path: 'reservas/:slug',
+    loadComponent: () =>
+      import('../features/agenda/components/agenda-public-booking/agenda-public-booking.component').then(
+        (m) => m.AgendaPublicBookingComponent,
+      ),
+  },
+  {
+    path: 'reservas/:slug/comprobante/:code',
+    loadComponent: () =>
+      import('../features/agenda/components/agenda-public-voucher/agenda-public-voucher.component').then(
+        (m) => m.AgendaPublicVoucherComponent,
+      ),
+  },
+  {
+    path: 'reservas/:slug/estado/:code',
+    loadComponent: () =>
+      import('../features/agenda/components/agenda-public-voucher/agenda-public-voucher.component').then(
+        (m) => m.AgendaPublicVoucherComponent,
+      ),
   },
   { path: '**', redirectTo: 'dashboard' },
 ];

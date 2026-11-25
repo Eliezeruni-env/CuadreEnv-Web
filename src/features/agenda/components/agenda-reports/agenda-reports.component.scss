@@ -1,0 +1,121 @@
+.agenda-reports-container {
+  padding: 1.5rem 0;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.kpi-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.25rem;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  .kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+
+    &.kpi-blue { background: #eff6ff; color: #2563eb; }
+    &.kpi-green { background: #ecfdf5; color: #059669; }
+    &.kpi-purple { background: #f5f3ff; color: #7c3aed; }
+    &.kpi-amber { background: #fffbeb; color: #d97706; }
+  }
+
+  .kpi-info {
+    .kpi-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: #6b7280;
+    }
+    .kpi-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #111827;
+      margin: 0;
+    }
+  }
+}
+
+.report-panel-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+
+  .panel-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f3f4f6;
+
+    .panel-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #111827;
+    }
+    .panel-subtitle {
+      font-size: 0.8125rem;
+      color: #6b7280;
+    }
+  }
+
+  .panel-body {
+    padding: 1.25rem;
+    flex-grow: 1;
+  }
+}
+
+.daily-chart-container {
+  height: 220px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.daily-bars-grid {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  gap: 4px;
+
+  .daily-bar-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+    cursor: pointer;
+
+    .daily-bar-fill {
+      width: 100%;
+      max-width: 14px;
+      background: #4f46e5;
+      border-radius: 3px 3px 0 0;
+      transition: height 0.25s ease;
+
+      &:hover {
+        background: #3730a3;
+      }
+    }
+
+    .daily-day-label {
+      font-size: 0.65rem;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+  }
+}

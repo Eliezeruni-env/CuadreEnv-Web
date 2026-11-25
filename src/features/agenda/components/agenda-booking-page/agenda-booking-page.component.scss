@@ -1,0 +1,65 @@
+.agenda-booking-page-container {
+  padding: 1.5rem 0;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.share-banner-card {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+
+  .qr-box {
+    width: 90px;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.settings-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.preview-wrapper {
+  position: sticky;
+  top: 1rem;
+}
+
+.preview-frame {
+  background: #f9fafb;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+
+  &.mobile-view {
+    max-width: 360px;
+    margin: 0 auto;
+    border-radius: 28px;
+    border: 8px solid #1f2937;
+  }
+
+  .preview-header {
+    padding: 0.75rem 1rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .preview-service-item {
+    transition: transform 0.15s ease;
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+}

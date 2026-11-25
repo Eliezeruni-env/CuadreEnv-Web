@@ -2,6 +2,7 @@ import type { INavData } from '@coreui/angular';
 
 export interface ModuleNavItem extends INavData {
   moduleCode?: string;
+  children?: ModuleNavItem[];
 }
 
 export const ADMIN_NAV_ITEMS: ModuleNavItem[] = [
@@ -56,6 +57,64 @@ export const ADMIN_NAV_ITEMS: ModuleNavItem[] = [
     url: '/customers',
     moduleCode: 'customers',
     iconComponent: { name: 'cil-user' },
+  },
+  {
+    title: true,
+    name: 'Agenda & Citas',
+  },
+  {
+    name: 'Panel Agenda',
+    url: '/agenda/dashboard',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-speedometer' },
+  },
+  {
+    name: 'Citas',
+    url: '/agenda',
+    iconComponent: { name: 'cil-calendar' },
+    moduleCode: 'appointments',
+    children: [
+      {
+        name: 'Calendario',
+        url: '/agenda/calendar',
+      },
+      {
+        name: 'Reservas',
+        url: '/agenda/reservations',
+      },
+      {
+        name: 'Clientes',
+        url: '/agenda/clients',
+      },
+      {
+        name: 'Mi página de reservas',
+        url: '/agenda/booking-page',
+      },
+    ],
+  },
+  {
+    name: 'Servicios',
+    url: '/agenda/services',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-cut' },
+  },
+  {
+    name: 'Personal',
+    url: '/agenda/professionals',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-people' },
+  },
+  {
+    name: 'Reportes',
+    url: '/agenda/reports',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-chart-line' },
+  },
+  {
+    name: 'Configuración',
+    url: '/agenda/settings',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-settings' },
   },
   {
     title: true,
