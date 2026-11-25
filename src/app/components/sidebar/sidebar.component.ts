@@ -108,6 +108,73 @@ export const ROUTES: RouteInfo[] = [
     class: '',
   },
   {
+    title: 'Agenda & Citas',
+    isTitle: true,
+  },
+  {
+    path: '/agenda/dashboard',
+    moduleCode: 'appointments',
+    title: 'Panel Agenda',
+    icon: 'cilSpeedometer',
+    class: '',
+  },
+  {
+    title: 'Citas & Calendario',
+    icon: 'cilCalendar',
+    class: '',
+    isExpanded: false,
+    children: [
+      {
+        path: '/agenda/calendar',
+        moduleCode: 'appointments',
+        title: 'Calendario',
+      },
+      {
+        path: '/agenda/reservations',
+        moduleCode: 'appointments',
+        title: 'Reservas y Solicitudes',
+      },
+      {
+        path: '/agenda/clients',
+        moduleCode: 'appointments',
+        title: 'Clientes de Citas',
+      },
+      {
+        path: '/agenda/booking-page',
+        moduleCode: 'appointments',
+        title: 'Mi Página de Reservas',
+      },
+    ],
+  },
+  {
+    path: '/agenda/services',
+    moduleCode: 'appointments',
+    title: 'Servicios Reservables',
+    icon: 'cilBriefcase',
+    class: '',
+  },
+  {
+    path: '/agenda/professionals',
+    moduleCode: 'appointments',
+    title: 'Personal & Horarios',
+    icon: 'cilPeople',
+    class: '',
+  },
+  {
+    path: '/agenda/reports',
+    moduleCode: 'appointments',
+    title: 'Reportes de Citas',
+    icon: 'cilChartLine',
+    class: '',
+  },
+  {
+    path: '/agenda/settings',
+    moduleCode: 'appointments',
+    title: 'Configuración de Agenda',
+    icon: 'cilSettings',
+    class: '',
+  },
+  {
     title: 'Inventario & Catálogo',
     isTitle: true,
   },

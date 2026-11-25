@@ -37,6 +37,7 @@
             "assets": [
               "src/favicon.ico",
               "src/assets",
+              "src/_redirects",
               {
                 "glob": "sw.js",
                 "input": "src/assets",
