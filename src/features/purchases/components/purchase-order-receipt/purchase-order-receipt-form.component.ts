@@ -48,9 +48,13 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
   // Selector para agregar productos adicionales en el conteo físico
   catalogProducts = signal<ProductDto[]>([]);
   showAddProductRow = signal<boolean>(false);
+  addProductMode = signal<'catalog' | 'manual'>('catalog');
   selectedAddProductId = signal<string>('');
+  customProductName = signal<string>('');
+  customBarcode = signal<string>('');
   addProductQty = signal<number>(1);
   addProductCost = signal<number>(0);
+  directApplyStock = signal<boolean>(true);
 
   async ngOnInit() {
     await this.loadWarehouses();
@@ -71,11 +75,15 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
     if (!this.productService) return;
     try {
       const res = await this.productService.getPagedProducts(1, 100);
-      if (res?.success && res.data?.items) {
+      if (res?.success && res.data?.items && res.data.items.length > 0) {
         this.catalogProducts.set(res.data.items);
+      } else {
+        const local = this.productService.getLocalProducts();
+        this.catalogProducts.set(local);
       }
     } catch {
-      this.catalogProducts.set([]);
+      const local = this.productService ? this.productService.getLocalProducts() : [];
+      this.catalogProducts.set(local);
     }
   }
 
@@ -155,13 +163,22 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
       };
     });
 
+    // Si la orden no trajo renglones detallados, NUNCA dejar la tabla en blanco
     if (this.receiptLines.length === 0) {
+      const fallbackCost = Number(order.total) || 100;
+      this.receiptLines = [
+        {
+          productId: 1,
+          barCode: order.orderNumber || `OC-${order.id}`,
+          productName: order.notes?.trim() || `Mercancía / Insumos según Orden ${order.orderNumber}`,
+          quantityOrdered: 1,
+          quantityReceived: 1,
+          unitCost: fallbackCost,
+          subTotal: fallbackCost,
+          warehouseId: this.selectedWarehouseId,
+        },
+      ];
       this.showAddProductRow.set(true);
-      if (this.catalogProducts().length > 0) {
-        const first = this.catalogProducts()[0];
-        this.selectedAddProductId.set(String(first.id));
-        this.addProductCost.set(Number(first.cost || first.price || 0));
-      }
     } else {
       this.showAddProductRow.set(false);
     }
@@ -187,13 +204,42 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
   }
 
   addProductToReceipt() {
+    const qty = Math.max(1, Number(this.addProductQty()) || 1);
+    const cost = Math.max(0, Number(this.addProductCost()) || 0);
+
+    if (this.addProductMode() === 'manual') {
+      const name = this.customProductName().trim();
+      if (!name) {
+        this.notificationService.warning('Ingrese el nombre o descripción del producto a recibir.');
+        return;
+      }
+      const newId = Date.now() + Math.floor(Math.random() * 1000);
+      const code = this.customBarcode().trim() || `PROD-${newId}`;
+
+      this.receiptLines.push({
+        productId: newId,
+        barCode: code,
+        productName: name,
+        quantityOrdered: qty,
+        quantityReceived: qty,
+        unitCost: cost,
+        subTotal: qty * cost,
+        warehouseId: this.selectedWarehouseId,
+      });
+
+      this.customProductName.set('');
+      this.customBarcode.set('');
+      this.showAddProductRow.set(false);
+      this.addProductQty.set(1);
+      this.notificationService.success(`Producto "${name}" agregado al conteo físico.`);
+      return;
+    }
+
     const pId = Number(this.selectedAddProductId());
     if (!pId) {
       this.notificationService.warning('Seleccione un producto para agregar.');
       return;
     }
-    const qty = Math.max(1, Number(this.addProductQty()) || 1);
-    const cost = Math.max(0, Number(this.addProductCost()) || 0);
 
     const prod = this.catalogProducts().find((p) => p.id === pId);
     const existing = this.receiptLines.find((l) => l.productId === pId);
@@ -220,6 +266,24 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
     this.notificationService.success('Producto agregado a la recepción.');
   }
 
+  receiveAll() {
+    this.receiptLines.forEach((line) => {
+      line.quantityReceived = line.quantityOrdered;
+      line.subTotal = line.quantityReceived * line.unitCost;
+    });
+    this.notificationService.info('Todas las cantidades recibidas se igualaron a lo ordenado.');
+  }
+
+  incrementQty(line: PurchaseOrderReceiptDetail) {
+    line.quantityReceived = (Number(line.quantityReceived) || 0) + 1;
+    line.subTotal = line.quantityReceived * line.unitCost;
+  }
+
+  decrementQty(line: PurchaseOrderReceiptDetail) {
+    line.quantityReceived = Math.max(0, (Number(line.quantityReceived) || 0) - 1);
+    line.subTotal = line.quantityReceived * line.unitCost;
+  }
+
   removeLine(idx: number) {
     this.receiptLines.splice(idx, 1);
   }
@@ -238,24 +302,31 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
       let found = all.find(
         (o) =>
           o.id === targetId ||
-          o.orderNumber.toLowerCase() === term.toLowerCase() ||
+          String(o.id) === term ||
+          o.orderNumber?.toLowerCase() === term.toLowerCase() ||
           `OC-${o.id}`.toLowerCase() === term.toLowerCase() ||
-          `OC-${String(o.id).padStart(5, '0')}`.toLowerCase() === term.toLowerCase(),
+          `OC-${String(o.id).padStart(5, '0')}`.toLowerCase() === term.toLowerCase() ||
+          String(o.orderNumber || '').replace(/\D/g, '') === String(targetId),
       );
 
-      if (!found && targetId > 0) {
-        const single = await this.poService.getPurchaseOrder(targetId);
-        if (single?.success && single.data) {
-          found = single.data;
-        }
+      // Check available orders
+      if (!found) {
+        found = this.availableOrders().find(
+          (o) =>
+            o.id === targetId ||
+            String(o.id) === term ||
+            o.orderNumber?.toLowerCase() === term.toLowerCase() ||
+            `OC-${o.id}`.toLowerCase() === term.toLowerCase(),
+        );
       }
 
-      // Check local purchases cache if not found in backend POs
+      // Check local purchases cache if not found
       if (!found && this.purchaseService) {
         const localPurchases = this.purchaseService.getLocalPurchases();
         const pMatch = localPurchases.find(
           (p) =>
             p.id === targetId ||
+            String(p.id) === term ||
             p.invoiceNumber?.toLowerCase() === term.toLowerCase() ||
             (p as any).orderNumber?.toLowerCase() === term.toLowerCase() ||
             `OC-${p.id}`.toLowerCase() === term.toLowerCase(),
@@ -266,19 +337,15 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
       }
 
       // Check direct local purchase orders storage
-      if (!found && typeof localStorage !== 'undefined') {
-        try {
-          const rawLocal = localStorage.getItem('cuadreenv_purchase_orders_db');
-          if (rawLocal) {
-            const list = JSON.parse(rawLocal);
-            found = list.find(
-              (o: any) =>
-                o.id === targetId ||
-                String(o.orderNumber || '').toLowerCase() === term.toLowerCase() ||
-                `OC-${o.id}`.toLowerCase() === term.toLowerCase(),
-            );
-          }
-        } catch {}
+      if (!found) {
+        const localOrders = this.poService.getLocalOrders();
+        found = localOrders.find(
+          (o) =>
+            o.id === targetId ||
+            String(o.id) === term ||
+            o.orderNumber?.toLowerCase() === term.toLowerCase() ||
+            `OC-${o.id}`.toLowerCase() === term.toLowerCase(),
+        );
       }
 
       if (found) {
@@ -320,8 +387,13 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
 
   nextStep() {
     if (this.totalReceivedUnits === 0) {
-      this.notificationService.warning('Debe registrar al menos 1 unidad recibida.');
-      return;
+      if (this.receiptLines.length > 0) {
+        this.receiveAll();
+        this.notificationService.info('Se han pre-cargado las cantidades ordenadas en el conteo físico.');
+      } else {
+        this.notificationService.warning('Debe registrar al menos 1 producto con unidades recibidas.');
+        return;
+      }
     }
     this.currentStep.set(3);
   }
@@ -335,9 +407,10 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
     this.isSubmitting.set(true);
 
     const discrepancies = this.hasDiscrepancies();
+    const shouldDirectApply = this.directApplyStock() || !discrepancies;
 
     try {
-      if (discrepancies) {
+      if (!shouldDirectApply && discrepancies) {
         // Create Manage Request for supervisor approval
         const payloadJson = JSON.stringify({
           purchaseOrderId: this.selectedOrder.id,
@@ -362,7 +435,7 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
           this.router.navigate(['/inventory/manage-requests']);
         }
       } else {
-        // Direct reception
+        // Direct reception: incrementa stock y kardex de inmediato
         const whName =
           this.warehouses.find((w) => w.id === this.selectedWarehouseId)?.name ||
           'Almacén Principal';
@@ -381,7 +454,7 @@ export class PurchaseOrderReceiptFormComponent implements OnInit {
 
         if (res?.success) {
           this.notificationService.success(
-            `Mercancía ingresada a inventario exitosamente. Comprobante ${res.data?.receiptNumber}.`,
+            `¡Mercancía ingresada a inventario exitosamente! Se sumaron ${this.totalReceivedUnits} unidades al stock del almacén "${whName}". Comprobante: ${res.data?.receiptNumber}.`,
           );
           this.router.navigate(['/purchases/receipts']);
         }

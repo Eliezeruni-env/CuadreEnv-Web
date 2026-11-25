@@ -76,7 +76,7 @@ export class PurchaseService {
           ? p.items
           : []);
 
-      const mappedDetails = rawDetails.map((d: any, idx: number) => ({
+      let mappedDetails = rawDetails.map((d: any, idx: number) => ({
         id: idx + 1,
         productId: Number(d.productId || d.id || idx + 1),
         productName: d.product?.name || d.productName || d.name || d.description || `Producto #${d.productId || idx + 1}`,
@@ -89,6 +89,25 @@ export class PurchaseService {
         subTotal: Number(d.subtotal ?? (Number(d.quantity || 1) * Number(d.cost ?? d.costPrice ?? d.unitCost ?? 0))),
         total: Number(d.total ?? d.subtotal ?? (Number(d.quantity || 1) * Number(d.cost ?? d.costPrice ?? d.unitCost ?? 0))),
       }));
+
+      if (mappedDetails.length === 0) {
+        const defaultCost = Number(purchase.total || p.subtotal || 100);
+        mappedDetails = [
+          {
+            id: 1,
+            productId: 1,
+            productName: p.notes?.trim() || `Compra #${purchase.id || 1} - Insumos / Mercancía`,
+            productCode: `PUR-${purchase.id || 1}`,
+            barCode: `PUR-${purchase.id || 1}`,
+            quantity: 1,
+            quantityOrdered: 1,
+            quantityReceived: 0,
+            unitCost: defaultCost,
+            subTotal: defaultCost,
+            total: defaultCost,
+          },
+        ];
+      }
 
       const newOrder = {
         id: purchase.id || Date.now(),
@@ -123,7 +142,9 @@ export class PurchaseService {
       } else {
         orders.unshift(newOrder);
       }
-      localStorage.setItem(getPurchaseOrdersStorageKey(), JSON.stringify(orders));
+      const serializedOrders = JSON.stringify(orders);
+      localStorage.setItem(getPurchaseOrdersStorageKey(), serializedOrders);
+      localStorage.setItem('cuadreenv_purchase_orders_db', serializedOrders);
     } catch (e) {
       console.warn('Could not sync purchase to purchase orders:', e);
     }

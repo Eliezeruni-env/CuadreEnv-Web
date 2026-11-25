@@ -45,7 +45,7 @@ export class InventoryIntelligenceComponent implements OnInit {
   warehouseFilter = signal<string>('ALL');
 
   // Checkboxes
-  selectedProductIds = signal<Set<number>>(new Set([1]));
+  selectedProductIds = signal<Set<number>>(new Set());
 
   // KPIs Calculados
   readonly totalPurchaseInvestment = computed(() => {
@@ -292,37 +292,43 @@ export class InventoryIntelligenceComponent implements OnInit {
         }
       }
 
-      // Also persist explicitly into purchase orders db so it is immediately searchable
-      try {
-        const poOrder: any = {
-          id: finalOrderId,
-          orderNumber: poCode,
-          prefix: 'OC',
-          supplierId: 1,
-          supplierName: purchasePayload.supplierName,
-          warehouseId: 1,
-          warehouseName: 'Almacén Principal',
-          orderDate: new Date().toISOString(),
-          statusId: 1,
-          statusName: 'Pendiente',
-          total: totalAmount,
-          subTotal: totalAmount,
-          items: orderLines,
-          productDetails: orderLines,
-        };
-        const rawLocal = localStorage.getItem('cuadreenv_purchase_orders_db');
-        const localList = rawLocal ? JSON.parse(rawLocal) : [];
-        if (!localList.some((o: any) => o.id === poOrder.id || o.orderNumber === poOrder.orderNumber)) {
-          localList.unshift(poOrder);
-          localStorage.setItem('cuadreenv_purchase_orders_db', JSON.stringify(localList));
-        }
-      } catch {}
+      // Persistir explícitamente en PurchaseOrderReceiptService para visibilidad inmediata
+      const poOrder: any = {
+        id: finalOrderId,
+        orderNumber: poCode,
+        prefix: 'OC',
+        supplierId: 1,
+        supplierName: purchasePayload.supplierName,
+        warehouseId: 1,
+        warehouseName: 'Almacén Principal',
+        orderDate: new Date().toISOString(),
+        statusId: 1,
+        statusName: 'Pendiente',
+        total: totalAmount,
+        subTotal: totalAmount,
+        items: orderLines,
+        details: orderLines,
+        productDetails: orderLines,
+      };
+
+      if (this.poReceiptService) {
+        this.poReceiptService.savePurchaseOrder(poOrder);
+      } else {
+        try {
+          const rawLocal = localStorage.getItem('cuadreenv_purchase_orders_db');
+          const localList = rawLocal ? JSON.parse(rawLocal) : [];
+          if (!localList.some((o: any) => o.id === poOrder.id || o.orderNumber === poOrder.orderNumber)) {
+            localList.unshift(poOrder);
+            localStorage.setItem('cuadreenv_purchase_orders_db', JSON.stringify(localList));
+          }
+        } catch {}
+      }
 
       this.notificationService.success(
         `¡Orden ${poCode} generada con ${itemsToOrder.length} producto(s)! Cargando recepción de mercancía...`,
       );
 
-      await this.router.navigate(['/purchases/receipts/create', finalOrderId], {
+      await this.router.navigate(['/purchases/receipts/create'], {
         queryParams: { id: finalOrderId, orderNumber: poCode },
       });
     } catch (e: any) {

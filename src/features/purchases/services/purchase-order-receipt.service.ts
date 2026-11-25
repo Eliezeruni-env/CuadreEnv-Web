@@ -4,6 +4,7 @@ import { map, catchError } from 'rxjs/operators';
 import {
   ApiClientService,
   extractArray,
+  getCompanyId,
 } from '../../cuadreEnv/services/apiClient';
 import { StockService } from '../../inventory/services/stock.service';
 import { WarehouseService } from '../../inventory/services/warehouse.service';
@@ -35,35 +36,122 @@ export class PurchaseOrderReceiptService {
   private purchaseService = inject(PurchaseService, { optional: true });
   private supplierService = inject(SupplierService, { optional: true });
 
-  private getLocalOrders(): PurchaseOrder[] {
+  getLocalOrders(): PurchaseOrder[] {
     try {
-      const raw = localStorage.getItem(PURCHASE_ORDERS_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const ordersMap = new Map<number | string, PurchaseOrder>();
+      const compId = getCompanyId();
+      const keys = [
+        PURCHASE_ORDERS_STORAGE_KEY,
+        compId ? `${PURCHASE_ORDERS_STORAGE_KEY}_${compId}` : null,
+      ].filter(Boolean) as string[];
+
+      if (typeof window !== 'undefined' && window.localStorage) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(PURCHASE_ORDERS_STORAGE_KEY) && !keys.includes(k)) {
+            keys.push(k);
+          }
+        }
+      }
+
+      for (const key of keys) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              parsed.forEach((o: any) => {
+                const k = o.id || o.orderNumber;
+                if (k && !ordersMap.has(k)) {
+                  ordersMap.set(k, o);
+                }
+              });
+            }
+          } catch {}
+        }
+      }
+
+      return Array.from(ordersMap.values());
     } catch {
       return [];
     }
   }
 
-  private saveLocalOrders(list: PurchaseOrder[]): void {
+  saveLocalOrders(list: PurchaseOrder[]): void {
     try {
-      localStorage.setItem(PURCHASE_ORDERS_STORAGE_KEY, JSON.stringify(list));
+      const compId = getCompanyId();
+      const raw = JSON.stringify(list);
+      localStorage.setItem(PURCHASE_ORDERS_STORAGE_KEY, raw);
+      if (compId) {
+        localStorage.setItem(`${PURCHASE_ORDERS_STORAGE_KEY}_${compId}`, raw);
+      }
     } catch (e) {
       console.error('Error saving local orders:', e);
     }
   }
 
-  private getLocalReceipts(): PurchaseOrderReceipt[] {
+  savePurchaseOrder(order: PurchaseOrder): void {
+    const list = this.getLocalOrders();
+    const idx = list.findIndex(
+      (o) => o.id === order.id || o.orderNumber === order.orderNumber,
+    );
+    if (idx >= 0) {
+      list[idx] = order;
+    } else {
+      list.unshift(order);
+    }
+    this.saveLocalOrders(list);
+  }
+
+  getLocalReceipts(): PurchaseOrderReceipt[] {
     try {
-      const raw = localStorage.getItem(RECEIPTS_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const receiptsMap = new Map<number | string, PurchaseOrderReceipt>();
+      const compId = getCompanyId();
+      const keys = [
+        RECEIPTS_STORAGE_KEY,
+        compId ? `${RECEIPTS_STORAGE_KEY}_${compId}` : null,
+      ].filter(Boolean) as string[];
+
+      if (typeof window !== 'undefined' && window.localStorage) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(RECEIPTS_STORAGE_KEY) && !keys.includes(k)) {
+            keys.push(k);
+          }
+        }
+      }
+
+      for (const key of keys) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              parsed.forEach((r: any) => {
+                const k = r.id || r.receiptNumber;
+                if (k && !receiptsMap.has(k)) {
+                  receiptsMap.set(k, r);
+                }
+              });
+            }
+          } catch {}
+        }
+      }
+
+      return Array.from(receiptsMap.values());
     } catch {
       return [];
     }
   }
 
-  private saveLocalReceipts(list: PurchaseOrderReceipt[]): void {
+  saveLocalReceipts(list: PurchaseOrderReceipt[]): void {
     try {
-      localStorage.setItem(RECEIPTS_STORAGE_KEY, JSON.stringify(list));
+      const compId = getCompanyId();
+      const raw = JSON.stringify(list);
+      localStorage.setItem(RECEIPTS_STORAGE_KEY, raw);
+      if (compId) {
+        localStorage.setItem(`${RECEIPTS_STORAGE_KEY}_${compId}`, raw);
+      }
     } catch (e) {
       console.error('Error saving local receipts:', e);
     }
@@ -86,7 +174,7 @@ export class PurchaseOrderReceiptService {
           ? (p as any).items
           : [];
 
-    const details: PurchaseOrderDetail[] = rawItems.map(
+    let details: PurchaseOrderDetail[] = rawItems.map(
       (d: any, idx: number) => ({
         productId: Number(d.productId || d.id || idx + 1),
         barCode: d.barCode || d.productCode || d.code || '',
@@ -109,6 +197,23 @@ export class PurchaseOrderReceiptService {
         ),
       }),
     );
+
+    // Si la orden no traía productos detallados, crear un renglón predeterminado con el monto total
+    if (details.length === 0) {
+      const orderTot = Number(p.total || (p as any).subTotal || 100);
+      details = [
+        {
+          productId: 1,
+          barCode: (p as any).orderNumber || p.invoiceNumber || `PUR-${id}`,
+          productName: (p as any).notes?.trim() || `Compra #${id} - Insumos / Mercancía`,
+          quantityOrdered: 1,
+          quantityReceived: 0,
+          unitCost: orderTot,
+          subTotal: orderTot,
+          total: orderTot,
+        },
+      ];
+    }
 
     return {
       id,
@@ -141,15 +246,18 @@ export class PurchaseOrderReceiptService {
   }
 
   async getPurchaseOrders(): Promise<ApiResponse<PurchaseOrder[]>> {
-    const combinedMap = new Map<number, PurchaseOrder>();
+    const combinedMap = new Map<number | string, PurchaseOrder>();
 
-    // 1. Try server PO endpoint
+    // 1. Try server PO endpoint (silent to prevent outage toasts on downtime)
     try {
-      const res = await this.api.get<any, any>('/PurchaseOrder');
+      const res = await this.api.get<any, any>('/PurchaseOrder', {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const list = extractArray<PurchaseOrder>(res);
       if (list && list.length > 0) {
         list.forEach((o) => {
-          if (o.id) combinedMap.set(o.id, o);
+          const k = o.id || o.orderNumber;
+          if (k) combinedMap.set(k, o);
         });
       }
     } catch {}
@@ -178,8 +286,9 @@ export class PurchaseOrderReceiptService {
       }
 
       purchases.forEach((p) => {
-        if (p.id && !combinedMap.has(p.id)) {
-          combinedMap.set(p.id, this.mapPurchaseToOrder(p, supMap));
+        const k = p.id || (p as any).orderNumber || p.invoiceNumber;
+        if (k && !combinedMap.has(k)) {
+          combinedMap.set(k, this.mapPurchaseToOrder(p, supMap));
         }
       });
     } catch {}
@@ -187,7 +296,8 @@ export class PurchaseOrderReceiptService {
     // 3. Fallback to local POs
     const local = this.getLocalOrders();
     local.forEach((o) => {
-      if (o.id && !combinedMap.has(o.id)) combinedMap.set(o.id, o);
+      const k = o.id || o.orderNumber;
+      if (k && !combinedMap.has(k)) combinedMap.set(k, o);
     });
 
     const result = Array.from(combinedMap.values());
@@ -199,7 +309,9 @@ export class PurchaseOrderReceiptService {
 
   async getPurchaseOrder(id: number): Promise<ApiResponse<PurchaseOrder>> {
     try {
-      const res = await this.api.get<any, any>(`/PurchaseOrder/${id}`);
+      const res = await this.api.get<any, any>(`/PurchaseOrder/${id}`, {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       if (res?.data || res) {
         return { success: true, data: (res.data ?? res) as PurchaseOrder };
       }
@@ -248,14 +360,23 @@ export class PurchaseOrderReceiptService {
 
   async getReceipts(): Promise<ApiResponse<PurchaseOrderReceipt[]>> {
     try {
-      const res = await this.api.get<any, any>('/PurchaseOrderReceipt');
+      const res = await this.api.get<any, any>('/PurchaseOrderReceipt', {
+        headers: { 'X-Silent-500': 'true', 'X-Silent-Error': 'true' },
+      });
       const list = extractArray<PurchaseOrderReceipt>(res);
-      return { success: true, data: list || [] };
+      const local = this.getLocalReceipts();
+      const merged = [...(list || [])];
+      for (const loc of local) {
+        if (!merged.some((m) => m.id === loc.id || m.receiptNumber === loc.receiptNumber)) {
+          merged.unshift(loc);
+        }
+      }
+      return { success: true, data: merged };
     } catch {
       return {
-        success: false,
-        data: [],
-        message: 'No se pudo conectar con el servidor.',
+        success: true,
+        data: this.getLocalReceipts(),
+        message: 'Modo local activo.',
       };
     }
   }
