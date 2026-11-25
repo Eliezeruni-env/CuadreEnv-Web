@@ -16,6 +16,9 @@ import {
   formatDateTimeInRD,
   formatTimeInRD,
 } from '../../cuadreEnv/utils/rd-date.util';
+import { StockService } from '../../inventory/services/stock.service';
+import { ProductService } from '../../products/services/product.service';
+import { KardexService } from '../../inventory/services/kardex.service';
 
 export interface CashRegisterSessionDto {
   id: number;
@@ -163,6 +166,9 @@ function saveLocalMovement(
 export class CashRegisterService {
   private api: ApiClientService;
   private realtimeAlertService?: RealtimeAlertService;
+  private stockService?: StockService;
+  private productService?: ProductService;
+  private kardexService?: KardexService;
 
   constructor(
     api?: ApiClientService,
@@ -188,6 +194,16 @@ export class CashRegisterService {
         this.realtimeAlertService = undefined;
       }
     }
+
+    try {
+      this.stockService = inject(StockService, { optional: true }) ?? undefined;
+    } catch {}
+    try {
+      this.productService = inject(ProductService, { optional: true }) ?? undefined;
+    } catch {}
+    try {
+      this.kardexService = inject(KardexService, { optional: true }) ?? undefined;
+    } catch {}
   }
 
   // Helper to read stored session
@@ -1400,12 +1416,18 @@ export class CashRegisterService {
   async registerQuickSale(saleData: {
     customerId?: number | null;
     customerName?: string;
+    warehouseId?: number;
     items: {
       productId: number;
       productName: string;
       unitPrice: number;
       quantity: number;
       total: number;
+      warehouseId?: number;
+      costPrice?: number;
+      productCode?: string;
+      deductionQuantity?: number;
+      isService?: boolean;
     }[];
     subtotal: number;
     discount: number;
@@ -1438,6 +1460,8 @@ export class CashRegisterService {
             return v.toString(16);
           }));
 
+    const resolvedWarehouseId = saleData.warehouseId || 1;
+
     let saleRes: any = null;
     try {
       // 1. Prioritize /caja/sales idempotent endpoint with X-Idempotency-Key header
@@ -1448,6 +1472,7 @@ export class CashRegisterService {
           customerId: saleData.customerId || null,
           cashRegisterId: session.cashRegisterId || session.id,
           cashSessionId: session.sessionId || session.id,
+          warehouseId: resolvedWarehouseId,
           date: new Date().toISOString(),
           notes:
             saleData.notes || `Venta rápida POS - ${saleData.paymentMethod}`,
@@ -1459,8 +1484,9 @@ export class CashRegisterService {
           createBy: 'system',
           items: saleData.items.map((it) => ({
             productId: it.productId,
-            quantity: it.quantity,
+            quantity: it.deductionQuantity !== undefined ? it.deductionQuantity : it.quantity,
             unitPrice: it.unitPrice,
+            warehouseId: it.warehouseId || resolvedWarehouseId,
           })),
         },
         {
@@ -1483,6 +1509,7 @@ export class CashRegisterService {
             customerId: saleData.customerId || null,
             total: saleData.total,
             paidAmount: saleData.total,
+            warehouseId: resolvedWarehouseId,
             cashRegisterId: session.cashRegisterId || session.id,
             cashSessionId: session.sessionId || session.id,
             originChannel: saleData.originChannel || 'POS_PRESENCIAL',
@@ -1496,8 +1523,9 @@ export class CashRegisterService {
             },
             details: saleData.items.map((it) => ({
               productId: it.productId,
-              quantity: it.quantity,
+              quantity: it.deductionQuantity !== undefined ? it.deductionQuantity : it.quantity,
               unitPrice: it.unitPrice,
+              warehouseId: it.warehouseId || resolvedWarehouseId,
             })),
           },
           {
@@ -1621,6 +1649,49 @@ export class CashRegisterService {
             localStorage.setItem(k, JSON.stringify(list));
           }
         } catch {}
+      }
+
+      // Synchronize stock deduction in StockService & Kardex
+      try {
+        const whId = resolvedWarehouseId || 1;
+        for (const it of saleData.items) {
+          if (it.isService) continue;
+          const pId = Number(it.productId);
+          const qty = Number(it.deductionQuantity !== undefined ? it.deductionQuantity : it.quantity);
+          if (pId > 0 && qty > 0) {
+            if (this.stockService) {
+              void this.stockService.updateStock(
+                whId,
+                pId,
+                -qty,
+                it.productName,
+                it.productCode,
+              );
+            }
+            if (this.kardexService) {
+              this.kardexService.recordMovement({
+                productId: pId,
+                productName: it.productName || `Producto #${pId}`,
+                warehouseId: whId,
+                movementType: 'VENTA',
+                documentReference: localSale.invoiceNumber || `VTA-${localSale.id}`,
+                quantityIn: 0,
+                quantityOut: qty,
+                stockBalance: 0,
+                unitCost: Number(it.costPrice || 0),
+                previousAverageCost: Number(it.costPrice || 0),
+                newAverageCost: Number(it.costPrice || 0),
+                sellingPrice: Number(it.unitPrice || 0),
+                notes: `Venta rápida POS #${localSale.invoiceNumber || localSale.id}`,
+              });
+            }
+          }
+        }
+        if (this.productService) {
+          this.productService.invalidateCache();
+        }
+      } catch (stkErr) {
+        console.warn('[CashRegisterService] Error synchronizing stock deduction:', stkErr);
       }
       // Update session current balance in cache if cash sale
       if (

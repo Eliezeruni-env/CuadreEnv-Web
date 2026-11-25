@@ -117,12 +117,22 @@ export class InventoryIntelligenceService {
     const reorderSuggestions: ReorderSuggestion[] = [];
     const deadStockItems: DeadStockItem[] = [];
 
+    // Mapear stock real desde StockService
+    const stockRes = await this.stockService.getStock().catch(() => null);
+    const stockMap = new Map<number, number>();
+    if (stockRes?.success && stockRes.data) {
+      for (const s of stockRes.data) {
+        stockMap.set(s.productId, (stockMap.get(s.productId) || 0) + (s.quantity || 0));
+      }
+    }
+
     for (const prod of products) {
       const prodId = Number(prod.id);
       if (!prodId) continue;
 
       const anyProd = prod as any;
-      const stock = Number(prod.stock || anyProd.quantity || 0);
+      const whStock = stockMap.get(prodId);
+      const stock = whStock !== undefined ? whStock : Number(prod.stock || anyProd.quantity || 0);
       const cost = Number(prod.cost || 0);
       const price = Number(prod.price || prod.priceList || cost * 1.3);
       const soldUnits = unitsSoldMap.get(prodId) || 0;

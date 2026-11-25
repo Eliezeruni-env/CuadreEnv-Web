@@ -10,6 +10,9 @@ import type {
   ApiResponse,
   SendInvoiceEmailRequest,
 } from '../../cuadreEnv/types/api';
+import { StockService } from '../../inventory/services/stock.service';
+import { ProductService } from '../../products/services/product.service';
+import { KardexService } from '../../inventory/services/kardex.service';
 
 const SALES_STORAGE_KEY_BASE = 'cuadreenv_local_sales_cache';
 export function getSalesStorageKey(): string {
@@ -22,6 +25,9 @@ export function getSalesStorageKey(): string {
 })
 export class SaleService {
   private readonly api: ApiClientService;
+  private readonly stockService = inject(StockService, { optional: true });
+  private readonly productService = inject(ProductService, { optional: true });
+  private readonly kardexService = inject(KardexService, { optional: true });
 
   constructor(api?: ApiClientService) {
     this.api = api ?? inject(ApiClientService, { optional: true })!;
@@ -388,6 +394,51 @@ export class SaleService {
     }
 
     this.saveLocalSale(createdSale);
+
+    // Synchronize stock deduction in StockService & Kardex
+    try {
+      const itemsToDeduct = createdSale.details || sale.details || [];
+      const defaultWhId = (sale as any).warehouseId || 1;
+      for (const d of itemsToDeduct) {
+        if ((d as any).isService) continue;
+        const pId = Number(d.productId || (d as any).id);
+        const qty = Number(d.quantity || 1);
+        const whId = Number((d as any).warehouseId || defaultWhId);
+        if (pId > 0 && qty > 0) {
+          if (this.stockService) {
+            void this.stockService.updateStock(
+              whId,
+              pId,
+              -qty,
+              (d as any).productName,
+              (d as any).productCode,
+            );
+          }
+          if (this.kardexService) {
+            this.kardexService.recordMovement({
+              productId: pId,
+              productName: (d as any).productName || `Producto #${pId}`,
+              warehouseId: whId,
+              movementType: 'VENTA',
+              documentReference: createdSale.invoiceNumber || `VTA-${createdSale.id}`,
+              quantityIn: 0,
+              quantityOut: qty,
+              stockBalance: 0,
+              unitCost: Number((d as any).cost || 0),
+              previousAverageCost: Number((d as any).cost || 0),
+              newAverageCost: Number((d as any).cost || 0),
+              sellingPrice: Number(d.unitPrice || 0),
+              notes: `Venta #${createdSale.invoiceNumber || createdSale.id}`,
+            });
+          }
+        }
+      }
+      if (this.productService) {
+        this.productService.invalidateCache();
+      }
+    } catch (stkErr) {
+      console.warn('[SaleService] Error synchronizing stock deduction:', stkErr);
+    }
 
     return {
       success: true,

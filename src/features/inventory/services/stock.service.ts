@@ -117,6 +117,65 @@ export class StockService {
     }
   }
 
+  async syncMissingCatalogProducts(currentList: Stock[]): Promise<void> {
+    try {
+      const prodRes = await this.productService.getPagedProducts(1, 100).catch(() => null);
+      const allProducts = prodRes?.data?.items || [];
+      if (!allProducts || allProducts.length === 0) return;
+
+      const physicalProducts = allProducts.filter((p: any) => {
+        const isService =
+          p.isService === true ||
+          p.type === 'service' ||
+          p.type === 'Servicio' ||
+          p.productTypeId === 2 ||
+          p.ProductTypeId === 2 ||
+          p.invoiceWithoutStock === true ||
+          String(p.barcode || p.reference || '').toUpperCase().startsWith('SERV');
+        return !isService;
+      });
+
+      const existingProductIds = new Set(currentList.map((s) => s.productId));
+      const whRes = await this.warehouseService.getWarehouses().catch(() => null);
+      const warehouses = whRes?.data || [];
+      const defaultWh = warehouses.find((w) => w.isMain) || warehouses[0] || { id: 1, name: 'Almacén Principal' };
+
+      let modified = false;
+      let idCounter = Date.now();
+
+      for (const p of physicalProducts) {
+        const pId = p.id || 0;
+        if (!pId) continue;
+        if (!existingProductIds.has(pId)) {
+          const pCost = p.cost || 0;
+          const pPrice = (p as any).priceList || (p as any).price || (pCost ? pCost * 1.3 : 0);
+          const baseQty = Number(p.stock) || 0;
+
+          currentList.push({
+            id: idCounter++,
+            warehouseId: defaultWh.id,
+            warehouseName: defaultWh.name,
+            productId: pId,
+            productName: p.description || `Producto #${pId}`,
+            barcode: p.barcode || undefined,
+            quantity: baseQty,
+            minimumQuantity: p.minimumQuantity || 5,
+            maximumQuantity: p.maximumQuantity || 0,
+            cost: pCost,
+            price: pPrice,
+            lastUpdated: new Date().toISOString(),
+          });
+          existingProductIds.add(pId);
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        this.saveLocalStock(currentList);
+      }
+    } catch {}
+  }
+
   async getStock(filters?: {
     warehouseId?: number;
     productId?: number;
@@ -124,6 +183,8 @@ export class StockService {
   }): Promise<ApiResponse<Stock[]>> {
     await this.initializeStockIfEmpty();
     let list = this.getLocalStock();
+    await this.syncMissingCatalogProducts(list);
+    list = this.getLocalStock();
 
     if (filters?.warehouseId) {
       list = list.filter((s) => s.warehouseId === Number(filters.warehouseId));

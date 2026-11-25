@@ -52,6 +52,10 @@ export class ProductService {
     this.inFlightPagedMap.clear();
   }
 
+  invalidateCache(): void {
+    this.clearCache();
+  }
+
   isServiceItem(p: any): boolean {
     if (!p) return false;
     if (p.isService === true || p.type === 'service' || p.type === 'Servicio')

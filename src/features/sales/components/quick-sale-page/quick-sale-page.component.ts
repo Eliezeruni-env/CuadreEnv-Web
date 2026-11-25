@@ -70,6 +70,7 @@ import {
 } from '../../../products/services/product-packaging.service';
 import { WarehouseService } from '../../../inventory/services/warehouse.service';
 import { StockService } from '../../../inventory/services/stock.service';
+import { KardexService } from '../../../inventory/services/kardex.service';
 import { NcfAlertBannerComponent } from '../../../billing/components/ncf-alert-banner/ncf-alert-banner.component';
 import { RealtimeAlertService } from '../../../cuadreEnv/services/realtime-alert.service';
 import { soundEffects } from '../../../cuadreEnv/utils/sound-effects';
@@ -181,6 +182,7 @@ export class QuickSalePageComponent implements OnInit, OnDestroy {
   private categoryService = inject(CategoryService);
   private warehouseService = inject(WarehouseService);
   private stockService = inject(StockService);
+  private kardexService = inject(KardexService);
   private notificationService = inject(NotificationService);
   private router = inject(Router);
   readonly companyService = inject(CompanyService);
@@ -4337,8 +4339,49 @@ ${bank.holderName ? `👤 *Titular:* ${bank.holderName}\n` : ''}${bank.holderRnc
           `Venta rápida ${invNum} cobrada exitosamente por RD$ ${this.total().toLocaleString('es-DO', { minimumFractionDigits: 2 })}.`,
         );
 
-        // Refresh warehouse stock after backend atomic sale deduction (single deduction)
-        const whId = this.selectedWarehouseId();
+        // Refresh and synchronize warehouse stock after sale completion
+        const whId = this.selectedWarehouseId() || 1;
+        for (const it of this.cartItems()) {
+          const deductQty =
+            it.deductionQuantity !== undefined
+              ? it.deductionQuantity
+              : it.quantity;
+          try {
+            await this.stockService.updateStock(
+              whId,
+              it.productId,
+              -deductQty,
+              it.productName,
+              it.productCode,
+            );
+          } catch (stkErr) {
+            console.warn('[QuickSale] Error updating local stock for product', it.productId, stkErr);
+          }
+
+          try {
+            const currentWhStock = this.warehouseStockMap().get(it.productId) || 0;
+            const newBal = Math.max(0, currentWhStock - deductQty);
+            this.kardexService.recordMovement({
+              productId: it.productId,
+              productName: it.productName,
+              warehouseId: whId,
+              movementType: 'VENTA',
+              documentReference: invNum,
+              quantityIn: 0,
+              quantityOut: deductQty,
+              stockBalance: newBal,
+              unitCost: it.costPrice || 0,
+              previousAverageCost: it.costPrice || 0,
+              newAverageCost: it.costPrice || 0,
+              sellingPrice: it.unitPrice,
+              notes: `Venta rápida POS #${invNum}`,
+            });
+          } catch {}
+        }
+
+        // Invalidate ProductService catalog cache so intelligence, inventory and POS get fresh stock
+        this.productService.invalidateCache();
+
         if (whId) {
           await this.loadWarehouseStock(whId);
         }
