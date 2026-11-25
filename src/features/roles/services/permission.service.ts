@@ -332,6 +332,7 @@ export class PermissionService {
 
   private static readonly ROUTE_MODULE_MAP: ReadonlyArray<{ prefix: string; exact?: boolean; module: string }> = [
     { prefix: '/dashboard', module: 'dashboard' },
+    { prefix: '/agenda', module: 'appointments' },
     { prefix: '/pos', module: 'pos' },
     { prefix: '/metrics', module: 'metrics' },
     { prefix: '/mobile', module: 'mobile-pos' },
@@ -592,6 +593,10 @@ export class PermissionService {
       company: 'company',
       productos: 'products',
       products: 'products',
+      appointments: 'appointments',
+      agenda: 'appointments',
+      citas: 'appointments',
+      reservas: 'appointments',
     };
     return aliases[normalized] ?? normalized;
   }

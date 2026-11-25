@@ -627,6 +627,7 @@ export const routes: Routes = [
         path: 'agenda',
         loadChildren: () =>
           import('../features/agenda/routes').then((m) => m.routes),
+        canActivate: [moduleAccessGuard('appointments')],
         data: { module: 'appointments', title: 'Agenda & Citas' },
       },
     ],

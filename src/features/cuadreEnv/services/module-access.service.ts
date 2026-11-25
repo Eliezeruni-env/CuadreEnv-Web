@@ -58,7 +58,9 @@ export class ModuleAccessService {
     'users': ['users', 'usuarios'],
     'admin-roles': ['admin-roles', 'roles', 'admin-roles-matrix'],
     'admin-approvals': ['admin-approvals', 'aprobaciones'],
-    'company-settings': ['company-settings', 'company', 'empresa']
+    'company-settings': ['company-settings', 'company', 'empresa'],
+    'appointments': ['appointments', 'agenda', 'citas', 'reservas', 'prj-agenda'],
+    'agenda': ['appointments', 'agenda', 'citas', 'reservas', 'prj-agenda']
   };
 
   /**
