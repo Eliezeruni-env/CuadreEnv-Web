@@ -658,7 +658,7 @@ export class PermissionService {
     }
 
     const normalizedTarget = this.normalizeModuleCode(targetModule);
-    if (allowed.includes(normalizedTarget)) {
+    if (allowed.includes(normalizedTarget) || (this.authService.isSuperUser() && isLicensed)) {
       return true;
     }
     if (

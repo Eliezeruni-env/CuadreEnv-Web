@@ -801,6 +801,10 @@ export class AuthService {
       perfil: 'profile',
       company: 'company',
       empresa: 'company',
+      appointments: 'appointments',
+      agenda: 'appointments',
+      citas: 'appointments',
+      reservas: 'appointments',
 
       // Venta fraccionada / menudeo y submódulos de ventas y productos
       productsdetailsales: 'products.detail_sales',
