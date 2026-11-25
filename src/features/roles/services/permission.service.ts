@@ -252,7 +252,7 @@ export class PermissionService {
 
   hasPermission(module: string, action: string): boolean {
     const isSuper = this.authService.isPlatformSuperUser();
-    if (isSuper) {
+    if (isSuper || this.authService.isSuperUser()) {
       return true;
     }
 

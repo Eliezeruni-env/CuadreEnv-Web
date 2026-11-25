@@ -89,6 +89,73 @@ export const navItems: ModuleNavItem[] = [
   },
   {
     title: true,
+    name: 'Agenda & Citas',
+  },
+  {
+    name: 'Panel Agenda',
+    url: '/agenda/dashboard',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-speedometer' },
+    linkProps: { routerLinkActiveOptions: { exact: true } },
+  },
+  {
+    name: 'Citas & Calendario',
+    url: '/agenda',
+    iconComponent: { name: 'cil-calendar' },
+    moduleCode: 'appointments',
+    children: [
+      {
+        name: 'Calendario',
+        url: '/agenda/calendar',
+        moduleCode: 'appointments',
+      },
+      {
+        name: 'Reservas y Solicitudes',
+        url: '/agenda/reservations',
+        moduleCode: 'appointments',
+      },
+      {
+        name: 'Clientes de Citas',
+        url: '/agenda/clients',
+        moduleCode: 'appointments',
+      },
+      {
+        name: 'Mi Página de Reservas',
+        url: '/agenda/booking-page',
+        moduleCode: 'appointments',
+      },
+    ],
+  },
+  {
+    name: 'Servicios Reservables',
+    url: '/agenda/services',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-briefcase' },
+    linkProps: { routerLinkActiveOptions: { exact: true } },
+  },
+  {
+    name: 'Personal & Horarios',
+    url: '/agenda/professionals',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-people' },
+    linkProps: { routerLinkActiveOptions: { exact: true } },
+  },
+  {
+    name: 'Reportes de Citas',
+    url: '/agenda/reports',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-chart-line' },
+    linkProps: { routerLinkActiveOptions: { exact: true } },
+  },
+  {
+    name: 'Configuración de Agenda',
+    url: '/agenda/settings',
+    moduleCode: 'appointments',
+    iconComponent: { name: 'cil-settings' },
+    linkProps: { routerLinkActiveOptions: { exact: true } },
+  },
+  {
+    title: true,
     name: 'Control Financiero',
   },
   {
