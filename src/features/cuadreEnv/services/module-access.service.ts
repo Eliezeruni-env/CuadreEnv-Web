@@ -264,6 +264,12 @@ export class ModuleAccessService {
   }
 
 
+  public isStoredAdmin(): boolean {
+    if (this.getStoredIsSuperUser()) return true;
+    const role = (this.getStoredRole() || '').toLowerCase();
+    return ['admin', 'superadmin', 'administrador', 'owner', 'dueño', 'dueno', 'gerente', 'director'].includes(role);
+  }
+
   /**
    * Método principal de verificación estricta de módulos.
    * Sin bypass por rol Admin: respeta taxativamente allowed_modules.
@@ -274,6 +280,13 @@ export class ModuleAccessService {
 
     // Perfil del usuario siempre es accesible
     if (targetCode === 'profile') return true;
+
+    // Administradores y propietarios tienen acceso a agenda y módulos base
+    if (this.isStoredAdmin()) {
+      if (['appointments', 'agenda', 'citas', 'reservas'].includes(targetCode)) {
+        return true;
+      }
+    }
 
     const currentModules = this.allowedModulesSignal();
 
