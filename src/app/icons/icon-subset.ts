@@ -129,7 +129,8 @@ import {
   cilHandshake,
   cilAddressBook,
   cilWallet,
-  cilCash
+  cilCash,
+  cilQrCode
 } from '@coreui/icons';
 
 export const cilWrench = [
@@ -296,6 +297,8 @@ export const iconSubset = {
   'cil-options': cilOptions,
   'cil-calendar': cilCalendar,
   'cil-user-follow': cilUserFollow,
+  'cil-qr-code': cilQrCode,
+  cilQrCode,
   cilBriefcase,
   'cil-briefcase': cilBriefcase,
   cilContact,

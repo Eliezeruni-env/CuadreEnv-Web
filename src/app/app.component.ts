@@ -45,6 +45,17 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Si un cliente o usuario abre la URL limpia sin hash (ej: /reservas/mi-negocio)
+    // redirigir automáticamente al formato HashLocationStrategy (#/reservas/mi-negocio)
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      if (pathname && (pathname.startsWith('/reservas/') || pathname === '/reservas')) {
+        const search = window.location.search || '';
+        window.location.replace(`${window.location.origin}/#${pathname}${search}`);
+        return;
+      }
+    }
+
     // Inicialización de módulos al cargar la aplicación
     if (typeof window !== 'undefined' && window.sessionStorage) {
       const storedModules = sessionStorage.getItem('allowedModules');

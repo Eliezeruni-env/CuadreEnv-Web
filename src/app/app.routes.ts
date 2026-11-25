@@ -641,6 +641,14 @@ export const routes: Routes = [
     data: { title: 'Reservar Cita' },
   },
   {
+    path: 'reservar/:slug',
+    redirectTo: 'reservas/:slug',
+  },
+  {
+    path: 'booking/:slug',
+    redirectTo: 'reservas/:slug',
+  },
+  {
     path: 'reservas/:slug/comprobante/:code',
     loadComponent: () =>
       import('../features/agenda/components/agenda-public-voucher/agenda-public-voucher.component').then(

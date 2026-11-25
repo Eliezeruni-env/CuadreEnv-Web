@@ -165,7 +165,7 @@ export class AgendaPublicBookingComponent implements OnInit {
 
     try {
       this.isSubmitting.set(true);
-      const res = await this.agendaService.reservePublicAppointment({
+      const res = await this.agendaService.reservePublicAppointment(this.slug(), {
         vanitySlug: this.slug(),
         serviceId: svc.id,
         professionalId: slot.professionalId > 0 ? slot.professionalId : undefined,

@@ -75,6 +75,35 @@
       </div>
     </div>
 
+    <!-- Quick Share Booking Link Card -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 p-3 bg-white">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-2 bg-primary-subtle text-primary rounded-3">
+            <i class="cil-calendar" style="font-size: 1.5rem;"></i>
+          </div>
+          <div>
+            <h6 class="mb-0 fw-bold">Comparte tu enlace de reservas públicas</h6>
+            <small class="text-muted">Permite a tus clientes agendar sus citas desde WhatsApp, redes sociales o tu enlace web.</small>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" (click)="copyBookingLink()">
+            <i class="cil-copy"></i>
+            <span>Copiar enlace</span>
+          </button>
+          <button class="btn btn-sm btn-outline-success d-flex align-items-center gap-1" (click)="shareOnWhatsApp()">
+            <i class="cil-speech"></i>
+            <span>WhatsApp</span>
+          </button>
+          <a class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" [routerLink]="['/agenda/booking-page']">
+            <i class="cil-options"></i>
+            <span>Configurar página</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Content Grid -->
     <div class="row g-4 mb-4">
       <!-- Citas de hoy timeline -->

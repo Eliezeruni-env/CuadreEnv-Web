@@ -38,7 +38,7 @@ export class AgendaPublicVoucherComponent implements OnInit {
   async checkStatus(): Promise<void> {
     try {
       this.isLoading.set(true);
-      const res = await this.agendaService.getPublicAppointmentStatus(this.bookingCode(), this.token());
+      const res = await this.agendaService.getPublicAppointmentStatus(this.slug(), this.bookingCode(), this.token());
       this.appointmentDetails.set(res);
     } catch (err: any) {
       console.error('Error fetching appointment status', err);

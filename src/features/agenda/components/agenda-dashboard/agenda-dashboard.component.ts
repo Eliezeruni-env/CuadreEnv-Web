@@ -21,6 +21,14 @@ export class AgendaDashboardComponent implements OnInit {
   isLoading = signal<boolean>(true);
   dashboardData = signal<AgendaDashboardDto | null>(null);
   selectedDate = signal<string>(new Date().toLocaleDateString('es-DO', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }));
+  vanitySlug = signal<string>('mi-negocio');
+
+  get publicBookingUrl(): string {
+    if (typeof window === 'undefined') return `/reservas/${this.vanitySlug()}`;
+    const origin = window.location.origin;
+    const path = window.location.pathname.replace(/\/+$/, '');
+    return `${origin}${path}/#/reservas/${this.vanitySlug()}`;
+  }
 
   ngOnInit(): void {
     this.loadDashboard();
@@ -29,13 +37,65 @@ export class AgendaDashboardComponent implements OnInit {
   async loadDashboard(): Promise<void> {
     try {
       this.isLoading.set(true);
-      const data = await this.agendaService.getDashboard();
+      const [data, bpSettings] = await Promise.all([
+        this.agendaService.getDashboard(),
+        this.agendaService.getBookingPageSettings().catch(() => null),
+      ]);
       this.dashboardData.set(data);
+      if (bpSettings && bpSettings.vanitySlug) {
+        this.vanitySlug.set(bpSettings.vanitySlug);
+      }
     } catch (err: any) {
       this.notificationService.error('Error al cargar panel de agenda', err?.message);
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  copyBookingLink(): void {
+    const url = this.publicBookingUrl;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          this.notificationService.success(
+            'Enlace copiado',
+            'El enlace de reserva ha sido copiado al portapapeles.',
+          );
+        })
+        .catch(() => {
+          this.fallbackCopyText(url);
+        });
+    } else {
+      this.fallbackCopyText(url);
+    }
+  }
+
+  private fallbackCopyText(text: string): void {
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      this.notificationService.success(
+        'Enlace copiado',
+        'El enlace de reserva ha sido copiado al portapapeles.',
+      );
+    } catch {
+      this.notificationService.info('Enlace para compartir', text);
+    }
+  }
+
+  shareOnWhatsApp(): void {
+    const text = encodeURIComponent(
+      `¡Hola! Reserva tu cita en línea fácilmente aquí: ${this.publicBookingUrl}`,
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
   }
 
   async confirmPending(appointment: AppointmentListItemDto): Promise<void> {
@@ -57,12 +117,6 @@ export class AgendaDashboardComponent implements OnInit {
     } catch (err: any) {
       this.notificationService.error('Error', err?.message || 'No se pudo rechazar la cita.');
     }
-  }
-
-  copyBookingLink(): void {
-    const url = `${window.location.origin}/reservas/barberia-central`;
-    navigator.clipboard.writeText(url);
-    this.notificationService.success('Enlace copiado', 'El enlace de reserva ha sido copiado al portapapeles.');
   }
 
   getStatusClass(status: AppointmentStatus): string {

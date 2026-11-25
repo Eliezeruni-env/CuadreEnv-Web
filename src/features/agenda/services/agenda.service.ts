@@ -178,40 +178,120 @@ export class AgendaService {
 
   // ================= BOOKING PAGE SETTINGS =================
   async getBookingPageSettings(): Promise<BookingPageSettingsDto> {
-    return await this.api.get<BookingPageSettingsDto, any>('/Agenda/booking-page');
+    const res: any = await this.api.get<any, any>('/Agenda/booking-page');
+    const raw = res?.data ?? res?.Data ?? res;
+    return {
+      vanitySlug: raw?.slug || raw?.Slug || raw?.vanitySlug || 'mi-negocio',
+      businessName: raw?.businessName || raw?.BusinessName || 'Mi Negocio',
+      businessDescription: raw?.description || raw?.Description || raw?.businessDescription || '',
+      logoUrl: raw?.logoUrl || raw?.LogoUrl || '',
+      bannerUrl: raw?.coverImageUrl || raw?.CoverImageUrl || raw?.bannerUrl || '',
+      brandColorHex: raw?.brandColorHex || raw?.BrandColorHex || '#111827',
+      contactWhatsApp: raw?.whatsAppNumber || raw?.WhatsAppNumber || raw?.contactWhatsApp || '',
+      address: raw?.address || raw?.Address || '',
+      isPublished: raw?.isPublicActive ?? raw?.IsPublicActive ?? raw?.isPublished ?? true,
+      requireManualConfirmation: raw?.requireManualConfirmation ?? false,
+    };
   }
 
   async updateBookingPageSettings(settings: BookingPageSettingsDto): Promise<BookingPageSettingsDto> {
-    return await this.api.put<BookingPageSettingsDto, any>('/Agenda/booking-page', settings);
+    const payload = {
+      slug: settings.vanitySlug?.trim()?.toLowerCase() || 'mi-negocio',
+      businessName: settings.businessName?.trim() || 'Mi Negocio',
+      description: settings.businessDescription?.trim() || '',
+      logoUrl: settings.logoUrl?.trim() || null,
+      coverImageUrl: settings.bannerUrl?.trim() || null,
+      brandColorHex: settings.brandColorHex?.trim() || '#111827',
+      address: settings.address?.trim() || null,
+      whatsAppNumber: settings.contactWhatsApp?.trim() || null,
+      isPublicActive: settings.isPublished ?? true,
+    };
+    return await this.api.put<BookingPageSettingsDto, any>('/Agenda/booking-page', payload);
   }
 
   // ================= PUBLIC PORTAL CLIENT METHODS =================
   async getPublicProfile(slug: string): Promise<PublicBusinessProfileDto> {
-    return await this.api.get<PublicBusinessProfileDto, any>(`/public/booking/${slug}`);
+    const res: any = await this.api.get<any, any>(`/public/booking/${slug}`);
+    const raw = res?.data ?? res?.Data ?? res;
+    return {
+      businessName: raw?.businessName || raw?.BusinessName || 'Mi Negocio',
+      businessDescription: raw?.description || raw?.Description || raw?.businessDescription || '',
+      logoUrl: raw?.logoUrl || raw?.LogoUrl || '',
+      bannerUrl: raw?.coverImageUrl || raw?.CoverImageUrl || raw?.bannerUrl || '',
+      brandColorHex: raw?.brandColorHex || raw?.BrandColorHex || '#111827',
+      contactWhatsApp: raw?.whatsAppNumber || raw?.WhatsAppNumber || raw?.contactWhatsApp || '',
+      address: raw?.address || raw?.Address || '',
+      services: (raw?.services || raw?.Services || []).map((s: any) => ({
+        id: s.id ?? s.Id,
+        name: s.name ?? s.Name,
+        price: Number(s.price ?? s.Price ?? 0),
+        durationMinutes: Number(s.durationMinutes ?? s.DurationMinutes ?? 30),
+        colorHex: (s.colorHex ?? s.ColorHex) || '#4f46e5',
+        description: s.description ?? s.Description,
+      })),
+      professionals: (raw?.professionals || raw?.Professionals || []).map((p: any) => ({
+        id: p.id ?? p.Id,
+        fullName: p.displayName ?? p.DisplayName ?? p.fullName,
+        specialties: p.specialtyTitle ?? p.SpecialtyTitle ?? p.specialties,
+        assignedServiceIds: p.assignedServiceIds ?? p.AssignedServiceIds ?? [],
+      })),
+    };
   }
 
   async getPublicSlots(slug: string, serviceId: number, date: string, professionalId?: number): Promise<AvailableSlotDto[]> {
     const params: any = { serviceId, date };
     if (professionalId) params.professionalId = professionalId;
-    const res = await this.api.get<any, any>(`/public/booking/${slug}/slots`, { params });
+    const res: any = await this.api.get<any, any>(`/public/booking/${slug}/slots`, { params });
+    const data = res?.data ?? res?.Data ?? res;
+    if (data && Array.isArray(data.slots)) {
+      return data.slots;
+    }
+    if (data && Array.isArray(data.Slots)) {
+      return data.Slots;
+    }
     return extractArray<AvailableSlotDto>(res);
   }
 
-  async reservePublicAppointment(request: PublicBookingRequestDto): Promise<PublicBookingConfirmationDto> {
-    return await this.api.post<PublicBookingConfirmationDto, any>('/public/booking/reserve', request);
+  async reservePublicAppointment(slug: string, request: PublicBookingRequestDto): Promise<PublicBookingConfirmationDto> {
+    const payload = {
+      appointmentServiceId: request.serviceId,
+      professionalId: request.professionalId,
+      startAt: request.startAt,
+      customerName: request.customerName,
+      customerPhone: request.customerPhone,
+      customerEmail: request.customerEmail,
+      notes: request.notes,
+    };
+    const res: any = await this.api.post<any, any>(`/public/booking/${slug}/reserve`, payload);
+    const raw = res?.data ?? res?.Data ?? res;
+    return {
+      bookingCode: raw?.bookingCode || raw?.BookingCode || '',
+      managementToken: raw?.managementToken || raw?.ManagementToken || '',
+      startAt: raw?.startAt || raw?.StartAt || '',
+      endAt: raw?.endAt || raw?.EndAt || '',
+      status: raw?.status || raw?.Status || 'Pending',
+      serviceName: raw?.serviceName || raw?.ServiceName || '',
+      servicePrice: Number(raw?.price ?? raw?.Price ?? raw?.servicePrice ?? 0),
+      professionalName: raw?.professionalName || raw?.ProfessionalName || '',
+      businessName: raw?.businessName || raw?.BusinessName || '',
+      contactWhatsApp: raw?.contactWhatsApp || raw?.ContactWhatsApp || '',
+      address: raw?.businessAddress || raw?.address || '',
+      brandColorHex: raw?.brandColorHex || '#111827',
+    };
   }
 
-  async getPublicAppointmentStatus(code: string, token?: string): Promise<any> {
+  async getPublicAppointmentStatus(slug: string, code: string, token?: string): Promise<any> {
     const params: any = {};
     if (token) params.token = token;
-    return await this.api.get<any, any>(`/public/booking/status/${code}`, { params });
+    const res: any = await this.api.get<any, any>(`/public/booking/${slug}/status/${code}`, { params });
+    return res?.data ?? res?.Data ?? res;
   }
 
-  async cancelPublicAppointment(code: string, token: string, reason?: string): Promise<void> {
-    await this.api.post('/public/booking/cancel', { bookingCode: code, managementToken: token, cancellationReason: reason });
+  async cancelPublicAppointment(slug: string, code: string, token: string, reason?: string): Promise<void> {
+    await this.api.post(`/public/booking/${slug}/cancel`, { bookingCode: code, managementToken: token, cancellationReason: reason });
   }
 
-  async reschedulePublicAppointment(code: string, token: string, newStartAt: string): Promise<void> {
-    await this.api.post('/public/booking/reschedule', { bookingCode: code, managementToken: token, newStartAt });
+  async reschedulePublicAppointment(slug: string, code: string, token: string, newStartAt: string): Promise<void> {
+    await this.api.post(`/public/booking/${slug}/reschedule`, { bookingCode: code, managementToken: token, newStartAt });
   }
 }

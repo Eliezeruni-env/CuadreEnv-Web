@@ -67,12 +67,49 @@ export class AgendaBookingPageComponent implements OnInit {
   }
 
   get publicBookingUrl(): string {
-    return `${window.location.origin}/reservas/${this.vanitySlug}`;
+    if (typeof window === 'undefined') return `/reservas/${this.vanitySlug}`;
+    const origin = window.location.origin;
+    const path = window.location.pathname.replace(/\/+$/, '');
+    return `${origin}${path}/#/reservas/${this.vanitySlug}`;
   }
 
   copyLink(): void {
-    navigator.clipboard.writeText(this.publicBookingUrl);
-    this.notificationService.success('Enlace copiado', 'El enlace de reserva ha sido copiado.');
+    const url = this.publicBookingUrl;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          this.notificationService.success(
+            'Enlace copiado',
+            'El enlace de reserva ha sido copiado al portapapeles.',
+          );
+        })
+        .catch(() => {
+          this.fallbackCopyText(url);
+        });
+    } else {
+      this.fallbackCopyText(url);
+    }
+  }
+
+  private fallbackCopyText(text: string): void {
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      this.notificationService.success(
+        'Enlace copiado',
+        'El enlace de reserva ha sido copiado al portapapeles.',
+      );
+    } catch {
+      this.notificationService.info('Enlace para compartir', text);
+    }
   }
 
   shareWhatsApp(): void {
