@@ -97,7 +97,16 @@ export class ModuleAccessService {
     'pos-digital-signature': ['pos-digital-signature', 'pos_digital_signature', 'digital-signature', 'firma'],
     // Preferencias de UI Global
     'system-language': ['system-language', 'system_language', 'language', 'idioma'],
-    'system-theme': ['system-theme', 'system_theme', 'theme', 'dark-mode', 'color-mode']
+    'system-theme': ['system-theme', 'system_theme', 'theme', 'dark-mode', 'color-mode'],
+    // Funciones granulares de Agenda & Citas
+    'appointments-calendar': ['appointments-calendar', 'calendar', 'agenda/calendar'],
+    'appointments-reservations': ['appointments-reservations', 'reservations', 'reservas'],
+    'appointments-clients': ['appointments-clients', 'agenda-clients'],
+    'appointments-booking-page': ['appointments-booking-page', 'booking-page'],
+    'appointments-services': ['appointments-services', 'agenda-services'],
+    'appointments-professionals': ['appointments-professionals', 'professionals', 'especialistas'],
+    'appointments-reports': ['appointments-reports', 'agenda-reports'],
+    'appointments-settings': ['appointments-settings', 'agenda-settings']
   };
 
   constructor() {
@@ -322,6 +331,22 @@ export class ModuleAccessService {
       return currentModules.some(m => inventoryCodes.includes(m));
     }
 
+    // Acceso a ruta contenedora padre de agenda si tiene algún submódulo activo
+    if (targetCode === 'appointments' || targetCode === 'agenda' || targetCode === 'citas') {
+      const appointmentCodes = ['appointments', 'agenda', 'citas', 'reservas', 'prj-agenda'];
+      if (currentModules.some(m => appointmentCodes.includes(m))) return true;
+      return currentModules.some(m => m.startsWith('appointments-') || m.startsWith('appointments_'));
+    }
+
+    // Soporte granular para submódulos de citas con herencia del módulo principal
+    if (targetCode.startsWith('appointments-')) {
+      const hasAnySpecific = currentModules.some(m => m.startsWith('appointments-') || m.startsWith('appointments_'));
+      if (hasAnySpecific) {
+        return currentModules.some(m => m === targetCode || m.replace('-', '_') === targetCode);
+      }
+      return currentModules.some(m => ['appointments', 'agenda', 'citas', 'reservas'].includes(m));
+    }
+
     // 4. Mapeo Canónico de Módulos y Submódulos (MODULE_MAP)
     for (const [canonicalKey, aliases] of Object.entries(this.MODULE_MAP)) {
       const keyLower = canonicalKey.toLowerCase();
@@ -397,6 +422,15 @@ export class ModuleAccessService {
       }
       // Por defecto activado para no romper experiencia legacy si no fue restringido en USM
       return true;
+    }
+
+    // 4. Control de familia Agenda & Citas
+    if (target.startsWith('appointments-')) {
+      const hasAnyAppointmentsConfigured = currentModules.some(m => m.startsWith('appointments-') || m.startsWith('appointments_'));
+      if (hasAnyAppointmentsConfigured) {
+        return currentModules.some(m => m === target || m.replace('-', '_') === target);
+      }
+      return parentModule ? this.hasModuleAccess(parentModule) : this.hasModuleAccess('appointments');
     }
 
     return parentModule ? this.hasModuleAccess(parentModule) : true;

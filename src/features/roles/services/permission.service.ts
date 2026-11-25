@@ -21,6 +21,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
   { key: 'Purchases' as any, label: 'Compras & Proveedores', description: 'Órdenes de compra, recepciones y pagos a proveedores', icon: 'cil-truck' },
   { key: 'Audit', label: 'Auditoría & Trazabilidad', description: 'Bitácora de eventos, fraud guardian y aprobaciones', icon: 'cil-shield-alt' },
   { key: 'Reports', label: 'Reportes & Análisis', description: 'Métricas financieras, ventas y estadísticas operativas', icon: 'cil-chart-pie' },
+  { key: 'Appointments' as any, label: 'Agenda & Citas', description: 'Calendario de reservas, servicios y especialistas', icon: 'cil-calendar' },
   { key: 'Company', label: 'Administración de Empresa', description: 'Configuración fiscal, usuarios y roles del tenant', icon: 'cil-settings' },
 ];
 

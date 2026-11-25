@@ -525,7 +525,7 @@ export interface PayInstallmentRequestDto {
 
 export interface PermissionDto {
   id: number;
-  module: 'Sales' | 'Inventory' | 'Billing' | 'CashRegister' | 'Receivables' | 'Customers' | 'Audit' | 'Reports' | 'Company';
+  module: 'Sales' | 'Inventory' | 'Billing' | 'CashRegister' | 'Receivables' | 'Customers' | 'Audit' | 'Reports' | 'Company' | 'Appointments';
   action: 'View' | 'Create' | 'Edit' | 'Delete' | 'Approve' | 'Export';
   description?: string;
 }
