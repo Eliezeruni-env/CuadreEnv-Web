@@ -1,28 +1,29 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { AgendaService } from '../../services/agenda.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
-import { ProductService } from '../../../products/services/product.service';
+import { ServiceService } from '../../../services/services/service.service';
 import type { ReservableServiceDto, ProfessionalDto } from '../../models/agenda.models';
-import type { ProductDto } from '../../../cuadreEnv/types/api';
+import type { ServiceItemDto } from '../../../services/models/service-item.model';
 
 @Component({
   selector: 'app-agenda-services',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './agenda-services.component.html',
   styleUrls: ['./agenda-services.component.scss'],
 })
 export class AgendaServicesComponent implements OnInit {
   private readonly agendaService = inject(AgendaService);
-  private readonly productService = inject(ProductService);
+  private readonly serviceService = inject(ServiceService);
   private readonly notificationService = inject(NotificationService);
 
   isLoading = signal<boolean>(true);
   services = signal<ReservableServiceDto[]>([]);
   professionals = signal<ProfessionalDto[]>([]);
-  catalogProducts = signal<ProductDto[]>([]);
+  catalogServices = signal<ServiceItemDto[]>([]);
 
   // Modal signals
   isModalOpen = signal<boolean>(false);
@@ -68,18 +69,20 @@ export class AgendaServicesComponent implements OnInit {
       this.formColorHex = '#4f46e5';
       this.selectedProfessionalIds = this.professionals().map((p) => p.id);
 
-      // Load products from existing catalog
-      const res = await this.productService.getServices();
-      const prods = (res?.data && res.data.length > 0)
-        ? res.data
-        : (await this.productService.getPagedProducts(1, 100))?.data?.items || [];
-      this.catalogProducts.set(prods);
-      if (prods && prods.length > 0) {
-        this.formProductId = prods[0].id ?? 0;
+      // Cargar EXCLUSIVAMENTE servicios del módulo de Servicios del SaaS general
+      // NUNCA cargar productos físicos de inventario
+      const allServices = await this.serviceService.getServices({ activeOnly: true });
+      const validServices = (allServices || []).filter(
+        (s) => s && s.id && Number(s.id) > 0
+      );
+
+      this.catalogServices.set(validServices);
+      if (validServices.length > 0) {
+        this.formProductId = validServices[0].id!;
       }
       this.isModalOpen.set(true);
     } catch (err: any) {
-      this.notificationService.error('Error al cargar productos de catálogo', err?.message);
+      this.notificationService.error('Error al cargar servicios del catálogo', err?.message);
     }
   }
 
@@ -135,7 +138,7 @@ export class AgendaServicesComponent implements OnInit {
         this.notificationService.success('Servicio actualizado', 'Los cambios se guardaron con éxito.');
       } else {
         if (!this.formProductId) {
-          this.notificationService.error('Error', 'Selecciona un producto del catálogo.');
+          this.notificationService.error('Error', 'Selecciona un servicio válido del catálogo.');
           return;
         }
         await this.agendaService.createService({
@@ -146,7 +149,7 @@ export class AgendaServicesComponent implements OnInit {
           colorHex: this.formColorHex,
           assignedProfessionalIds: this.selectedProfessionalIds,
         });
-        this.notificationService.success('Servicio creado', 'El servicio reservable ha sido vinculado.');
+        this.notificationService.success('Servicio creado', 'El servicio reservable ha sido vinculado exitosamente.');
       }
       this.isModalOpen.set(false);
       await this.loadData();

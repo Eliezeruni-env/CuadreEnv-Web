@@ -161,12 +161,24 @@
         <div class="modal-body">
           @if (!editingService()) {
             <div class="mb-3">
-              <label class="form-label">Producto / Servicio del catálogo *</label>
-              <select class="form-select" [(ngModel)]="formProductId">
-                @for (prod of catalogProducts(); track prod.id) {
-                  <option [value]="prod.id">{{ prod.description }} - RD${{ prod.price }}</option>
-                }
-              </select>
+              <label class="form-label fw-semibold">Servicio del catálogo *</label>
+              @if (catalogServices().length > 0) {
+                <select class="form-select" [(ngModel)]="formProductId">
+                  @for (srv of catalogServices(); track srv.id) {
+                    <option [value]="srv.id">{{ srv.name }} {{ srv.code ? '(' + srv.code + ')' : '' }} - RD${{ srv.price }}</option>
+                  }
+                </select>
+                <div class="form-text text-muted">
+                  Solo se listan servicios registrados en tu catálogo general de Servicios (los productos físicos están excluidos).
+                </div>
+              } @else {
+                <div class="alert alert-warning d-flex align-items-center gap-2 mb-0 py-2">
+                  <i class="cil-warning"></i>
+                  <div class="small">
+                    No se encontraron servicios registrados en el módulo general. Recuerda que los <strong>productos físicos</strong> de inventario no pueden vincularse como servicios reservables. Por favor crea primero un servicio en <a routerLink="/services" class="alert-link">Servicios</a>.
+                  </div>
+                </div>
+              }
             </div>
           } @else {
             <div class="mb-3">

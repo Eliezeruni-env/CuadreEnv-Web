@@ -115,7 +115,7 @@ export const ROUTES: RouteInfo[] = [
     path: '/agenda/dashboard',
     moduleCode: 'appointments',
     title: 'Panel Agenda',
-    icon: 'cilSpeedometer',
+    icon: 'cilClock',
     class: '',
   },
   {
@@ -150,14 +150,14 @@ export const ROUTES: RouteInfo[] = [
     path: '/agenda/services',
     moduleCode: 'appointments-services',
     title: 'Servicios Reservables',
-    icon: 'cilBriefcase',
+    icon: 'cilStar',
     class: '',
   },
   {
     path: '/agenda/professionals',
     moduleCode: 'appointments-professionals',
     title: 'Personal & Horarios',
-    icon: 'cilPeople',
+    icon: 'cilUserFollow',
     class: '',
   },
   {
@@ -171,7 +171,7 @@ export const ROUTES: RouteInfo[] = [
     path: '/agenda/settings',
     moduleCode: 'appointments-settings',
     title: 'Configuración de Agenda',
-    icon: 'cilSettings',
+    icon: 'cilOptions',
     class: '',
   },
   {
@@ -231,7 +231,7 @@ export const ROUTES: RouteInfo[] = [
     path: '/inventory/intelligence',
     moduleCode: 'inventory-stock',
     title: 'Reposición Inteligente',
-    icon: 'cilChartLine',
+    icon: 'cilChart',
     class: '',
   },
   {

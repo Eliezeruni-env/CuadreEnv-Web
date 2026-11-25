@@ -42,7 +42,7 @@ export const navItems: ModuleNavItem[] = [
     name: 'Ventas Corporativas B2B',
     url: '/sales/corporate',
     moduleCode: 'sales-corporate',
-    iconComponent: { name: 'cil-briefcase' },
+    iconComponent: { name: 'cil-handshake' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
@@ -63,7 +63,7 @@ export const navItems: ModuleNavItem[] = [
     name: 'Facturación',
     url: '/billing',
     moduleCode: 'billing',
-    iconComponent: { name: 'cil-notes' },
+    iconComponent: { name: 'cil-description' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
@@ -77,14 +77,14 @@ export const navItems: ModuleNavItem[] = [
     name: 'Servicios',
     url: '/services',
     moduleCode: 'services',
-    iconComponent: { name: 'cil-settings' },
+    iconComponent: { name: 'cil-briefcase' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
     name: 'Notas de Crédito',
     url: '/credit-notes',
     moduleCode: 'credit-notes',
-    iconComponent: { name: 'cil-description' },
+    iconComponent: { name: 'cil-file' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
@@ -95,7 +95,7 @@ export const navItems: ModuleNavItem[] = [
     name: 'Panel Agenda',
     url: '/agenda/dashboard',
     moduleCode: 'appointments',
-    iconComponent: { name: 'cil-speedometer' },
+    iconComponent: { name: 'cil-clock' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
@@ -130,14 +130,14 @@ export const navItems: ModuleNavItem[] = [
     name: 'Servicios Reservables',
     url: '/agenda/services',
     moduleCode: 'appointments-services',
-    iconComponent: { name: 'cil-briefcase' },
+    iconComponent: { name: 'cil-star' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
     name: 'Personal & Horarios',
     url: '/agenda/professionals',
     moduleCode: 'appointments-professionals',
-    iconComponent: { name: 'cil-people' },
+    iconComponent: { name: 'cil-user-follow' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
@@ -151,7 +151,7 @@ export const navItems: ModuleNavItem[] = [
     name: 'Configuración de Agenda',
     url: '/agenda/settings',
     moduleCode: 'appointments-settings',
-    iconComponent: { name: 'cil-settings' },
+    iconComponent: { name: 'cil-options' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
