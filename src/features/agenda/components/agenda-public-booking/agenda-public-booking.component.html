@@ -101,31 +101,6 @@
               <button class="btn btn-sm btn-link text-decoration-none" (click)="goToStep(1)">Cambiar</button>
             </div>
 
-            <!-- Professional selector -->
-            <div class="card p-3 shadow-sm border-0 rounded-4 mb-3">
-              <h6 class="fw-bold mb-2">Profesional</h6>
-              <div class="d-flex flex-wrap gap-2">
-                <button
-                  class="btn btn-sm"
-                  [class.btn-primary]="selectedProfessional() === null"
-                  [class.btn-outline-secondary]="selectedProfessional() !== null"
-                  (click)="selectProfessional(null)"
-                >
-                  Cualquier disponible
-                </button>
-                @for (prof of profile()?.professionals; track prof.id) {
-                  <button
-                    class="btn btn-sm"
-                    [class.btn-primary]="selectedProfessional()?.id === prof.id"
-                    [class.btn-outline-secondary]="selectedProfessional()?.id !== prof.id"
-                    (click)="selectProfessional(prof)"
-                  >
-                    {{ prof.name }}
-                  </button>
-                }
-              </div>
-            </div>
-
             <!-- Calendar and Slots Grid -->
             <div class="card p-4 shadow-sm border-0 rounded-4">
               <h6 class="fw-bold mb-3"><i class="cil-calendar me-2"></i>Selecciona la fecha y hora</h6>
@@ -180,11 +155,6 @@
               <div class="summary-item mb-2">
                 <span class="text-muted small">Duración</span>
                 <div class="fw-semibold">{{ selectedService()?.durationMinutes }} min</div>
-              </div>
-
-              <div class="summary-item mb-2">
-                <span class="text-muted small">Profesional</span>
-                <div class="fw-semibold">{{ selectedSlot()?.professionalName || 'Cualquier disponible' }}</div>
               </div>
 
               <div class="summary-item mb-2">

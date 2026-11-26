@@ -35,16 +35,40 @@ export class AgendaCalendarComponent implements OnInit {
 
   calculateWeekDays(): void {
     const curr = new Date(this.currentDate());
-    const first = curr.getDate() - curr.getDay() + 1; // Lunes
+    const day = curr.getDay(); // 0 = Sunday, 1 = Monday...
+    const diff = curr.getDate() - day + (day === 0 ? -6 : 1); // Monday of current week
+    const monday = new Date(curr);
+    monday.setDate(diff);
+
     const days: { name: string; date: Date }[] = [];
     const names = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
     for (let i = 0; i < 7; i++) {
-      const nextDate = new Date(curr);
-      nextDate.setDate(first + i);
+      const nextDate = new Date(monday);
+      nextDate.setDate(monday.getDate() + i);
       days.push({ name: names[i], date: nextDate });
     }
     this.weekDays.set(days);
+  }
+
+  get weekRangeLabel(): string {
+    const days = this.weekDays();
+    if (days.length === 0) return '';
+    const first = days[0].date;
+    const last = days[days.length - 1].date;
+    const m1 = first.toLocaleDateString('es-ES', { month: 'short' });
+    const m2 = last.toLocaleDateString('es-ES', { month: 'short' });
+    if (m1 === m2) {
+      return `${first.getDate()} - ${last.getDate()} de ${m1} ${last.getFullYear()}`;
+    }
+    return `${first.getDate()} ${m1} - ${last.getDate()} ${m2} ${last.getFullYear()}`;
+  }
+
+  get displayHours(): number[] {
+    const defaultHours = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+    const apptHours = this.appointments().map((a) => new Date(a.startAt).getHours());
+    const merged = Array.from(new Set([...defaultHours, ...apptHours])).sort((a, b) => a - b);
+    return merged;
   }
 
   async loadData(): Promise<void> {
@@ -93,13 +117,13 @@ export class AgendaCalendarComponent implements OnInit {
     });
   }
 
-  getStatusClass(status: AppointmentStatus): string {
-    switch (status) {
-      case AppointmentStatus.Confirmed: return 'slot-confirmed';
-      case AppointmentStatus.Pending: return 'slot-pending';
-      case AppointmentStatus.Completed: return 'slot-completed';
-      case AppointmentStatus.Cancelled: return 'slot-cancelled';
-      default: return 'slot-default';
-    }
+  getStatusClass(status: any): string {
+    const s = String(status || '').trim().toLowerCase();
+    if (s === 'confirmed' || s === 'confirmada' || s === '1') return 'slot-confirmed';
+    if (s === 'pending' || s === 'pendiente' || s === '0') return 'slot-pending';
+    if (s === 'completed' || s === 'completada' || s === '2') return 'slot-completed';
+    if (s === 'cancelled' || s === 'cancelada' || s === '3') return 'slot-cancelled';
+    if (s === 'rescheduled' || s === 'reprogramada' || s === '4') return 'slot-pending';
+    return 'slot-default';
   }
 }

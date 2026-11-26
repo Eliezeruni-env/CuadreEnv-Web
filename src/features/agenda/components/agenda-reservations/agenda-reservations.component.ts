@@ -22,6 +22,7 @@ import {
   styleUrls: ['./agenda-reservations.component.scss'],
 })
 export class AgendaReservationsComponent implements OnInit {
+  protected readonly Math = Math;
   private readonly agendaService = inject(AgendaService);
   private readonly notificationService = inject(NotificationService);
 
@@ -29,6 +30,10 @@ export class AgendaReservationsComponent implements OnInit {
   appointments = signal<AppointmentListItemDto[]>([]);
   services = signal<ReservableServiceDto[]>([]);
   professionals = signal<ProfessionalDto[]>([]);
+
+  // Pagination
+  currentPage = signal<number>(1);
+  pageSize = signal<number>(10);
 
   // Filter signals
   activeTab = signal<string>('all');
@@ -79,18 +84,29 @@ export class AgendaReservationsComponent implements OnInit {
     }
   }
 
+  normalizeStatus(status: any): string {
+    if (status === 1 || String(status).toLowerCase() === 'confirmed' || String(status).toLowerCase() === 'confirmada') return 'Confirmed';
+    if (status === 0 || String(status).toLowerCase() === 'pending' || String(status).toLowerCase() === 'pendiente') return 'Pending';
+    if (status === 2 || String(status).toLowerCase() === 'completed' || String(status).toLowerCase() === 'completada' || String(status).toLowerCase() === 'finalizada') return 'Completed';
+    if (status === 3 || String(status).toLowerCase() === 'cancelled' || String(status).toLowerCase() === 'cancelada') return 'Cancelled';
+    if (status === 6 || String(status).toLowerCase() === 'rescheduled' || String(status).toLowerCase() === 'reprogramada') return 'Rescheduled';
+    if (status === 4 || String(status).toLowerCase() === 'noshow') return 'NoShow';
+    if (status === 5 || String(status).toLowerCase() === 'inprogress') return 'InProgress';
+    return String(status || 'Pending');
+  }
+
   get filteredAppointments(): AppointmentListItemDto[] {
     let list = this.appointments();
 
     // Tab filter
     if (this.activeTab() === 'pending') {
-      list = list.filter((a) => a.status === AppointmentStatus.Pending);
+      list = list.filter((a) => this.normalizeStatus(a.status) === 'Pending');
     } else if (this.activeTab() === 'confirmed') {
-      list = list.filter((a) => a.status === AppointmentStatus.Confirmed);
+      list = list.filter((a) => this.normalizeStatus(a.status) === 'Confirmed');
     } else if (this.activeTab() === 'rescheduled') {
-      list = list.filter((a) => a.status === AppointmentStatus.Rescheduled);
+      list = list.filter((a) => this.normalizeStatus(a.status) === 'Rescheduled');
     } else if (this.activeTab() === 'completed') {
-      list = list.filter((a) => a.status === AppointmentStatus.Completed);
+      list = list.filter((a) => this.normalizeStatus(a.status) === 'Completed');
     }
 
     // Search query
@@ -98,9 +114,9 @@ export class AgendaReservationsComponent implements OnInit {
       const q = this.searchQuery().toLowerCase().trim();
       list = list.filter(
         (a) =>
-          a.customerName.toLowerCase().includes(q) ||
-          a.bookingCode.toLowerCase().includes(q) ||
-          a.customerPhone.includes(q),
+          (a.customerName && a.customerName.toLowerCase().includes(q)) ||
+          (a.bookingCode && a.bookingCode.toLowerCase().includes(q)) ||
+          (a.customerPhone && a.customerPhone.includes(q)),
       );
     }
 
@@ -123,20 +139,36 @@ export class AgendaReservationsComponent implements OnInit {
     return list;
   }
 
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredAppointments.length / this.pageSize()));
+  }
+
+  get paginatedAppointments(): AppointmentListItemDto[] {
+    const page = Math.min(this.currentPage(), this.totalPages);
+    const start = (page - 1) * this.pageSize();
+    return this.filteredAppointments.slice(start, start + this.pageSize());
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage.set(page);
+    }
+  }
+
   get pendingCount(): number {
-    return this.appointments().filter((a) => a.status === AppointmentStatus.Pending).length;
+    return this.appointments().filter((a) => this.normalizeStatus(a.status) === 'Pending').length;
   }
 
   get confirmedCount(): number {
-    return this.appointments().filter((a) => a.status === AppointmentStatus.Confirmed).length;
+    return this.appointments().filter((a) => this.normalizeStatus(a.status) === 'Confirmed').length;
   }
 
   get rescheduledCount(): number {
-    return this.appointments().filter((a) => a.status === AppointmentStatus.Rescheduled).length;
+    return this.appointments().filter((a) => this.normalizeStatus(a.status) === 'Rescheduled').length;
   }
 
   get cancelledCount(): number {
-    return this.appointments().filter((a) => a.status === AppointmentStatus.Cancelled).length;
+    return this.appointments().filter((a) => this.normalizeStatus(a.status) === 'Cancelled').length;
   }
 
   async confirmAppointment(appt: AppointmentListItemDto): Promise<void> {
@@ -245,26 +277,30 @@ export class AgendaReservationsComponent implements OnInit {
     }
   }
 
-  getStatusClass(status: AppointmentStatus): string {
-    switch (status) {
-      case AppointmentStatus.Confirmed: return 'status-confirmed';
-      case AppointmentStatus.Pending: return 'status-pending';
-      case AppointmentStatus.Completed: return 'status-completed';
-      case AppointmentStatus.Cancelled: return 'status-cancelled';
-      case AppointmentStatus.Rescheduled: return 'status-rescheduled';
+  getStatusClass(status: any): string {
+    const s = this.normalizeStatus(status);
+    switch (s) {
+      case 'Confirmed': return 'status-confirmed';
+      case 'Pending': return 'status-pending';
+      case 'Completed': return 'status-completed';
+      case 'Cancelled': return 'status-cancelled';
+      case 'Rescheduled': return 'status-rescheduled';
       default: return 'status-default';
     }
   }
 
-  getStatusLabel(status: AppointmentStatus): string {
-    switch (status) {
-      case AppointmentStatus.Confirmed: return 'Confirmada';
-      case AppointmentStatus.Pending: return 'Pendiente';
-      case AppointmentStatus.Completed: return 'Completada';
-      case AppointmentStatus.Cancelled: return 'Cancelada';
-      case AppointmentStatus.Rescheduled: return 'Reprogramada';
-      case AppointmentStatus.Expired: return 'Vencida';
-      default: return 'Desconocido';
+  getStatusLabel(status: any): string {
+    const s = this.normalizeStatus(status);
+    switch (s) {
+      case 'Confirmed': return 'Confirmada';
+      case 'Pending': return 'Pendiente';
+      case 'Completed': return 'Completada';
+      case 'Cancelled': return 'Cancelada';
+      case 'Rescheduled': return 'Reprogramada';
+      case 'NoShow': return 'No asistió';
+      case 'InProgress': return 'En progreso';
+      case 'Expired': return 'Vencida';
+      default: return s || 'Pendiente';
     }
   }
 }

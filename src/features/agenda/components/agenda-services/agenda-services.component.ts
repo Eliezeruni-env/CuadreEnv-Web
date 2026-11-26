@@ -29,6 +29,27 @@ export class AgendaServicesComponent implements OnInit {
   professionals = signal<ProfessionalDto[]>([]);
   catalogServices = signal<ServiceItemDto[]>([]);
 
+  // Pagination
+  currentPage = signal<number>(1);
+  pageSize = signal<number>(10);
+  protected readonly Math = Math;
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.services().length / this.pageSize()));
+  }
+
+  get paginatedServices(): ReservableServiceDto[] {
+    const page = Math.min(this.currentPage(), this.totalPages);
+    const start = (page - 1) * this.pageSize();
+    return this.services().slice(start, start + this.pageSize());
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage.set(page);
+    }
+  }
+
   // Modal mode: CREATE a brand new service or LINK an existing catalog service
   modalMode = signal<'CREATE' | 'LINK' | 'EDIT'>('CREATE');
   isModalOpen = signal<boolean>(false);

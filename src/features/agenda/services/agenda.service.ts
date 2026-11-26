@@ -191,9 +191,17 @@ export class AgendaService {
       const fullName = rawName || `Colaborador #${p.id ?? p.Id ?? 1}`;
       const rawSpec = String(p.specialtyTitle || p.SpecialtyTitle || p.specialties || p.Specialties || '').trim();
       const specialties = rawSpec || 'Servicios generales';
-      const weekly = Array.isArray(p.weeklyAvailabilities ?? p.WeeklyAvailabilities)
+      const rawWeekly = Array.isArray(p.weeklyAvailabilities ?? p.WeeklyAvailabilities)
         ? (p.weeklyAvailabilities ?? p.WeeklyAvailabilities)
         : [];
+      const weekly = rawWeekly.map((w: any) => ({
+        dayOfWeek: Number(w.dayOfWeek ?? w.DayOfWeek ?? 0),
+        startTime: String(w.startTime ?? w.StartTime ?? '09:00:00'),
+        endTime: String(w.endTime ?? w.EndTime ?? '18:00:00'),
+        breakStartTime: w.breakStartTime ?? w.BreakStartTime ?? null,
+        breakEndTime: w.breakEndTime ?? w.BreakEndTime ?? null,
+        isWorkingDay: Boolean(w.isWorkingDay ?? w.IsWorkingDay ?? false),
+      }));
       const exceptions = Array.isArray(p.exceptions ?? p.Exceptions)
         ? (p.exceptions ?? p.Exceptions)
         : [];
@@ -289,8 +297,42 @@ export class AgendaService {
     const params: any = {};
     if (search) params.search = search;
     if (month) params.month = month;
-    const res = await this.api.get<any, any>('/Agenda/clients', { params });
-    return extractArray<AgendaClientDto>(res);
+    const res: any = await this.api.get<any, any>('/Agenda/clients', { params });
+    const payload = res?.data ?? res?.Data ?? res;
+    const rawList = Array.isArray(payload)
+      ? payload
+      : (Array.isArray(payload?.clientes) ? payload.clientes : (Array.isArray(payload?.Clientes) ? payload.Clientes : extractArray<any>(payload)));
+
+    return rawList.map((c: any, index: number) => {
+      const hist = Array.isArray(c?.historial ?? c?.Historial)
+        ? (c.historial ?? c.Historial).map((h: any) => ({
+            id: Number(h.appointmentId ?? h.AppointmentId ?? 0),
+            bookingCode: h.bookingCode ?? h.BookingCode ?? `CIT-${h.appointmentId || 0}`,
+            customerName: c.name ?? c.Name ?? c.fullName ?? 'Cliente',
+            customerPhone: c.phone ?? c.Phone ?? '',
+            serviceName: h.serviceName ?? h.ServiceName ?? 'Servicio',
+            servicePrice: Number(h.amount ?? h.Amount ?? 0),
+            startAt: h.date ?? h.Date ?? '',
+            professionalName: h.professionalName ?? h.ProfessionalName ?? 'Colaborador',
+            status: h.status ?? h.Status ?? 'Confirmed'
+          }))
+        : [];
+
+      return {
+        customerId: Number(c.customerId ?? c.CustomerId ?? index + 1),
+        fullName: String(c.name ?? c.Name ?? c.fullName ?? c.FullName ?? 'Cliente').trim(),
+        phone: String(c.phone ?? c.Phone ?? '').trim(),
+        email: c.email ?? c.Email ?? '',
+        totalAppointments: Number(c.totalCitas ?? c.TotalCitas ?? c.totalAppointments ?? hist.length),
+        completedAppointments: hist.filter((x: any) => x.status === 'Completed').length,
+        cancelledAppointments: hist.filter((x: any) => x.status === 'Cancelled').length,
+        lastAppointmentDate: c.ultimaCita ?? c.UltimaCita ?? (hist.length > 0 ? hist[0].startAt : undefined),
+        nextAppointmentDate: c.proximaCita ?? c.ProximaCita ?? undefined,
+        isActive: (c.estado ?? c.Estado) !== 'Inactivo',
+        isRecurrent: Number(c.totalCitas ?? c.TotalCitas ?? hist.length) >= 2,
+        recentAppointments: hist
+      };
+    });
   }
 
   async getClientHistory(customerId: number): Promise<AppointmentListItemDto[]> {

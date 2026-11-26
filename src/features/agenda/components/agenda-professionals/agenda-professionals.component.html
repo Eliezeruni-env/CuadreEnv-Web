@@ -41,7 +41,7 @@
                     <span class="badge bg-success-subtle text-success small">Activo</span>
                   </div>
                   <small class="text-muted d-block">{{ (prof.specialties || 'Servicios generales').trim() || 'Servicios generales' }}</small>
-                  <small class="text-secondary"><i class="cil-clock"></i> Lun - Sáb 09:00 - 18:00</small>
+                  <small class="text-secondary"><i class="cil-clock"></i> {{ getScheduleSnippet(prof) }}</small>
                 </div>
               </div>
             }

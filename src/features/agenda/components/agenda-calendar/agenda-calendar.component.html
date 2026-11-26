@@ -14,7 +14,7 @@
       </div>
 
       <div class="date-display fw-semibold px-2">
-        {{ currentDate() | date:'MMMM yyyy' }}
+        {{ weekRangeLabel }}
       </div>
 
       <select class="form-select form-select-sm w-auto" [ngModel]="selectedProfessionalId()" (ngModelChange)="selectedProfessionalId.set($event ? +$event : null); loadData()">
@@ -47,7 +47,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (h of hours; track h) {
+            @for (h of displayHours; track h) {
               <tr>
                 <td class="time-cell">{{ h < 10 ? '0' + h : h }}:00</td>
                 @for (day of weekDays(); track day.name) {

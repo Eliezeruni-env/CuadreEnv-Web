@@ -144,7 +144,7 @@
               </td>
             </tr>
           } @else {
-            @for (appt of filteredAppointments; track appt.id) {
+            @for (appt of paginatedAppointments; track appt.id) {
               <tr>
                 <td><span class="code-pill">{{ appt.bookingCode }}</span></td>
                 <td>
@@ -203,6 +203,34 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Pagination Controls -->
+    @if (!isLoading() && filteredAppointments.length > 0) {
+      <div class="d-flex justify-content-between align-items-center p-3 border-top flex-wrap gap-2">
+        <div class="text-muted small">
+          Mostrando {{ (currentPage() - 1) * pageSize() + 1 }} - {{ Math.min(currentPage() * pageSize(), filteredAppointments.length) }} de {{ filteredAppointments.length }} reservas
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <select class="form-select form-select-sm w-auto" [ngModel]="pageSize()" (ngModelChange)="pageSize.set(+$event); currentPage.set(1)">
+            <option [value]="5">5 por pág.</option>
+            <option [value]="10">10 por pág.</option>
+            <option [value]="25">25 por pág.</option>
+            <option [value]="50">50 por pág.</option>
+          </select>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" [disabled]="currentPage() <= 1" (click)="goToPage(currentPage() - 1)">
+              &laquo; Anterior
+            </button>
+            <button class="btn btn-outline-secondary" disabled>
+              Página {{ currentPage() }} de {{ totalPages }}
+            </button>
+            <button class="btn btn-outline-secondary" [disabled]="currentPage() >= totalPages" (click)="goToPage(currentPage() + 1)">
+              Siguiente &raquo;
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   </div>
 </div>
 

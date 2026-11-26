@@ -53,8 +53,30 @@ export class AgendaProfessionalsComponent implements OnInit {
   exceptionIsAllDay = true;
 
   readonly weekDays = [1, 2, 3, 4, 5, 6, 0];
-  readonly summaryDays = [1, 2, 3, 4, 5, 6];
+  readonly summaryDays = [1, 2, 3, 4, 5, 6, 0];
   dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+  formatTime(val?: string, defaultVal: string = '09:00'): string {
+    if (!val) return defaultVal;
+    const clean = val.trim();
+    if (clean.length >= 5) {
+      return clean.substring(0, 5);
+    }
+    return defaultVal;
+  }
+
+  getScheduleSnippet(prof: ProfessionalDto): string {
+    const avail = prof.weeklyAvailabilities;
+    if (!avail || avail.length === 0) return 'Lun - Sáb 09:00 - 18:00';
+    const working = avail.filter((w) => w.isWorkingDay);
+    if (working.length === 0) return 'Sin horario activo';
+    const first = working[0];
+    const sTime = this.formatTime(first.startTime, '09:00');
+    const eTime = this.formatTime(first.endTime, '18:00');
+    if (working.length === 7) return `Todos los días ${sTime} - ${eTime}`;
+    if (working.length === 6 && !working.some((w) => w.dayOfWeek === 0)) return `Lun - Sáb ${sTime} - ${eTime}`;
+    return `${working.length} días/sem ${sTime} - ${eTime}`;
+  }
 
   ngOnInit(): void {
     this.loadData();
@@ -86,11 +108,14 @@ export class AgendaProfessionalsComponent implements OnInit {
     const avail = prof.weeklyAvailabilities;
     if (avail && avail.length > 0) {
       const first = avail.find((w) => w.isWorkingDay) || avail[0];
-      this.workStartTime = first.startTime ? first.startTime.substring(0, 5) : '09:00';
-      this.workEndTime = first.endTime ? first.endTime.substring(0, 5) : '18:00';
-      this.breakStartTime = first.breakStartTime ? first.breakStartTime.substring(0, 5) : '12:00';
-      this.breakEndTime = first.breakEndTime ? first.breakEndTime.substring(0, 5) : '13:00';
-      this.activeDays = avail.filter((w) => w.isWorkingDay).map((w) => w.dayOfWeek);
+      this.workStartTime = this.formatTime(first?.startTime, '09:00');
+      this.workEndTime = this.formatTime(first?.endTime, '18:00');
+      this.breakStartTime = this.formatTime(first?.breakStartTime, '12:00');
+      this.breakEndTime = this.formatTime(first?.breakEndTime, '13:00');
+      this.activeDays = avail.filter((w) => w.isWorkingDay).map((w) => Number(w.dayOfWeek));
+      if (this.activeDays.length === 0) {
+        this.activeDays = [1, 2, 3, 4, 5, 6];
+      }
     } else {
       this.workStartTime = '09:00';
       this.workEndTime = '18:00';
@@ -101,11 +126,10 @@ export class AgendaProfessionalsComponent implements OnInit {
   }
 
   toggleDay(dayIndex: number): void {
-    const idx = this.activeDays.indexOf(dayIndex);
-    if (idx >= 0) {
-      this.activeDays.splice(idx, 1);
+    if (this.activeDays.includes(dayIndex)) {
+      this.activeDays = this.activeDays.filter((d) => d !== dayIndex);
     } else {
-      this.activeDays.push(dayIndex);
+      this.activeDays = [...this.activeDays, dayIndex];
     }
   }
 

@@ -13,6 +13,7 @@ import type { AgendaClientDto } from '../../models/agenda.models';
   styleUrls: ['./agenda-clients.component.scss'],
 })
 export class AgendaClientsComponent implements OnInit {
+  protected readonly Math = Math;
   private readonly agendaService = inject(AgendaService);
   private readonly notificationService = inject(NotificationService);
 
@@ -20,6 +21,26 @@ export class AgendaClientsComponent implements OnInit {
   clients = signal<AgendaClientDto[]>([]);
   searchQuery = signal<string>('');
   expandedClientId = signal<number | null>(null);
+
+  // Pagination
+  currentPage = signal<number>(1);
+  pageSize = signal<number>(10);
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredClients.length / this.pageSize()));
+  }
+
+  get paginatedClients(): AgendaClientDto[] {
+    const page = Math.min(this.currentPage(), this.totalPages);
+    const start = (page - 1) * this.pageSize();
+    return this.filteredClients.slice(start, start + this.pageSize());
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage.set(page);
+    }
+  }
 
   ngOnInit(): void {
     this.loadClients();
