@@ -228,6 +228,7 @@ export class AgendaReservationsComponent implements OnInit {
       const startAt = `${this.formDate}T${this.formTime}:00`;
       await this.agendaService.createManualAppointment({
         serviceId: this.formServiceId,
+        appointmentServiceId: this.formServiceId,
         professionalId: this.formProfessionalId > 0 ? this.formProfessionalId : undefined,
         startAt,
         customerName: this.formCustomerName,

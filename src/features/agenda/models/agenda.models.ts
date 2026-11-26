@@ -121,15 +121,18 @@ export interface ProfessionalDto {
   id: number;
   userId?: number;
   fullName: string;
+  displayName?: string;
   email?: string;
   phone?: string;
   specialties: string;
+  specialtyTitle?: string;
   colorHex: string;
   isActive: boolean;
   isOwner: boolean;
   assignedServiceIds: number[];
-  weeklyAvailabilities: ProfessionalWeeklyScheduleDto[];
-  exceptions: ProfessionalExceptionDto[];
+  assignedServicesCount?: number;
+  weeklyAvailabilities?: ProfessionalWeeklyScheduleDto[];
+  exceptions?: ProfessionalExceptionDto[];
 }
 
 export interface AgendaClientDto {

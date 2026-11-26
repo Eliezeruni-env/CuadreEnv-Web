@@ -95,7 +95,7 @@ export const navItems: ModuleNavItem[] = [
     name: 'Panel Agenda',
     url: '/agenda/dashboard',
     moduleCode: 'appointments',
-    iconComponent: { name: 'cil-clock' },
+    iconComponent: { name: 'cil-calendar-check' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
@@ -107,7 +107,7 @@ export const navItems: ModuleNavItem[] = [
       {
         name: 'Calendario',
         url: '/agenda/calendar',
-        iconComponent: { name: 'cil-calendar' },
+        iconComponent: { name: 'cil-clock' },
         moduleCode: 'appointments-calendar',
       },
       {
@@ -119,7 +119,7 @@ export const navItems: ModuleNavItem[] = [
       {
         name: 'Clientes de Citas',
         url: '/agenda/clients',
-        iconComponent: { name: 'cil-user' },
+        iconComponent: { name: 'cil-contact' },
         moduleCode: 'appointments-clients',
       },
       {

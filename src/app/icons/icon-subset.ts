@@ -130,7 +130,10 @@ import {
   cilAddressBook,
   cilWallet,
   cilCash,
-  cilQrCode
+  cilQrCode,
+  cilGlobeAlt,
+  cilCalendarCheck,
+  cilCut
 } from '@coreui/icons';
 
 export const cilWrench = [
@@ -299,6 +302,12 @@ export const iconSubset = {
   'cil-user-follow': cilUserFollow,
   'cil-qr-code': cilQrCode,
   cilQrCode,
+  cilGlobeAlt,
+  'cil-globe-alt': cilGlobeAlt,
+  cilCalendarCheck,
+  'cil-calendar-check': cilCalendarCheck,
+  cilCut,
+  'cil-cut': cilCut,
   cilBriefcase,
   'cil-briefcase': cilBriefcase,
   cilContact,
@@ -461,6 +470,9 @@ export enum IconSubset {
   cilCash = 'cilCash',
   cilChevronBottom = 'cilChevronBottom',
   cilBolt = 'cilBolt',
+  cilGlobeAlt = 'cilGlobeAlt',
+  cilCalendarCheck = 'cilCalendarCheck',
+  cilCut = 'cilCut',
   logo = 'logo',
   signet = 'signet'
 }

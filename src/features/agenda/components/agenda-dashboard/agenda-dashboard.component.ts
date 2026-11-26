@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { IconDirective } from '@coreui/icons-angular';
 import { AgendaService } from '../../services/agenda.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import type { AgendaDashboardDto, AppointmentListItemDto } from '../../models/agenda.models';
@@ -9,7 +10,7 @@ import { AppointmentStatus } from '../../models/agenda.models';
 @Component({
   selector: 'app-agenda-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, IconDirective],
   templateUrl: './agenda-dashboard.component.html',
   styleUrls: ['./agenda-dashboard.component.scss'],
 })

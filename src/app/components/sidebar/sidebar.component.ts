@@ -128,7 +128,7 @@ export const ROUTES: RouteInfo[] = [
         path: '/agenda/calendar',
         moduleCode: 'appointments-calendar',
         title: 'Calendario',
-        icon: 'cilCalendar',
+        icon: 'cilClock',
       },
       {
         path: '/agenda/reservations',
@@ -140,7 +140,7 @@ export const ROUTES: RouteInfo[] = [
         path: '/agenda/clients',
         moduleCode: 'appointments-clients',
         title: 'Clientes de Citas',
-        icon: 'cilUser',
+        icon: 'cilContact',
       },
       {
         path: '/agenda/booking-page',

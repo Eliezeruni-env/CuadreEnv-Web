@@ -7,11 +7,11 @@
     </div>
     <div class="d-flex align-items-center gap-3">
       <div class="date-selector-pill">
-        <i class="cil-calendar me-2"></i>
+        <svg cIcon name="cilCalendar" class="me-2" style="width: 16px; height: 16px;"></svg>
         <span>{{ selectedDate() }}</span>
       </div>
       <button class="btn btn-primary d-flex align-items-center gap-2" [routerLink]="['/agenda/reservations']">
-        <i class="cil-plus"></i>
+        <svg cIcon name="cilPlus" style="width: 16px; height: 16px;"></svg>
         <span>Nueva cita</span>
       </button>
     </div>
@@ -29,7 +29,7 @@
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="kpi-card">
           <div class="kpi-icon kpi-blue">
-            <i class="cil-calendar"></i>
+            <svg cIcon name="cilCalendar" style="width: 24px; height: 24px;"></svg>
           </div>
           <div class="kpi-info">
             <span class="kpi-label">Citas hoy</span>
@@ -41,7 +41,7 @@
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="kpi-card">
           <div class="kpi-icon kpi-amber">
-            <i class="cil-clock"></i>
+            <svg cIcon name="cilClock" style="width: 24px; height: 24px;"></svg>
           </div>
           <div class="kpi-info">
             <span class="kpi-label">Pendientes</span>
@@ -53,7 +53,7 @@
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="kpi-card">
           <div class="kpi-icon kpi-green">
-            <i class="cil-check"></i>
+            <svg cIcon name="cilCheck" style="width: 24px; height: 24px;"></svg>
           </div>
           <div class="kpi-info">
             <span class="kpi-label">Confirmadas</span>
@@ -65,7 +65,7 @@
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="kpi-card">
           <div class="kpi-icon kpi-purple">
-            <i class="cil-money"></i>
+            <svg cIcon name="cilDollar" style="width: 24px; height: 24px;"></svg>
           </div>
           <div class="kpi-info">
             <span class="kpi-label">Ingresos facturados</span>
@@ -80,7 +80,7 @@
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div class="d-flex align-items-center gap-3">
           <div class="p-2 bg-primary-subtle text-primary rounded-3">
-            <i class="cil-calendar" style="font-size: 1.5rem;"></i>
+            <svg cIcon name="cilCalendarCheck" style="width: 24px; height: 24px;"></svg>
           </div>
           <div>
             <h6 class="mb-0 fw-bold">Comparte tu enlace de reservas públicas</h6>
@@ -89,15 +89,15 @@
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
           <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" (click)="copyBookingLink()">
-            <i class="cil-copy"></i>
+            <svg cIcon name="cilCopy" style="width: 14px; height: 14px;"></svg>
             <span>Copiar enlace</span>
           </button>
           <button class="btn btn-sm btn-outline-success d-flex align-items-center gap-1" (click)="shareOnWhatsApp()">
-            <i class="cil-speech"></i>
+            <svg cIcon name="cilSpeech" style="width: 14px; height: 14px;"></svg>
             <span>WhatsApp</span>
           </button>
           <a class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" [routerLink]="['/agenda/booking-page']">
-            <i class="cil-options"></i>
+            <svg cIcon name="cilOptions" style="width: 14px; height: 14px;"></svg>
             <span>Configurar página</span>
           </a>
         </div>
@@ -174,7 +174,7 @@
                         <div>
                           <h6 class="pending-client mb-0">{{ pending.customerName }}</h6>
                           <div class="pending-meta">
-                            <i class="cil-calendar"></i>
+                            <svg cIcon name="cilCalendar" style="width: 14px; height: 14px;"></svg>
                             <span>{{ pending.startAt | date:'EEE, d MMM - HH:mm' }}</span> &bull;
                             <span>{{ pending.serviceName }}</span>
                           </div>
@@ -200,19 +200,19 @@
               <div class="row g-2">
                 <div class="col-4">
                   <button class="quick-access-btn" [routerLink]="['/agenda/reservations']">
-                    <i class="cil-calendar-check"></i>
+                    <svg cIcon name="cilCalendarCheck" style="width: 20px; height: 20px;"></svg>
                     <span>Nueva cita</span>
                   </button>
                 </div>
                 <div class="col-4">
                   <button class="quick-access-btn" (click)="copyBookingLink()">
-                    <i class="cil-link"></i>
+                    <svg cIcon name="cilCopy" style="width: 20px; height: 20px;"></svg>
                     <span>Copiar enlace</span>
                   </button>
                 </div>
                 <div class="col-4">
                   <button class="quick-access-btn" [routerLink]="['/agenda/professionals']">
-                    <i class="cil-clock"></i>
+                    <svg cIcon name="cilClock" style="width: 20px; height: 20px;"></svg>
                     <span>Horarios</span>
                   </button>
                 </div>

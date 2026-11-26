@@ -57,14 +57,27 @@ export class AgendaService {
 
   async createManualAppointment(request: {
     serviceId: number;
+    appointmentServiceId?: number;
     professionalId?: number;
+    customerId?: number;
     startAt: string;
     customerName: string;
     customerPhone: string;
     customerEmail?: string;
     notes?: string;
   }): Promise<AppointmentListItemDto> {
-    return await this.api.post<AppointmentListItemDto, any>('/Agenda/appointments', request);
+    const payload = {
+      appointmentServiceId: request.appointmentServiceId || request.serviceId,
+      serviceId: request.serviceId,
+      professionalId: request.professionalId || 0,
+      customerId: request.customerId ?? null,
+      startAt: request.startAt,
+      customerName: request.customerName,
+      customerPhone: request.customerPhone,
+      customerEmail: request.customerEmail,
+      notes: request.notes,
+    };
+    return await this.api.post<AppointmentListItemDto, any>('/Agenda/appointments', payload);
   }
 
   async updateAppointmentStatus(id: number, status: AppointmentStatus, cancellationReason?: string): Promise<void> {
@@ -169,31 +182,90 @@ export class AgendaService {
   // ================= PROFESSIONALS =================
   async getProfessionals(): Promise<ProfessionalDto[]> {
     const res = await this.api.get<any, any>('/Agenda/professionals');
-    return extractArray<ProfessionalDto>(res);
+    const rawList = extractArray<any>(res);
+    return rawList.map((p) => {
+      const assignedIds = Array.isArray(p.assignedServiceIds ?? p.AssignedServiceIds)
+        ? (p.assignedServiceIds ?? p.AssignedServiceIds)
+        : [];
+      const fullName = p.displayName ?? p.DisplayName ?? p.fullName ?? p.FullName ?? 'Profesional';
+      const specialties = p.specialtyTitle ?? p.SpecialtyTitle ?? p.specialties ?? p.Specialties ?? '';
+      return {
+        id: Number(p.id ?? p.Id ?? 0),
+        userId: p.userId ?? p.UserId ?? null,
+        fullName,
+        displayName: fullName,
+        specialties,
+        specialtyTitle: specialties,
+        phone: p.phone ?? p.Phone ?? '',
+        email: p.email ?? p.Email ?? '',
+        colorHex: p.colorHex ?? p.ColorHex ?? '#2563eb',
+        isOwner: Boolean(p.isOwner ?? p.IsOwner),
+        isActive: Boolean(p.isActive ?? p.IsActive ?? true),
+        assignedServiceIds: assignedIds,
+        assignedServicesCount: assignedIds.length,
+        weeklyAvailabilities: Array.isArray(p.weeklyAvailabilities) ? p.weeklyAvailabilities : [],
+        exceptions: Array.isArray(p.exceptions) ? p.exceptions : [],
+      };
+    });
   }
 
   async createProfessional(professional: {
     fullName: string;
     specialties: string;
+    displayName?: string;
+    specialtyTitle?: string;
     phone?: string;
     email?: string;
     colorHex?: string;
     isOwner?: boolean;
+    isActive?: boolean;
+    displayOrder?: number;
     assignedServiceIds: number[];
   }): Promise<ProfessionalDto> {
-    return await this.api.post<ProfessionalDto, any>('/Agenda/professionals', professional);
+    const payload = {
+      id: null,
+      displayName: professional.fullName || professional.displayName || 'Profesional',
+      fullName: professional.fullName || professional.displayName || 'Profesional',
+      specialtyTitle: professional.specialties || professional.specialtyTitle || '',
+      specialties: professional.specialties || professional.specialtyTitle || '',
+      phone: professional.phone || '',
+      email: professional.email || '',
+      colorHex: professional.colorHex || '#2563eb',
+      isOwner: Boolean(professional.isOwner),
+      isActive: professional.isActive !== false,
+      displayOrder: professional.displayOrder ?? 0,
+      assignedServiceIds: professional.assignedServiceIds || [],
+    };
+    return await this.api.post<ProfessionalDto, any>('/Agenda/professionals', payload);
   }
 
   async updateProfessional(id: number, professional: {
     fullName: string;
     specialties: string;
+    displayName?: string;
+    specialtyTitle?: string;
     phone?: string;
     email?: string;
     colorHex?: string;
     isActive: boolean;
+    displayOrder?: number;
     assignedServiceIds: number[];
   }): Promise<ProfessionalDto> {
-    return await this.api.put<ProfessionalDto, any>(`/Agenda/professionals/${id}`, professional);
+    const payload = {
+      id: Number(id),
+      displayName: professional.fullName || professional.displayName || 'Profesional',
+      fullName: professional.fullName || professional.displayName || 'Profesional',
+      specialtyTitle: professional.specialties || professional.specialtyTitle || '',
+      specialties: professional.specialties || professional.specialtyTitle || '',
+      phone: professional.phone || '',
+      email: professional.email || '',
+      colorHex: professional.colorHex || '#2563eb',
+      isOwner: false,
+      isActive: professional.isActive !== false,
+      displayOrder: professional.displayOrder ?? 0,
+      assignedServiceIds: professional.assignedServiceIds || [],
+    };
+    return await this.api.put<ProfessionalDto, any>(`/Agenda/professionals/${id}`, payload);
   }
 
   async updateProfessionalSchedule(id: number, schedules: ProfessionalWeeklyScheduleDto[]): Promise<void> {
