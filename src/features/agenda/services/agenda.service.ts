@@ -80,31 +80,90 @@ export class AgendaService {
   }
 
   // ================= SERVICES =================
+  private mapReservableServiceDto(raw: any): ReservableServiceDto {
+    const profIds = Array.isArray(raw?.assignedProfessionalIds ?? raw?.AssignedProfessionalIds)
+      ? (raw.assignedProfessionalIds ?? raw.AssignedProfessionalIds)
+      : [];
+    return {
+      id: Number(raw?.id ?? raw?.Id ?? 0),
+      productId: Number(raw?.productId ?? raw?.ProductId ?? 0),
+      productName: raw?.productName ?? raw?.ProductName ?? 'Servicio',
+      categoryName: raw?.categoryName ?? raw?.CategoryName ?? 'General',
+      durationMinutes: Number(raw?.durationMinutes ?? raw?.DurationMinutes ?? 30),
+      bufferMinutes: Number(raw?.bufferTimeMinutes ?? raw?.BufferTimeMinutes ?? raw?.bufferMinutes ?? raw?.BufferMinutes ?? 0),
+      price: Number(raw?.price ?? raw?.Price ?? 0),
+      isPublic: Boolean(raw?.isPubliclyBookable ?? raw?.IsPubliclyBookable ?? raw?.isPublic ?? raw?.IsPublic ?? true),
+      isActive: Boolean(raw?.isActive ?? raw?.IsActive ?? raw?.active ?? raw?.Active ?? true),
+      colorHex: (raw?.colorHex ?? raw?.ColorHex) || '#4f46e5',
+      assignedProfessionalIds: profIds,
+      assignedProfessionalsCount: profIds.length,
+    };
+  }
+
   async getServices(): Promise<ReservableServiceDto[]> {
     const res = await this.api.get<any, any>('/Agenda/services');
-    return extractArray<ReservableServiceDto>(res);
+    const rawList = extractArray<any>(res);
+    return rawList.map((item) => this.mapReservableServiceDto(item));
   }
 
   async createService(service: {
+    id?: number;
     productId: number;
     durationMinutes: number;
     bufferMinutes?: number;
-    isPublic: boolean;
+    bufferTimeMinutes?: number;
+    isPublic?: boolean;
+    isPubliclyBookable?: boolean;
+    displayOrder?: number;
+    isActive?: boolean;
     colorHex?: string;
     assignedProfessionalIds: number[];
   }): Promise<ReservableServiceDto> {
-    return await this.api.post<ReservableServiceDto, any>('/Agenda/services', service);
+    const payload = {
+      id: service.id ?? null,
+      productId: Number(service.productId),
+      durationMinutes: Number(service.durationMinutes || 30),
+      bufferTimeMinutes: Number(service.bufferTimeMinutes ?? service.bufferMinutes ?? 0),
+      isPubliclyBookable: service.isPubliclyBookable ?? service.isPublic ?? true,
+      displayOrder: Number(service.displayOrder ?? 0),
+      colorHex: service.colorHex || '#4f46e5',
+      isActive: service.isActive !== false,
+      assignedProfessionalIds: service.assignedProfessionalIds || [],
+      // Alias properties for backwards compatibility
+      bufferMinutes: Number(service.bufferTimeMinutes ?? service.bufferMinutes ?? 0),
+      isPublic: service.isPubliclyBookable ?? service.isPublic ?? true,
+    };
+    const res = await this.api.post<any, any>('/Agenda/services', payload);
+    return this.mapReservableServiceDto(res?.data ?? res);
   }
 
   async updateService(id: number, service: {
+    productId?: number;
     durationMinutes: number;
     bufferMinutes?: number;
-    isPublic: boolean;
-    isActive: boolean;
+    bufferTimeMinutes?: number;
+    isPublic?: boolean;
+    isPubliclyBookable?: boolean;
+    displayOrder?: number;
+    isActive?: boolean;
     colorHex?: string;
     assignedProfessionalIds: number[];
   }): Promise<ReservableServiceDto> {
-    return await this.api.put<ReservableServiceDto, any>(`/Agenda/services/${id}`, service);
+    const payload = {
+      id: Number(id),
+      productId: Number(service.productId || 0),
+      durationMinutes: Number(service.durationMinutes || 30),
+      bufferTimeMinutes: Number(service.bufferTimeMinutes ?? service.bufferMinutes ?? 0),
+      isPubliclyBookable: service.isPubliclyBookable ?? service.isPublic ?? true,
+      displayOrder: Number(service.displayOrder ?? 0),
+      colorHex: service.colorHex || '#4f46e5',
+      isActive: service.isActive !== false,
+      assignedProfessionalIds: service.assignedProfessionalIds || [],
+      bufferMinutes: Number(service.bufferTimeMinutes ?? service.bufferMinutes ?? 0),
+      isPublic: service.isPubliclyBookable ?? service.isPublic ?? true,
+    };
+    const res = await this.api.put<any, any>(`/Agenda/services/${id}`, payload);
+    return this.mapReservableServiceDto(res?.data ?? res);
   }
 
   // ================= PROFESSIONALS =================

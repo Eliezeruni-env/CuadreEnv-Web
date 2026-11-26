@@ -173,11 +173,14 @@ export class ServiceService {
       }
     }
 
+    const price = Number(dto.price || 0);
+    const cost = Number(dto.cost != null && dto.cost > 0 ? dto.cost : (price > 0 ? Math.round(price * 0.3 * 100) / 100 : 1));
+
     const payload: ProductDto = {
       description: dto.name || 'Servicio',
       shortDescription: dto.description || dto.name || 'Servicio',
-      price: Number(dto.price || 0),
-      cost: Number(dto.cost || 0),
+      price: price,
+      cost: cost,
       stock: 0,
       invoiceWithoutStock: true,
       barcode: code,

@@ -71,13 +71,17 @@ export class AgendaServicesComponent implements OnInit {
       // Cargar EXCLUSIVAMENTE servicios del módulo de Servicios del SaaS general
       // NUNCA cargar productos físicos de inventario
       const allServices = await this.serviceService.getServices({ activeOnly: true });
+      const alreadyLinkedProductIds = new Set(this.services().map((s) => Number(s.productId)));
+
       const validServices = (allServices || []).filter(
-        (s) => s && s.id && Number(s.id) > 0 && this.productService.isServiceItem(s)
+        (s) => s && s.id && Number(s.id) > 0 && this.productService.isServiceItem(s) && !alreadyLinkedProductIds.has(Number(s.id))
       );
 
       this.catalogServices.set(validServices);
-      if (validServices.length > 0 && !this.formProductId) {
+      if (validServices.length > 0) {
         this.formProductId = validServices[0].id!;
+      } else {
+        this.formProductId = 0;
       }
     } catch (err: any) {
       this.notificationService.error('Error al cargar servicios del catálogo', err?.message);
@@ -147,6 +151,7 @@ export class AgendaServicesComponent implements OnInit {
   async togglePublicStatus(service: ReservableServiceDto): Promise<void> {
     try {
       await this.agendaService.updateService(service.id, {
+        productId: service.productId,
         durationMinutes: service.durationMinutes,
         bufferMinutes: service.bufferMinutes,
         isPublic: !service.isPublic,
@@ -157,7 +162,8 @@ export class AgendaServicesComponent implements OnInit {
       service.isPublic = !service.isPublic;
       this.notificationService.success('Servicio actualizado', `Visibilidad pública: ${service.isPublic ? 'Activa' : 'Inactiva'}`);
     } catch (err: any) {
-      this.notificationService.error('Error al actualizar visibilidad', err?.message);
+      const errMsg = err?.error?.message || err?.details?.message || err?.message || 'Error al actualizar visibilidad.';
+      this.notificationService.error('Error al actualizar visibilidad', errMsg);
     }
   }
 
@@ -167,6 +173,7 @@ export class AgendaServicesComponent implements OnInit {
 
       if (this.editingService()) {
         await this.agendaService.updateService(this.editingService()!.id, {
+          productId: this.editingService()!.productId,
           durationMinutes: this.formDurationMinutes,
           bufferMinutes: this.formBufferMinutes,
           isPublic: this.formIsPublic,
@@ -189,9 +196,12 @@ export class AgendaServicesComponent implements OnInit {
         }
 
         // 1. Crear el servicio en el módulo general de servicios del SaaS
+        // El backend requiere Cost > 0
+        const resolvedCost = Math.max(1, Math.round(Number(this.formPrice) * 0.3 * 100) / 100);
         const createdSrv = await this.serviceService.createService({
           name: name,
           price: Number(this.formPrice),
+          cost: resolvedCost,
           estimatedDuration: `${this.formDurationMinutes} min`,
           isActive: true,
         });
@@ -206,6 +216,7 @@ export class AgendaServicesComponent implements OnInit {
           durationMinutes: this.formDurationMinutes,
           bufferMinutes: this.formBufferMinutes,
           isPublic: this.formIsPublic,
+          isActive: true,
           colorHex: this.formColorHex,
           assignedProfessionalIds: this.selectedProfessionalIds,
         });
@@ -220,21 +231,42 @@ export class AgendaServicesComponent implements OnInit {
           this.isSaving.set(false);
           return;
         }
-        await this.agendaService.createService({
-          productId: this.formProductId,
-          durationMinutes: this.formDurationMinutes,
-          bufferMinutes: this.formBufferMinutes,
-          isPublic: this.formIsPublic,
-          colorHex: this.formColorHex,
-          assignedProfessionalIds: this.selectedProfessionalIds,
-        });
-        this.notificationService.success('Servicio vinculado', 'El servicio reservable ha sido vinculado exitosamente.');
+
+        // Verificar si el producto ya está vinculado en la agenda
+        const existing = this.services().find((s) => Number(s.productId) === Number(this.formProductId));
+        if (existing) {
+          await this.agendaService.updateService(existing.id, {
+            productId: existing.productId,
+            durationMinutes: this.formDurationMinutes,
+            bufferMinutes: this.formBufferMinutes,
+            isPublic: this.formIsPublic,
+            isActive: true,
+            colorHex: this.formColorHex,
+            assignedProfessionalIds: this.selectedProfessionalIds,
+          });
+          this.notificationService.success(
+            'Servicio actualizado',
+            'El servicio ya estaba en la agenda y su configuración fue actualizada.'
+          );
+        } else {
+          await this.agendaService.createService({
+            productId: this.formProductId,
+            durationMinutes: this.formDurationMinutes,
+            bufferMinutes: this.formBufferMinutes,
+            isPublic: this.formIsPublic,
+            isActive: true,
+            colorHex: this.formColorHex,
+            assignedProfessionalIds: this.selectedProfessionalIds,
+          });
+          this.notificationService.success('Servicio vinculado', 'El servicio reservable ha sido vinculado exitosamente.');
+        }
       }
 
       this.isModalOpen.set(false);
       await this.loadData();
     } catch (err: any) {
-      this.notificationService.error('Error al guardar servicio', err?.message);
+      const errMsg = err?.error?.message || err?.details?.message || err?.message || 'Error al guardar el servicio.';
+      this.notificationService.error('Error al guardar servicio', errMsg);
     } finally {
       this.isSaving.set(false);
     }
