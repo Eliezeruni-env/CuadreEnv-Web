@@ -6,13 +6,13 @@
       <p class="text-muted mb-0">Define los servicios que tus clientes pueden reservar en línea, con su duración, precio y profesionales asignados.</p>
     </div>
     <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-outline-primary d-flex align-items-center gap-2" (click)="openCreateModal()">
+      <button class="btn btn-outline-primary d-flex align-items-center gap-2" (click)="openLinkModal()">
         <i class="cil-link"></i>
         <span>Vincular catálogo</span>
       </button>
       <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openCreateModal()">
         <i class="cil-plus"></i>
-        <span>Nuevo servicio</span>
+        <span>+ Nuevo servicio</span>
       </button>
     </div>
   </div>
@@ -81,8 +81,12 @@
             </tr>
           } @else if (services().length === 0) {
             <tr>
-              <td colspan="7" class="text-center py-4 text-muted">
-                No hay servicios reservables configurados. Haz clic en "Vincular catálogo" para comenzar.
+              <td colspan="7" class="text-center py-5 text-muted">
+                <div class="mb-2">
+                  <i class="cil-briefcase" style="font-size: 2rem;"></i>
+                </div>
+                <div class="fw-semibold">No hay servicios reservables configurados</div>
+                <small class="d-block mt-1">Haz clic en <strong>"+ Nuevo servicio"</strong> para crear uno nuevo o en <strong>"Vincular catálogo"</strong> para añadir uno existente.</small>
               </td>
             </tr>
           } @else {
@@ -127,7 +131,7 @@
                   </span>
                 </td>
                 <td class="text-end">
-                  <button class="btn btn-sm btn-outline-secondary" (click)="openEditModal(s)">
+                  <button class="btn btn-sm btn-outline-secondary" (click)="openEditModal(s)" title="Editar configuración de servicio">
                     <i class="cil-pencil"></i>
                   </button>
                 </td>
@@ -143,23 +147,81 @@
   <div class="callout-card d-flex align-items-center gap-3">
     <i class="cil-info text-primary" style="font-size: 1.25rem;"></i>
     <p class="mb-0 small text-muted">
-      Estos servicios provienen de tu catálogo y se reutilizan para la facturación. Puedes configurar su duración y disponibilidad para reservas en línea.
+      Los servicios reservables se sincronizan automáticamente con tu catálogo general de servicios del SaaS y se reutilizan para facturación y cobro. Los productos físicos de inventario están estrictamente separados.
     </p>
   </div>
 </div>
 
-<!-- Modal Vincular / Editar Servicio -->
+<!-- Modal Crear / Vincular / Editar Servicio -->
 @if (isModalOpen()) {
   <div class="modal-backdrop fade show"></div>
   <div class="modal fade show d-block" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">{{ editingService() ? 'Editar Servicio' : 'Vincular Servicio desde Catálogo' }}</h5>
-          <button type="button" class="btn-close" (click)="isModalOpen.set(false)"></button>
+          <h5 class="modal-title">
+            {{ editingService() ? 'Editar Servicio Reservable' : (modalMode() === 'CREATE' ? 'Crear Nuevo Servicio' : 'Vincular Servicio desde Catálogo') }}
+          </h5>
+          <button type="button" class="btn-close" (click)="isModalOpen.set(false)" [disabled]="isSaving()"></button>
         </div>
         <div class="modal-body">
+          <!-- Mode Tabs Switcher (Only when adding a new one, not editing) -->
           @if (!editingService()) {
+            <div class="btn-group w-100 mb-3" role="group">
+              <button
+                type="button"
+                class="btn btn-sm"
+                [class.btn-primary]="modalMode() === 'CREATE'"
+                [class.btn-outline-primary]="modalMode() !== 'CREATE'"
+                (click)="setModalMode('CREATE')"
+              >
+                <i class="cil-plus me-1"></i> Crear nuevo servicio
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm"
+                [class.btn-primary]="modalMode() === 'LINK'"
+                [class.btn-outline-primary]="modalMode() !== 'LINK'"
+                (click)="setModalMode('LINK')"
+              >
+                <i class="cil-link me-1"></i> Vincular existente del catálogo
+              </button>
+            </div>
+          }
+
+          <!-- Modo CREAR NUEVO SERVICIO -->
+          @if (!editingService() && modalMode() === 'CREATE') {
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Nombre del Servicio *</label>
+              <input
+                type="text"
+                class="form-control"
+                [(ngModel)]="formServiceName"
+                placeholder="Ej. Corte de Cabello, Consulta Médica, Masaje Terapéutico..."
+              />
+              <div class="form-text text-muted">
+                Se registrará en tu catálogo general de Servicios con código <code>SERV-XXXX</code> y estará disponible tanto para Citas como para Facturación.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Precio de Venta (RD$) *</label>
+              <div class="input-group">
+                <span class="input-group-text">RD$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  class="form-control font-monospace fw-bold"
+                  [(ngModel)]="formPrice"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+          }
+
+          <!-- Modo VINCULAR EXISTENTE -->
+          @if (!editingService() && modalMode() === 'LINK') {
             <div class="mb-3">
               <label class="form-label fw-semibold">Servicio del catálogo *</label>
               @if (catalogServices().length > 0) {
@@ -175,37 +237,41 @@
                 <div class="alert alert-warning d-flex align-items-center gap-2 mb-0 py-2">
                   <i class="cil-warning"></i>
                   <div class="small">
-                    No se encontraron servicios registrados en el módulo general. Recuerda que los <strong>productos físicos</strong> de inventario no pueden vincularse como servicios reservables. Por favor crea primero un servicio en <a routerLink="/services" class="alert-link">Servicios</a>.
+                    No tienes servicios disponibles sin vincular en tu catálogo. Puedes crear uno directamente usando la pestaña <strong>"Crear nuevo servicio"</strong> arriba o en <a routerLink="/services" class="alert-link">Servicios</a>.
                   </div>
                 </div>
               }
             </div>
-          } @else {
-            <div class="mb-3">
-              <label class="form-label text-muted">Servicio</label>
-              <h6>{{ editingService()?.productName }}</h6>
+          }
+
+          <!-- Modo EDICIÓN -->
+          @if (editingService()) {
+            <div class="mb-3 p-2 bg-light rounded border">
+              <label class="form-label text-muted small mb-0">Servicio reservable</label>
+              <h6 class="mb-0 text-dark fw-bold">{{ editingService()?.productName }}</h6>
             </div>
           }
 
+          <!-- Campos comunes: Duración, Buffer, Color, Profesionales, Público -->
           <div class="row g-2 mb-3">
             <div class="col-6">
-              <label class="form-label">Duración (minutos) *</label>
+              <label class="form-label fw-semibold">Duración (minutos) *</label>
               <input type="number" class="form-control" [(ngModel)]="formDurationMinutes" min="5" step="5" />
             </div>
             <div class="col-6">
-              <label class="form-label">Tiempo de limpieza / Buffer</label>
+              <label class="form-label fw-semibold">Tiempo buffer / Limpieza</label>
               <input type="number" class="form-control" [(ngModel)]="formBufferMinutes" min="0" step="5" />
             </div>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Color distintivo</label>
+            <label class="form-label fw-semibold">Color distintivo</label>
             <input type="color" class="form-control form-control-color w-100" [(ngModel)]="formColorHex" />
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Profesionales que realizan este servicio</label>
-            <div class="professionals-checkbox-list">
+            <label class="form-label fw-semibold">Profesionales que realizan este servicio</label>
+            <div class="professionals-checkbox-list border rounded p-2" style="max-height: 140px; overflow-y: auto;">
               @for (prof of professionals(); track prof.id) {
                 <div class="form-check">
                   <input
@@ -219,6 +285,8 @@
                     {{ prof.fullName }} ({{ prof.specialties || 'General' }})
                   </label>
                 </div>
+              } @empty {
+                <small class="text-muted">No hay profesionales registrados aún en la agenda.</small>
               }
             </div>
           </div>
@@ -226,7 +294,7 @@
           <div class="d-flex align-items-center gap-4">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" id="publicSwitch" [(ngModel)]="formIsPublic" />
-              <label class="form-check-label" for="publicSwitch">Visible en portal público</label>
+              <label class="form-check-label" for="publicSwitch">Visible en portal público de reservas</label>
             </div>
             @if (editingService()) {
               <div class="form-check form-switch">
@@ -237,8 +305,21 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-light" (click)="isModalOpen.set(false)">Cancelar</button>
-          <button type="button" class="btn btn-primary" (click)="saveService()">Guardar</button>
+          <button type="button" class="btn btn-light" (click)="isModalOpen.set(false)" [disabled]="isSaving()">Cancelar</button>
+          <button
+            type="button"
+            class="btn btn-primary d-flex align-items-center gap-2"
+            (click)="saveService()"
+            [disabled]="isSaving()"
+          >
+            @if (isSaving()) {
+              <span class="spinner-border spinner-border-sm" role="status"></span>
+              <span>Guardando...</span>
+            } @else {
+              <i class="cil-check"></i>
+              <span>{{ editingService() ? 'Guardar Cambios' : (modalMode() === 'CREATE' ? 'Crear y Habilitar' : 'Vincular Servicio') }}</span>
+            }
+          </button>
         </div>
       </div>
     </div>

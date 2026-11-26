@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { AgendaService } from '../../services/agenda.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { ServiceService } from '../../../services/services/service.service';
+import { ProductService } from '../../../products/services/product.service';
 import type { ReservableServiceDto, ProfessionalDto } from '../../models/agenda.models';
 import type { ServiceItemDto } from '../../../services/models/service-item.model';
 
@@ -18,18 +19,25 @@ import type { ServiceItemDto } from '../../../services/models/service-item.model
 export class AgendaServicesComponent implements OnInit {
   private readonly agendaService = inject(AgendaService);
   private readonly serviceService = inject(ServiceService);
+  private readonly productService = inject(ProductService);
   private readonly notificationService = inject(NotificationService);
 
   isLoading = signal<boolean>(true);
+  isSaving = signal<boolean>(false);
   services = signal<ReservableServiceDto[]>([]);
   professionals = signal<ProfessionalDto[]>([]);
   catalogServices = signal<ServiceItemDto[]>([]);
 
-  // Modal signals
+  // Modal mode: CREATE a brand new service or LINK an existing catalog service
+  modalMode = signal<'CREATE' | 'LINK' | 'EDIT'>('CREATE');
   isModalOpen = signal<boolean>(false);
   editingService = signal<ReservableServiceDto | null>(null);
 
-  // Form fields
+  // Form fields for creating a new service
+  formServiceName = '';
+  formPrice = 500;
+
+  // Form fields for linking / shared
   formProductId = 0;
   formDurationMinutes = 30;
   formBufferMinutes = 0;
@@ -58,36 +66,65 @@ export class AgendaServicesComponent implements OnInit {
     }
   }
 
-  async openCreateModal(): Promise<void> {
+  async loadCatalogServices(): Promise<void> {
     try {
-      this.editingService.set(null);
-      this.formProductId = 0;
-      this.formDurationMinutes = 30;
-      this.formBufferMinutes = 0;
-      this.formIsPublic = true;
-      this.formIsActive = true;
-      this.formColorHex = '#4f46e5';
-      this.selectedProfessionalIds = this.professionals().map((p) => p.id);
-
       // Cargar EXCLUSIVAMENTE servicios del módulo de Servicios del SaaS general
       // NUNCA cargar productos físicos de inventario
       const allServices = await this.serviceService.getServices({ activeOnly: true });
       const validServices = (allServices || []).filter(
-        (s) => s && s.id && Number(s.id) > 0
+        (s) => s && s.id && Number(s.id) > 0 && this.productService.isServiceItem(s)
       );
 
       this.catalogServices.set(validServices);
-      if (validServices.length > 0) {
+      if (validServices.length > 0 && !this.formProductId) {
         this.formProductId = validServices[0].id!;
       }
-      this.isModalOpen.set(true);
     } catch (err: any) {
       this.notificationService.error('Error al cargar servicios del catálogo', err?.message);
     }
   }
 
+  setModalMode(mode: 'CREATE' | 'LINK'): void {
+    this.modalMode.set(mode);
+    if (mode === 'LINK' && this.catalogServices().length === 0) {
+      this.loadCatalogServices();
+    }
+  }
+
+  openCreateModal(): void {
+    this.editingService.set(null);
+    this.modalMode.set('CREATE');
+    this.formServiceName = '';
+    this.formPrice = 500;
+    this.formProductId = 0;
+    this.formDurationMinutes = 30;
+    this.formBufferMinutes = 0;
+    this.formIsPublic = true;
+    this.formIsActive = true;
+    this.formColorHex = '#4f46e5';
+    this.selectedProfessionalIds = this.professionals().map((p) => p.id);
+    this.isModalOpen.set(true);
+
+    // Pre-cargar catálogo en segundo plano por si el usuario decide alternar a vincular
+    this.loadCatalogServices();
+  }
+
+  async openLinkModal(): Promise<void> {
+    this.editingService.set(null);
+    this.modalMode.set('LINK');
+    this.formDurationMinutes = 30;
+    this.formBufferMinutes = 0;
+    this.formIsPublic = true;
+    this.formIsActive = true;
+    this.formColorHex = '#4f46e5';
+    this.selectedProfessionalIds = this.professionals().map((p) => p.id);
+    await this.loadCatalogServices();
+    this.isModalOpen.set(true);
+  }
+
   openEditModal(service: ReservableServiceDto): void {
     this.editingService.set(service);
+    this.modalMode.set('EDIT');
     this.formProductId = service.productId;
     this.formDurationMinutes = service.durationMinutes;
     this.formBufferMinutes = service.bufferMinutes;
@@ -126,6 +163,8 @@ export class AgendaServicesComponent implements OnInit {
 
   async saveService(): Promise<void> {
     try {
+      this.isSaving.set(true);
+
       if (this.editingService()) {
         await this.agendaService.updateService(this.editingService()!.id, {
           durationMinutes: this.formDurationMinutes,
@@ -136,9 +175,49 @@ export class AgendaServicesComponent implements OnInit {
           assignedProfessionalIds: this.selectedProfessionalIds,
         });
         this.notificationService.success('Servicio actualizado', 'Los cambios se guardaron con éxito.');
+      } else if (this.modalMode() === 'CREATE') {
+        const name = (this.formServiceName || '').trim();
+        if (!name || name.length < 2) {
+          this.notificationService.warning('Nombre requerido', 'Ingresa un nombre válido para el nuevo servicio.');
+          this.isSaving.set(false);
+          return;
+        }
+        if (!this.formPrice || this.formPrice <= 0) {
+          this.notificationService.warning('Precio requerido', 'Ingresa un precio mayor a 0 para el servicio.');
+          this.isSaving.set(false);
+          return;
+        }
+
+        // 1. Crear el servicio en el módulo general de servicios del SaaS
+        const createdSrv = await this.serviceService.createService({
+          name: name,
+          price: Number(this.formPrice),
+          estimatedDuration: `${this.formDurationMinutes} min`,
+          isActive: true,
+        });
+
+        if (!createdSrv?.id) {
+          throw new Error('No se pudo generar el identificador del nuevo servicio en el catálogo.');
+        }
+
+        // 2. Registrar el nuevo servicio como servicio reservable en la Agenda
+        await this.agendaService.createService({
+          productId: createdSrv.id,
+          durationMinutes: this.formDurationMinutes,
+          bufferMinutes: this.formBufferMinutes,
+          isPublic: this.formIsPublic,
+          colorHex: this.formColorHex,
+          assignedProfessionalIds: this.selectedProfessionalIds,
+        });
+        this.notificationService.success(
+          'Servicio creado',
+          `"${name}" fue registrado en el catálogo de servicios y configurado como servicio reservable.`
+        );
       } else {
+        // Modo LINK
         if (!this.formProductId) {
           this.notificationService.error('Error', 'Selecciona un servicio válido del catálogo.');
+          this.isSaving.set(false);
           return;
         }
         await this.agendaService.createService({
@@ -149,12 +228,15 @@ export class AgendaServicesComponent implements OnInit {
           colorHex: this.formColorHex,
           assignedProfessionalIds: this.selectedProfessionalIds,
         });
-        this.notificationService.success('Servicio creado', 'El servicio reservable ha sido vinculado exitosamente.');
+        this.notificationService.success('Servicio vinculado', 'El servicio reservable ha sido vinculado exitosamente.');
       }
+
       this.isModalOpen.set(false);
       await this.loadData();
     } catch (err: any) {
       this.notificationService.error('Error al guardar servicio', err?.message);
+    } finally {
+      this.isSaving.set(false);
     }
   }
 

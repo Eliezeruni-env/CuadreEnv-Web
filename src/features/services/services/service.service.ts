@@ -68,23 +68,7 @@ export class ServiceService {
       const items: ProductDto[] = prodRes.data?.items || [];
 
       backendServices = items
-        .filter((p) => {
-          const ref = (p.reference || p.barcode || '').toUpperCase().trim();
-          const catName = (p.categoryId ? catMap.get(p.categoryId) || '' : '').toLowerCase();
-          const typeName = String((p as any).productTypeName || (p as any).productType?.name || '').toLowerCase();
-          // REGLA ESTRICTA: Los productos son productos y los servicios son servicios. Jamás ligarlos por invoiceWithoutStock.
-          return (
-            (p as any).isService === true ||
-            (p as any).type === 'service' ||
-            (p as any).type === 'Servicio' ||
-            p.productTypeId === 2 ||
-            (p as any).ProductTypeId === 2 ||
-            ref.startsWith('SERV-') ||
-            ref.startsWith('SERV') ||
-            catName.includes('serv') ||
-            typeName.includes('serv')
-          );
-        })
+        .filter((p) => this.productService.isServiceItem(p))
         .map((p) => {
           const code = p.reference || p.barcode || `SERV-${p.id}`;
           return {
@@ -106,13 +90,14 @@ export class ServiceService {
       this.logger.warn('Failed to load services from backend product endpoint, using cache', 'ServiceService', e);
     }
 
-    // Merge backend services and cached items (avoiding duplicates by id or code)
+    // Merge backend services and cached items (strictly filtering cached to only keep true services)
     const map = new Map<string, ServiceItemDto>();
     for (const b of backendServices) {
       const key = b.id ? `id_${b.id}` : `code_${b.code}`;
       map.set(key, b);
     }
-    for (const c of cached) {
+    const validCached = cached.filter((c) => this.productService.isServiceItem(c));
+    for (const c of validCached) {
       const key = c.id ? `id_${c.id}` : `code_${c.code}`;
       const existing = map.get(key) || {};
       const merged = { ...existing, ...c };
@@ -122,7 +107,7 @@ export class ServiceService {
       map.set(key, merged);
     }
 
-    let result = Array.from(map.values());
+    let result = Array.from(map.values()).filter((s) => this.productService.isServiceItem(s));
 
     // Apply filtering
     if (query?.search) {
@@ -191,24 +176,28 @@ export class ServiceService {
     const payload: ProductDto = {
       description: dto.name || 'Servicio',
       shortDescription: dto.description || dto.name || 'Servicio',
-      cost: Number(dto.price || 0),
+      price: Number(dto.price || 0),
+      cost: Number(dto.cost || 0),
       stock: 0,
       invoiceWithoutStock: true,
       barcode: code,
       reference: code,
-      minimumQuantity: Number(dto.cost || 0),
+      minimumQuantity: 0,
       maximumQuantity: 0,
       unitOfMeasurementId: 1,
       companyId: companyId,
-      productTypeId: resolvedTypeId,
-      categoryId: dto.categoryId,
+      productTypeId: resolvedTypeId || 2,
+      categoryId: dto.categoryId || 1,
     };
 
     let createdId: number | undefined;
     try {
-      const res = await this.productService.createProduct(payload);
-      if (res?.success && res.data?.id) {
-        createdId = res.data.id;
+      const res: any = await this.productService.createProduct(payload);
+      const data = res?.data ?? res?.Data ?? res;
+      if (typeof data === 'number' && data > 0) {
+        createdId = data;
+      } else if (data?.id || data?.Id) {
+        createdId = Number(data.id || data.Id);
       }
     } catch (e) {
       this.logger.warn('Backend product creation for service yielded notice; preserving in tenant cache', 'ServiceService', e);

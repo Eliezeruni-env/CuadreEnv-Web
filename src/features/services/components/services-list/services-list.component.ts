@@ -168,81 +168,10 @@ export class ServicesListComponent implements OnInit {
   async loadServices() {
     this.isLoading.set(true);
     try {
-      let list = await this.serviceService.getServices();
-      if (!list || list.length === 0) {
-        list = [
-          {
-            id: 1,
-            code: 'SERV-3302',
-            name: 'Mantenimiento preventivo',
-            description: 'Mantenimiento regular y preventivo de equipos',
-            categoryName: 'Mantenimiento',
-            categoryId: 1,
-            price: 2500,
-            cost: 1000,
-            isActive: true,
-          },
-          {
-            id: 2,
-            code: 'SERV-3303',
-            name: 'Instalación técnica',
-            description: 'Servicio de soporte y configuración en sitio',
-            categoryName: 'Instalación',
-            categoryId: 2,
-            price: 2000,
-            cost: 800,
-            isActive: true,
-          },
-          {
-            id: 3,
-            code: 'SERV-3304',
-            name: 'Consultoría',
-            description: 'Asesoría y consultoría técnica por horas',
-            categoryName: 'Consultoría',
-            categoryId: 3,
-            price: 1500,
-            cost: 500,
-            isActive: true,
-          },
-        ];
-      }
-      this.services.set(list);
+      const list = await this.serviceService.getServices();
+      this.services.set(Array.isArray(list) ? list : []);
     } catch (e) {
-      this.services.set([
-        {
-          id: 1,
-          code: 'SERV-3302',
-          name: 'Mantenimiento preventivo',
-          description: 'Mantenimiento regular y preventivo de equipos',
-          categoryName: 'Mantenimiento',
-          categoryId: 1,
-          price: 2500,
-          cost: 1000,
-          isActive: true,
-        },
-        {
-          id: 2,
-          code: 'SERV-3303',
-          name: 'Instalación técnica',
-          description: 'Servicio de soporte y configuración en sitio',
-          categoryName: 'Instalación',
-          categoryId: 2,
-          price: 2000,
-          cost: 800,
-          isActive: true,
-        },
-        {
-          id: 3,
-          code: 'SERV-3304',
-          name: 'Consultoría',
-          description: 'Asesoría y consultoría técnica por horas',
-          categoryName: 'Consultoría',
-          categoryId: 3,
-          price: 1500,
-          cost: 500,
-          isActive: true,
-        },
-      ]);
+      this.services.set([]);
     } finally {
       this.isLoading.set(false);
     }

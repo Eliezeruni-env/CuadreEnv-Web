@@ -205,4 +205,171 @@
     </div>
   </div>
 
->
+  <!-- Services Table Card -->
+  <div class="card border rounded-4 bg-white shadow-2xs overflow-hidden mb-4">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0 services-table">
+        <thead>
+          <tr>
+            <th class="ps-4 th-sortable" (click)="toggleSort('code')">
+              CÓDIGO
+              <span class="sort-indicator" [class.active]="sortColumn() === 'code'">
+                {{ sortColumn() === 'code' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('name')">
+              SERVICIO
+              <span class="sort-indicator" [class.active]="sortColumn() === 'name'">
+                {{ sortColumn() === 'name' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('category')">
+              CATEGORÍA
+              <span class="sort-indicator" [class.active]="sortColumn() === 'category'">
+                {{ sortColumn() === 'category' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('price')">
+              TARIFA
+              <span class="sort-indicator" [class.active]="sortColumn() === 'price'">
+                {{ sortColumn() === 'price' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('cost')">
+              COSTO BASE
+              <span class="sort-indicator" [class.active]="sortColumn() === 'cost'">
+                {{ sortColumn() === 'cost' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('margin')">
+              MARGEN BRUTO
+              <span class="sort-indicator" [class.active]="sortColumn() === 'margin'">
+                {{ sortColumn() === 'margin' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="th-sortable" (click)="toggleSort('status')">
+              ESTADO
+              <span class="sort-indicator" [class.active]="sortColumn() === 'status'">
+                {{ sortColumn() === 'status' ? (sortDirection() === 'asc' ? '▲' : '▼') : '↕' }}
+              </span>
+            </th>
+            <th class="text-end pe-4" style="width: 140px;">ACCIONES</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading()) {
+            <tr>
+              <td colspan="8" class="text-center py-5">
+                <c-spinner color="primary"></c-spinner>
+                <div class="mt-2 text-muted small">Cargando servicios del catálogo...</div>
+              </td>
+            </tr>
+          } @else if (filteredServices().length === 0) {
+            <tr>
+              <td colspan="8" class="text-center py-5 text-muted">
+                <div class="mb-2">No se encontraron servicios en el catálogo.</div>
+                <button type="button" class="btn btn-sm btn-navy text-white px-3" (click)="openCreateModal()">
+                  + Crear primer servicio
+                </button>
+              </td>
+            </tr>
+          } @else {
+            @for (item of filteredServices(); track item.id || item.code) {
+              <tr class="service-table-row">
+                <!-- Code -->
+                <td class="ps-4">
+                  <span class="service-code-link font-monospace fw-semibold">{{ item.code }}</span>
+                </td>
+
+                <!-- Service Name -->
+                <td>
+                  <span class="fw-semibold text-dark">{{ item.name }}</span>
+                  @if (item.description) {
+                    <div class="text-muted small text-truncate" style="max-width: 300px;">{{ item.description }}</div>
+                  }
+                </td>
+
+                <!-- Category Badge -->
+                <td>
+                  <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1">
+                    {{ item.categoryName || 'General' }}
+                  </span>
+                </td>
+
+                <!-- Rate / Price -->
+                <td class="font-monospace fw-semibold text-dark">
+                  RD${{ item.price | number: '1.2-2' }}
+                </td>
+
+                <!-- Base Cost -->
+                <td class="font-monospace text-secondary">
+                  RD${{ (item.cost || 0) | number: '1.2-2' }}
+                </td>
+
+                <!-- Margin -->
+                <td class="fw-semibold text-dark">
+                  {{ getProfitMargin(item) }}%
+                </td>
+
+                <!-- Status -->
+                <td>
+                  @if (item.isActive) {
+                    <span class="badge bg-success-subtle text-success cursor-pointer" (click)="toggleStatus(item)" title="Clic para desactivar">
+                      ● Activo
+                    </span>
+                  } @else {
+                    <span class="badge bg-secondary-subtle text-secondary cursor-pointer" (click)="toggleStatus(item)" title="Clic para activar">
+                      ○ Inactivo
+                    </span>
+                  }
+                </td>
+
+                <!-- Actions -->
+                <td class="text-end pe-4">
+                  <div class="d-inline-flex align-items-center gap-1.5 justify-content-end">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary py-1 px-2"
+                      (click)="openViewModal(item)"
+                      title="Ver detalles"
+                    >
+                      <i class="cil-description"></i>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-primary py-1 px-2"
+                      (click)="openEditModal(item)"
+                      title="Editar"
+                    >
+                      <i class="cil-pencil"></i>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-danger py-1 px-2"
+                      (click)="deleteService(item)"
+                      title="Eliminar"
+                    >
+                      <i class="cil-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Table Footer with Pagination -->
+    <div class="card-footer bg-white border-top p-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <span class="text-secondary small">
+        Mostrando {{ filteredServices().length }} de {{ totalCount() }} servicios
+      </span>
+    </div>
+  </div>
+
+  <!-- Modal for Create/Edit/View -->
+  <app-service-modal (saved)="onServiceSaved($event)"></app-service-modal>
+</div>
