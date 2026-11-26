@@ -26,6 +26,14 @@
     justify-content: center;
     font-size: 1.25rem;
 
+    svg {
+      fill: currentColor !important;
+      color: inherit !important;
+      width: 24px !important;
+      height: 24px !important;
+      display: inline-block !important;
+    }
+
     &.kpi-blue { background: #eff6ff; color: #2563eb; }
     &.kpi-green { background: #ecfdf5; color: #059669; }
     &.kpi-purple { background: #f5f3ff; color: #7c3aed; }

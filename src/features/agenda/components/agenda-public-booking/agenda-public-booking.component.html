@@ -4,7 +4,7 @@
     <div class="container d-flex justify-content-between align-items-center py-3">
       <div class="d-flex align-items-center gap-2">
         <i class="cil-cut text-white" style="font-size: 1.5rem;"></i>
-        <h4 class="text-white mb-0 fw-bold">{{ profile()?.businessName || 'Barbería Central' }}</h4>
+        <h4 class="text-white mb-0 fw-bold">{{ profile()?.businessName || 'Portal de Reservas' }}</h4>
       </div>
       <span class="text-white opacity-75 small">Reservas en línea</span>
     </div>
@@ -50,29 +50,37 @@
           <div class="col-12 col-md-8 col-lg-6">
             <div class="card p-4 shadow-sm border-0 rounded-4">
               <h5 class="fw-bold mb-3">Servicios disponibles</h5>
-              <div class="d-flex flex-column gap-3">
-                @for (svc of profile()?.services; track svc.id) {
-                  <div
-                    class="service-selection-card d-flex justify-content-between align-items-center p-3 rounded-3 border"
-                    [class.selected]="selectedService()?.id === svc.id"
-                    (click)="selectService(svc)"
-                  >
-                    <div class="d-flex align-items-center gap-3">
-                      <div class="service-icon-box">
-                        <i class="cil-cut"></i>
+              @if (!profile()?.services || profile()!.services.length === 0) {
+                <div class="text-center py-5 text-muted bg-light rounded-3">
+                  <i class="cil-cut mb-2 d-block" style="font-size: 2rem;"></i>
+                  <p class="mb-0 fw-semibold">No hay servicios disponibles en este momento.</p>
+                  <small class="text-secondary">Pronto tendremos nuevos horarios y servicios disponibles para reservar.</small>
+                </div>
+              } @else {
+                <div class="d-flex flex-column gap-3">
+                  @for (svc of profile()?.services; track svc.id) {
+                    <div
+                      class="service-selection-card d-flex justify-content-between align-items-center p-3 rounded-3 border"
+                      [class.selected]="selectedService()?.id === svc.id"
+                      (click)="selectService(svc)"
+                    >
+                      <div class="d-flex align-items-center gap-3">
+                        <div class="service-icon-box">
+                          <i class="cil-cut"></i>
+                        </div>
+                        <div>
+                          <h6 class="mb-0 fw-bold text-dark">{{ svc.name }}</h6>
+                          <small class="text-muted"><i class="cil-clock"></i> {{ svc.durationMinutes }} min</small>
+                        </div>
                       </div>
-                      <div>
-                        <h6 class="mb-0 fw-bold text-dark">{{ svc.name }}</h6>
-                        <small class="text-muted"><i class="cil-clock"></i> {{ svc.durationMinutes }} min</small>
+                      <div class="d-flex align-items-center gap-3">
+                        <span class="fw-bold fs-6">RD${{ svc.price | number:'1.0-0' }}</span>
+                        <i class="cil-chevron-right text-muted"></i>
                       </div>
                     </div>
-                    <div class="d-flex align-items-center gap-3">
-                      <span class="fw-bold fs-6">RD${{ svc.price | number:'1.0-0' }}</span>
-                      <i class="cil-chevron-right text-muted"></i>
-                    </div>
-                  </div>
-                }
-              </div>
+                  }
+                </div>
+              }
             </div>
           </div>
         </div>

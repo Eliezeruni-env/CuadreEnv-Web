@@ -33,14 +33,14 @@
                 (click)="selectProfessional(prof)"
               >
                 <div class="prof-avatar" [style.background-color]="prof.colorHex || '#2563eb'">
-                  {{ (prof.fullName || 'P').charAt(0).toUpperCase() }}
+                  {{ (prof.fullName || 'Colaborador').trim().charAt(0).toUpperCase() || 'P' }}
                 </div>
                 <div class="flex-grow-1">
                   <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 text-dark fw-bold">{{ prof.fullName || 'Colaborador' }}</h6>
+                    <h6 class="mb-0 text-dark fw-bold">{{ (prof.fullName || 'Colaborador').trim() || 'Colaborador' }}</h6>
                     <span class="badge bg-success-subtle text-success small">Activo</span>
                   </div>
-                  <small class="text-muted d-block">{{ prof.specialties || 'Servicios generales' }}</small>
+                  <small class="text-muted d-block">{{ (prof.specialties || 'Servicios generales').trim() || 'Servicios generales' }}</small>
                   <small class="text-secondary"><i class="cil-clock"></i> Lun - Sáb 09:00 - 18:00</small>
                 </div>
               </div>
@@ -56,11 +56,11 @@
         <div class="availability-card">
           <div class="card-header-bar d-flex align-items-center gap-3">
             <div class="prof-avatar" [style.background-color]="selectedProfessional()?.colorHex || '#2563eb'">
-              {{ (selectedProfessional()?.fullName || 'P').charAt(0).toUpperCase() }}
+              {{ (selectedProfessional()?.fullName || 'Colaborador').trim().charAt(0).toUpperCase() || 'P' }}
             </div>
             <div>
-              <h5 class="mb-0 fw-bold">{{ selectedProfessional()?.fullName || 'Colaborador' }}</h5>
-              <span class="text-muted small">{{ selectedProfessional()?.specialties || 'Servicios generales' }}</span>
+              <h5 class="mb-0 fw-bold">{{ (selectedProfessional()?.fullName || 'Colaborador').trim() || 'Colaborador' }}</h5>
+              <span class="text-muted small">{{ (selectedProfessional()?.specialties || 'Servicios generales').trim() || 'Servicios generales' }}</span>
             </div>
           </div>
 
