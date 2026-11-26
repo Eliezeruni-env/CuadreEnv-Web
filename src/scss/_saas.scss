@@ -459,7 +459,18 @@ c-sidebar .sidebar-nav .nav-group-items svg.nav-icon,
 c-sidebar-nav .nav-group .nav-icon,
 c-sidebar-nav .nav-group svg.nav-icon,
 c-sidebar-nav .nav-group-items .nav-icon,
-c-sidebar-nav .nav-group-items svg.nav-icon {
+c-sidebar-nav .nav-group-items svg.nav-icon,
+.nav-group-items .nav-icon,
+.nav-group-items svg.nav-icon,
+.nav-group-items .nav-link .nav-icon,
+.nav-group-items .nav-link svg,
+.nav-group-items .nav-link svg.nav-icon,
+.sidebar .nav-group-items .nav-link .nav-icon,
+.sidebar .nav-group-items .nav-link svg,
+c-sidebar .nav-group-items .nav-link .nav-icon,
+c-sidebar .nav-group-items .nav-link svg,
+c-sidebar-nav .nav-group-items .nav-link .nav-icon,
+c-sidebar-nav .nav-group-items .nav-link svg {
   margin: 0 !important;
   margin-inline-start: 0 !important;
   margin-left: 0 !important;
@@ -475,6 +486,8 @@ c-sidebar-nav .nav-group-items svg.nav-icon {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  visibility: visible !important;
+  opacity: 0.9 !important;
 }
 
 .sidebar-nav .nav-link,

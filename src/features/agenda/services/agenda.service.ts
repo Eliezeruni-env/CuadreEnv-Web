@@ -187,8 +187,16 @@ export class AgendaService {
       const assignedIds = Array.isArray(p.assignedServiceIds ?? p.AssignedServiceIds)
         ? (p.assignedServiceIds ?? p.AssignedServiceIds)
         : [];
-      const fullName = p.displayName ?? p.DisplayName ?? p.fullName ?? p.FullName ?? 'Profesional';
-      const specialties = p.specialtyTitle ?? p.SpecialtyTitle ?? p.specialties ?? p.Specialties ?? '';
+      const rawName = String(p.displayName || p.DisplayName || p.fullName || p.FullName || '').trim();
+      const fullName = rawName || `Colaborador #${p.id ?? p.Id ?? 1}`;
+      const rawSpec = String(p.specialtyTitle || p.SpecialtyTitle || p.specialties || p.Specialties || '').trim();
+      const specialties = rawSpec || 'Servicios generales';
+      const weekly = Array.isArray(p.weeklyAvailabilities ?? p.WeeklyAvailabilities)
+        ? (p.weeklyAvailabilities ?? p.WeeklyAvailabilities)
+        : [];
+      const exceptions = Array.isArray(p.exceptions ?? p.Exceptions)
+        ? (p.exceptions ?? p.Exceptions)
+        : [];
       return {
         id: Number(p.id ?? p.Id ?? 0),
         userId: p.userId ?? p.UserId ?? null,
@@ -203,8 +211,8 @@ export class AgendaService {
         isActive: Boolean(p.isActive ?? p.IsActive ?? true),
         assignedServiceIds: assignedIds,
         assignedServicesCount: assignedIds.length,
-        weeklyAvailabilities: Array.isArray(p.weeklyAvailabilities) ? p.weeklyAvailabilities : [],
-        exceptions: Array.isArray(p.exceptions) ? p.exceptions : [],
+        weeklyAvailabilities: weekly,
+        exceptions: exceptions,
       };
     });
   }

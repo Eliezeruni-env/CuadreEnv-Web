@@ -58,26 +58,18 @@ export class ProductService {
 
   isServiceItem(p: any): boolean {
     if (!p) return false;
-    // Si explícitamente es bien tangible (productTypeId = 1), NO es servicio a menos que empiece con SERV-
-    if ((p.productTypeId === 1 || p.ProductTypeId === 1) && !p.isService) {
-      const code = String(p.barcode || p.reference || '').toUpperCase().trim();
-      if (!code.startsWith('SERV-')) return false;
-    }
-    if (p.isService === true || p.type === 'service' || p.type === 'Servicio')
-      return true;
-    if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
-    const ref = String(p.barcode || p.reference || '')
-      .toUpperCase()
-      .trim();
+    const ref = String(p.barcode || p.reference || p.code || '').toUpperCase().trim();
     if (ref.startsWith('SERV-')) return true;
-    const typeName = String(
-      p.productTypeName || p.productType?.name || '',
-    ).toLowerCase();
-    if (typeName.includes('servicio') || typeName.includes('service')) return true;
-    const catName = String(
-      p.categoryName || p.category?.name || '',
-    ).toLowerCase();
-    if (catName.includes('servicio') || catName.includes('service')) return true;
+    if (p.productTypeId === 2 || p.ProductTypeId === 2) return true;
+    if (p.isService === true) return true;
+
+    // Si tiene stock físico > 0 y no empieza con SERV-, es un producto de inventario
+    if (Number(p.stock) > 0 && !ref.startsWith('SERV-')) return false;
+    if ((p.productTypeId === 1 || p.ProductTypeId === 1) && !p.isService) return false;
+
+    const typeName = String(p.productTypeName || p.productType?.name || p.type || '').toLowerCase().trim();
+    if (typeName === 'servicio' || typeName === 'service') return true;
+
     return false;
   }
 

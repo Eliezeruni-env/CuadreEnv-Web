@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { IconDirective } from '@coreui/icons-angular';
 import { AgendaService } from '../../services/agenda.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import type { AgendaReportsDto } from '../../models/agenda.models';
@@ -8,7 +9,7 @@ import type { AgendaReportsDto } from '../../models/agenda.models';
 @Component({
   selector: 'app-agenda-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconDirective],
   templateUrl: './agenda-reports.component.html',
   styleUrls: ['./agenda-reports.component.scss'],
 })

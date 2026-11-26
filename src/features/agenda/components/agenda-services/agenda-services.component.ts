@@ -2,6 +2,7 @@ import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { IconDirective } from '@coreui/icons-angular';
 import { AgendaService } from '../../services/agenda.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import { ServiceService } from '../../../services/services/service.service';
@@ -12,7 +13,7 @@ import type { ServiceItemDto } from '../../../services/models/service-item.model
 @Component({
   selector: 'app-agenda-services',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, IconDirective],
   templateUrl: './agenda-services.component.html',
   styleUrls: ['./agenda-services.component.scss'],
 })

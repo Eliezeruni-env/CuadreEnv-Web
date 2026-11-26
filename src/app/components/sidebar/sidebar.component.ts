@@ -115,7 +115,7 @@ export const ROUTES: RouteInfo[] = [
     path: '/agenda/dashboard',
     moduleCode: 'appointments',
     title: 'Panel Agenda',
-    icon: 'cilClock',
+    icon: 'cilSpeedometer',
     class: '',
   },
   {
@@ -402,9 +402,7 @@ export class SidebarComponent {
       }
 
       const moduleCode = item.moduleCode || item.path;
-      return moduleCode && this.hasModule(moduleCode)
-        ? [{ ...item }]
-        : [];
+      return moduleCode && this.hasModule(moduleCode) ? [{ ...item }] : [];
     });
 
     return filtered.filter((item, index) => {
@@ -445,4 +443,3 @@ export class SidebarComponent {
     clearTimeout(this.hoverTimeout);
   }
 }
-

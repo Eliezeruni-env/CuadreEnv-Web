@@ -7,11 +7,11 @@
     </div>
     <div class="d-flex align-items-center gap-2">
       <button class="btn btn-outline-primary d-flex align-items-center gap-2" (click)="openLinkModal()">
-        <i class="cil-link"></i>
+        <svg cIcon name="cilExternalLink" style="width: 16px; height: 16px;"></svg>
         <span>Vincular catálogo</span>
       </button>
       <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openCreateModal()">
-        <i class="cil-plus"></i>
+        <svg cIcon name="cilPlus" style="width: 16px; height: 16px;"></svg>
         <span>+ Nuevo servicio</span>
       </button>
     </div>
@@ -22,7 +22,7 @@
     <div class="col-12 col-md-4">
       <div class="kpi-card">
         <div class="kpi-icon kpi-purple">
-          <i class="cil-cut"></i>
+          <svg cIcon name="cilCut" style="width: 24px; height: 24px;"></svg>
         </div>
         <div class="kpi-info">
           <span class="kpi-label">Servicios activos</span>
@@ -34,7 +34,7 @@
     <div class="col-12 col-md-4">
       <div class="kpi-card">
         <div class="kpi-icon kpi-blue">
-          <i class="cil-clock"></i>
+          <svg cIcon name="cilClock" style="width: 24px; height: 24px;"></svg>
         </div>
         <div class="kpi-info">
           <span class="kpi-label">Duración promedio</span>
@@ -46,7 +46,7 @@
     <div class="col-12 col-md-4">
       <div class="kpi-card">
         <div class="kpi-icon kpi-green">
-          <i class="cil-globe-alt"></i>
+          <svg cIcon name="cilGlobeAlt" style="width: 24px; height: 24px;"></svg>
         </div>
         <div class="kpi-info">
           <span class="kpi-label">Reservables en línea</span>
@@ -83,7 +83,7 @@
             <tr>
               <td colspan="7" class="text-center py-5 text-muted">
                 <div class="mb-2">
-                  <i class="cil-briefcase" style="font-size: 2rem;"></i>
+                  <svg cIcon name="cilBriefcase" style="width: 32px; height: 32px; opacity: 0.5;"></svg>
                 </div>
                 <div class="fw-semibold">No hay servicios reservables configurados</div>
                 <small class="d-block mt-1">Haz clic en <strong>"+ Nuevo servicio"</strong> para crear uno nuevo o en <strong>"Vincular catálogo"</strong> para añadir uno existente.</small>
@@ -103,7 +103,7 @@
                 </td>
                 <td>
                   <div class="d-flex align-items-center gap-1">
-                    <i class="cil-clock text-muted"></i>
+                    <svg cIcon name="cilClock" class="text-muted" style="width: 14px; height: 14px;"></svg>
                     <span>{{ s.durationMinutes }} min</span>
                   </div>
                 </td>
@@ -132,7 +132,7 @@
                 </td>
                 <td class="text-end">
                   <button class="btn btn-sm btn-outline-secondary" (click)="openEditModal(s)" title="Editar configuración de servicio">
-                    <i class="cil-pencil"></i>
+                    <svg cIcon name="cilPencil" style="width: 14px; height: 14px;"></svg>
                   </button>
                 </td>
               </tr>
@@ -170,21 +170,21 @@
             <div class="btn-group w-100 mb-3" role="group">
               <button
                 type="button"
-                class="btn btn-sm"
+                class="btn btn-sm d-flex align-items-center justify-content-center gap-1"
                 [class.btn-primary]="modalMode() === 'CREATE'"
                 [class.btn-outline-primary]="modalMode() !== 'CREATE'"
                 (click)="setModalMode('CREATE')"
               >
-                <i class="cil-plus me-1"></i> Crear nuevo servicio
+                <svg cIcon name="cilPlus" style="width: 14px; height: 14px;"></svg> Crear nuevo servicio
               </button>
               <button
                 type="button"
-                class="btn btn-sm"
+                class="btn btn-sm d-flex align-items-center justify-content-center gap-1"
                 [class.btn-primary]="modalMode() === 'LINK'"
                 [class.btn-outline-primary]="modalMode() !== 'LINK'"
                 (click)="setModalMode('LINK')"
               >
-                <i class="cil-link me-1"></i> Vincular existente del catálogo
+                <svg cIcon name="cilExternalLink" style="width: 14px; height: 14px;"></svg> Vincular existente del catálogo
               </button>
             </div>
           }

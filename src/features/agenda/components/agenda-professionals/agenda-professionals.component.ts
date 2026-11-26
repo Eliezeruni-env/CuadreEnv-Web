@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { IconDirective } from '@coreui/icons-angular';
 import { AgendaService } from '../../services/agenda.service';
 import { NotificationService } from '../../../cuadreEnv/services/notification.service';
 import type {
@@ -12,7 +13,7 @@ import type {
 @Component({
   selector: 'app-agenda-professionals',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconDirective],
   templateUrl: './agenda-professionals.component.html',
   styleUrls: ['./agenda-professionals.component.scss'],
 })
@@ -51,6 +52,8 @@ export class AgendaProfessionalsComponent implements OnInit {
   exceptionReason = '';
   exceptionIsAllDay = true;
 
+  readonly weekDays = [1, 2, 3, 4, 5, 6, 0];
+  readonly summaryDays = [1, 2, 3, 4, 5, 6];
   dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
   ngOnInit(): void {
@@ -66,8 +69,10 @@ export class AgendaProfessionalsComponent implements OnInit {
       ]);
       this.professionals.set(resProfs);
       this.services.set(resServices);
-      if (resProfs.length > 0 && !this.selectedProfessional()) {
-        this.selectProfessional(resProfs[0]);
+      if (resProfs.length > 0) {
+        const currentSelected = this.selectedProfessional();
+        const found = currentSelected ? resProfs.find((p) => p.id === currentSelected.id) : null;
+        this.selectProfessional(found || resProfs[0]);
       }
     } catch (err: any) {
       this.notificationService.error('Error al cargar personal', err?.message);
@@ -78,13 +83,20 @@ export class AgendaProfessionalsComponent implements OnInit {
 
   selectProfessional(prof: ProfessionalDto): void {
     this.selectedProfessional.set(prof);
-    if (prof.weeklyAvailabilities && prof.weeklyAvailabilities.length > 0) {
-      const first = prof.weeklyAvailabilities.find((w) => w.isWorkingDay) || prof.weeklyAvailabilities[0];
+    const avail = prof.weeklyAvailabilities;
+    if (avail && avail.length > 0) {
+      const first = avail.find((w) => w.isWorkingDay) || avail[0];
       this.workStartTime = first.startTime ? first.startTime.substring(0, 5) : '09:00';
       this.workEndTime = first.endTime ? first.endTime.substring(0, 5) : '18:00';
       this.breakStartTime = first.breakStartTime ? first.breakStartTime.substring(0, 5) : '12:00';
       this.breakEndTime = first.breakEndTime ? first.breakEndTime.substring(0, 5) : '13:00';
-      this.activeDays = prof.weeklyAvailabilities.filter((w) => w.isWorkingDay).map((w) => w.dayOfWeek);
+      this.activeDays = avail.filter((w) => w.isWorkingDay).map((w) => w.dayOfWeek);
+    } else {
+      this.workStartTime = '09:00';
+      this.workEndTime = '18:00';
+      this.breakStartTime = '12:00';
+      this.breakEndTime = '13:00';
+      this.activeDays = [1, 2, 3, 4, 5, 6];
     }
   }
 

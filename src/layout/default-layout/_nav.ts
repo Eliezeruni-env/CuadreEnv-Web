@@ -95,7 +95,7 @@ export const navItems: ModuleNavItem[] = [
     name: 'Panel Agenda',
     url: '/agenda/dashboard',
     moduleCode: 'appointments',
-    iconComponent: { name: 'cil-calendar-check' },
+    iconComponent: { name: 'cil-speedometer' },
     linkProps: { routerLinkActiveOptions: { exact: true } },
   },
   {
