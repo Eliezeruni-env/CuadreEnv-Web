@@ -91,7 +91,11 @@
                         routerLinkActive="active"
                         class="sub-nav-link d-flex align-items-center gap-2 px-3 py-1-5 rounded text-decoration-none small"
                       >
-                        <span class="bullet-dot"></span>
+                        @if (sub.icon) {
+                          <svg cIcon [name]="sub.icon" style="width: 14px; height: 14px; opacity: 0.85;"></svg>
+                        } @else {
+                          <span class="bullet-dot"></span>
+                        }
                         <span class="text-truncate">{{ sub.title }}</span>
                       </a>
                     </li>
@@ -124,7 +128,11 @@
               routerLinkActive="active"
               class="flyout-link d-flex align-items-center gap-2 px-2 py-1-5 rounded text-decoration-none small text-white-75"
             >
-              <span class="bullet-dot"></span>
+              @if (sub.icon) {
+                <svg cIcon [name]="sub.icon" style="width: 14px; height: 14px; opacity: 0.85;"></svg>
+              } @else {
+                <span class="bullet-dot"></span>
+              }
               <span>{{ sub.title }}</span>
             </a>
           </li>

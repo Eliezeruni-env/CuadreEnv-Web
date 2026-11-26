@@ -107,21 +107,25 @@ export const navItems: ModuleNavItem[] = [
       {
         name: 'Calendario',
         url: '/agenda/calendar',
+        iconComponent: { name: 'cil-calendar' },
         moduleCode: 'appointments-calendar',
       },
       {
         name: 'Reservas y Solicitudes',
         url: '/agenda/reservations',
+        iconComponent: { name: 'cil-task' },
         moduleCode: 'appointments-reservations',
       },
       {
         name: 'Clientes de Citas',
         url: '/agenda/clients',
+        iconComponent: { name: 'cil-user' },
         moduleCode: 'appointments-clients',
       },
       {
         name: 'Mi Página de Reservas',
         url: '/agenda/booking-page',
+        iconComponent: { name: 'cil-globe-alt' },
         moduleCode: 'appointments-booking-page',
       },
     ],

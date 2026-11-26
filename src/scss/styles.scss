@@ -1,5 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
 @use "../styles/design-tokens.css";
+@use "@coreui/icons/css/all.min.css";
 
 // Import styles with default layout.
 @use "@coreui/coreui/scss/coreui" as * with ($enable-deprecation-messages: false);
